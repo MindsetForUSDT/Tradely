@@ -6,120 +6,38 @@
     <title>Tradeum — Торги</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #0A0E17;
-            color: #E8EDF2;
-            padding: 24px;
-        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0A0E17; color: #E8EDF2; padding: 24px; }
         .container { max-width: 1400px; margin: 0 auto; }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 24px;
-            border-bottom: 1px solid #2A3042;
-            margin-bottom: 32px;
-        }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 24px; border-bottom: 1px solid #2A3042; margin-bottom: 32px; }
         .logo { font-size: 28px; font-weight: 800; }
         .logo span { color: #00D09C; }
-        .prices {
-            display: flex;
-            gap: 24px;
-            margin-bottom: 32px;
-        }
-        .price-card {
-            background: #121624;
-            padding: 16px 24px;
-            border-radius: 16px;
-            border: 1px solid #2A3042;
-        }
+        .prices { display: flex; gap: 24px; margin-bottom: 32px; }
+        .price-card { background: #121624; padding: 16px 24px; border-radius: 16px; border: 1px solid #2A3042; }
         .price-card .symbol { font-size: 14px; color: #A0A8C0; }
         .price-card .price { font-size: 28px; font-weight: 700; margin-top: 8px; }
-        .chart-container {
-            background: #121624;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 32px;
-            border: 1px solid #2A3042;
-        }
+        .chart-container { background: #121624; border-radius: 16px; padding: 20px; margin-bottom: 32px; border: 1px solid #2A3042; }
         #chart { width: 100%; height: 400px; }
-        .panel {
-            background: #121624;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 32px;
-            border: 1px solid #2A3042;
-        }
+        .panel { background: #121624; border-radius: 16px; padding: 24px; margin-bottom: 32px; border: 1px solid #2A3042; }
         .panel h3 { margin-bottom: 20px; }
-        .controls {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-            align-items: flex-end;
-        }
-        .control {
-            flex: 1;
-            min-width: 150px;
-        }
-        .control label {
-            display: block;
-            font-size: 12px;
-            color: #A0A8C0;
-            margin-bottom: 8px;
-        }
-        select, input {
-            width: 100%;
-            padding: 12px;
-            background: #1A1F2E;
-            border: 1px solid #2A3042;
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-        }
-        .direction-group {
-            display: flex;
-            gap: 12px;
-        }
-        .direction-btn {
-            flex: 1;
-            text-align: center;
-            padding: 12px;
-            background: #1A1F2E;
-            border: 1px solid #2A3042;
-            border-radius: 8px;
-            cursor: pointer;
-        }
+        .controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
+        .control { flex: 1; min-width: 150px; }
+        .control label { display: block; font-size: 12px; color: #A0A8C0; margin-bottom: 8px; }
+        select, input { width: 100%; padding: 12px; background: #1A1F2E; border: 1px solid #2A3042; border-radius: 8px; color: white; font-size: 14px; }
+        .direction-group { display: flex; gap: 12px; }
+        .direction-btn { flex: 1; text-align: center; padding: 12px; background: #1A1F2E; border: 1px solid #2A3042; border-radius: 8px; cursor: pointer; }
         .direction-btn.long.active { background: #00D09C; color: #0A0E17; }
         .direction-btn.short.active { background: #FF4D6D; color: #0A0E17; }
-        .trade-btn {
-            background: #00D09C;
-            color: #0A0E17;
-            font-weight: 700;
-            padding: 12px 32px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            height: 48px;
-        }
-        .history {
-            background: #121624;
-            border-radius: 16px;
-            overflow: hidden;
-            border: 1px solid #2A3042;
-        }
+        .trade-btn { background: #00D09C; color: #0A0E17; font-weight: 700; padding: 12px 32px; border: none; border-radius: 8px; cursor: pointer; height: 48px; }
+        .history { background: #121624; border-radius: 16px; overflow: hidden; border: 1px solid #2A3042; }
         .history h3 { padding: 20px 24px 0 24px; margin-bottom: 0; }
-        .trade-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 16px 24px;
-            border-bottom: 1px solid #2A3042;
-        }
+        .trade-row { display: flex; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #2A3042; }
         .positive { color: #00D09C; }
         .negative { color: #FF4D6D; }
         .empty { text-align: center; padding: 48px; color: #A0A8C0; }
+        .error-box { background: rgba(255, 77, 109, 0.1); border: 1px solid #FF4D6D; border-radius: 12px; padding: 16px; margin-bottom: 20px; color: #FF4D6D; }
     </style>
-    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.js"></script>
+    <!-- ИСПРАВЛЕННАЯ ССЫЛКА НА БИБЛИОТЕКУ -->
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
 </head>
 <body>
     <div class="container">
@@ -127,6 +45,8 @@
             <div class="logo">Trade<span>um</span></div>
             <div>👤 {{ user.username }} | 💰 $<span id="balance">{{ user.balance }}</span></div>
         </div>
+
+        <div id="errorDisplay" class="error-box" style="display: none;"></div>
 
         <div class="prices">
             <div class="price-card">
@@ -197,21 +117,53 @@
         const userId = {{ user.id }};
         let currentDir = 'long';
 
-        // График
-        let chart = LightweightCharts.createChart(document.getElementById('chart'), {
-            layout: { background: { color: '#121624' }, textColor: '#E8EDF2' },
-            grid: { vertLines: { color: '#2A3042' }, horzLines: { color: '#2A3042' } },
-            width: document.getElementById('chart').clientWidth,
-            height: 400,
-        });
-        let lineSeries = chart.addLineSeries({ color: '#00D09C', lineWidth: 2 });
+        function showError(msg) {
+            const errorDiv = document.getElementById('errorDisplay');
+            errorDiv.innerHTML = '❌ ' + msg;
+            errorDiv.style.display = 'block';
+            setTimeout(() => errorDiv.style.display = 'none', 8000);
+        }
+
+        // График (проверяем, что библиотека загрузилась)
+        if (typeof LightweightCharts === 'undefined') {
+            console.error('LightweightCharts не загрузилась!');
+            showError('Ошибка загрузки графика, но торговля работает');
+        } else {
+            let chart = LightweightCharts.createChart(document.getElementById('chart'), {
+                layout: { background: { color: '#121624' }, textColor: '#E8EDF2' },
+                grid: { vertLines: { color: '#2A3042' }, horzLines: { color: '#2A3042' } },
+                width: document.getElementById('chart').clientWidth,
+                height: 400,
+            });
+            let lineSeries = chart.addLineSeries({ color: '#00D09C', lineWidth: 2 });
+
+            // Загрузка демо-данных для графика
+            async function loadDemoChart() {
+                const data = [];
+                let price = 50000;
+                for (let i = 0; i < 100; i++) {
+                    price *= (1 + (Math.random() - 0.5) * 0.01);
+                    const date = new Date();
+                    date.setHours(date.getHours() - (100 - i));
+                    data.push({ time: date.toISOString().split('T')[0], value: price });
+                }
+                lineSeries.setData(data);
+            }
+            loadDemoChart();
+
+            window.addEventListener('resize', () => chart.applyOptions({ width: document.getElementById('chart').clientWidth }));
+        }
 
         // Цены
         async function updatePrices() {
-            const btc = await fetch('/api/price/BTC').then(r => r.json());
-            const eth = await fetch('/api/price/ETH').then(r => r.json());
-            document.getElementById('btc').innerText = '$' + btc.price.toFixed(2);
-            document.getElementById('eth').innerText = '$' + eth.price.toFixed(2);
+            try {
+                const btc = await fetch('/api/price/BTC').then(r => r.json());
+                const eth = await fetch('/api/price/ETH').then(r => r.json());
+                document.getElementById('btc').innerText = '$' + btc.price.toFixed(2);
+                document.getElementById('eth').innerText = '$' + eth.price.toFixed(2);
+            } catch(e) {
+                console.error('Price update error:', e);
+            }
         }
 
         // Торговля
@@ -220,29 +172,66 @@
             const leverage = parseInt(document.getElementById('leverage').value);
             const amount = parseFloat(document.getElementById('amount').value);
             const btn = document.getElementById('tradeBtn');
-            btn.disabled = true;
-            btn.textContent = '⏳...';
+            const resultDiv = document.getElementById('result');
 
-            const res = await fetch('/api/trade', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ user_id: userId, symbol, position_type: currentDir, leverage, amount })
-            });
-            const data = await res.json();
-
-            if (data.success) {
-                document.getElementById('result').innerHTML = `<div style="background:#121624;padding:20px;border-radius:16px;border-left:4px solid #00D09C">
-                    ✅ Сделка закрыта! PnL: ${data.pnl_percent}% ($${data.pnl_amount})<br>Новый баланс: $${data.new_balance}
-                </div>`;
-                document.getElementById('balance').innerText = data.new_balance;
-                setTimeout(() => location.reload(), 2000);
-            } else {
-                document.getElementById('result').innerHTML = `<div style="background:#121624;padding:20px;border-radius:16px;border-left:4px solid #FF4D6D">
-                    ❌ ${data.error}
-                </div>`;
+            if (isNaN(amount) || amount <= 0) {
+                showError('Введите корректную сумму');
+                return;
             }
-            btn.disabled = false;
-            btn.textContent = '🚀 Открыть';
+
+            btn.disabled = true;
+            btn.textContent = '⏳ Обработка...';
+            resultDiv.innerHTML = '';
+
+            try {
+                console.log('Sending trade request:', { user_id: userId, symbol, position_type: currentDir, leverage, amount });
+
+                const response = await fetch('/api/trade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        symbol: symbol,
+                        position_type: currentDir,
+                        leverage: leverage,
+                        amount: amount
+                    })
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    resultDiv.innerHTML = `<div style="background:#121624;padding:20px;border-radius:16px;border-left:4px solid #00D09C">
+                        ✅ Сделка закрыта!<br>
+                        Вход: $${data.entry_price} → Выход: $${data.exit_price} (${data.price_change_pct}%)<br>
+                        PnL: ${data.pnl_percent}% ($${data.pnl_amount})<br>
+                        Новый баланс: $${data.new_balance}
+                    </div>`;
+                    document.getElementById('balance').innerText = data.new_balance;
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    showError(data.error || 'Неизвестная ошибка');
+                    resultDiv.innerHTML = `<div style="background:#121624;padding:20px;border-radius:16px;border-left:4px solid #FF4D6D">
+                        ❌ ${data.error || 'Ошибка при открытии сделки'}
+                    </div>`;
+                }
+            } catch (err) {
+                console.error('Trade error:', err);
+                showError(err.message);
+                resultDiv.innerHTML = `<div style="background:#121624;padding:20px;border-radius:16px;border-left:4px solid #FF4D6D">
+                    ❌ Ошибка: ${err.message}
+                </div>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Открыть';
+            }
         };
 
         // Направление
@@ -254,8 +243,6 @@
             };
         });
 
-        // Адаптив графика
-        window.addEventListener('resize', () => chart.applyOptions({ width: document.getElementById('chart').clientWidth }));
         updatePrices();
         setInterval(updatePrices, 10000);
     </script>
