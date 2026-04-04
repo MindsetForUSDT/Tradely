@@ -71,11 +71,158 @@ def init_db():
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS open_positions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                symbol TEXT NOT NULL,
+                position_type TEXT NOT NULL,
+                leverage INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                amount REAL NOT NULL,
+                status TEXT DEFAULT 'open',
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
         conn.commit()
 
 
 init_db()
 
+
+# ========== УПРАВЛЕНИЕ ПОЗИЦИЯМИ ==========
+
+@app.get("/api/positions/{user_id}")
+async def get_positions(user_id: int):
+    with get_db() as conn:
+        positions = conn.execute("""
+            SELECT id, symbol, position_type, leverage, entry_price, amount, created_at
+            FROM open_positions
+            WHERE user_id = ? AND status = 'open'
+            ORDER BY created_at DESC
+        """, (user_id,)).fetchall()
+        return [dict(p) for p in positions]
+
+
+@app.post("/api/position/open")
+async def open_position(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        symbol = data.get("symbol")
+        position_type = data.get("position_type")
+        leverage = data.get("leverage")
+        amount = data.get("amount")
+
+        with get_db() as conn:
+            user = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,)).fetchone()
+            if not user:
+                return {"success": False, "error": "User not found"}
+
+            margin = amount / leverage
+            if margin > user["balance"]:
+                return {"success": False, "error": f"Need ${margin} margin, have ${user['balance']}"}
+
+            if symbol == "BTC":
+                entry_price = get_btc_price()
+            else:
+                entry_price = get_eth_price()
+
+            # Списываем маржу
+            new_balance = user["balance"] - margin
+            conn.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, user_id))
+
+            # Сохраняем позицию
+            conn.execute("""
+                INSERT INTO open_positions (user_id, symbol, position_type, leverage, entry_price, amount)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, symbol, position_type, leverage, entry_price, amount))
+            conn.commit()
+
+            return {"success": True, "new_balance": new_balance}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/position/close")
+async def close_position(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        position_id = data.get("position_id")
+        close_percent = data.get("close_percent")  # 0-100
+        close_amount = data.get("close_amount")  # альтернатива
+
+        with get_db() as conn:
+            # Получаем позицию
+            pos = conn.execute("SELECT * FROM open_positions WHERE id = ? AND user_id = ?",
+                               (position_id, user_id)).fetchone()
+            if not pos:
+                return {"success": False, "error": "Position not found"}
+
+            # Текущая цена
+            if pos["symbol"] == "BTC":
+                current_price = get_btc_price()
+            else:
+                current_price = get_eth_price()
+
+            # Расчёт PnL
+            if pos["position_type"] == "long":
+                price_change = (current_price - pos["entry_price"]) / pos["entry_price"]
+            else:
+                price_change = (pos["entry_price"] - current_price) / pos["entry_price"]
+
+            # Определяем закрываемую сумму
+            if close_percent:
+                close_ratio = close_percent / 100
+                close_amount = pos["amount"] * close_ratio
+            else:
+                close_ratio = close_amount / pos["amount"]
+                close_amount = min(close_amount, pos["amount"])
+
+            pnl = pos["amount"] * price_change * pos["leverage"] * close_ratio
+
+            # Возвращаем маржу + PnL
+            margin_return = (pos["amount"] / pos["leverage"]) * close_ratio
+            total_return = margin_return + pnl
+
+            # Обновляем баланс пользователя
+            user = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,)).fetchone()
+            new_balance = user["balance"] + total_return
+            conn.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, user_id))
+
+            # Обновляем или удаляем позицию
+            remaining_amount = pos["amount"] - close_amount
+            if remaining_amount <= 0.01:
+                conn.execute("DELETE FROM open_positions WHERE id = ?", (position_id,))
+            else:
+                conn.execute("UPDATE open_positions SET amount = ? WHERE id = ?", (remaining_amount, position_id))
+
+            # Записываем в историю
+            conn.execute("""
+                INSERT INTO trades (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, pnl)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, pos["symbol"], pos["position_type"], pos["leverage"],
+                  pos["entry_price"], current_price, close_amount, pnl))
+            conn.commit()
+
+            return {"success": True, "new_balance": new_balance, "pnl": pnl, "received": total_return}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/history/{user_id}")
+async def get_history(user_id: int):
+    with get_db() as conn:
+        trades = conn.execute("""
+            SELECT symbol, position_type, leverage, pnl, created_at
+            FROM trades
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 50
+        """, (user_id,)).fetchall()
+        return [dict(t) for t in trades]
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()

@@ -3,20 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tradeum — Торги</title>
+    <title>Tradeum — Профессиональная торговля</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0A0E17; color: #E8EDF2; padding: 24px; }
         .container { max-width: 1400px; margin: 0 auto; }
+
+        /* Шапка */
         .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 24px; border-bottom: 1px solid #2A3042; margin-bottom: 32px; }
         .logo { font-size: 28px; font-weight: 800; }
         .logo span { color: #00D09C; }
-        .prices { display: flex; gap: 24px; margin-bottom: 32px; }
-        .price-card { background: #121624; padding: 16px 24px; border-radius: 16px; border: 1px solid #2A3042; }
+        .balance-card { background: linear-gradient(135deg, #1A2A3A, #0F1320); padding: 16px 24px; border-radius: 16px; border: 1px solid #00D09C33; }
+        .balance-card .label { font-size: 12px; color: #A0A8C0; }
+        .balance-card .value { font-size: 28px; font-weight: 700; color: #00D09C; }
+
+        /* Цены */
+        .prices { display: flex; gap: 24px; margin-bottom: 32px; flex-wrap: wrap; }
+        .price-card { background: #121624; padding: 16px 24px; border-radius: 16px; border: 1px solid #2A3042; flex: 1; min-width: 200px; }
         .price-card .symbol { font-size: 14px; color: #A0A8C0; }
-        .price-card .price { font-size: 28px; font-weight: 700; margin-top: 8px; }
-        .chart-container { background: #121624; border-radius: 16px; padding: 20px; margin-bottom: 32px; border: 1px solid #2A3042; }
-        #chart { width: 100%; height: 400px; }
+        .price-card .price { font-size: 32px; font-weight: 700; margin-top: 8px; }
+        .price-card .change { font-size: 14px; margin-top: 4px; }
+        .change-up { color: #00D09C; }
+        .change-down { color: #FF4D6D; }
+
+        /* Открытие позиции */
         .panel { background: #121624; border-radius: 16px; padding: 24px; margin-bottom: 32px; border: 1px solid #2A3042; }
         .panel h3 { margin-bottom: 20px; }
         .controls { display: flex; gap: 16px; flex-wrap: wrap; align-items: flex-end; }
@@ -24,47 +34,84 @@
         .control label { display: block; font-size: 12px; color: #A0A8C0; margin-bottom: 8px; }
         select, input { width: 100%; padding: 12px; background: #1A1F2E; border: 1px solid #2A3042; border-radius: 8px; color: white; font-size: 14px; }
         .direction-group { display: flex; gap: 12px; }
-        .direction-btn { flex: 1; text-align: center; padding: 12px; background: #1A1F2E; border: 1px solid #2A3042; border-radius: 8px; cursor: pointer; }
-        .direction-btn.long.active { background: #00D09C; color: #0A0E17; }
-        .direction-btn.short.active { background: #FF4D6D; color: #0A0E17; }
-        .trade-btn { background: #00D09C; color: #0A0E17; font-weight: 700; padding: 12px 32px; border: none; border-radius: 8px; cursor: pointer; height: 48px; }
-        .history { background: #121624; border-radius: 16px; overflow: hidden; border: 1px solid #2A3042; }
+        .direction-btn { flex: 1; text-align: center; padding: 12px; background: #1A1F2E; border: 1px solid #2A3042; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
+        .direction-btn.long.active { background: #00D09C; color: #0A0E17; border-color: #00D09C; }
+        .direction-btn.short.active { background: #FF4D6D; color: #0A0E17; border-color: #FF4D6D; }
+        .trade-btn { background: #00D09C; color: #0A0E17; font-weight: 700; padding: 12px 32px; border: none; border-radius: 8px; cursor: pointer; height: 48px; font-size: 16px; }
+
+        /* Открытые позиции */
+        .positions-section { margin-bottom: 32px; }
+        .positions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .positions-grid { display: flex; flex-direction: column; gap: 12px; }
+        .position-card { background: #121624; border-radius: 12px; padding: 20px; border: 1px solid #2A3042; transition: all 0.2s; }
+        .position-card.long { border-left: 4px solid #00D09C; }
+        .position-card.short { border-left: 4px solid #FF4D6D; }
+        .position-row { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+        .position-info { display: flex; gap: 24px; flex-wrap: wrap; }
+        .info-item { display: flex; flex-direction: column; }
+        .info-label { font-size: 11px; color: #A0A8C0; text-transform: uppercase; }
+        .info-value { font-size: 18px; font-weight: 600; }
+        .pnl-positive { color: #00D09C; }
+        .pnl-negative { color: #FF4D6D; }
+        .position-actions { display: flex; gap: 12px; }
+        .close-btn { padding: 8px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .close-full { background: #FF4D6D; color: white; border: none; }
+        .close-partial { background: #2A3042; color: #E8EDF2; border: 1px solid #FF4D6D; }
+        .close-partial:hover { background: #FF4D6D33; }
+        .partial-input { width: 80px; padding: 8px; background: #1A1F2E; border: 1px solid #2A3042; border-radius: 6px; color: white; text-align: center; }
+
+        /* История */
+        .history { background: #121624; border-radius: 16px; overflow: hidden; border: 1px solid #2A3042; margin-top: 32px; }
         .history h3 { padding: 20px 24px 0 24px; margin-bottom: 0; }
         .trade-row { display: flex; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #2A3042; }
         .positive { color: #00D09C; }
         .negative { color: #FF4D6D; }
         .empty { text-align: center; padding: 48px; color: #A0A8C0; }
-        .error-box { background: rgba(255, 77, 109, 0.1); border: 1px solid #FF4D6D; border-radius: 12px; padding: 16px; margin-bottom: 20px; color: #FF4D6D; }
+
+        /* Уведомления */
+        .notification { position: fixed; top: 20px; right: 20px; padding: 16px 24px; border-radius: 12px; background: #121624; border-left: 4px solid; z-index: 1000; animation: slideIn 0.3s ease; }
+        .notification.success { border-color: #00D09C; }
+        .notification.error { border-color: #FF4D6D; }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @media (max-width: 768px) {
+            body { padding: 16px; }
+            .position-row { flex-direction: column; align-items: flex-start; }
+            .position-actions { width: 100%; justify-content: flex-end; }
+        }
     </style>
-    <!-- ИСПРАВЛЕННАЯ ССЫЛКА НА БИБЛИОТЕКУ -->
-    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
 </head>
 <body>
     <div class="container">
+        <!-- Шапка -->
         <div class="header">
             <div class="logo">Trade<span>um</span></div>
-            <div>👤 {{ user.username }} | 💰 $<span id="balance">{{ user.balance }}</span></div>
+            <div class="balance-card">
+                <div class="label">💰 КАПИТАЛ</div>
+                <div class="value" id="balance">${{ user.balance }}</div>
+            </div>
         </div>
 
-        <div id="errorDisplay" class="error-box" style="display: none;"></div>
-
+        <!-- Цены в реальном времени -->
         <div class="prices">
-            <div class="price-card">
+            <div class="price-card" id="btc-card">
                 <div class="symbol">BTC/USDT</div>
-                <div class="price" id="btc">${{ btc_price }}</div>
+                <div class="price" id="btc-price">${{ btc_price }}</div>
+                <div class="change" id="btc-change"></div>
             </div>
-            <div class="price-card">
+            <div class="price-card" id="eth-card">
                 <div class="symbol">ETH/USDT</div>
-                <div class="price" id="eth">${{ eth_price }}</div>
+                <div class="price" id="eth-price">${{ eth_price }}</div>
+                <div class="change" id="eth-change"></div>
             </div>
         </div>
 
-        <div class="chart-container">
-            <div id="chart"></div>
-        </div>
-
+        <!-- Открытие новой позиции -->
         <div class="panel">
-            <h3>📊 Новая позиция</h3>
+            <h3>📊 ОТКРЫТЬ ПОЗИЦИЮ</h3>
             <div class="controls">
                 <div class="control">
                     <label>Актив</label>
@@ -76,12 +123,12 @@
                 <div class="control">
                     <label>Направление</label>
                     <div class="direction-group">
-                        <div class="direction-btn long active" data-dir="long">📈 Лонг</div>
-                        <div class="direction-btn short" data-dir="short">📉 Шорт</div>
+                        <div class="direction-btn long active" data-dir="long">📈 ЛОНГ</div>
+                        <div class="direction-btn short" data-dir="short">📉 ШОРТ</div>
                     </div>
                 </div>
                 <div class="control">
-                    <label>Плечо</label>
+                    <label>Плечо (1-100x)</label>
                     <select id="leverage">
                         <option>1</option><option>5</option><option>10</option><option>15</option>
                         <option>20</option><option>25</option><option>30</option><option>50</option>
@@ -92,101 +139,201 @@
                     <label>Сумма (USDT)</label>
                     <input type="number" id="amount" value="100" step="10">
                 </div>
-                <button class="trade-btn" id="tradeBtn">🚀 Открыть</button>
+                <button class="trade-btn" id="openBtn">🚀 ОТКРЫТЬ</button>
             </div>
         </div>
 
-        <div id="result" style="margin-bottom: 24px;"></div>
-
-        <div class="history">
-            <h3>📋 История сделок</h3>
-            {% for trade in recent_trades %}
-            <div class="trade-row">
-                <span>{{ trade.symbol }}/USDT</span>
-                <span>{{ trade.position_type }} {{ trade.leverage }}x</span>
-                <span class="{% if trade.pnl > 0 %}positive{% else %}negative{% endif %}">${{ trade.pnl }}</span>
-                <span>{{ trade.created_at[:19] }}</span>
+        <!-- Открытые позиции -->
+        <div class="positions-section">
+            <div class="positions-header">
+                <h3>📌 ОТКРЫТЫЕ ПОЗИЦИИ</h3>
+                <span id="positionsCount" style="color: #A0A8C0;"></span>
             </div>
-            {% else %}
-            <div class="empty">✨ Нет сделок. Начните торговать!</div>
-            {% endfor %}
+            <div id="openPositions" class="positions-grid">
+                <div class="empty">Нет открытых позиций</div>
+            </div>
+        </div>
+
+        <!-- История закрытых сделок -->
+        <div class="history">
+            <h3>📋 ИСТОРИЯ СДЕЛОК</h3>
+            <div id="historyList">
+                {% for trade in recent_trades %}
+                <div class="trade-row">
+                    <span>{{ trade.symbol }}/USDT</span>
+                    <span>{{ trade.position_type }} {{ trade.leverage }}x</span>
+                    <span class="{% if trade.pnl > 0 %}positive{% else %}negative{% endif %}">${{ trade.pnl }}</span>
+                    <span>{{ trade.created_at[:19] }}</span>
+                </div>
+                {% else %}
+                <div class="empty">✨ Нет закрытых сделок</div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 
     <script>
         const userId = {{ user.id }};
         let currentDir = 'long';
+        let updateInterval = null;
 
-        function showError(msg) {
-            const errorDiv = document.getElementById('errorDisplay');
-            errorDiv.innerHTML = '❌ ' + msg;
-            errorDiv.style.display = 'block';
-            setTimeout(() => errorDiv.style.display = 'none', 8000);
+        // Цены и изменения
+        let lastPrices = { BTC: {{ btc_price }}, ETH: {{ eth_price }} };
+
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.innerHTML = message;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 4000);
         }
 
-        // График (проверяем, что библиотека загрузилась)
-        if (typeof LightweightCharts === 'undefined') {
-            console.error('LightweightCharts не загрузилась!');
-            showError('Ошибка загрузки графика, но торговля работает');
-        } else {
-            let chart = LightweightCharts.createChart(document.getElementById('chart'), {
-                layout: { background: { color: '#121624' }, textColor: '#E8EDF2' },
-                grid: { vertLines: { color: '#2A3042' }, horzLines: { color: '#2A3042' } },
-                width: document.getElementById('chart').clientWidth,
-                height: 400,
-            });
-            let lineSeries = chart.addLineSeries({ color: '#00D09C', lineWidth: 2 });
-
-            // Загрузка демо-данных для графика
-            async function loadDemoChart() {
-                const data = [];
-                let price = 50000;
-                for (let i = 0; i < 100; i++) {
-                    price *= (1 + (Math.random() - 0.5) * 0.01);
-                    const date = new Date();
-                    date.setHours(date.getHours() - (100 - i));
-                    data.push({ time: date.toISOString().split('T')[0], value: price });
-                }
-                lineSeries.setData(data);
-            }
-            loadDemoChart();
-
-            window.addEventListener('resize', () => chart.applyOptions({ width: document.getElementById('chart').clientWidth }));
-        }
-
-        // Цены
         async function updatePrices() {
             try {
-                const btc = await fetch('/api/price/BTC').then(r => r.json());
-                const eth = await fetch('/api/price/ETH').then(r => r.json());
-                document.getElementById('btc').innerText = '$' + btc.price.toFixed(2);
-                document.getElementById('eth').innerText = '$' + eth.price.toFixed(2);
+                const btcResp = await fetch('/api/price/BTC');
+                const btcData = await btcResp.json();
+                const ethResp = await fetch('/api/price/ETH');
+                const ethData = await ethResp.json();
+
+                const btcPrice = btcData.price;
+                const ethPrice = ethData.price;
+
+                // Обновляем BTC
+                document.getElementById('btc-price').innerHTML = `$${btcPrice.toFixed(2)}`;
+                const btcChange = ((btcPrice - lastPrices.BTC) / lastPrices.BTC * 100);
+                const btcChangeElem = document.getElementById('btc-change');
+                if (btcChange > 0) {
+                    btcChangeElem.innerHTML = `📈 +${btcChange.toFixed(2)}%`;
+                    btcChangeElem.className = 'change change-up';
+                } else if (btcChange < 0) {
+                    btcChangeElem.innerHTML = `📉 ${btcChange.toFixed(2)}%`;
+                    btcChangeElem.className = 'change change-down';
+                } else {
+                    btcChangeElem.innerHTML = '';
+                }
+
+                // Обновляем ETH
+                document.getElementById('eth-price').innerHTML = `$${ethPrice.toFixed(2)}`;
+                const ethChange = ((ethPrice - lastPrices.ETH) / lastPrices.ETH * 100);
+                const ethChangeElem = document.getElementById('eth-change');
+                if (ethChange > 0) {
+                    ethChangeElem.innerHTML = `📈 +${ethChange.toFixed(2)}%`;
+                    ethChangeElem.className = 'change change-up';
+                } else if (ethChange < 0) {
+                    ethChangeElem.innerHTML = `📉 ${ethChange.toFixed(2)}%`;
+                    ethChangeElem.className = 'change change-down';
+                } else {
+                    ethChangeElem.innerHTML = '';
+                }
+
+                lastPrices.BTC = btcPrice;
+                lastPrices.ETH = ethPrice;
+
+                // Обновляем открытые позиции (пересчёт PnL)
+                await loadOpenPositions();
             } catch(e) {
                 console.error('Price update error:', e);
             }
         }
 
-        // Торговля
-        document.getElementById('tradeBtn').onclick = async () => {
+        async function loadOpenPositions() {
+            try {
+                const response = await fetch(`/api/positions/${userId}`);
+                const positions = await response.json();
+
+                const container = document.getElementById('openPositions');
+                const countSpan = document.getElementById('positionsCount');
+
+                if (!positions || positions.length === 0) {
+                    container.innerHTML = '<div class="empty">📭 Нет открытых позиций</div>';
+                    countSpan.textContent = '';
+                    return;
+                }
+
+                countSpan.textContent = `${positions.length} позиций`;
+
+                // Получаем текущие цены
+                const btcPrice = lastPrices.BTC;
+                const ethPrice = lastPrices.ETH;
+
+                container.innerHTML = positions.map(pos => {
+                    const currentPrice = pos.symbol === 'BTC' ? btcPrice : ethPrice;
+                    let pnl = 0;
+                    let pnlPercent = 0;
+
+                    if (pos.position_type === 'long') {
+                        const priceChange = (currentPrice - pos.entry_price) / pos.entry_price;
+                        pnl = pos.amount * priceChange * pos.leverage;
+                        pnlPercent = priceChange * pos.leverage * 100;
+                    } else {
+                        const priceChange = (pos.entry_price - currentPrice) / pos.entry_price;
+                        pnl = pos.amount * priceChange * pos.leverage;
+                        pnlPercent = priceChange * pos.leverage * 100;
+                    }
+
+                    const isPositive = pnl >= 0;
+
+                    return `
+                        <div class="position-card ${pos.position_type}" data-id="${pos.id}">
+                            <div class="position-row">
+                                <div class="position-info">
+                                    <div class="info-item">
+                                        <div class="info-label">Актив</div>
+                                        <div class="info-value">${pos.symbol}/USDT</div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-label">Направление</div>
+                                        <div class="info-value">${pos.position_type === 'long' ? '📈 ЛОНГ' : '📉 ШОРТ'} ${pos.leverage}x</div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-label">Цена входа</div>
+                                        <div class="info-value">$${pos.entry_price.toFixed(2)}</div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-label">Текущая цена</div>
+                                        <div class="info-value">$${currentPrice.toFixed(2)}</div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-label">Размер позиции</div>
+                                        <div class="info-value">$${pos.amount}</div>
+                                    </div>
+                                    <div class="info-item">
+                                        <div class="info-label">PnL</div>
+                                        <div class="info-value ${isPositive ? 'pnl-positive' : 'pnl-negative'}">
+                                            ${isPositive ? '+' : ''}$${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="position-actions">
+                                    <input type="number" id="partial-${pos.id}" class="partial-input" placeholder="Сумма" value="${pos.amount}">
+                                    <button class="close-btn close-partial" onclick="closePartial(${pos.id})">✂️ Частично</button>
+                                    <button class="close-btn close-full" onclick="closeFull(${pos.id})">❌ Закрыть всё</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } catch(e) {
+                console.error('Load positions error:', e);
+            }
+        }
+
+        async function openPosition() {
             const symbol = document.getElementById('symbol').value;
             const leverage = parseInt(document.getElementById('leverage').value);
             const amount = parseFloat(document.getElementById('amount').value);
-            const btn = document.getElementById('tradeBtn');
-            const resultDiv = document.getElementById('result');
+            const btn = document.getElementById('openBtn');
 
             if (isNaN(amount) || amount <= 0) {
-                showError('Введите корректную сумму');
+                showNotification('Введите корректную сумму', 'error');
                 return;
             }
 
             btn.disabled = true;
-            btn.textContent = '⏳ Обработка...';
-            resultDiv.innerHTML = '';
+            btn.textContent = '⏳ ОТКРЫТИЕ...';
 
             try {
-                console.log('Sending trade request:', { user_id: userId, symbol, position_type: currentDir, leverage, amount });
-
-                const response = await fetch('/api/trade', {
+                const response = await fetch('/api/position/open', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -198,43 +345,114 @@
                     })
                 });
 
-                console.log('Response status:', response.status);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
-
                 const data = await response.json();
-                console.log('Response data:', data);
 
                 if (data.success) {
-                    resultDiv.innerHTML = `<div style="background:#121624;padding:20px;border-radius:16px;border-left:4px solid #00D09C">
-                        ✅ Сделка закрыта!<br>
-                        Вход: $${data.entry_price} → Выход: $${data.exit_price} (${data.price_change_pct}%)<br>
-                        PnL: ${data.pnl_percent}% ($${data.pnl_amount})<br>
-                        Новый баланс: $${data.new_balance}
-                    </div>`;
-                    document.getElementById('balance').innerText = data.new_balance;
-                    setTimeout(() => location.reload(), 2000);
+                    showNotification(`✅ Позиция открыта! ${symbol} ${currentDir.toUpperCase()} ${leverage}x`, 'success');
+                    document.getElementById('balance').innerHTML = `$${data.new_balance.toFixed(2)}`;
+                    await loadOpenPositions();
+
+                    // Обновляем историю
+                    const historyResponse = await fetch(`/api/history/${userId}`);
+                    const history = await historyResponse.json();
+                    updateHistoryList(history);
                 } else {
-                    showError(data.error || 'Неизвестная ошибка');
-                    resultDiv.innerHTML = `<div style="background:#121624;padding:20px;border-radius:16px;border-left:4px solid #FF4D6D">
-                        ❌ ${data.error || 'Ошибка при открытии сделки'}
-                    </div>`;
+                    showNotification(data.error || 'Ошибка открытия позиции', 'error');
                 }
-            } catch (err) {
-                console.error('Trade error:', err);
-                showError(err.message);
-                resultDiv.innerHTML = `<div style="background:#121624;padding:20px;border-radius:16px;border-left:4px solid #FF4D6D">
-                    ❌ Ошибка: ${err.message}
-                </div>`;
+            } catch(e) {
+                showNotification('Ошибка сервера', 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '🚀 Открыть';
+                btn.textContent = '🚀 ОТКРЫТЬ';
             }
-        };
+        }
 
-        // Направление
+        async function closeFull(positionId) {
+            try {
+                const response = await fetch('/api/position/close', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        position_id: positionId,
+                        close_percent: 100
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(`✅ Позиция закрыта. PnL: ${data.pnl >= 0 ? '+' : ''}$${data.pnl.toFixed(2)}`, 'success');
+                    document.getElementById('balance').innerHTML = `$${data.new_balance.toFixed(2)}`;
+                    await loadOpenPositions();
+
+                    const historyResponse = await fetch(`/api/history/${userId}`);
+                    const history = await historyResponse.json();
+                    updateHistoryList(history);
+                } else {
+                    showNotification(data.error || 'Ошибка закрытия', 'error');
+                }
+            } catch(e) {
+                showNotification('Ошибка сервера', 'error');
+            }
+        }
+
+        async function closePartial(positionId) {
+            const amountInput = document.getElementById(`partial-${positionId}`);
+            const closeAmount = parseFloat(amountInput.value);
+
+            if (isNaN(closeAmount) || closeAmount <= 0) {
+                showNotification('Введите корректную сумму', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/position/close', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        position_id: positionId,
+                        close_amount: closeAmount
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showNotification(`✂️ Частично закрыто. Получено: $${data.received.toFixed(2)}`, 'success');
+                    document.getElementById('balance').innerHTML = `$${data.new_balance.toFixed(2)}`;
+                    await loadOpenPositions();
+
+                    const historyResponse = await fetch(`/api/history/${userId}`);
+                    const history = await historyResponse.json();
+                    updateHistoryList(history);
+                } else {
+                    showNotification(data.error || 'Ошибка закрытия', 'error');
+                }
+            } catch(e) {
+                showNotification('Ошибка сервера', 'error');
+            }
+        }
+
+        function updateHistoryList(trades) {
+            const historyContainer = document.getElementById('historyList');
+            if (!trades || trades.length === 0) {
+                historyContainer.innerHTML = '<div class="empty">✨ Нет закрытых сделок</div>';
+                return;
+            }
+
+            historyContainer.innerHTML = trades.map(trade => `
+                <div class="trade-row">
+                    <span>${trade.symbol}/USDT</span>
+                    <span>${trade.position_type} ${trade.leverage}x</span>
+                    <span class="${trade.pnl >= 0 ? 'positive' : 'negative'}">$${trade.pnl}</span>
+                    <span>${trade.created_at}</span>
+                </div>
+            `).join('');
+        }
+
+        // Настройка направления
         document.querySelectorAll('.direction-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.direction-btn').forEach(b => b.classList.remove('active'));
@@ -243,8 +461,14 @@
             };
         });
 
+        document.getElementById('openBtn').onclick = openPosition;
+
+        // Запуск обновлений
         updatePrices();
-        setInterval(updatePrices, 10000);
+        loadOpenPositions();
+        updateInterval = setInterval(() => {
+            updatePrices();
+        }, 5000);
     </script>
 </body>
 </html>
