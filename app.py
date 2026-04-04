@@ -5,33 +5,37 @@ from fastapi.templating import Jinja2Templates
 import random
 import sqlite3
 import hashlib
-import ccxt
+import requests
 from datetime import datetime
 from contextlib import contextmanager
 
-app = FastAPI(title="Tradeum", description="Реальный трейдинг-симулятор с плечом до 100x")
+app = FastAPI(title="Tradeum", description="Трейдинг симулятор с реальными ценами")
 
-# Подключение статики и шаблонов
+# Подключение
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
-# Инициализация Binance
-exchange = ccxt.binance()
 
-
-def get_real_price(symbol="BTC/USDT"):
-    """Получение реальной цены с Binance"""
+# ========== РЕАЛЬНЫЕ ЦЕНЫ ==========
+def get_btc_price():
+    """Реальная цена BTC с Binance"""
     try:
-        ticker = exchange.fetch_ticker(symbol)
-        return ticker['last']
-    except Exception as e:
-        print(f"Ошибка получения цены: {e}")
-        # Запасной вариант: случайное движение в пределах 2%
-        base = 50000 if "BTC" in symbol else 3000
-        return base * (1 + random.uniform(-0.02, 0.02))
+        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT")
+        return float(response.json()["price"])
+    except:
+        return 50000.0
 
 
-# Инициализация базы данных
+def get_eth_price():
+    """Реальная цена ETH с Binance"""
+    try:
+        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT")
+        return float(response.json()["price"])
+    except:
+        return 3000.0
+
+
+# ========== БАЗА ДАННЫХ ==========
 @contextmanager
 def get_db():
     conn = sqlite3.connect("tradeum.db")
@@ -81,7 +85,6 @@ def hash_password(password: str) -> str:
 
 
 # ========== РОУТЫ ==========
-
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
@@ -140,95 +143,112 @@ async def dashboard(request: Request, user_id: int):
             (user_id,)
         ).fetchall()
 
-    # Получаем текущую цену BTC и ETH
-    btc_price = get_real_price("BTC/USDT")
-    eth_price = get_real_price("ETH/USDT")
-
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
         "recent_trades": recent_trades,
-        "btc_price": round(btc_price, 2),
-        "eth_price": round(eth_price, 2)
+        "btc_price": round(get_btc_price(), 2),
+        "eth_price": round(get_eth_price(), 2)
     })
 
 
-@app.post("/trade")
-async def make_trade(
-        user_id: int = Form(...),
-        symbol: str = Form(...),
-        position_type: str = Form(...),
-        leverage: int = Form(...),
-        amount: float = Form(...)
-):
-    with get_db() as conn:
-        user = conn.execute(
-            "SELECT id, balance FROM users WHERE id = ?",
-            (user_id,)
-        ).fetchone()
+@app.post("/api/trade")
+async def api_trade(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        symbol = data.get("symbol")
+        position_type = data.get("position_type")  # "long" или "short"
+        leverage = data.get("leverage")
+        amount = data.get("amount")
 
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        with get_db() as conn:
+            user = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,)).fetchone()
+            if not user:
+                return {"success": False, "error": "User not found"}
 
-        # Проверка баланса
-        required_margin = amount / leverage
-        if required_margin > user["balance"]:
-            return {"success": False, "error": "Недостаточно средств для открытия позиции"}
+            # Проверка маржи
+            margin = amount / leverage
+            if margin > user["balance"]:
+                return {"success": False, "error": f"Need ${margin} margin, but you have ${user['balance']}"}
 
-        # Получаем текущую цену
-        entry_price = get_real_price(symbol)
+            # Получаем цену входа
+            if symbol == "BTC":
+                entry_price = get_btc_price()
+            else:
+                entry_price = get_eth_price()
 
-        # Имитируем изменение цены через 5 секунд (в реальном приложении здесь был бы WebSocket)
-        # Для демонстрации используем небольшое случайное движение
-        import time
-        time.sleep(0.5)  # Имитация задержки рынка
-        price_change_pct = random.uniform(-5, 6)  # От -5% до +5%
-        exit_price = entry_price * (1 + price_change_pct / 100)
+            # Симуляция движения цены (через 1 секунду)
+            import time
+            time.sleep(1)
 
-        # Расчёт PnL в зависимости от типа позиции
-        if position_type == "long":
-            price_change = (exit_price - entry_price) / entry_price
-        else:  # short
-            price_change = (entry_price - exit_price) / entry_price
+            if symbol == "BTC":
+                exit_price = get_btc_price()
+            else:
+                exit_price = get_eth_price()
 
-        pnl_percent = price_change * leverage * 100
-        pnl_amount = user["balance"] * (pnl_percent / 100)
-        new_balance = user["balance"] + pnl_amount
+            # Расчёт PnL
+            if position_type == "long":
+                price_change_pct = (exit_price - entry_price) / entry_price
+            else:  # short
+                price_change_pct = (entry_price - exit_price) / entry_price
 
-        # Обновляем баланс
-        is_winning = pnl_amount > 0
-        conn.execute(
-            "UPDATE users SET balance = ?, total_trades = total_trades + 1, winning_trades = winning_trades + ? WHERE id = ?",
-            (new_balance, 1 if is_winning else 0, user_id)
-        )
+            pnl_percent = price_change_pct * leverage * 100
+            pnl_amount = margin * (pnl_percent / 100)
+            new_balance = user["balance"] + pnl_amount
 
-        # Записываем сделку
-        conn.execute(
-            """INSERT INTO trades 
-               (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, pnl) 
-               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
-            (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, round(pnl_amount, 2))
-        )
-        conn.commit()
+            # Обновляем баланс
+            is_winning = pnl_amount > 0
+            conn.execute(
+                "UPDATE users SET balance = ?, total_trades = total_trades + 1, winning_trades = winning_trades + ? WHERE id = ?",
+                (new_balance, 1 if is_winning else 0, user_id)
+            )
 
-    return {
-        "success": True,
-        "symbol": symbol,
-        "position_type": position_type,
-        "leverage": leverage,
-        "entry_price": round(entry_price, 2),
-        "exit_price": round(exit_price, 2),
-        "price_change_pct": round(price_change_pct, 2),
-        "pnl_percent": round(pnl_percent, 2),
-        "pnl_amount": round(pnl_amount, 2),
-        "new_balance": round(new_balance, 2)
-    }
+            # Записываем сделку
+            conn.execute("""
+                INSERT INTO trades (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, pnl)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, round(pnl_amount, 2)))
+            conn.commit()
+
+            return {
+                "success": True,
+                "entry_price": round(entry_price, 2),
+                "exit_price": round(exit_price, 2),
+                "price_change_pct": round(price_change_pct * 100, 2),
+                "pnl_percent": round(pnl_percent, 2),
+                "pnl_amount": round(pnl_amount, 2),
+                "new_balance": round(new_balance, 2)
+            }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 @app.get("/api/price/{symbol}")
 async def get_price(symbol: str):
-    price = get_real_price(symbol)
-    return {"symbol": symbol, "price": round(price, 2)}
+    if symbol == "BTC":
+        price = get_btc_price()
+    else:
+        price = get_eth_price()
+    return {"price": round(price, 2)}
+
+
+@app.get("/api/history/{symbol}")
+async def get_history(symbol: str):
+    """Генерирует исторические данные для графика"""
+    data = []
+    if symbol == "BTC":
+        price = 50000
+    else:
+        price = 3000
+
+    now = datetime.now()
+    for i in range(100, 0, -1):
+        # Добавляем реалистичное случайное блуждание
+        price *= (1 + (random.random() - 0.48) * 0.01)
+        timestamp = int((now.timestamp() - i * 3600) * 1000)
+        data.append({"time": timestamp, "value": round(price, 2)})
+    return data
 
 
 if __name__ == "__main__":

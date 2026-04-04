@@ -11,159 +11,255 @@
 <body>
     <div class="container">
         <!-- Шапка -->
-        <div style="display: flex; justify-content: space-between; align-items: center; padding: 24px 0; border-bottom: 1px solid #1E2436;">
-            <div style="font-size: 28px; font-weight: 800;">Trade<span style="color: #00D09C;">um</span></div>
-            <div style="display: flex; gap: 24px; align-items: center;">
+        <div class="header">
+            <div class="logo">Trade<span>um</span></div>
+            <div class="user-info">
                 <span>👤 {{ user.username }}</span>
                 <span>💰 ${{ user.balance }}</span>
-                <a href="/" style="color: #A0A8C0; text-decoration: none;">🚪 Выйти</a>
+                <a href="/" class="logout-btn">🚪 Выйти</a>
+            </div>
+        </div>
+
+        <!-- Цены в реальном времени -->
+        <div class="prices-bar">
+            <div class="price-card">
+                <div class="symbol">BTC/USDT</div>
+                <div class="price" id="btc-price">${{ btc_price }}</div>
+            </div>
+            <div class="price-card">
+                <div class="symbol">ETH/USDT</div>
+                <div class="price" id="eth-price">${{ eth_price }}</div>
             </div>
         </div>
 
         <!-- График -->
-        <div id="trading-chart"></div>
+        <div class="chart-container">
+            <div id="chart"></div>
+        </div>
 
         <!-- Торговая панель -->
         <div class="trading-panel">
-            <h3>📊 Новая позиция</h3>
-
-            <div style="margin: 20px 0;">
-                <label style="display: block; margin-bottom: 8px;">Актив</label>
-                <select id="symbol" style="background: #1A1F2E; border: 1px solid #2A3042; padding: 12px; border-radius: 12px; color: white; width: 200px;">
-                    <option value="BTC/USDT">BTC/USDT</option>
-                    <option value="ETH/USDT">ETH/USDT</option>
-                </select>
-            </div>
-
-            <div style="margin: 20px 0;">
-                <label style="display: block; margin-bottom: 8px;">Направление</label>
-                <div class="position-toggle">
-                    <div class="position-option long active" data-position="long">📈 Лонг (вверх)</div>
-                    <div class="position-option short" data-position="short">📉 Шорт (вниз)</div>
+            <h3>📊 Открыть позицию</h3>
+            <div class="panel-controls">
+                <div class="control-group">
+                    <label>Актив</label>
+                    <select id="symbol">
+                        <option value="BTC">BTC/USDT</option>
+                        <option value="ETH">ETH/USDT</option>
+                    </select>
                 </div>
-            </div>
-
-            <div style="margin: 20px 0;">
-                <label style="display: block; margin-bottom: 8px;">Кредитное плечо (1x - 100x)</label>
-                <div class="leverage-selector" id="leverage-selector">
-                    <!-- Кнопки плеча генерируются через JS -->
+                <div class="control-group">
+                    <label>Направление</label>
+                    <div class="direction-buttons">
+                        <div class="direction-btn long active" data-direction="long">📈 Лонг</div>
+                        <div class="direction-btn short" data-direction="short">📉 Шорт</div>
+                    </div>
                 </div>
+                <div class="control-group">
+                    <label>Плечо (1x-100x)</label>
+                    <select id="leverage">
+                        <option value="1">1x</option>
+                        <option value="5">5x</option>
+                        <option value="10">10x</option>
+                        <option value="15">15x</option>
+                        <option value="20">20x</option>
+                        <option value="25">25x</option>
+                        <option value="30">30x</option>
+                        <option value="50">50x</option>
+                        <option value="75">75x</option>
+                        <option value="100">100x</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>Сумма (USDT)</label>
+                    <input type="number" id="amount" value="100" step="10">
+                </div>
+                <button class="trade-btn" id="tradeBtn">🚀 Открыть</button>
             </div>
-
-            <div style="margin: 20px 0;">
-                <label style="display: block; margin-bottom: 8px;">Сумма в USDT (маржа)</label>
-                <input type="number" id="amount" value="100" step="10" style="background: #1A1F2E; border: 1px solid #2A3042; padding: 12px; border-radius: 12px; color: white; width: 100%;">
-            </div>
-
-            <button id="open-position-btn" class="btn-primary" style="width: 100%;">🚀 Открыть позицию</button>
         </div>
 
+        <!-- Результат сделки -->
+        <div id="tradeResult" style="margin-bottom: 24px;"></div>
+
         <!-- История сделок -->
-        <div style="margin: 48px 0;">
+        <div class="history-section">
             <h3>📋 История сделок</h3>
-            <div style="background: #121624; border-radius: 16px; padding: 20px; margin-top: 16px;">
+            <div class="trades-list">
                 {% for trade in recent_trades %}
-                <div style="display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #1E2436;">
-                    <span>{{ trade.symbol }}</span>
-                    <span style="color: {% if trade.pnl > 0 %}#00D09C{% else %}#FF4D6D{% endif %}">
+                <div class="trade-row">
+                    <span>{{ trade.symbol }}/USDT</span>
+                    <span class="{% if trade.pnl > 0 %}trade-positive{% else %}trade-negative{% endif %}">
                         {{ trade.position_type }} {{ trade.leverage }}x
                     </span>
-                    <span>PnL: ${{ trade.pnl }}</span>
-                    <span style="color: #6C7290;">{{ trade.created_at[:19] }}</span>
+                    <span class="{% if trade.pnl > 0 %}trade-positive{% else %}trade-negative{% endif %}">
+                        PnL: ${{ trade.pnl }}
+                    </span>
+                    <span>{{ trade.created_at[:19] }}</span>
                 </div>
                 {% else %}
-                <div style="text-align: center; color: #6C7290; padding: 40px;">Ещё нет сделок — начните торговлю!</div>
+                <div class="empty-state">✨ Нет сделок. Начните торговать!</div>
                 {% endfor %}
             </div>
         </div>
     </div>
 
     <script>
-        // Инициализация графика
-        const chart = LightweightCharts.createChart(document.getElementById('trading-chart'), {
-            layout: {
-                background: { color: '#0F1320' },
-                textColor: '#E8EDF2',
-            },
-            grid: {
-                vertLines: { color: '#1E2436' },
-                horzLines: { color: '#1E2436' },
-            },
-            width: document.getElementById('trading-chart').clientWidth,
-            height: 500,
-        });
+        // Текущий пользователь
+        const userId = {{ user.id }};
+        let currentSymbol = 'BTC';
+        let currentDirection = 'long';
 
-        const lineSeries = chart.addLineSeries({ color: '#00D09C', lineWidth: 2 });
+        // ========== ГРАФИК ==========
+        let chart = null;
+        let lineSeries = null;
 
-        // Загрузка исторических данных (упрощённо, для демо)
-        async function loadChartData(symbol) {
-            const data = [];
-            let price = symbol === 'BTC/USDT' ? 50000 : 3000;
-            for (let i = 0; i < 100; i++) {
-                price *= (1 + (Math.random() - 0.5) * 0.02);
-                data.push({ time: new Date(Date.now() - (100-i)*3600000).toISOString().split('T')[0], value: price });
-            }
-            lineSeries.setData(data);
+        async function initChart() {
+            const container = document.getElementById('chart');
+            chart = LightweightCharts.createChart(container, {
+                layout: {
+                    background: { color: '#0F1320' },
+                    textColor: '#E8EDF2',
+                },
+                grid: {
+                    vertLines: { color: '#1E2436' },
+                    horzLines: { color: '#1E2436' },
+                },
+                width: container.clientWidth,
+                height: 450,
+                timeScale: {
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+            });
+
+            lineSeries = chart.addLineSeries({
+                color: '#00D09C',
+                lineWidth: 2,
+                priceLineVisible: false,
+            });
+
+            await loadChartData(currentSymbol);
+
+            window.addEventListener('resize', () => {
+                chart.applyOptions({ width: container.clientWidth });
+            });
         }
 
-        // Плечо
-        const leverages = [1, 5, 10, 15, 20, 25, 30, 50, 75, 100];
-        const leverageContainer = document.getElementById('leverage-selector');
-        let selectedLeverage = 1;
+        async function loadChartData(symbol) {
+            const response = await fetch(`/api/history/${symbol}`);
+            const data = await response.json();
+            lineSeries.setData(data);
+            chart.timeScale().fitContent();
+        }
 
-        leverages.forEach(lev => {
-            const btn = document.createElement('button');
-            btn.textContent = `${lev}x`;
-            btn.className = 'leverage-btn';
-            if (lev === selectedLeverage) btn.classList.add('active');
-            btn.onclick = () => {
-                document.querySelectorAll('.leverage-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                selectedLeverage = lev;
-            };
-            leverageContainer.appendChild(btn);
-        });
+        // ========== ЦЕНЫ В РЕАЛЬНОМ ВРЕМЕНИ ==========
+        async function updatePrices() {
+            const btcResp = await fetch('/api/price/BTC');
+            const btcData = await btcResp.json();
+            document.getElementById('btc-price').innerText = '$' + btcData.price;
 
-        // Лонг/шорт
-        let selectedPosition = 'long';
-        document.querySelectorAll('.position-option').forEach(opt => {
-            opt.onclick = () => {
-                document.querySelectorAll('.position-option').forEach(o => o.classList.remove('active'));
-                opt.classList.add('active');
-                selectedPosition = opt.dataset.position;
-            };
-        });
+            const ethResp = await fetch('/api/price/ETH');
+            const ethData = await ethResp.json();
+            document.getElementById('eth-price').innerText = '$' + ethData.price;
+        }
 
-        // Открытие позиции
-        document.getElementById('open-position-btn').onclick = async () => {
+        // ========== ТОРГОВЛЯ ==========
+        async function makeTrade() {
             const symbol = document.getElementById('symbol').value;
+            const leverage = parseInt(document.getElementById('leverage').value);
             const amount = parseFloat(document.getElementById('amount').value);
-            const leverage = selectedLeverage;
-            const position_type = selectedPosition;
-            const userId = {{ user.id }};
 
-            const formData = new FormData();
-            formData.append('user_id', userId);
-            formData.append('symbol', symbol);
-            formData.append('position_type', position_type);
-            formData.append('leverage', leverage);
-            formData.append('amount', amount);
+            const tradeBtn = document.getElementById('tradeBtn');
+            tradeBtn.disabled = true;
+            tradeBtn.textContent = '⏳ Обработка...';
 
-            const response = await fetch('/trade', { method: 'POST', body: formData });
-            const result = await response.json();
+            try {
+                const response = await fetch('/api/trade', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId,
+                        symbol: symbol,
+                        position_type: currentDirection,
+                        leverage: leverage,
+                        amount: amount
+                    })
+                });
 
-            if (result.success) {
-                alert(`✅ Сделка закрыта!\nPnL: ${result.pnl_percent}% ($${result.pnl_amount})\nНовый баланс: $${result.new_balance}`);
-                location.reload();
-            } else {
-                alert(`❌ Ошибка: ${result.error}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    const pnlClass = result.pnl_amount >= 0 ? 'trade-positive' : 'trade-negative';
+                    const pnlSign = result.pnl_amount >= 0 ? '+' : '';
+
+                    document.getElementById('tradeResult').innerHTML = `
+                        <div style="background: #121624; border-radius: 16px; padding: 20px; border-left: 4px solid ${result.pnl_amount >= 0 ? '#00D09C' : '#FF4D6D'}">
+                            <div style="font-size: 20px; font-weight: 700; margin-bottom: 12px;">✅ Сделка закрыта</div>
+                            <div>Вход: $${result.entry_price} → Выход: $${result.exit_price} (${result.price_change_pct}%)</div>
+                            <div class="${pnlClass}" style="font-size: 18px; margin-top: 8px;">PnL: ${pnlSign}$${result.pnl_amount} (${result.pnl_percent}%)</div>
+                            <div style="margin-top: 8px;">Новый баланс: $${result.new_balance}</div>
+                        </div>
+                    `;
+
+                    // Обновляем баланс на странице
+                    document.querySelector('.user-info span:last-child').innerHTML = `💰 $${result.new_balance}`;
+
+                    // Перезагружаем историю через 2 секунды
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    document.getElementById('tradeResult').innerHTML = `
+                        <div style="background: #121624; border-radius: 16px; padding: 20px; border-left: 4px solid #FF4D6D">
+                            <div style="color: #FF4D6D;">❌ Ошибка: ${result.error}</div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('tradeResult').innerHTML = `
+                    <div style="background: #121624; border-radius: 16px; padding: 20px; border-left: 4px solid #FF4D6D">
+                        <div style="color: #FF4D6D;">❌ Ошибка сервера</div>
+                    </div>
+                `;
+            } finally {
+                tradeBtn.disabled = false;
+                tradeBtn.textContent = '🚀 Открыть';
+                setTimeout(() => {
+                    const resultDiv = document.getElementById('tradeResult');
+                    if (resultDiv) resultDiv.innerHTML = '';
+                }, 5000);
             }
-        };
+        }
 
-        loadChartData('BTC/USDT');
-        window.addEventListener('resize', () => {
-            chart.applyOptions({ width: document.getElementById('trading-chart').clientWidth });
-        });
+        // ========== ОБРАБОТЧИКИ ИНТЕРФЕЙСА ==========
+        function setupEventListeners() {
+            // Выбор символа
+            document.getElementById('symbol').addEventListener('change', (e) => {
+                currentSymbol = e.target.value;
+                loadChartData(currentSymbol);
+            });
+
+            // Выбор направления
+            document.querySelectorAll('.direction-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll('.direction-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentDirection = btn.dataset.direction;
+                });
+            });
+
+            // Кнопка трейда
+            document.getElementById('tradeBtn').addEventListener('click', makeTrade);
+        }
+
+        // ========== ЗАПУСК ==========
+        async function init() {
+            await initChart();
+            setupEventListeners();
+            updatePrices();
+            setInterval(updatePrices, 10000);  // обновляем цены каждые 10 секунд
+            setInterval(() => loadChartData(currentSymbol), 30000);  // обновляем график каждые 30 секунд
+        }
+
+        init();
     </script>
 </body>
 </html>
