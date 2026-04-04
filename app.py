@@ -9,28 +9,26 @@ import requests
 from datetime import datetime
 from contextlib import contextmanager
 
-app = FastAPI(title="Tradeum", description="Трейдинг симулятор с реальными ценами")
+app = FastAPI(title="Tradeum")
 
 # Подключение
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
-# ========== РЕАЛЬНЫЕ ЦЕНЫ ==========
+# ========== РЕАЛЬНЫЕ ЦЕНЫ (проверено) ==========
 def get_btc_price():
-    """Реальная цена BTC с Binance"""
     try:
-        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT")
-        return float(response.json()["price"])
+        r = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=5)
+        return float(r.json()["price"])
     except:
         return 50000.0
 
 
 def get_eth_price():
-    """Реальная цена ETH с Binance"""
     try:
-        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT")
-        return float(response.json()["price"])
+        r = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT", timeout=5)
+        return float(r.json()["price"])
     except:
         return 3000.0
 
@@ -70,8 +68,7 @@ def init_db():
                 exit_price REAL NOT NULL,
                 amount REAL NOT NULL,
                 pnl REAL NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                FOREIGN KEY (user_id) REFERENCES users (id)
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         conn.commit()
@@ -84,10 +81,19 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
-# ========== РОУТЫ ==========
+# ========== СТРАНИЦЫ ==========
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, registered: str = None, error: str = None):
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "registered": registered,
+        "error": error
+    })
 
 
 @app.post("/register")
@@ -101,16 +107,7 @@ async def register(username: str = Form(...), password: str = Form(...)):
             conn.commit()
         return RedirectResponse(url="/login?registered=1", status_code=303)
     except sqlite3.IntegrityError:
-        raise HTTPException(status_code=400, detail="Username already exists")
-
-
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, registered: str = None, error: str = None):
-    return templates.TemplateResponse("login.html", {
-        "request": request,
-        "registered": registered,
-        "error": error
-    })
+        return RedirectResponse(url="/login?error=exists", status_code=303)
 
 
 @app.post("/login")
@@ -143,22 +140,26 @@ async def dashboard(request: Request, user_id: int):
             (user_id,)
         ).fetchall()
 
+    btc = round(get_btc_price(), 2)
+    eth = round(get_eth_price(), 2)
+
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
         "recent_trades": recent_trades,
-        "btc_price": round(get_btc_price(), 2),
-        "eth_price": round(get_eth_price(), 2)
+        "btc_price": btc,
+        "eth_price": eth
     })
 
 
+# ========== API ДЛЯ ТОРГОВЛИ ==========
 @app.post("/api/trade")
 async def api_trade(request: Request):
     try:
         data = await request.json()
         user_id = data.get("user_id")
         symbol = data.get("symbol")
-        position_type = data.get("position_type")  # "long" или "short"
+        position_type = data.get("position_type")
         leverage = data.get("leverage")
         amount = data.get("amount")
 
@@ -170,15 +171,15 @@ async def api_trade(request: Request):
             # Проверка маржи
             margin = amount / leverage
             if margin > user["balance"]:
-                return {"success": False, "error": f"Need ${margin} margin, but you have ${user['balance']}"}
+                return {"success": False, "error": f"Need ${margin} margin, have ${user['balance']}"}
 
-            # Получаем цену входа
+            # Цена входа
             if symbol == "BTC":
                 entry_price = get_btc_price()
             else:
                 entry_price = get_eth_price()
 
-            # Симуляция движения цены (через 1 секунду)
+            # Симуляция движения (через 1 секунду)
             import time
             time.sleep(1)
 
@@ -190,21 +191,19 @@ async def api_trade(request: Request):
             # Расчёт PnL
             if position_type == "long":
                 price_change_pct = (exit_price - entry_price) / entry_price
-            else:  # short
+            else:
                 price_change_pct = (entry_price - exit_price) / entry_price
 
             pnl_percent = price_change_pct * leverage * 100
             pnl_amount = margin * (pnl_percent / 100)
             new_balance = user["balance"] + pnl_amount
 
-            # Обновляем баланс
+            # Обновляем
             is_winning = pnl_amount > 0
             conn.execute(
                 "UPDATE users SET balance = ?, total_trades = total_trades + 1, winning_trades = winning_trades + ? WHERE id = ?",
                 (new_balance, 1 if is_winning else 0, user_id)
             )
-
-            # Записываем сделку
             conn.execute("""
                 INSERT INTO trades (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, pnl)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -227,28 +226,9 @@ async def api_trade(request: Request):
 @app.get("/api/price/{symbol}")
 async def get_price(symbol: str):
     if symbol == "BTC":
-        price = get_btc_price()
+        return {"price": get_btc_price()}
     else:
-        price = get_eth_price()
-    return {"price": round(price, 2)}
-
-
-@app.get("/api/history/{symbol}")
-async def get_history(symbol: str):
-    """Генерирует исторические данные для графика"""
-    data = []
-    if symbol == "BTC":
-        price = 50000
-    else:
-        price = 3000
-
-    now = datetime.now()
-    for i in range(100, 0, -1):
-        # Добавляем реалистичное случайное блуждание
-        price *= (1 + (random.random() - 0.48) * 0.01)
-        timestamp = int((now.timestamp() - i * 3600) * 1000)
-        data.append({"time": timestamp, "value": round(price, 2)})
-    return data
+        return {"price": get_eth_price()}
 
 
 if __name__ == "__main__":
