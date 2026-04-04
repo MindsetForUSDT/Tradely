@@ -10,27 +10,25 @@
 <body>
     <div class="dashboard">
         <div class="container">
-            <!-- Шапка -->
             <div class="header">
-                <div class="logo">Trading Quest</div>
+                <div class="logo">Tradeum</div>
                 <div class="user-info">
                     <span class="username">👤 {{ user.username }}</span>
                     <a href="/" class="logout">🚪 Выйти</a>
                 </div>
             </div>
 
-            <!-- Основная статистика -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-label">💰 Баланс</div>
+                    <div class="stat-label">💰 Капитал</div>
                     <div class="stat-value" id="balance">${{ user.balance }}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">📊 Уровень</div>
+                    <div class="stat-label">📊 Ранг</div>
                     <div class="stat-value" id="level">{{ user.level }}</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-label">🎯 Винрейт</div>
+                    <div class="stat-label">🎯 Точность</div>
                     <div class="stat-value" id="winrate">
                         {% if user.total_trades > 0 %}
                             {{ (user.winning_trades / user.total_trades * 100)|round(1) }}%
@@ -45,11 +43,10 @@
                 </div>
             </div>
 
-            <!-- Текущая миссия -->
             <div class="mission-card">
                 <div class="mission-icon">🎯</div>
                 <div class="mission-content">
-                    <div class="mission-label">ТЕКУЩАЯ МИССИЯ</div>
+                    <div class="mission-label">ТЕКУЩЕЕ ИСПЫТАНИЕ</div>
                     <div class="mission-text" id="missionText">{{ current_mission.text }}</div>
                     <div class="mission-progress">
                         <div class="progress-bar">
@@ -59,28 +56,26 @@
                 </div>
             </div>
 
-            <!-- Кнопка сделки -->
             <div class="trade-section">
                 <button class="trade-btn" id="tradeBtn">
                     <span class="trade-icon">📊</span>
-                    Совершить сделку
+                    Сделать ход
                 </button>
                 <div class="trade-result" id="tradeResult"></div>
             </div>
 
-            <!-- Последние сделки -->
             <div class="history-section">
-                <h3>📋 История сделок</h3>
+                <h3>📋 Лента сделок</h3>
                 <div class="trades-list" id="tradesList">
                     {% for trade in recent_trades %}
                     <div class="trade-item {% if trade.balance_change > 0 %}positive{% else %}negative{% endif %}">
                         <span class="trade-date">{{ trade.created_at[:19] }}</span>
-                        <span class="trade-change">Изменение: {{ trade.price_change }}%</span>
-                        <span class="trade-result">Результат: {{ trade.balance_change }}%</span>
+                        <span class="trade-change">Движение: {{ trade.price_change }}%</span>
+                        <span class="trade-result">Итог: {{ trade.balance_change }}%</span>
                         <span class="trade-balance">Баланс: ${{ trade.new_balance }}</span>
                     </div>
                     {% else %}
-                    <div class="empty-state">Пока нет сделок. Нажмите кнопку выше!</div>
+                    <div class="empty-state">✨ Ещё нет сделок. Нажми «Сделать ход» и начни свой путь к величию!</div>
                     {% endfor %}
                 </div>
             </div>
@@ -97,7 +92,7 @@
             const resultDiv = document.getElementById('tradeResult');
 
             btn.disabled = true;
-            btn.innerHTML = '⏳ Обработка...';
+            btn.innerHTML = '⏳ Анализируем рынок...';
 
             try {
                 const formData = new FormData();
@@ -111,53 +106,45 @@
                 const data = await response.json();
 
                 if (data.success) {
-                    // Обновляем баланс
                     currentBalance = data.new_balance;
                     document.getElementById('balance').innerText = '$' + currentBalance;
 
-                    // Обновляем уровень
                     if (data.level_up) {
                         currentLevel = data.new_level;
                         document.getElementById('level').innerText = currentLevel;
                         document.getElementById('missionText').innerText = data.mission_text;
                     }
 
-                    // Показываем результат
                     const isPositive = data.balance_change > 0;
                     resultDiv.innerHTML = `
                         <div class="result-card ${isPositive ? 'result-positive' : 'result-negative'}">
-                            <div class="result-change">${isPositive ? '📈' : '📉'} ${data.price_change}%</div>
-                            <div class="result-balance-change">${data.balance_change > 0 ? '+' : ''}${data.balance_change}%</div>
-                            <div class="result-new-balance">Новый баланс: $${data.new_balance}</div>
-                            ${data.level_up ? '<div class="result-levelup">🎉 УРОВЕНЬ ПОВЫШЕН! 🎉</div>' : ''}
+                            <div class="result-change">${isPositive ? '📈 Рынок вырос' : '📉 Рынок упал'} на ${data.price_change}%</div>
+                            <div class="result-balance-change">Твой результат: ${data.balance_change > 0 ? '+' : ''}${data.balance_change}%</div>
+                            <div class="result-new-balance">Новый капитал: $${data.new_balance}</div>
+                            ${data.level_up ? '<div class="result-levelup">🎉 ПОЗДРАВЛЯЮ! ТЫ ПОВЫСИЛ РАНГ! 🎉</div>' : ''}
                         </div>
                     `;
 
-                    // Добавляем сделку в историю
                     const tradesList = document.getElementById('tradesList');
                     const newTrade = document.createElement('div');
                     newTrade.className = `trade-item ${data.balance_change > 0 ? 'positive' : 'negative'}`;
                     newTrade.innerHTML = `
                         <span class="trade-date">Только что</span>
-                        <span class="trade-change">Изменение: ${data.price_change}%</span>
-                        <span class="trade-result">Результат: ${data.balance_change}%</span>
-                        <span class="trade-balance">Баланс: $${data.new_balance}</span>
+                        <span class="trade-change">Движение: ${data.price_change}%</span>
+                        <span class="trade-result">Итог: ${data.balance_change}%</span>
+                        <span class="trade-balance">Капитал: $${data.new_balance}</span>
                     `;
                     tradesList.insertBefore(newTrade, tradesList.firstChild);
 
-                    // Ограничиваем историю 10 записями
                     while (tradesList.children.length > 10) {
                         tradesList.removeChild(tradesList.lastChild);
                     }
-
-                    // Обновляем прогресс миссии
-                    updateMissionProgress();
                 }
             } catch (error) {
-                resultDiv.innerHTML = '<div class="result-card result-negative">❌ Ошибка сервера. Попробуйте позже.</div>';
+                resultDiv.innerHTML = '<div class="result-card result-negative">❌ Ошибка сервера. Попробуй ещё раз.</div>';
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<span class="trade-icon">📊</span> Совершить сделку';
+                btn.innerHTML = '<span class="trade-icon">📊</span> Сделать ход';
                 setTimeout(() => {
                     if (resultDiv.children[0]) {
                         resultDiv.children[0].style.opacity = '0';
@@ -167,11 +154,6 @@
                     }
                 }, 3000);
             }
-        }
-
-        function updateMissionProgress() {
-            // Здесь можно добавить логику обновления прогресса
-            // Для простоты пока оставим пустым
         }
 
         document.getElementById('tradeBtn').addEventListener('click', makeTrade);

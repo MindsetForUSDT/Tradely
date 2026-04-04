@@ -8,7 +8,7 @@ import hashlib
 from datetime import datetime
 from contextlib import contextmanager
 
-app = FastAPI(title="Tradeum", description="Твоя образовательная среда")
+app = FastAPI(title="Tradeum", description="Стань мастером рынка — играй, торгуй, побеждай")
 
 # Подключение статики и шаблонов
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -18,7 +18,7 @@ templates = Jinja2Templates(directory="templates")
 # Инициализация базы данных
 @contextmanager
 def get_db():
-    conn = sqlite3.connect("trading_quest.db")
+    conn = sqlite3.connect("tradeum.db")
     conn.row_factory = sqlite3.Row
     try:
         yield conn
@@ -59,37 +59,34 @@ init_db()
 
 # Миссии для каждого уровня
 MISSIONS = {
-    1: {"goal": 5, "text": "📈 Заработай +5% за одну сделку", "reward": 50},
-    2: {"goal": 10, "text": "🎯 Заработай +10% за одну сделку", "reward": 100},
-    3: {"goal": 15, "text": "🏆 Заработай +15% за одну сделку", "reward": 150},
-    4: {"goal": 20, "text": "⚡ Заработай +20% за одну сделку", "reward": 200},
-    5: {"goal": 25, "text": "👑 Заработай +25% и стань легендой", "reward": 500},
+    1: {"goal": 5, "text": "🌟 Первый шаг к величию — заработай +5% за одну сделку", "reward": 50},
+    2: {"goal": 10, "text": "⚡ Входишь во вкус — заработай +10% за одну сделку", "reward": 100},
+    3: {"goal": 15, "text": "🔥 Ты в зоне — заработай +15% за одну сделку", "reward": 150},
+    4: {"goal": 20, "text": "🏆 Мастерский удар — заработай +20% за одну сделку", "reward": 200},
+    5: {"goal": 25, "text": "👑 Легенда рынка — заработай +25% и войди в историю", "reward": 500},
 }
 
 
-# Симуляция рынка (реалистичное случайное движение)
+# Симуляция рынка
 def simulate_market():
-    # Случайное распределение: чаще небольшие движения, реже сильные
     r = random.random()
-    if r < 0.4:  # 40% - небольшое движение ±1%
+    if r < 0.4:
         return round(random.uniform(-1, 1.5), 2)
-    elif r < 0.7:  # 30% - среднее движение ±3%
+    elif r < 0.7:
         return round(random.uniform(-3, 4), 2)
-    elif r < 0.9:  # 20% - сильное движение ±6%
+    elif r < 0.9:
         return round(random.uniform(-6, 7), 2)
-    else:  # 10% - экстремальное движение ±10%
+    else:
         return round(random.uniform(-10, 12), 2)
 
 
 def check_level_up(level, balance_change):
-    """Проверка повышения уровня"""
     if level in MISSIONS:
         if balance_change >= MISSIONS[level]["goal"]:
             return True
     return False
 
 
-# Хеширование паролей
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
@@ -135,8 +132,6 @@ async def login(username: str = Form(...), password: str = Form(...)):
         if not user or user["password_hash"] != hash_password(password):
             return RedirectResponse(url="/login?error=1", status_code=303)
 
-        # В реальном приложении здесь должна быть сессия/JWT
-        # Для простоты используем redirect с параметром
         return RedirectResponse(url=f"/dashboard?user_id={user['id']}", status_code=303)
 
 
@@ -181,11 +176,9 @@ async def make_trade(user_id: int = Form(...)):
         new_balance = round(old_balance * (1 + price_change / 100), 2)
         balance_change = round(((new_balance - old_balance) / old_balance) * 100, 2)
 
-        # Проверка выполнения миссии
         level_up = check_level_up(user["level"], balance_change)
         new_level = user["level"] + 1 if level_up else user["level"]
 
-        # Обновляем статистику пользователя
         is_winning = balance_change > 0
         conn.execute(
             """UPDATE users SET 
@@ -197,14 +190,12 @@ async def make_trade(user_id: int = Form(...)):
             (new_balance, new_level, 1 if is_winning else 0, user_id)
         )
 
-        # Записываем сделку
         conn.execute(
             "INSERT INTO trades (user_id, price_change, balance_change, new_balance) VALUES (?, ?, ?, ?)",
             (user_id, price_change, balance_change, new_balance)
         )
         conn.commit()
 
-        # Получаем обновлённую информацию о миссии
         current_mission = MISSIONS.get(new_level, MISSIONS[1])
         next_mission = MISSIONS.get(new_level + 1)
 
@@ -218,7 +209,7 @@ async def make_trade(user_id: int = Form(...)):
         "new_level": new_level,
         "mission_completed": level_up,
         "mission_text": current_mission["text"],
-        "next_mission_text": next_mission["text"] if next_mission else "Ты легенда! Все миссии пройдены!",
+        "next_mission_text": next_mission["text"] if next_mission else "🎉 Ты достиг вершин! Ты — легенда Tradeum!",
         "next_mission_goal": next_mission["goal"] if next_mission else None
     }
 
