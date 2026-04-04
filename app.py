@@ -5,14 +5,30 @@ from fastapi.templating import Jinja2Templates
 import random
 import sqlite3
 import hashlib
+import ccxt
 from datetime import datetime
 from contextlib import contextmanager
 
-app = FastAPI(title="Tradeum", description="Стань мастером рынка — играй, торгуй, побеждай")
+app = FastAPI(title="Tradeum", description="Реальный трейдинг-симулятор с плечом до 100x")
 
 # Подключение статики и шаблонов
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
+
+# Инициализация Binance
+exchange = ccxt.binance()
+
+
+def get_real_price(symbol="BTC/USDT"):
+    """Получение реальной цены с Binance"""
+    try:
+        ticker = exchange.fetch_ticker(symbol)
+        return ticker['last']
+    except Exception as e:
+        print(f"Ошибка получения цены: {e}")
+        # Запасной вариант: случайное движение в пределах 2%
+        base = 50000 if "BTC" in symbol else 3000
+        return base * (1 + random.uniform(-0.02, 0.02))
 
 
 # Инициализация базы данных
@@ -33,9 +49,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                level INTEGER DEFAULT 1,
-                balance REAL DEFAULT 1000.0,
-                experience INTEGER DEFAULT 0,
+                balance REAL DEFAULT 10000.0,
                 total_trades INTEGER DEFAULT 0,
                 winning_trades INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -45,9 +59,13 @@ def init_db():
             CREATE TABLE IF NOT EXISTS trades (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
-                price_change REAL NOT NULL,
-                balance_change REAL NOT NULL,
-                new_balance REAL NOT NULL,
+                symbol TEXT NOT NULL,
+                position_type TEXT NOT NULL,
+                leverage INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                exit_price REAL NOT NULL,
+                amount REAL NOT NULL,
+                pnl REAL NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
@@ -56,35 +74,6 @@ def init_db():
 
 
 init_db()
-
-# Миссии для каждого уровня
-MISSIONS = {
-    1: {"goal": 5, "text": "🌟 Первый шаг к величию — заработай +5% за одну сделку", "reward": 50},
-    2: {"goal": 10, "text": "⚡ Входишь во вкус — заработай +10% за одну сделку", "reward": 100},
-    3: {"goal": 15, "text": "🔥 Ты в зоне — заработай +15% за одну сделку", "reward": 150},
-    4: {"goal": 20, "text": "🏆 Мастерский удар — заработай +20% за одну сделку", "reward": 200},
-    5: {"goal": 25, "text": "👑 Легенда рынка — заработай +25% и войди в историю", "reward": 500},
-}
-
-
-# Симуляция рынка
-def simulate_market():
-    r = random.random()
-    if r < 0.4:
-        return round(random.uniform(-1, 1.5), 2)
-    elif r < 0.7:
-        return round(random.uniform(-3, 4), 2)
-    elif r < 0.9:
-        return round(random.uniform(-6, 7), 2)
-    else:
-        return round(random.uniform(-10, 12), 2)
-
-
-def check_level_up(level, balance_change):
-    if level in MISSIONS:
-        if balance_change >= MISSIONS[level]["goal"]:
-            return True
-    return False
 
 
 def hash_password(password: str) -> str:
@@ -139,7 +128,7 @@ async def login(username: str = Form(...), password: str = Form(...)):
 async def dashboard(request: Request, user_id: int):
     with get_db() as conn:
         user = conn.execute(
-            "SELECT id, username, level, balance, experience, total_trades, winning_trades FROM users WHERE id = ?",
+            "SELECT id, username, balance, total_trades, winning_trades FROM users WHERE id = ?",
             (user_id,)
         ).fetchone()
 
@@ -147,99 +136,99 @@ async def dashboard(request: Request, user_id: int):
             raise HTTPException(status_code=404, detail="User not found")
 
         recent_trades = conn.execute(
-            "SELECT price_change, balance_change, new_balance, created_at FROM trades WHERE user_id = ? ORDER BY created_at DESC LIMIT 10",
+            "SELECT symbol, position_type, leverage, pnl, created_at FROM trades WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
             (user_id,)
         ).fetchall()
+
+    # Получаем текущую цену BTC и ETH
+    btc_price = get_real_price("BTC/USDT")
+    eth_price = get_real_price("ETH/USDT")
 
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
-        "missions": MISSIONS,
-        "current_mission": MISSIONS.get(user["level"], MISSIONS[1]),
-        "recent_trades": recent_trades
+        "recent_trades": recent_trades,
+        "btc_price": round(btc_price, 2),
+        "eth_price": round(eth_price, 2)
     })
 
 
 @app.post("/trade")
-async def make_trade(user_id: int = Form(...)):
+async def make_trade(
+        user_id: int = Form(...),
+        symbol: str = Form(...),
+        position_type: str = Form(...),
+        leverage: int = Form(...),
+        amount: float = Form(...)
+):
     with get_db() as conn:
         user = conn.execute(
-            "SELECT id, level, balance FROM users WHERE id = ?",
+            "SELECT id, balance FROM users WHERE id = ?",
             (user_id,)
         ).fetchone()
 
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        price_change = simulate_market()
-        old_balance = user["balance"]
-        new_balance = round(old_balance * (1 + price_change / 100), 2)
-        balance_change = round(((new_balance - old_balance) / old_balance) * 100, 2)
+        # Проверка баланса
+        required_margin = amount / leverage
+        if required_margin > user["balance"]:
+            return {"success": False, "error": "Недостаточно средств для открытия позиции"}
 
-        level_up = check_level_up(user["level"], balance_change)
-        new_level = user["level"] + 1 if level_up else user["level"]
+        # Получаем текущую цену
+        entry_price = get_real_price(symbol)
 
-        is_winning = balance_change > 0
+        # Имитируем изменение цены через 5 секунд (в реальном приложении здесь был бы WebSocket)
+        # Для демонстрации используем небольшое случайное движение
+        import time
+        time.sleep(0.5)  # Имитация задержки рынка
+        price_change_pct = random.uniform(-5, 6)  # От -5% до +5%
+        exit_price = entry_price * (1 + price_change_pct / 100)
+
+        # Расчёт PnL в зависимости от типа позиции
+        if position_type == "long":
+            price_change = (exit_price - entry_price) / entry_price
+        else:  # short
+            price_change = (entry_price - exit_price) / entry_price
+
+        pnl_percent = price_change * leverage * 100
+        pnl_amount = user["balance"] * (pnl_percent / 100)
+        new_balance = user["balance"] + pnl_amount
+
+        # Обновляем баланс
+        is_winning = pnl_amount > 0
         conn.execute(
-            """UPDATE users SET 
-                balance = ?, 
-                level = ?,
-                total_trades = total_trades + 1,
-                winning_trades = winning_trades + ?
-            WHERE id = ?""",
-            (new_balance, new_level, 1 if is_winning else 0, user_id)
+            "UPDATE users SET balance = ?, total_trades = total_trades + 1, winning_trades = winning_trades + ? WHERE id = ?",
+            (new_balance, 1 if is_winning else 0, user_id)
         )
 
+        # Записываем сделку
         conn.execute(
-            "INSERT INTO trades (user_id, price_change, balance_change, new_balance) VALUES (?, ?, ?, ?)",
-            (user_id, price_change, balance_change, new_balance)
+            """INSERT INTO trades 
+               (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, pnl) 
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+            (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, round(pnl_amount, 2))
         )
         conn.commit()
 
-        current_mission = MISSIONS.get(new_level, MISSIONS[1])
-        next_mission = MISSIONS.get(new_level + 1)
-
     return {
         "success": True,
-        "old_balance": round(old_balance, 2),
-        "new_balance": new_balance,
-        "price_change": price_change,
-        "balance_change": balance_change,
-        "level_up": level_up,
-        "new_level": new_level,
-        "mission_completed": level_up,
-        "mission_text": current_mission["text"],
-        "next_mission_text": next_mission["text"] if next_mission else "🎉 Ты достиг вершин! Ты — легенда Tradeum!",
-        "next_mission_goal": next_mission["goal"] if next_mission else None
+        "symbol": symbol,
+        "position_type": position_type,
+        "leverage": leverage,
+        "entry_price": round(entry_price, 2),
+        "exit_price": round(exit_price, 2),
+        "price_change_pct": round(price_change_pct, 2),
+        "pnl_percent": round(pnl_percent, 2),
+        "pnl_amount": round(pnl_amount, 2),
+        "new_balance": round(new_balance, 2)
     }
 
 
-@app.get("/api/user/{user_id}")
-async def get_user(user_id: int):
-    with get_db() as conn:
-        user = conn.execute(
-            "SELECT id, username, level, balance, total_trades, winning_trades FROM users WHERE id = ?",
-            (user_id,)
-        ).fetchone()
-
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        recent_trades = conn.execute(
-            "SELECT price_change, balance_change, created_at FROM trades WHERE user_id = ? ORDER BY created_at DESC LIMIT 5",
-            (user_id,)
-        ).fetchall()
-
-        win_rate = round((user["winning_trades"] / user["total_trades"] * 100), 1) if user["total_trades"] > 0 else 0
-
-        return {
-            "username": user["username"],
-            "level": user["level"],
-            "balance": user["balance"],
-            "total_trades": user["total_trades"],
-            "win_rate": win_rate,
-            "recent_trades": [dict(trade) for trade in recent_trades]
-        }
+@app.get("/api/price/{symbol}")
+async def get_price(symbol: str):
+    price = get_real_price(symbol)
+    return {"symbol": symbol, "price": round(price, 2)}
 
 
 if __name__ == "__main__":
