@@ -36,7 +36,7 @@
             color: #00D09C;
         }
 
-        /* Панель цен в реальном времени */
+        /* Панель цен */
         .prices {
             display: flex;
             gap: 20px;
@@ -68,7 +68,7 @@
         .change-up { color: #00D09C; }
         .change-down { color: #FF4D6D; }
 
-        /* TradingView график */
+        /* Контейнер графика */
         .chart-container {
             background: #121624;
             border-radius: 16px;
@@ -76,11 +76,6 @@
             margin-bottom: 20px;
             border: 1px solid #2A3042;
             overflow: hidden;
-        }
-        .tv-chart {
-            width: 100%;
-            height: 500px;
-            border: none;
         }
 
         /* Панель открытия позиции */
@@ -237,6 +232,8 @@
             .position-actions { justify-content: flex-end; }
         }
     </style>
+    <!-- Plotly библиотека -->
+    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js" charset="utf-8"></script>
 </head>
 <body>
     <div class="container">
@@ -259,15 +256,9 @@
             </div>
         </div>
 
-        <!-- TradingView График (как на Bybit) -->
+        <!-- Plotly график -->
         <div class="chart-container">
-            <iframe
-                id="tv-chart"
-                class="tv-chart"
-                src=""
-                frameborder="0"
-                allowfullscreen>
-            </iframe>
+            <div id="trading-chart" style="height: 500px; width: 100%;"></div>
         </div>
 
         <!-- Панель открытия позиции -->
@@ -329,21 +320,28 @@
         let currentDir = 'long';
         let currentSymbol = 'BTC';
         let lastPrices = { BTC: {{ btc_price }}, ETH: {{ eth_price }} };
-        let priceUpdateInterval = null;
 
-        // Функция обновления TradingView графика при смене символа
-        function updateTradingViewChart(symbol) {
-            const pair = symbol === 'BTC' ? 'BTCUSDT' : 'ETHUSDT';
-            const exchange = 'BINANCE';
-            const theme = 'dark';
+        // Загрузка графика
+        async function loadChart(symbol) {
+            try {
+                const response = await fetch(`/api/chart_data/${symbol}?interval=1h&limit=100`);
+                const data = await response.json();
 
-            const chartUrl = `https://www.tradingview.com/widget-widget/?symbol=${exchange}:${pair}&theme=${theme}&interval=15&timezone=Etc%2FUTC&style=1&locale=ru&enable_publishing=false&allow_symbol_change=true&save_image=false&details=true&hide_side_toolbar=false&calendar=false&hotlist=false&studies=VOLUME%2CRSI&show_popup_button=true`;
-
-            const iframe = document.getElementById('tv-chart');
-            iframe.src = chartUrl;
+                if (data.chart_json) {
+                    const chartData = JSON.parse(data.chart_json);
+                    Plotly.newPlot('trading-chart', chartData.data, chartData.layout, {
+                        responsive: true,
+                        displayModeBar: true,
+                        modeBarButtonsToRemove: ['lasso2d', 'select2d']
+                    });
+                }
+            } catch(e) {
+                console.error('Chart load error:', e);
+                document.getElementById('trading-chart').innerHTML = '<div style="color: #FF4D6D; text-align: center; padding: 200px;">⚠️ Ошибка загрузки графика</div>';
+            }
         }
 
-        // Функция обновления цен в реальном времени
+        // Обновление цен
         async function updateRealTimePrices() {
             try {
                 const btcRes = await fetch('/api/price/BTC');
@@ -354,11 +352,9 @@
                 const btcPrice = btcData.price;
                 const ethPrice = ethData.price;
 
-                // Обновляем отображение цен
                 document.getElementById('btc-price').innerHTML = `$${btcPrice.toFixed(2)}`;
                 document.getElementById('eth-price').innerHTML = `$${ethPrice.toFixed(2)}`;
 
-                // Рассчитываем изменения
                 const btcChange = ((btcPrice - lastPrices.BTC) / lastPrices.BTC * 100);
                 const ethChange = ((ethPrice - lastPrices.ETH) / lastPrices.ETH * 100);
 
@@ -373,7 +369,6 @@
                     btcChangeElem.className = 'change change-down';
                 } else {
                     btcChangeElem.innerHTML = '➡️ 0.00%';
-                    btcChangeElem.className = 'change';
                 }
 
                 if (ethChange > 0) {
@@ -384,13 +379,11 @@
                     ethChangeElem.className = 'change change-down';
                 } else {
                     ethChangeElem.innerHTML = '➡️ 0.00%';
-                    ethChangeElem.className = 'change';
                 }
 
                 lastPrices.BTC = btcPrice;
                 lastPrices.ETH = ethPrice;
 
-                // Обновляем открытые позиции (пересчёт PnL)
                 await loadOpenPositions();
             } catch(e) {
                 console.error('Price update error:', e);
@@ -448,7 +441,6 @@
             }
         }
 
-        // Уведомления
         function showNotification(msg, type) {
             const div = document.createElement('div');
             div.className = `notification ${type}`;
@@ -457,7 +449,6 @@
             setTimeout(() => div.remove(), 3000);
         }
 
-        // Открытие позиции
         async function openPosition() {
             const symbol = document.getElementById('symbol').value;
             const leverage = parseInt(document.getElementById('leverage').value);
@@ -476,13 +467,7 @@
                 const res = await fetch('/api/position/open', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        user_id: userId,
-                        symbol,
-                        position_type: currentDir,
-                        leverage,
-                        amount
-                    })
+                    body: JSON.stringify({ user_id: userId, symbol, position_type: currentDir, leverage, amount })
                 });
                 const data = await res.json();
 
@@ -501,7 +486,6 @@
             }
         }
 
-        // Полное закрытие позиции
         window.closeFull = async (posId) => {
             try {
                 const res = await fetch('/api/position/close', {
@@ -514,7 +498,6 @@
                     showNotification(`✅ Закрыто. PnL: ${data.pnl >= 0 ? '+' : ''}$${data.pnl.toFixed(2)}`, 'success');
                     document.getElementById('balance').innerText = data.new_balance.toFixed(2);
                     await updateRealTimePrices();
-
                     const hist = await fetch(`/api/history/${userId}`).then(r => r.json());
                     updateHistory(hist);
                 } else {
@@ -525,7 +508,6 @@
             }
         };
 
-        // Частичное закрытие позиции
         window.closePartial = async (posId) => {
             const amount = parseFloat(document.getElementById(`partial-${posId}`).value);
             if (isNaN(amount) || amount <= 0) {
@@ -543,7 +525,6 @@
                     showNotification(`✂️ Частично закрыто на $${amount}`, 'success');
                     document.getElementById('balance').innerText = data.new_balance.toFixed(2);
                     await updateRealTimePrices();
-
                     const hist = await fetch(`/api/history/${userId}`).then(r => r.json());
                     updateHistory(hist);
                 } else {
@@ -554,7 +535,6 @@
             }
         };
 
-        // Обновление истории
         function updateHistory(trades) {
             const container = document.getElementById('historyList');
             if (!trades.length) {
@@ -571,13 +551,12 @@
             `).join('');
         }
 
-        // Обработчик смены символа
+        // Обработчики
         document.getElementById('symbol').addEventListener('change', (e) => {
             currentSymbol = e.target.value;
-            updateTradingViewChart(currentSymbol);
+            loadChart(currentSymbol);
         });
 
-        // Направление
         document.querySelectorAll('.direction-btn').forEach(btn => {
             btn.onclick = () => {
                 document.querySelectorAll('.direction-btn').forEach(b => b.classList.remove('active'));
@@ -586,15 +565,13 @@
             };
         });
 
-        // Открытие позиции
         document.getElementById('openBtn').onclick = openPosition;
 
-        // Инициализация
-        updateTradingViewChart('BTC');
+        // Запуск
+        loadChart('BTC');
         updateRealTimePrices();
-
-        // Обновление цен каждую секунду (реальное время)
-        setInterval(updateRealTimePrices, 1000);
+        setInterval(updateRealTimePrices, 2000);
+        setInterval(() => loadChart(currentSymbol), 60000);
     </script>
 </body>
 </html>

@@ -8,6 +8,126 @@ import hashlib
 import requests
 from datetime import datetime
 from contextlib import contextmanager
+import plotly.graph_objs as go
+import plotly.utils
+import json
+import pandas as pd
+import random
+from datetime import datetime, timedelta
+
+
+# ========== ГЕНЕРАЦИЯ ДАННЫХ ДЛЯ ГРАФИКА ==========
+def generate_candle_data(symbol="BTC", interval="1h", limit=100):
+    """Генерирует реалистичные свечные данные для графика"""
+    if symbol == "BTC":
+        base_price = 50000
+    else:
+        base_price = 3000
+
+    data = []
+    current_time = datetime.now()
+
+    for i in range(limit, 0, -1):
+        # Случайное блуждание с трендом
+        change = random.uniform(-0.02, 0.025)
+        base_price *= (1 + change)
+
+        open_price = base_price
+        close_price = base_price * (1 + random.uniform(-0.01, 0.01))
+        high_price = max(open_price, close_price) * (1 + random.uniform(0, 0.005))
+        low_price = min(open_price, close_price) * (1 - random.uniform(0, 0.005))
+
+        data.append({
+            "time": current_time - timedelta(hours=i),
+            "open": round(open_price, 2),
+            "high": round(high_price, 2),
+            "low": round(low_price, 2),
+            "close": round(close_price, 2)
+        })
+
+    return data
+
+
+@app.get("/api/chart_data/{symbol}")
+async def get_chart_data(symbol: str, interval: str = "1h", limit: int = 100):
+    """Возвращает данные для графика в формате JSON"""
+    data = generate_candle_data(symbol, interval, limit)
+
+    # Форматируем для Plotly
+    df = pd.DataFrame(data)
+
+    fig = go.Figure(data=[go.Candlestick(
+        x=df['time'],
+        open=df['open'],
+        high=df['high'],
+        low=df['low'],
+        close=df['close'],
+        name='Price'
+    )])
+
+    # Настройки графика
+    fig.update_layout(
+        template='plotly_dark',
+        title=f'{symbol}/USDT - Реальный рынок',
+        xaxis_title='Время',
+        yaxis_title='Цена (USDT)',
+        height=500,
+        margin=dict(l=0, r=0, t=40, b=0),
+        paper_bgcolor='#121624',
+        plot_bgcolor='#0F1320',
+        font=dict(color='#E8EDF2')
+    )
+
+    # Добавляем скользящие средние
+    df['MA7'] = df['close'].rolling(window=7).mean()
+    df['MA25'] = df['close'].rolling(window=25).mean()
+
+    fig.add_trace(go.Scatter(
+        x=df['time'],
+        y=df['MA7'],
+        name='MA 7',
+        line=dict(color='#FF9800', width=1)
+    ))
+
+    fig.add_trace(go.Scatter(
+        x=df['time'],
+        y=df['MA25'],
+        name='MA 25',
+        line=dict(color='#E91E63', width=1)
+    ))
+
+    # Добавляем RSI как субграфик
+    # Рассчитываем RSI
+    delta = df['close'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
+    rs = gain / loss
+    df['RSI'] = 100 - (100 / (1 + rs))
+
+    fig.add_trace(go.Scatter(
+        x=df['time'],
+        y=df['RSI'],
+        name='RSI (14)',
+        line=dict(color='#9C27B0', width=1),
+        yaxis='y2'
+    ))
+
+    # Настройка второй оси для RSI
+    fig.update_layout(
+        yaxis2=dict(
+            title='RSI',
+            overlaying='y',
+            side='right',
+            range=[0, 100],
+            showgrid=False
+        )
+    )
+
+    # Конвертируем в JSON для передачи в HTML
+    chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
+
+    return {"chart_json": chart_json}
+
 
 app = FastAPI(title="Tradeum")
 
