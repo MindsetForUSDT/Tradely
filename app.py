@@ -8,7 +8,7 @@ import hashlib
 from datetime import datetime
 from contextlib import contextmanager
 
-app = FastAPI(title="Trading Quest", description="Трейдинг-квест с уровнями")
+app = FastAPI(title="Tradeum", description="Твоя образовательная среда")
 
 # Подключение статики и шаблонов
 app.mount("/static", StaticFiles(directory="static"), name="static")
