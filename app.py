@@ -8,126 +8,6 @@ import hashlib
 import requests
 from datetime import datetime
 from contextlib import contextmanager
-import plotly.graph_objs as go
-import plotly.utils
-import json
-import pandas as pd
-import random
-from datetime import datetime, timedelta
-
-
-# ========== ГЕНЕРАЦИЯ ДАННЫХ ДЛЯ ГРАФИКА ==========
-def generate_candle_data(symbol="BTC", interval="1h", limit=100):
-    """Генерирует реалистичные свечные данные для графика"""
-    if symbol == "BTC":
-        base_price = 50000
-    else:
-        base_price = 3000
-
-    data = []
-    current_time = datetime.now()
-
-    for i in range(limit, 0, -1):
-        # Случайное блуждание с трендом
-        change = random.uniform(-0.02, 0.025)
-        base_price *= (1 + change)
-
-        open_price = base_price
-        close_price = base_price * (1 + random.uniform(-0.01, 0.01))
-        high_price = max(open_price, close_price) * (1 + random.uniform(0, 0.005))
-        low_price = min(open_price, close_price) * (1 - random.uniform(0, 0.005))
-
-        data.append({
-            "time": current_time - timedelta(hours=i),
-            "open": round(open_price, 2),
-            "high": round(high_price, 2),
-            "low": round(low_price, 2),
-            "close": round(close_price, 2)
-        })
-
-    return data
-
-
-@app.get("/api/chart_data/{symbol}")
-async def get_chart_data(symbol: str, interval: str = "1h", limit: int = 100):
-    """Возвращает данные для графика в формате JSON"""
-    data = generate_candle_data(symbol, interval, limit)
-
-    # Форматируем для Plotly
-    df = pd.DataFrame(data)
-
-    fig = go.Figure(data=[go.Candlestick(
-        x=df['time'],
-        open=df['open'],
-        high=df['high'],
-        low=df['low'],
-        close=df['close'],
-        name='Price'
-    )])
-
-    # Настройки графика
-    fig.update_layout(
-        template='plotly_dark',
-        title=f'{symbol}/USDT - Реальный рынок',
-        xaxis_title='Время',
-        yaxis_title='Цена (USDT)',
-        height=500,
-        margin=dict(l=0, r=0, t=40, b=0),
-        paper_bgcolor='#121624',
-        plot_bgcolor='#0F1320',
-        font=dict(color='#E8EDF2')
-    )
-
-    # Добавляем скользящие средние
-    df['MA7'] = df['close'].rolling(window=7).mean()
-    df['MA25'] = df['close'].rolling(window=25).mean()
-
-    fig.add_trace(go.Scatter(
-        x=df['time'],
-        y=df['MA7'],
-        name='MA 7',
-        line=dict(color='#FF9800', width=1)
-    ))
-
-    fig.add_trace(go.Scatter(
-        x=df['time'],
-        y=df['MA25'],
-        name='MA 25',
-        line=dict(color='#E91E63', width=1)
-    ))
-
-    # Добавляем RSI как субграфик
-    # Рассчитываем RSI
-    delta = df['close'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-    rs = gain / loss
-    df['RSI'] = 100 - (100 / (1 + rs))
-
-    fig.add_trace(go.Scatter(
-        x=df['time'],
-        y=df['RSI'],
-        name='RSI (14)',
-        line=dict(color='#9C27B0', width=1),
-        yaxis='y2'
-    ))
-
-    # Настройка второй оси для RSI
-    fig.update_layout(
-        yaxis2=dict(
-            title='RSI',
-            overlaying='y',
-            side='right',
-            range=[0, 100],
-            showgrid=False
-        )
-    )
-
-    # Конвертируем в JSON для передачи в HTML
-    chart_json = json.dumps(fig, cls=plotly.utils.PlotlyJSONEncoder)
-
-    return {"chart_json": chart_json}
-
 
 app = FastAPI(title="Tradeum")
 
@@ -165,7 +45,6 @@ def get_db():
 
 def init_db():
     with get_db() as conn:
-        # Таблица пользователей
         conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -178,7 +57,6 @@ def init_db():
             )
         """)
 
-        # Таблица открытых позиций
         conn.execute("""
             CREATE TABLE IF NOT EXISTS open_positions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,7 +71,6 @@ def init_db():
             )
         """)
 
-        # Таблица истории
         conn.execute("""
             CREATE TABLE IF NOT EXISTS trades (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -273,7 +150,7 @@ async def dashboard(request: Request, user_id: int):
     })
 
 
-# ========== API ДЛЯ ТОРГОВЛИ ==========
+# ========== API ==========
 @app.get("/api/price/{symbol}")
 async def get_price(symbol: str):
     if symbol == "BTC":
@@ -311,17 +188,14 @@ async def open_position(request: Request):
             if margin > user["balance"]:
                 return {"success": False, "error": f"Need ${margin:.2f} margin, have ${user['balance']:.2f}"}
 
-            # Получаем цену входа
             if symbol == "BTC":
                 entry_price = get_btc_price()
             else:
                 entry_price = get_eth_price()
 
-            # Списываем маржу
             new_balance = user["balance"] - margin
             conn.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, user_id))
 
-            # Открываем позицию
             conn.execute("""
                 INSERT INTO open_positions (user_id, symbol, position_type, leverage, entry_price, amount)
                 VALUES (?, ?, ?, ?, ?, ?)
@@ -342,23 +216,19 @@ async def close_position(request: Request):
         close_amount = data.get("close_amount")
 
         with get_db() as conn:
-            # Получаем позицию
             pos = conn.execute("SELECT * FROM open_positions WHERE id = ? AND user_id = ?",
                                (position_id, user_id)).fetchone()
             if not pos:
                 return {"success": False, "error": "Position not found"}
 
-            # Проверяем сумму закрытия
             if close_amount > pos["amount"]:
                 close_amount = pos["amount"]
 
-            # Текущая цена
             if pos["symbol"] == "BTC":
                 current_price = get_btc_price()
             else:
                 current_price = get_eth_price()
 
-            # Расчёт PnL
             if pos["position_type"] == "long":
                 price_change = (current_price - pos["entry_price"]) / pos["entry_price"]
             else:
@@ -369,19 +239,16 @@ async def close_position(request: Request):
             margin_return = (pos["amount"] / pos["leverage"]) * close_ratio
             total_return = margin_return + pnl
 
-            # Обновляем баланс
             user = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,)).fetchone()
             new_balance = user["balance"] + total_return
             conn.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, user_id))
 
-            # Обновляем или удаляем позицию
             remaining_amount = pos["amount"] - close_amount
             if remaining_amount <= 0.01:
                 conn.execute("DELETE FROM open_positions WHERE id = ?", (position_id,))
             else:
                 conn.execute("UPDATE open_positions SET amount = ? WHERE id = ?", (remaining_amount, position_id))
 
-            # Записываем в историю
             conn.execute("""
                 INSERT INTO trades (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, pnl)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
