@@ -3,42 +3,54 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tradeum — Дуэль трейдеров</title>
+    <title>Tradeum — Дуэль</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0A0E17; color: #E8EDF2; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #2A3042; margin-bottom: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #2A3042; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
         .logo { font-size: 28px; font-weight: 800; }
         .logo span { color: #00D09C; }
         .back-btn { background: #2A3042; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none; }
-        .duel-container { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 30px; }
-        .player-card { flex: 1; background: #121624; border-radius: 16px; padding: 20px; border: 1px solid #2A3042; min-width: 280px; }
-        .player-card h3 { margin-bottom: 15px; }
-        .prediction-buttons { display: flex; gap: 15px; margin: 20px 0; }
-        .prediction-btn { flex: 1; padding: 15px; border: none; border-radius: 12px; font-weight: 700; font-size: 18px; cursor: pointer; background: #1A1F2E; color: #E8EDF2; transition: all 0.2s; }
-        .prediction-btn.up:hover { background: #00D09C; color: #0A0E17; }
-        .prediction-btn.down:hover { background: #FF4D6D; color: #0A0E17; }
-        .prediction-btn.selected.up { background: #00D09C; color: #0A0E17; }
-        .prediction-btn.selected.down { background: #FF4D6D; color: #0A0E17; }
-        .timer { text-align: center; font-size: 48px; font-weight: 800; margin: 30px 0; font-family: monospace; }
-        .status { text-align: center; padding: 20px; background: #121624; border-radius: 12px; margin: 20px 0; }
+
+        .status { text-align: center; padding: 20px; background: #121624; border-radius: 12px; margin: 20px 0; font-size: 18px; }
         .find-btn { background: #00D09C; color: #0A0E17; border: none; padding: 15px 40px; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; display: block; margin: 20px auto; }
         .find-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .chart-container { background: #121624; border-radius: 16px; padding: 0; margin: 20px 0; border: 1px solid #2A3042; overflow: hidden; height: 450px; }
+
+        .duel-container { display: flex; gap: 20px; flex-wrap: wrap; margin: 30px 0; }
+        .player-card { flex: 1; background: #121624; border-radius: 16px; padding: 20px; border: 1px solid #2A3042; min-width: 250px; text-align: center; }
+        .player-card h3 { margin-bottom: 15px; }
+        .rating-badge { font-size: 24px; font-weight: 700; color: #FFD700; margin: 10px 0; }
+        .prediction-buttons { display: flex; gap: 15px; margin: 20px 0; justify-content: center; }
+        .prediction-btn { padding: 12px 30px; border: none; border-radius: 12px; font-weight: 700; font-size: 18px; cursor: pointer; background: #1A1F2E; color: #E8EDF2; }
+        .prediction-btn.up.selected { background: #00D09C; color: #0A0E17; }
+        .prediction-btn.down.selected { background: #FF4D6D; color: #0A0E17; }
+        .prediction-display { margin-top: 15px; font-size: 14px; color: #A0A8C0; }
+
+        .timer { text-align: center; font-size: 48px; font-weight: 800; margin: 20px 0; font-family: monospace; }
+
+        .chart-container { background: #121624; border-radius: 16px; padding: 20px; margin: 20px 0; border: 1px solid #2A3042; text-align: center; }
+        .simple-chart { width: 100%; height: 300px; background: #1A1F2E; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px; }
+        .price-display { font-size: 32px; font-weight: 700; color: #00D09C; }
+
         .leaderboard { margin-top: 40px; background: #121624; border-radius: 16px; overflow: hidden; border: 1px solid #2A3042; }
-        .leaderboard h3 { padding: 20px; border-bottom: 1px solid #2A3042; }
-        .leaderboard-row { display: flex; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #2A3042; }
+        .leaderboard h3 { padding: 15px 20px; border-bottom: 1px solid #2A3042; }
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid #2A3042; }
         .rank { font-weight: 700; color: #FFD700; width: 50px; }
         .username { flex: 1; }
         .rating { font-weight: 700; color: #00D09C; }
+
         .notification { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; background: #1A1F2E; border-left: 3px solid; z-index: 1000; animation: slideIn 0.3s ease; }
         .notification.success { border-color: #00D09C; }
         .notification.error { border-color: #FF4D6D; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @media (max-width: 700px) { .duel-container { flex-direction: column; } }
+
+        @media (max-width: 700px) {
+            .duel-container { flex-direction: column; }
+            .prediction-btn { padding: 10px 20px; font-size: 16px; }
+            .timer { font-size: 36px; }
+        }
     </style>
-    <script src="https://s3.tradingview.com/tv.js"></script>
 </head>
 <body>
     <div class="container">
@@ -52,31 +64,36 @@
         <div class="duel-container" id="duelContainer" style="display: none;">
             <div class="player-card">
                 <h3>👤 <span id="p1Name">—</span></h3>
-                <div>⭐ Рейтинг: <span id="p1Rating">—</span></div>
+                <div class="rating-badge" id="p1Rating">—</div>
                 <div id="p1PredictionArea">
                     <div class="prediction-buttons">
                         <button class="prediction-btn up" data-dir="up">📈 ВВЕРХ</button>
                         <button class="prediction-btn down" data-dir="down">📉 ВНИЗ</button>
                     </div>
                 </div>
-                <div id="p1PredictionDisplay" style="margin-top: 15px;"></div>
+                <div class="prediction-display" id="p1PredictionDisplay"></div>
             </div>
             <div class="player-card">
                 <h3>👤 <span id="p2Name">—</span></h3>
-                <div>⭐ Рейтинг: <span id="p2Rating">—</span></div>
+                <div class="rating-badge" id="p2Rating">—</div>
                 <div id="p2PredictionArea">
                     <div class="prediction-buttons">
                         <button class="prediction-btn up" data-dir="up">📈 ВВЕРХ</button>
                         <button class="prediction-btn down" data-dir="down">📉 ВНИЗ</button>
                     </div>
                 </div>
-                <div id="p2PredictionDisplay" style="margin-top: 15px;"></div>
+                <div class="prediction-display" id="p2PredictionDisplay"></div>
             </div>
         </div>
 
         <div class="timer" id="timer">—</div>
+
         <div class="chart-container" id="chartContainer">
-            <div style="text-align: center; padding: 200px;">Загрузка графика...</div>
+            <div class="simple-chart">
+                <div>📊 Текущая цена BTC</div>
+                <div class="price-display" id="btcPrice">$50,000</div>
+                <div style="font-size: 12px; color: #A0A8C0;">График загружается... (цены реальные с Binance)</div>
+            </div>
         </div>
 
         <button class="find-btn" id="findBtn">🔍 НАЙТИ СОПЕРНИКА</button>
@@ -88,16 +105,19 @@
     </div>
 
     <script>
-        // Получаем user_id из URL параметра или из глобальной переменной
+        // Получаем user_id из URL
         const urlParams = new URLSearchParams(window.location.search);
         let userId = urlParams.get('user_id');
 
-        // Если user_id нет в URL, пробуем получить из localStorage
         if (!userId) {
             userId = localStorage.getItem('tradeum_user_id');
         }
 
-        console.log('Duel page - User ID:', userId);
+        if (userId) {
+            localStorage.setItem('tradeum_user_id', userId);
+        }
+
+        console.log('User ID:', userId);
 
         if (!userId) {
             document.getElementById('duelStatus').innerHTML = '❌ Ошибка: не найден ID пользователя. <a href="/dashboard">Вернуться в дашборд</a>';
@@ -108,7 +128,25 @@
         let myPrediction = null;
         let timerInterval = null;
         let checkInterval = null;
-        let tvWidget = null;
+        let statusCheckInterval = null;
+
+        // Функция обновления цены BTC
+        async function updateBTCPrice() {
+            try {
+                const response = await fetch('/api/price/BTC');
+                const data = await response.json();
+                const priceElem = document.getElementById('btcPrice');
+                if (priceElem) {
+                    priceElem.innerHTML = `$${data.price.toFixed(2)}`;
+                }
+            } catch(e) {
+                console.error('Price update error:', e);
+            }
+        }
+
+        // Обновляем цену каждые 3 секунды
+        updateBTCPrice();
+        setInterval(updateBTCPrice, 3000);
 
         function showNotification(msg, type) {
             const div = document.createElement('div');
@@ -127,41 +165,15 @@
                     container.innerHTML = '<div class="leaderboard-row">Нет данных</div>';
                     return;
                 }
-                container.innerHTML = leaders.map((l, idx) => `
+                container.innerHTML = leaders.slice(0, 10).map((l, idx) => `
                     <div class="leaderboard-row">
                         <div class="rank">#${idx + 1}</div>
                         <div class="username">${l.username}</div>
                         <div class="rating">⭐ ${l.rating}</div>
-                        <div>🎯 ${l.wins}W/${l.losses}L</div>
                     </div>
                 `).join('');
             } catch(e) {
                 console.error('Leaderboard error:', e);
-            }
-        }
-
-        function initTradingView() {
-            const container = document.getElementById('chartContainer');
-            container.innerHTML = '<div id="tv-chart" style="height: 450px;"></div>';
-            try {
-                tvWidget = new TradingView.widget({
-                    width: "100%",
-                    height: 450,
-                    symbol: "BINANCE:BTCUSDT",
-                    interval: "1",
-                    timezone: "Etc/UTC",
-                    theme: "dark",
-                    style: "1",
-                    locale: "ru",
-                    toolbar_bg: "#0A0E17",
-                    enable_publishing: false,
-                    allow_symbol_change: false,
-                    studies: ["MASimple@tv-basicstudies,RSI@tv-basicstudies"],
-                    container_id: "tv-chart"
-                });
-            } catch(e) {
-                console.error('TradingView error:', e);
-                container.innerHTML = '<div style="text-align: center; padding: 200px;">⚠️ График временно недоступен</div>';
             }
         }
 
@@ -174,6 +186,7 @@
             const btn = document.getElementById('findBtn');
             btn.disabled = true;
             btn.textContent = '⏳ ПОИСК...';
+            document.getElementById('duelStatus').innerHTML = '⏳ Поиск соперника...';
 
             try {
                 const res = await fetch('/api/duel/create', {
@@ -183,50 +196,57 @@
                 });
                 const data = await res.json();
 
+                console.log('Create duel response:', data);
+
                 if (data.success) {
                     currentDuelId = data.duel_id;
-                    showNotification(data.action === 'created' ? '✅ Ожидаем соперника...' : '✅ Соперник найден! Дуэль начинается!', 'success');
 
                     if (data.action === 'joined') {
+                        showNotification('✅ Соперник найден! Дуэль начинается!', 'success');
                         startDuel(currentDuelId);
                     } else {
+                        showNotification('✅ Ожидаем соперника...', 'success');
+                        document.getElementById('duelStatus').innerHTML = '⏳ Ожидаем соперника...';
                         waitForOpponent(currentDuelId);
                     }
                 } else {
                     showNotification(data.error || 'Ошибка поиска', 'error');
                     btn.disabled = false;
                     btn.textContent = '🔍 НАЙТИ СОПЕРНИКА';
+                    document.getElementById('duelStatus').innerHTML = '⚔️ Нажмите «Найти соперника», чтобы начать дуэль';
                 }
             } catch(e) {
                 console.error('Find opponent error:', e);
                 showNotification('Ошибка сервера', 'error');
                 btn.disabled = false;
                 btn.textContent = '🔍 НАЙТИ СОПЕРНИКА';
+                document.getElementById('duelStatus').innerHTML = '⚔️ Нажмите «Найти соперника», чтобы начать дуэль';
             }
         }
 
         async function waitForOpponent(duelId) {
-            const checkOpponent = setInterval(async () => {
+            let attempts = 0;
+            const maxAttempts = 30; // 60 секунд максимум
+
+            statusCheckInterval = setInterval(async () => {
+                attempts++;
                 try {
                     const res = await fetch(`/api/duel/status/${duelId}`);
                     const data = await res.json();
+                    console.log('Duel status:', data);
+
                     if (data.status === 'active') {
-                        clearInterval(checkOpponent);
+                        clearInterval(statusCheckInterval);
                         startDuel(duelId);
+                    } else if (attempts >= maxAttempts) {
+                        clearInterval(statusCheckInterval);
+                        showNotification('Время поиска истекло. Попробуйте снова.', 'error');
+                        resetDuel();
                     }
                 } catch(e) {
-                    console.error('Wait for opponent error:', e);
+                    console.error('Check status error:', e);
                 }
             }, 2000);
-
-            setTimeout(() => {
-                clearInterval(checkOpponent);
-                if (document.getElementById('duelContainer').style.display === 'none') {
-                    showNotification('Поиск отменён. Попробуйте снова.', 'error');
-                    document.getElementById('findBtn').disabled = false;
-                    document.getElementById('findBtn').textContent = '🔍 НАЙТИ СОПЕРНИКА';
-                }
-            }, 60000);
         }
 
         async function startDuel(duelId) {
@@ -238,19 +258,30 @@
                 const res = await fetch(`/api/duel/status/${duelId}`);
                 const data = await res.json();
 
-                const p1Rating = await fetch(`/api/duel/rating/${data.player1_id}`).then(r => r.json());
-                const p2Rating = data.player2_id ? await fetch(`/api/duel/rating/${data.player2_id}`).then(r => r.json()) : { rating: '—' };
+                console.log('Duel data:', data);
 
-                document.getElementById('p1Name').innerText = data.player1_id == userId ? 'Вы' : `Player ${data.player1_id}`;
-                document.getElementById('p1Rating').innerText = p1Rating.rating;
-                document.getElementById('p2Name').innerText = data.player2_id ? (data.player2_id == userId ? 'Вы' : `Player ${data.player2_id}`) : 'Ожидание...';
-                document.getElementById('p2Rating').innerText = data.player2_id ? p2Rating.rating : '—';
+                // Загружаем рейтинги
+                const p1RatingRes = await fetch(`/api/duel/rating/${data.player1_id}`);
+                const p1Rating = await p1RatingRes.json();
+
+                document.getElementById('p1Name').innerText = data.player1_id == userId ? 'Вы' : `Игрок ${data.player1_id}`;
+                document.getElementById('p1Rating').innerText = `⭐ ${p1Rating.rating}`;
+
+                if (data.player2_id) {
+                    const p2RatingRes = await fetch(`/api/duel/rating/${data.player2_id}`);
+                    const p2Rating = await p2RatingRes.json();
+                    document.getElementById('p2Name').innerText = data.player2_id == userId ? 'Вы' : `Игрок ${data.player2_id}`;
+                    document.getElementById('p2Rating').innerText = `⭐ ${p2Rating.rating}`;
+                } else {
+                    document.getElementById('p2Name').innerText = 'Ожидание...';
+                    document.getElementById('p2Rating').innerText = '⭐ ?';
+                }
             } catch(e) {
                 console.error('Start duel error:', e);
             }
 
-            // Таймер 3-5 минут
-            let timeLeft = 180 + Math.floor(Math.random() * 120);
+            // Таймер 3 минуты
+            let timeLeft = 180;
             const timerElem = document.getElementById('timer');
 
             timerInterval = setInterval(() => {
@@ -267,13 +298,15 @@
 
             setupPredictionButtons(duelId);
 
+            // Проверяем, сделали ли оба прогноз
             checkInterval = setInterval(async () => {
                 try {
                     const checkRes = await fetch(`/api/duel/check_predictions/${duelId}`);
                     const checkData = await checkRes.json();
+
                     if (checkData.both_submitted) {
                         clearInterval(checkInterval);
-                        showNotification('Оба игрока сделали прогноз! Ожидаем результат...', 'success');
+                        showNotification('Оба игрока сделали прогноз!', 'success');
                         setTimeout(() => resolveDuel(duelId), 3000);
                     }
                 } catch(e) {
@@ -283,7 +316,8 @@
         }
 
         function setupPredictionButtons(duelId) {
-            const buttons = document.querySelectorAll('.prediction-btn');
+            const buttons = document.querySelectorAll('.player-card .prediction-btn');
+
             buttons.forEach(btn => {
                 btn.onclick = async () => {
                     if (myPrediction) {
@@ -297,9 +331,15 @@
                         const res = await fetch('/api/duel/submit_prediction', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ duel_id: duelId, user_id: parseInt(userId), direction: direction })
+                            body: JSON.stringify({
+                                duel_id: duelId,
+                                user_id: parseInt(userId),
+                                direction: direction
+                            })
                         });
                         const data = await res.json();
+
+                        console.log('Submit prediction response:', data);
 
                         if (data.success) {
                             myPrediction = direction;
@@ -330,12 +370,20 @@
                 });
                 const data = await res.json();
 
-                if (data.success) {
-                    const resultText = data.winner_id == userId ? '🎉 ПОБЕДА!' : (data.winner_id ? '😔 ПОРАЖЕНИЕ' : '🤝 НИЧЬЯ');
-                    const changeText = data.winner_id == userId ? `+${data.player1_change}` : (data.winner_id ? `${data.player1_change}` : '0');
+                console.log('Resolve duel response:', data);
 
-                    showNotification(`${resultText} Изменение рейтинга: ${changeText}`, data.winner_id == userId ? 'success' : 'error');
-                    document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА! Реальное движение: ${data.price_change_pct > 0 ? '📈 ВВЕРХ' : '📉 ВНИЗ'} (${data.price_change_pct}%)<br>${resultText}`;
+                if (data.success) {
+                    let resultText = '';
+                    if (data.winner_id == userId) {
+                        resultText = '🎉 ПОБЕДА!';
+                    } else if (data.winner_id) {
+                        resultText = '😔 ПОРАЖЕНИЕ';
+                    } else {
+                        resultText = '🤝 НИЧЬЯ';
+                    }
+
+                    showNotification(`${resultText}`, data.winner_id == userId ? 'success' : 'error');
+                    document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Движение: ${data.price_change_pct > 0 ? '📈 ВВЕРХ' : '📉 ВНИЗ'} (${Math.abs(data.price_change_pct).toFixed(2)}%)<br>${resultText}`;
 
                     await loadLeaderboard();
                 }
@@ -350,8 +398,13 @@
         }
 
         function resetDuel() {
+            if (statusCheckInterval) clearInterval(statusCheckInterval);
+            if (timerInterval) clearInterval(timerInterval);
+            if (checkInterval) clearInterval(checkInterval);
+
             currentDuelId = null;
             myPrediction = null;
+
             document.getElementById('duelContainer').style.display = 'none';
             document.getElementById('findBtn').style.display = 'block';
             document.getElementById('findBtn').disabled = false;
@@ -359,14 +412,15 @@
             document.getElementById('timer').textContent = '—';
             document.getElementById('duelStatus').innerHTML = '⚔️ Нажмите «Найти соперника», чтобы начать дуэль';
             document.getElementById('p1PredictionArea').style.display = 'block';
-            document.querySelectorAll('.prediction-btn').forEach(btn => btn.classList.remove('selected'));
             document.getElementById('p1PredictionDisplay').innerHTML = '';
             document.getElementById('p2PredictionDisplay').innerHTML = '';
+
+            const buttons = document.querySelectorAll('.prediction-btn');
+            buttons.forEach(btn => btn.classList.remove('selected'));
         }
 
         document.getElementById('findBtn').onclick = findOpponent;
 
-        initTradingView();
         loadLeaderboard();
         setInterval(loadLeaderboard, 30000);
     </script>

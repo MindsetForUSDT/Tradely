@@ -23,7 +23,13 @@ def get_btc_price():
     except:
         return 50000.0
 
-
+@app.get("/api/duel/rating/{user_id}")
+async def get_user_rating(user_id: int):
+    with get_db() as conn:
+        rating = conn.execute("SELECT rating, wins, losses, current_win_streak FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
+        if not rating:
+            return {"rating": 400, "wins": 0, "losses": 0, "streak": 0}
+        return dict(rating)
 def get_eth_price():
     try:
         r = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT", timeout=5)
