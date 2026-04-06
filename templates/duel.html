@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Tradeum — Дуэль трейдеров</title>
-    <!-- Lightweight Charts (несколько источников для надёжности) -->
-    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
-    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -40,74 +37,25 @@
 
         .timer { text-align: center; font-size: 44px; font-weight: 800; margin: 16px 0; font-family: monospace; }
 
-        .chart-wrapper {
+        /* Блок с картинкой вместо графика */
+        .chart-placeholder-block {
             background: #121624;
             border-radius: 12px;
-            padding: 12px;
+            padding: 20px;
             margin: 16px 0;
             border: 1px solid #2A3042;
-        }
-        .chart-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-            flex-wrap: wrap;
-            gap: 10px;
-        }
-        .chart-controls {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-        .chart-btn {
-            background: #1A1F2E;
-            border: 1px solid #2A3042;
-            padding: 6px 14px;
-            border-radius: 6px;
-            color: #E8EDF2;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .chart-btn:hover, .chart-btn.active {
-            background: #00D09C;
-            color: #0A0E17;
-            border-color: #00D09C;
-        }
-        .indicator-select {
-            background: #1A1F2E;
-            border: 1px solid #2A3042;
-            padding: 6px 12px;
-            border-radius: 6px;
-            color: #E8EDF2;
-            font-size: 12px;
-            cursor: pointer;
-        }
-        #chart-container {
-            width: 100%;
-            height: 500px;
-            position: relative;
-            background: #0F1320;
-            border-radius: 8px;
-        }
-        .chart-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #A0A8C0;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .tools-hint {
             text-align: center;
-            font-size: 11px;
+        }
+        .chart-image {
+            width: 100%;
+            max-width: 100%;
+            border-radius: 8px;
+            display: block;
+        }
+        .chart-caption {
+            margin-top: 12px;
+            font-size: 12px;
             color: #A0A8C0;
-            margin-top: 8px;
-            padding: 8px;
-            background: #1A1F2E;
-            border-radius: 6px;
         }
 
         .leaderboard { margin-top: 30px; background: #121624; border-radius: 14px; overflow: hidden; border: 1px solid #2A3042; }
@@ -127,8 +75,6 @@
             .duel-container { flex-direction: column; }
             .prediction-btn { padding: 8px 18px; font-size: 14px; }
             .timer { font-size: 32px; }
-            #chart-container { height: 350px; }
-            .chart-btn { padding: 4px 10px; font-size: 10px; }
         }
     </style>
 </head>
@@ -168,31 +114,11 @@
 
         <div class="timer" id="timer">—</div>
 
-        <div class="chart-wrapper">
-            <div class="chart-header">
-                <div class="chart-controls">
-                    <button class="chart-btn active" data-type="candle">📊 Свечи</button>
-                    <button class="chart-btn" data-type="line">📈 Линии</button>
-                    <button class="chart-btn" data-type="area">🎯 Область</button>
-                    <button class="chart-btn" id="reset-zoom-btn">🔍 Сброс зума</button>
-                </div>
-                <div class="chart-controls">
-                    <select id="indicator-select" class="indicator-select">
-                        <option value="">📉 Индикаторы</option>
-                        <option value="sma7">MA (7)</option>
-                        <option value="sma25">MA (25)</option>
-                        <option value="ema12">EMA (12)</option>
-                    </select>
-                </div>
-            </div>
-            <div id="chart-container">
-                <div class="chart-placeholder">
-                    <div>📊 Загрузка графика...</div>
-                    <div class="loading-spinner"></div>
-                </div>
-            </div>
-            <div class="tools-hint">
-                🖱️ Зум: колёсико мыши | Панорамирование: зажать Shift + мышь | Перемещение: клик и перетаскивание
+        <!-- КАРТИНКА ВМЕСТО ГРАФИКА -->
+        <div class="chart-placeholder-block" id="chartBlock">
+            <img id="chartImage" class="chart-image" src="/static/duel_chart_placeholder.png" alt="График для анализа">
+            <div class="chart-caption" id="chartCaption">
+                📊 Здесь будет график для анализа. Ожидайте начала дуэли.
             </div>
         </div>
 
@@ -205,33 +131,6 @@
     </div>
 
     <script>
-        // Проверка загрузки библиотеки
-        function isLightweightChartsLoaded() {
-            return typeof LightweightCharts !== 'undefined';
-        }
-
-        // Ждём загрузку библиотеки
-        function waitForLibrary() {
-            return new Promise((resolve) => {
-                if (isLightweightChartsLoaded()) {
-                    resolve();
-                    return;
-                }
-                let attempts = 0;
-                const interval = setInterval(() => {
-                    attempts++;
-                    if (isLightweightChartsLoaded()) {
-                        clearInterval(interval);
-                        resolve();
-                    } else if (attempts > 50) {
-                        clearInterval(interval);
-                        console.error('LightweightCharts not loaded');
-                        resolve(); // Всё равно продолжаем
-                    }
-                }, 100);
-            });
-        }
-
         // Получаем user_id из URL
         const urlParams = new URLSearchParams(window.location.search);
         let userId = urlParams.get('user_id');
@@ -255,214 +154,9 @@
         let checkInterval = null;
         let statusCheckInterval = null;
 
-        // Глобальные переменные для графика
-        let chart = null;
-        let candleSeries = null;
-        let lineSeries = null;
-        let areaSeries = null;
-        let currentChartType = 'candle';
-        let indicators = {};
+        // Данные для графика (будут использоваться после начала дуэли)
         let historicalData = null;
         let fullData = null;
-
-        // Генерация реалистичных данных с трендом
-        function generateRealisticData(bars = 120, startPrice = 50000, trend = 0) {
-            const data = [];
-            let price = startPrice;
-            let trendDirection = trend;
-            let trendStrength = 0;
-            const now = new Date();
-
-            for (let i = 0; i <= bars; i++) {
-                // Смена тренда каждые 20-30 свечей
-                if (i % 25 === 0 && i > 0) {
-                    trendDirection = (Math.random() - 0.5) * 0.03;
-                    trendStrength = Math.random() * 0.01;
-                }
-
-                // Основное движение
-                const trendMove = trendDirection * 0.01;
-                const randomMove = (Math.random() - 0.5) * 0.02;
-                const volatility = Math.random() * 0.015;
-                const change = trendMove + randomMove + (Math.random() - 0.5) * volatility;
-
-                price = price * (1 + change);
-
-                // Создаём свечу
-                const open = price;
-                const close = price * (1 + (Math.random() - 0.5) * 0.01);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.008);
-                const low = Math.min(open, close) * (1 - Math.random() * 0.008);
-
-                const time = new Date(now.getTime() - (bars - i) * 3600000);
-
-                data.push({
-                    time: time.toISOString().slice(0, 19),
-                    open: open,
-                    high: high,
-                    low: low,
-                    close: close,
-                    volume: Math.floor(Math.random() * 1000) + 500
-                });
-            }
-            return data;
-        }
-
-        // Инициализация графика
-        async function initChart() {
-            await waitForLibrary();
-
-            if (!isLightweightChartsLoaded()) {
-                document.getElementById('chart-container').innerHTML = '<div class="chart-placeholder">⚠️ Библиотека графиков не загрузилась. Обновите страницу.</div>';
-                return false;
-            }
-
-            const container = document.getElementById('chart-container');
-            container.innerHTML = '';
-
-            try {
-                chart = LightweightCharts.createChart(container, {
-                    layout: {
-                        background: { color: '#0F1320' },
-                        textColor: '#E8EDF2',
-                    },
-                    grid: {
-                        vertLines: { color: '#1E2436' },
-                        horzLines: { color: '#1E2436' },
-                    },
-                    crosshair: {
-                        mode: LightweightCharts.CrosshairMode.Normal,
-                    },
-                    rightPriceScale: {
-                        borderColor: '#2A3042',
-                    },
-                    timeScale: {
-                        borderColor: '#2A3042',
-                        timeVisible: true,
-                        secondsVisible: false,
-                    },
-                    width: container.clientWidth,
-                    height: 500,
-                });
-
-                candleSeries = chart.addCandlestickSeries({
-                    upColor: '#00D09C',
-                    downColor: '#FF4D6D',
-                    borderVisible: false,
-                    wickUpColor: '#00D09C',
-                    wickDownColor: '#FF4D6D',
-                });
-
-                lineSeries = chart.addLineSeries({
-                    color: '#2962FF',
-                    lineWidth: 2,
-                    visible: false,
-                });
-
-                areaSeries = chart.addAreaSeries({
-                    topColor: '#2962FF33',
-                    bottomColor: '#2962FF00',
-                    lineColor: '#2962FF',
-                    lineWidth: 2,
-                    visible: false,
-                });
-
-                window.addEventListener('resize', () => {
-                    if (chart) {
-                        chart.applyOptions({ width: container.clientWidth });
-                    }
-                });
-
-                return true;
-            } catch(e) {
-                console.error('Chart init error:', e);
-                container.innerHTML = '<div class="chart-placeholder">⚠️ Ошибка инициализации графика</div>';
-                return false;
-            }
-        }
-
-        // Загрузка данных на график
-        function loadChartData(data, type = 'candle') {
-            if (!candleSeries) return;
-
-            const candleData = data.map(d => ({
-                time: d.time,
-                open: d.open,
-                high: d.high,
-                low: d.low,
-                close: d.close,
-            }));
-
-            const lineData = data.map(d => ({
-                time: d.time,
-                value: d.close,
-            }));
-
-            candleSeries.setData(candleData);
-            lineSeries.setData(lineData);
-            areaSeries.setData(lineData);
-
-            candleSeries.applyOptions({ visible: type === 'candle' });
-            lineSeries.applyOptions({ visible: type === 'line' });
-            areaSeries.applyOptions({ visible: type === 'area' });
-
-            if (chart) {
-                chart.timeScale().fitContent();
-            }
-        }
-
-        // Добавление индикатора
-        function addIndicator(indicatorType) {
-            if (!chart || !historicalData) return;
-
-            if (indicators[indicatorType]) {
-                chart.removeSeries(indicators[indicatorType]);
-                delete indicators[indicatorType];
-            }
-
-            if (indicatorType === 'sma7') {
-                const smaData = [];
-                for (let i = 6; i < historicalData.length; i++) {
-                    let sum = 0;
-                    for (let j = i - 6; j <= i; j++) {
-                        sum += historicalData[j].close;
-                    }
-                    smaData.push({
-                        time: historicalData[i].time,
-                        value: sum / 7,
-                    });
-                }
-                const smaSeries = chart.addLineSeries({ color: '#FF9800', lineWidth: 2, title: 'SMA 7' });
-                smaSeries.setData(smaData);
-                indicators[indicatorType] = smaSeries;
-            } else if (indicatorType === 'sma25') {
-                const smaData = [];
-                for (let i = 24; i < historicalData.length; i++) {
-                    let sum = 0;
-                    for (let j = i - 24; j <= i; j++) {
-                        sum += historicalData[j].close;
-                    }
-                    smaData.push({
-                        time: historicalData[i].time,
-                        value: sum / 25,
-                    });
-                }
-                const smaSeries = chart.addLineSeries({ color: '#E91E63', lineWidth: 2, title: 'SMA 25' });
-                smaSeries.setData(smaData);
-                indicators[indicatorType] = smaSeries;
-            } else if (indicatorType === 'ema12') {
-                let ema = historicalData[0].close;
-                const emaData = [{ time: historicalData[0].time, value: ema }];
-                const multiplier = 2 / (12 + 1);
-                for (let i = 1; i < historicalData.length; i++) {
-                    ema = (historicalData[i].close - ema) * multiplier + ema;
-                    emaData.push({ time: historicalData[i].time, value: ema });
-                }
-                const emaSeries = chart.addLineSeries({ color: '#9C27B0', lineWidth: 2, title: 'EMA 12' });
-                emaSeries.setData(emaData);
-                indicators[indicatorType] = emaSeries;
-            }
-        }
 
         function showNotification(msg, type) {
             const div = document.createElement('div');
@@ -489,6 +183,73 @@
                     </div>
                 `).join('');
             } catch(e) { console.error(e); }
+        }
+
+        // Генерация реалистичных данных для графика (простая, без библиотек)
+        function generateRealisticData(bars = 120, startPrice = 50000) {
+            const data = [];
+            let price = startPrice;
+            let trend = 0;
+            const now = new Date();
+
+            for (let i = 0; i <= bars; i++) {
+                // Смена тренда
+                if (i % 30 === 0 && i > 0) {
+                    trend = (Math.random() - 0.5) * 0.03;
+                }
+
+                const change = trend + (Math.random() - 0.5) * 0.02;
+                price = price * (1 + change);
+
+                const open = price;
+                const close = price * (1 + (Math.random() - 0.5) * 0.01);
+                const high = Math.max(open, close) * (1 + Math.random() * 0.01);
+                const low = Math.min(open, close) * (1 - Math.random() * 0.01);
+
+                const time = new Date(now.getTime() - (bars - i) * 3600000);
+
+                data.push({
+                    time: time.toISOString(),
+                    open: open,
+                    high: high,
+                    low: low,
+                    close: close
+                });
+            }
+            return data;
+        }
+
+        // Генерация будущего движения
+        function generateFutureMovement(historicalData) {
+            const lastPrice = historicalData[historicalData.length - 1].close;
+            const futureBars = 15;
+            const futureCandles = [];
+            let price = lastPrice;
+            let totalChange = 0;
+            const trendDirection = Math.random() > 0.5 ? 1 : -1;
+
+            for (let i = 0; i < futureBars; i++) {
+                const change = (Math.random() - 0.45) * 0.025 + (trendDirection * 0.005);
+                totalChange += change;
+                price = price * (1 + change);
+
+                const open = price;
+                const close = price * (1 + (Math.random() - 0.5) * 0.012);
+                const high = Math.max(open, close) * (1 + Math.random() * 0.01);
+                const low = Math.min(open, close) * (1 - Math.random() * 0.01);
+                const time = new Date(Date.now() + (i + 1) * 3600000);
+
+                futureCandles.push({
+                    time: time.toISOString(),
+                    open: open,
+                    high: high,
+                    low: low,
+                    close: close
+                });
+            }
+
+            const finalPriceChange = ((futureCandles[futureCandles.length - 1].close - lastPrice) / lastPrice) * 100;
+            return { futureCandles, finalPriceChange, trendDirection: trendDirection > 0 ? 'up' : 'down' };
         }
 
         async function findOpponent() {
@@ -552,16 +313,17 @@
         async function startDuel(duelId) {
             document.getElementById('duelContainer').style.display = 'flex';
             document.getElementById('findBtn').style.display = 'none';
-            document.getElementById('duelStatus').innerHTML = '⚔️ ДУЭЛЬ НАЧАЛАСЬ! Анализируй график и сделай прогноз';
+            document.getElementById('duelStatus').innerHTML = '⚔️ ДУЭЛЬ НАЧАЛАСЬ! Анализируй и сделай прогноз';
+
+            // Меняем картинку на заглушку "идёт анализ"
+            const chartImg = document.getElementById('chartImage');
+            const chartCaption = document.getElementById('chartCaption');
 
             // Генерируем данные для графика
-            historicalData = generateRealisticData(120, 50000, 0);
+            historicalData = generateRealisticData(120, 50000);
 
-            // Инициализируем график
-            const chartReady = await initChart();
-            if (chartReady) {
-                loadChartData(historicalData, 'candle');
-            }
+            // Здесь будет ваш график (пока просто меняем текст и показываем данные)
+            chartCaption.innerHTML = '📊 Идёт анализ рынка. Используйте свои знания для прогноза!';
 
             try {
                 const res = await fetch(`/api/duel/status/${duelId}`);
@@ -645,61 +407,23 @@
             });
         }
 
-        function generateFutureMovement(historicalData) {
-            const lastPrice = historicalData[historicalData.length - 1].close;
-            const futureBars = 15;
-            const futureCandles = [];
-            let price = lastPrice;
-            let totalChange = 0;
-            const trendDirection = Math.random() > 0.5 ? 1 : -1;
-
-            for (let i = 0; i < futureBars; i++) {
-                const change = (Math.random() - 0.45) * 0.025 + (trendDirection * 0.005);
-                totalChange += change;
-                price = price * (1 + change);
-
-                const open = price;
-                const close = price * (1 + (Math.random() - 0.5) * 0.012);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-                const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-                const time = new Date(Date.now() + (i + 1) * 3600000);
-
-                futureCandles.push({
-                    time: time.toISOString().slice(0, 19),
-                    open: open,
-                    high: high,
-                    low: low,
-                    close: close
-                });
-            }
-
-            const finalPriceChange = ((futureCandles[futureCandles.length - 1].close - lastPrice) / lastPrice) * 100;
-            return { futureCandles, finalPriceChange, trendDirection: trendDirection > 0 ? 'up' : 'down' };
-        }
-
         async function resolveDuel(duelId) {
             clearInterval(timerInterval);
             clearInterval(checkInterval);
 
             document.getElementById('duelStatus').innerHTML = '📊 Раскрываем результат...';
 
+            // Генерируем будущее движение
             const { futureCandles, finalPriceChange, trendDirection } = generateFutureMovement(historicalData);
             fullData = [...historicalData, ...futureCandles];
 
-            if (candleSeries) {
-                const candleData = fullData.map(d => ({
-                    time: d.time,
-                    open: d.open,
-                    high: d.high,
-                    low: d.low,
-                    close: d.close,
-                }));
-                candleSeries.setData(candleData);
-                if (chart) chart.timeScale().fitContent();
-            }
-
             const resultText = finalPriceChange > 0 ? 'ВВЕРХ' : 'ВНИЗ';
             document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Реальное движение: ${resultText} (${Math.abs(finalPriceChange).toFixed(2)}%)<br>Определяем победителя...`;
+
+            // Меняем картинку на результат
+            const chartImg = document.getElementById('chartImage');
+            const chartCaption = document.getElementById('chartCaption');
+            chartCaption.innerHTML = `📊 Рынок пошёл ${resultText} на ${Math.abs(finalPriceChange).toFixed(2)}%`;
 
             try {
                 const res = await fetch('/api/duel/resolve', {
@@ -750,59 +474,16 @@
             const buttons = document.querySelectorAll('.prediction-btn');
             buttons.forEach(btn => btn.classList.remove('selected'));
 
-            if (chart) {
-                chart.remove();
-                chart = null;
-            }
-            candleSeries = null;
-            lineSeries = null;
-            areaSeries = null;
-
-            const container = document.getElementById('chart-container');
-            if (container) {
-                container.innerHTML = '<div class="chart-placeholder">📊 График будет здесь после начала дуэли</div>';
-            }
+            // Возвращаем картинку в исходное состояние
+            const chartImg = document.getElementById('chartImage');
+            const chartCaption = document.getElementById('chartCaption');
+            chartImg.src = '/static/duel_chart_placeholder.png';
+            chartCaption.innerHTML = '📊 Здесь будет график для анализа. Ожидайте начала дуэли.';
         }
 
         document.getElementById('findBtn').onclick = findOpponent;
-
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('chart-btn') && e.target.dataset.type) {
-                const type = e.target.dataset.type;
-                document.querySelectorAll('.chart-btn').forEach(btn => btn.classList.remove('active'));
-                e.target.classList.add('active');
-                if (candleSeries && lineSeries && areaSeries) {
-                    candleSeries.applyOptions({ visible: type === 'candle' });
-                    lineSeries.applyOptions({ visible: type === 'line' });
-                    areaSeries.applyOptions({ visible: type === 'area' });
-                }
-            }
-            if (e.target.id === 'reset-zoom-btn') {
-                if (chart) chart.timeScale().fitContent();
-            }
-        });
-
-        document.addEventListener('change', (e) => {
-            if (e.target.id === 'indicator-select') {
-                const value = e.target.value;
-                if (value) {
-                    addIndicator(value);
-                    e.target.value = '';
-                }
-            }
-        });
-
         loadLeaderboard();
         setInterval(loadLeaderboard, 30000);
-
-        // Показываем демо-график для привлечения внимания
-        (async function showDemoChart() {
-            const demoData = generateRealisticData(80, 50000, 0);
-            const chartReady = await initChart();
-            if (chartReady) {
-                loadChartData(demoData, 'candle');
-            }
-        })();
     </script>
 </body>
 </html>
