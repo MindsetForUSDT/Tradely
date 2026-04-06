@@ -45,18 +45,34 @@ def get_db():
 
 def init_db():
     with get_db() as conn:
+        # Таблица пользователей
         conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
                 balance REAL DEFAULT 10000.0,
-                total_trades INTEGER DEFAULT 0,
-                winning_trades INTEGER DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
+        # Таблица рейтингов
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS user_ratings (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER UNIQUE NOT NULL,
+                rating INTEGER DEFAULT 400,
+                wins INTEGER DEFAULT 0,
+                losses INTEGER DEFAULT 0,
+                current_win_streak INTEGER DEFAULT 0,
+                current_loss_streak INTEGER DEFAULT 0,
+                best_win_streak INTEGER DEFAULT 0,
+                duels_total INTEGER DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+
+        # Таблица открытых позиций (для обычной торговли)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS open_positions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -71,6 +87,7 @@ def init_db():
             )
         """)
 
+        # Таблица истории сделок (обычная торговля)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS trades (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -84,6 +101,29 @@ def init_db():
                 pnl REAL NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+
+        # Таблица дуэлей
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS duels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player1_id INTEGER NOT NULL,
+                player2_id INTEGER,
+                status TEXT DEFAULT 'waiting',
+                start_price REAL,
+                end_price REAL,
+                direction TEXT,
+                player1_prediction TEXT,
+                player2_prediction TEXT,
+                player1_score_change INTEGER,
+                player2_score_change INTEGER,
+                winner_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                started_at TIMESTAMP,
+                ended_at TIMESTAMP,
+                FOREIGN KEY (player1_id) REFERENCES users (id),
+                FOREIGN KEY (player2_id) REFERENCES users (id)
             )
         """)
         conn.commit()
@@ -111,8 +151,10 @@ async def login_page(request: Request, registered: str = None, error: str = None
 async def register(username: str = Form(...), password: str = Form(...)):
     try:
         with get_db() as conn:
-            conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)",
-                         (username, hash_password(password)))
+            cursor = conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)",
+                                  (username, hash_password(password)))
+            user_id = cursor.lastrowid
+            conn.execute("INSERT INTO user_ratings (user_id, rating) VALUES (?, 400)", (user_id,))
             conn.commit()
         return RedirectResponse(url="/login?registered=1", status_code=303)
     except:
@@ -131,10 +173,11 @@ async def login(username: str = Form(...), password: str = Form(...)):
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, user_id: int):
     with get_db() as conn:
-        user = conn.execute("SELECT id, username, balance, total_trades, winning_trades FROM users WHERE id = ?",
-                            (user_id,)).fetchone()
+        user = conn.execute("SELECT id, username, balance FROM users WHERE id = ?", (user_id,)).fetchone()
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
+
+        rating = conn.execute("SELECT rating, wins, losses FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
 
         recent_trades = conn.execute(
             "SELECT symbol, position_type, leverage, pnl, created_at FROM trades WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
@@ -144,13 +187,24 @@ async def dashboard(request: Request, user_id: int):
     return templates.TemplateResponse("dashboard.html", {
         "request": request,
         "user": user,
+        "rating": rating,
         "recent_trades": recent_trades,
         "btc_price": round(get_btc_price(), 2),
         "eth_price": round(get_eth_price(), 2)
     })
 
 
-# ========== API ==========
+@app.get("/duel", response_class=HTMLResponse)
+async def duel_page(request: Request):
+    return templates.TemplateResponse("duel.html", {"request": request})
+
+
+@app.get("/leaderboard", response_class=HTMLResponse)
+async def leaderboard_page(request: Request):
+    return templates.TemplateResponse("leaderboard.html", {"request": request})
+
+
+# ========== API ОБЫЧНОЙ ТОРГОВЛИ ==========
 @app.get("/api/price/{symbol}")
 async def get_price(symbol: str):
     if symbol == "BTC":
@@ -163,7 +217,7 @@ async def get_price(symbol: str):
 async def get_positions(user_id: int):
     with get_db() as conn:
         positions = conn.execute(
-            "SELECT id, symbol, position_type, leverage, entry_price, amount, created_at FROM open_positions WHERE user_id = ?",
+            "SELECT id, symbol, position_type, leverage, entry_price, amount FROM open_positions WHERE user_id = ?",
             (user_id,)
         ).fetchall()
         return [dict(p) for p in positions]
@@ -274,6 +328,264 @@ async def get_history(user_id: int):
         return [{"symbol": t["symbol"], "position_type": t["position_type"],
                  "leverage": t["leverage"], "pnl": t["pnl"],
                  "created_at": t["created_at"][:19]} for t in trades]
+
+
+# ========== API ДУЭЛЕЙ ==========
+@app.get("/api/duel/rating/{user_id}")
+async def get_user_rating(user_id: int):
+    with get_db() as conn:
+        rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
+        if not rating:
+            return {"rating": 400, "wins": 0, "losses": 0, "streak": 0}
+        return dict(rating)
+
+
+@app.get("/api/duel/leaderboard")
+async def get_leaderboard(limit: int = 100):
+    with get_db() as conn:
+        leaders = conn.execute("""
+            SELECT u.username, r.rating, r.wins, r.losses, r.duels_total
+            FROM user_ratings r
+            JOIN users u ON r.user_id = u.id
+            ORDER BY r.rating DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
+        return [dict(l) for l in leaders]
+
+
+@app.post("/api/duel/create")
+async def create_duel(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+
+        with get_db() as conn:
+            # Проверяем, есть ли ожидающие дуэли
+            waiting = conn.execute(
+                "SELECT id FROM duels WHERE status = 'waiting' AND player1_id != ?",
+                (user_id,)
+            ).fetchone()
+
+            if waiting:
+                duel_id = waiting["id"]
+                conn.execute(
+                    "UPDATE duels SET player2_id = ?, status = 'active', started_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (user_id, duel_id)
+                )
+                start_price = get_btc_price()
+                conn.execute("UPDATE duels SET start_price = ? WHERE id = ?", (start_price, duel_id))
+                conn.commit()
+                return {"success": True, "duel_id": duel_id, "action": "joined"}
+            else:
+                cursor = conn.execute(
+                    "INSERT INTO duels (player1_id, status) VALUES (?, 'waiting')",
+                    (user_id,)
+                )
+                duel_id = cursor.lastrowid
+                conn.commit()
+                return {"success": True, "duel_id": duel_id, "action": "created"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/duel/status/{duel_id}")
+async def get_duel_status(duel_id: int):
+    with get_db() as conn:
+        duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+        if not duel:
+            return {"error": "Duel not found"}
+
+        return {
+            "status": duel["status"],
+            "player1_id": duel["player1_id"],
+            "player2_id": duel["player2_id"],
+            "start_price": duel["start_price"],
+            "started_at": duel["started_at"]
+        }
+
+
+@app.post("/api/duel/submit_prediction")
+async def submit_prediction(request: Request):
+    try:
+        data = await request.json()
+        duel_id = data.get("duel_id")
+        user_id = data.get("user_id")
+        direction = data.get("direction")
+
+        with get_db() as conn:
+            duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+            if not duel or duel["status"] != "active":
+                return {"success": False, "error": "Duel not active"}
+
+            if duel["player1_id"] == user_id:
+                conn.execute("UPDATE duels SET player1_prediction = ? WHERE id = ?", (direction, duel_id))
+            elif duel["player2_id"] == user_id:
+                conn.execute("UPDATE duels SET player2_prediction = ? WHERE id = ?", (direction, duel_id))
+            else:
+                return {"success": False, "error": "Not a player in this duel"}
+
+            conn.commit()
+            return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/duel/check_predictions/{duel_id}")
+async def check_predictions(duel_id: int):
+    with get_db() as conn:
+        duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+        if not duel:
+            return {"error": "Duel not found"}
+
+        both_submitted = duel["player1_prediction"] is not None and duel["player2_prediction"] is not None
+
+        return {
+            "both_submitted": both_submitted,
+            "player1_prediction": duel["player1_prediction"],
+            "player2_prediction": duel["player2_prediction"]
+        }
+
+
+def calculate_rating_change(current_rating, is_winner, streak_count):
+    """Расчёт изменения рейтинга на основе серии побед/поражений"""
+    if is_winner:
+        if streak_count >= 3:
+            return 15
+        elif streak_count == 2:
+            return 20
+        else:
+            return 25
+    else:
+        if streak_count >= 3:
+            return -15
+        elif streak_count == 2:
+            return -20
+        else:
+            return -25
+
+
+@app.post("/api/duel/resolve")
+async def resolve_duel(request: Request):
+    try:
+        data = await request.json()
+        duel_id = data.get("duel_id")
+
+        with get_db() as conn:
+            duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+            if not duel or duel["status"] != "active":
+                return {"success": False, "error": "Duel not active"}
+
+            end_price = get_btc_price()
+            price_change_pct = ((end_price - duel["start_price"]) / duel["start_price"]) * 100
+
+            if price_change_pct > 0.3:
+                real_direction = "up"
+            elif price_change_pct < -0.3:
+                real_direction = "down"
+            else:
+                real_direction = "sideways"
+
+            p1_pred = duel["player1_prediction"]
+            p2_pred = duel["player2_prediction"]
+
+            # Загружаем рейтинги
+            p1_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player1_id"],)).fetchone()
+            p2_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player2_id"],)).fetchone()
+
+            winner_id = None
+            p1_change = 0
+            p2_change = 0
+            new_p1_streak = 0
+            new_p2_streak = 0
+            new_p1_loss_streak = 0
+            new_p2_loss_streak = 0
+
+            if p1_pred == real_direction and p2_pred != real_direction:
+                winner_id = duel["player1_id"]
+                p1_change = calculate_rating_change(p1_rating["rating"], True, p1_rating["current_win_streak"])
+                p2_change = calculate_rating_change(p2_rating["rating"], False, p2_rating["current_loss_streak"])
+                new_p1_streak = p1_rating["current_win_streak"] + 1
+                new_p2_loss_streak = p2_rating["current_loss_streak"] + 1
+
+            elif p2_pred == real_direction and p1_pred != real_direction:
+                winner_id = duel["player2_id"]
+                p1_change = calculate_rating_change(p1_rating["rating"], False, p1_rating["current_loss_streak"])
+                p2_change = calculate_rating_change(p2_rating["rating"], True, p2_rating["current_win_streak"])
+                new_p1_loss_streak = p1_rating["current_loss_streak"] + 1
+                new_p2_streak = p2_rating["current_win_streak"] + 1
+
+            elif p1_pred == real_direction and p2_pred == real_direction:
+                # Ничья — без изменений
+                p1_change = 0
+                p2_change = 0
+                new_p1_streak = 0
+                new_p2_streak = 0
+                new_p1_loss_streak = 0
+                new_p2_loss_streak = 0
+            else:
+                # Оба не угадали
+                p1_change = -10
+                p2_change = -10
+                new_p1_loss_streak = p1_rating["current_loss_streak"] + 1
+                new_p2_loss_streak = p2_rating["current_loss_streak"] + 1
+
+            # Обновляем рейтинги
+            new_p1_rating = p1_rating["rating"] + p1_change
+            new_p2_rating = p2_rating["rating"] + p2_change
+
+            conn.execute("""
+                UPDATE user_ratings SET 
+                    rating = ?, 
+                    wins = wins + ?, 
+                    losses = losses + ?,
+                    current_win_streak = ?,
+                    current_loss_streak = ?,
+                    best_win_streak = MAX(best_win_streak, ?),
+                    duels_total = duels_total + 1
+                WHERE user_id = ?
+            """, (new_p1_rating, 1 if winner_id == duel["player1_id"] else 0,
+                  1 if winner_id == duel["player2_id"] else 0,
+                  new_p1_streak, new_p1_loss_streak, new_p1_streak, duel["player1_id"]))
+
+            conn.execute("""
+                UPDATE user_ratings SET 
+                    rating = ?, 
+                    wins = wins + ?, 
+                    losses = losses + ?,
+                    current_win_streak = ?,
+                    current_loss_streak = ?,
+                    best_win_streak = MAX(best_win_streak, ?),
+                    duels_total = duels_total + 1
+                WHERE user_id = ?
+            """, (new_p2_rating, 1 if winner_id == duel["player2_id"] else 0,
+                  1 if winner_id == duel["player1_id"] else 0,
+                  new_p2_streak, new_p2_loss_streak, new_p2_streak, duel["player2_id"]))
+
+            # Завершаем дуэль
+            conn.execute("""
+                UPDATE duels SET 
+                    status = 'completed', 
+                    end_price = ?, 
+                    direction = ?,
+                    winner_id = ?,
+                    player1_score_change = ?,
+                    player2_score_change = ?,
+                    ended_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (end_price, real_direction, winner_id, p1_change, p2_change, duel_id))
+
+            conn.commit()
+
+            return {
+                "success": True,
+                "real_direction": real_direction,
+                "price_change_pct": round(price_change_pct, 2),
+                "winner_id": winner_id,
+                "player1_change": p1_change,
+                "player2_change": p2_change
+            }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 if __name__ == "__main__":
