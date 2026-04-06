@@ -62,8 +62,8 @@
         <div class="header">
             <div class="logo">Trade<span>um</span></div>
             <div class="nav-buttons">
-                <a href="/duel" class="nav-btn duel-btn">⚔️ ДУЭЛЬ</a>
-                <a href="/leaderboard" class="nav-btn leader-btn">🏆 ЛИДЕРЫ</a>
+                <a href="/duel?user_id={{ user.id }}" class="nav-btn duel-btn">⚔️ ДУЭЛЬ</a>
+                <a href="/leaderboard?user_id={{ user.id }}" class="nav-btn leader-btn">🏆 ЛИДЕРЫ</a>
             </div>
             <div class="balance-card">💰 $<span id="balance">{{ user.balance }}</span></div>
             <div class="rating-card">⭐ Рейтинг: <span class="rating-value" id="rating">{{ rating.rating if rating else 400 }}</span></div>
