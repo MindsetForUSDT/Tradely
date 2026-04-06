@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradeum — Таблица лидеров</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0A0E17; color: #E8EDF2; padding: 20px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #2A3042; margin-bottom: 30px; }
+        .logo { font-size: 28px; font-weight: 800; }
+        .logo span { color: #00D09C; }
+        .leaderboard { background: #121624; border-radius: 16px; overflow: hidden; border: 1px solid #2A3042; }
+        .leaderboard-header { display: flex; justify-content: space-between; padding: 15px 20px; background: #1A1F2E; font-weight: 700; border-bottom: 1px solid #2A3042; }
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid #2A3042; }
+        .rank { font-weight: 700; color: #FFD700; width: 60px; }
+        .username { flex: 1; }
+        .rating { font-weight: 700; color: #00D09C; width: 100px; }
+        .stats { width: 120px; }
+        .back-btn { background: #2A3042; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none; }
+        @media (max-width: 600px) { .stats { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">Trade<span>um</span> | Лидеры</div>
+            <a href="/dashboard" class="back-btn">← Назад</a>
+        </div>
+        <div class="leaderboard">
+            <div class="leaderboard-header"><div class="rank">#</div><div class="username">Игрок</div><div class="rating">⭐ Рейтинг</div><div class="stats">📊 Победы/Поражения</div></div>
+            <div id="leaderboardList"></div>
+        </div>
+    </div>
+    <script>
+        async function loadLeaderboard() {
+            const res = await fetch('/api/duel/leaderboard'); const leaders = await res.json();
+            const container = document.getElementById('leaderboardList');
+            if (!leaders.length) { container.innerHTML = '<div class="leaderboard-row">Нет данных</div>'; return; }
+            container.innerHTML = leaders.map((l, idx) => `<div class="leaderboard-row"><div class="rank">#${idx+1}</div><div class="username">${l.username}</div><div class="rating">⭐ ${l.rating}</div><div class="stats">${l.wins}W / ${l.losses}L</div></div>`).join('');
+        }
+        loadLeaderboard(); setInterval(loadLeaderboard, 30000);
+    </script>
+</body>
+</html>
