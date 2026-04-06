@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Tradeum — Дуэль трейдеров</title>
-    <!-- Lightweight Charts (библиотека от TradingView) -->
+    <!-- Lightweight Charts (несколько источников для надёжности) -->
+    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
     <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -39,7 +40,6 @@
 
         .timer { text-align: center; font-size: 44px; font-weight: 800; margin: 16px 0; font-family: monospace; }
 
-        /* TradingView стиль графика */
         .chart-wrapper {
             background: #121624;
             border-radius: 12px;
@@ -88,8 +88,18 @@
             width: 100%;
             height: 500px;
             position: relative;
+            background: #0F1320;
+            border-radius: 8px;
         }
-
+        .chart-placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #A0A8C0;
+            flex-direction: column;
+            gap: 16px;
+        }
         .tools-hint {
             text-align: center;
             font-size: 11px;
@@ -172,14 +182,17 @@
                         <option value="sma7">MA (7)</option>
                         <option value="sma25">MA (25)</option>
                         <option value="ema12">EMA (12)</option>
-                        <option value="rsi">RSI (14)</option>
-                        <option value="volume">Объём</option>
                     </select>
                 </div>
             </div>
-            <div id="chart-container"></div>
+            <div id="chart-container">
+                <div class="chart-placeholder">
+                    <div>📊 Загрузка графика...</div>
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
             <div class="tools-hint">
-                🖱️ Зум: колёсико мыши | Панорамирование: зажать Shift + мышь | Перемещение графика: клик и перетаскивание
+                🖱️ Зум: колёсико мыши | Панорамирование: зажать Shift + мышь | Перемещение: клик и перетаскивание
             </div>
         </div>
 
@@ -192,6 +205,33 @@
     </div>
 
     <script>
+        // Проверка загрузки библиотеки
+        function isLightweightChartsLoaded() {
+            return typeof LightweightCharts !== 'undefined';
+        }
+
+        // Ждём загрузку библиотеки
+        function waitForLibrary() {
+            return new Promise((resolve) => {
+                if (isLightweightChartsLoaded()) {
+                    resolve();
+                    return;
+                }
+                let attempts = 0;
+                const interval = setInterval(() => {
+                    attempts++;
+                    if (isLightweightChartsLoaded()) {
+                        clearInterval(interval);
+                        resolve();
+                    } else if (attempts > 50) {
+                        clearInterval(interval);
+                        console.error('LightweightCharts not loaded');
+                        resolve(); // Всё равно продолжаем
+                    }
+                }, 100);
+            });
+        }
+
         // Получаем user_id из URL
         const urlParams = new URLSearchParams(window.location.search);
         let userId = urlParams.get('user_id');
@@ -235,7 +275,7 @@
 
             for (let i = 0; i <= bars; i++) {
                 // Смена тренда каждые 20-30 свечей
-                if (i % 25 === 0) {
+                if (i % 25 === 0 && i > 0) {
                     trendDirection = (Math.random() - 0.5) * 0.03;
                     trendStrength = Math.random() * 0.01;
                 }
@@ -269,61 +309,76 @@
         }
 
         // Инициализация графика
-        function initChart() {
+        async function initChart() {
+            await waitForLibrary();
+
+            if (!isLightweightChartsLoaded()) {
+                document.getElementById('chart-container').innerHTML = '<div class="chart-placeholder">⚠️ Библиотека графиков не загрузилась. Обновите страницу.</div>';
+                return false;
+            }
+
             const container = document.getElementById('chart-container');
             container.innerHTML = '';
 
-            chart = LightweightCharts.createChart(container, {
-                layout: {
-                    background: { color: '#0F1320' },
-                    textColor: '#E8EDF2',
-                },
-                grid: {
-                    vertLines: { color: '#1E2436' },
-                    horzLines: { color: '#1E2436' },
-                },
-                crosshair: {
-                    mode: LightweightCharts.CrosshairMode.Normal,
-                },
-                rightPriceScale: {
-                    borderColor: '#2A3042',
-                },
-                timeScale: {
-                    borderColor: '#2A3042',
-                    timeVisible: true,
-                    secondsVisible: false,
-                },
-                width: container.clientWidth,
-                height: 500,
-            });
+            try {
+                chart = LightweightCharts.createChart(container, {
+                    layout: {
+                        background: { color: '#0F1320' },
+                        textColor: '#E8EDF2',
+                    },
+                    grid: {
+                        vertLines: { color: '#1E2436' },
+                        horzLines: { color: '#1E2436' },
+                    },
+                    crosshair: {
+                        mode: LightweightCharts.CrosshairMode.Normal,
+                    },
+                    rightPriceScale: {
+                        borderColor: '#2A3042',
+                    },
+                    timeScale: {
+                        borderColor: '#2A3042',
+                        timeVisible: true,
+                        secondsVisible: false,
+                    },
+                    width: container.clientWidth,
+                    height: 500,
+                });
 
-            candleSeries = chart.addCandlestickSeries({
-                upColor: '#00D09C',
-                downColor: '#FF4D6D',
-                borderVisible: false,
-                wickUpColor: '#00D09C',
-                wickDownColor: '#FF4D6D',
-            });
+                candleSeries = chart.addCandlestickSeries({
+                    upColor: '#00D09C',
+                    downColor: '#FF4D6D',
+                    borderVisible: false,
+                    wickUpColor: '#00D09C',
+                    wickDownColor: '#FF4D6D',
+                });
 
-            lineSeries = chart.addLineSeries({
-                color: '#2962FF',
-                lineWidth: 2,
-                visible: false,
-            });
+                lineSeries = chart.addLineSeries({
+                    color: '#2962FF',
+                    lineWidth: 2,
+                    visible: false,
+                });
 
-            areaSeries = chart.addAreaSeries({
-                topColor: '#2962FF33',
-                bottomColor: '#2962FF00',
-                lineColor: '#2962FF',
-                lineWidth: 2,
-                visible: false,
-            });
+                areaSeries = chart.addAreaSeries({
+                    topColor: '#2962FF33',
+                    bottomColor: '#2962FF00',
+                    lineColor: '#2962FF',
+                    lineWidth: 2,
+                    visible: false,
+                });
 
-            chart.timeScale().fitContent();
+                window.addEventListener('resize', () => {
+                    if (chart) {
+                        chart.applyOptions({ width: container.clientWidth });
+                    }
+                });
 
-            window.addEventListener('resize', () => {
-                chart.applyOptions({ width: container.clientWidth });
-            });
+                return true;
+            } catch(e) {
+                console.error('Chart init error:', e);
+                container.innerHTML = '<div class="chart-placeholder">⚠️ Ошибка инициализации графика</div>';
+                return false;
+            }
         }
 
         // Загрузка данных на график
@@ -347,19 +402,19 @@
             lineSeries.setData(lineData);
             areaSeries.setData(lineData);
 
-            // Показываем нужный тип
             candleSeries.applyOptions({ visible: type === 'candle' });
             lineSeries.applyOptions({ visible: type === 'line' });
             areaSeries.applyOptions({ visible: type === 'area' });
 
-            chart.timeScale().fitContent();
+            if (chart) {
+                chart.timeScale().fitContent();
+            }
         }
 
         // Добавление индикатора
         function addIndicator(indicatorType) {
             if (!chart || !historicalData) return;
 
-            // Удаляем старый индикатор если есть
             if (indicators[indicatorType]) {
                 chart.removeSeries(indicators[indicatorType]);
                 delete indicators[indicatorType];
@@ -503,8 +558,10 @@
             historicalData = generateRealisticData(120, 50000, 0);
 
             // Инициализируем график
-            initChart();
-            loadChartData(historicalData, 'candle');
+            const chartReady = await initChart();
+            if (chartReady) {
+                loadChartData(historicalData, 'candle');
+            }
 
             try {
                 const res = await fetch(`/api/duel/status/${duelId}`);
@@ -588,15 +645,12 @@
             });
         }
 
-        // Генерация будущего движения
         function generateFutureMovement(historicalData) {
             const lastPrice = historicalData[historicalData.length - 1].close;
             const futureBars = 15;
             const futureCandles = [];
             let price = lastPrice;
             let totalChange = 0;
-
-            // Случайное направление тренда
             const trendDirection = Math.random() > 0.5 ? 1 : -1;
 
             for (let i = 0; i < futureBars; i++) {
@@ -629,31 +683,24 @@
 
             document.getElementById('duelStatus').innerHTML = '📊 Раскрываем результат...';
 
-            // Генерируем будущее движение
             const { futureCandles, finalPriceChange, trendDirection } = generateFutureMovement(historicalData);
             fullData = [...historicalData, ...futureCandles];
 
-            // Обновляем график с будущими свечами
-            const candleData = fullData.map(d => ({
-                time: d.time,
-                open: d.open,
-                high: d.high,
-                low: d.low,
-                close: d.close,
-            }));
-
-            candleSeries.setData(candleData);
-
-            // Добавляем вертикальную линию
-            const lastHistoricalTime = historicalData[historicalData.length - 1].time;
-            const lineData = [{ time: lastHistoricalTime, value: historicalData[historicalData.length - 1].high }];
-
-            chart.timeScale().fitContent();
+            if (candleSeries) {
+                const candleData = fullData.map(d => ({
+                    time: d.time,
+                    open: d.open,
+                    high: d.high,
+                    low: d.low,
+                    close: d.close,
+                }));
+                candleSeries.setData(candleData);
+                if (chart) chart.timeScale().fitContent();
+            }
 
             const resultText = finalPriceChange > 0 ? 'ВВЕРХ' : 'ВНИЗ';
             document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Реальное движение: ${resultText} (${Math.abs(finalPriceChange).toFixed(2)}%)<br>Определяем победителя...`;
 
-            // Отправляем результат на сервер
             try {
                 const res = await fetch('/api/duel/resolve', {
                     method: 'POST',
@@ -703,19 +750,22 @@
             const buttons = document.querySelectorAll('.prediction-btn');
             buttons.forEach(btn => btn.classList.remove('selected'));
 
-            // Очищаем график
             if (chart) {
                 chart.remove();
                 chart = null;
             }
+            candleSeries = null;
+            lineSeries = null;
+            areaSeries = null;
+
             const container = document.getElementById('chart-container');
-            if (container) container.innerHTML = '';
+            if (container) {
+                container.innerHTML = '<div class="chart-placeholder">📊 График будет здесь после начала дуэли</div>';
+            }
         }
 
-        // Обработчики кнопок графика
         document.getElementById('findBtn').onclick = findOpponent;
 
-        // Делегирование событий для кнопок графика (они создаются после initChart)
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('chart-btn') && e.target.dataset.type) {
                 const type = e.target.dataset.type;
@@ -745,14 +795,14 @@
         loadLeaderboard();
         setInterval(loadLeaderboard, 30000);
 
-        // Предзагрузка графика для отображения
-        setTimeout(() => {
-            if (!chart) {
-                const demoData = generateRealisticData(60, 50000, 0);
-                initChart();
+        // Показываем демо-график для привлечения внимания
+        (async function showDemoChart() {
+            const demoData = generateRealisticData(80, 50000, 0);
+            const chartReady = await initChart();
+            if (chartReady) {
                 loadChartData(demoData, 'candle');
             }
-        }, 100);
+        })();
     </script>
 </body>
 </html>
