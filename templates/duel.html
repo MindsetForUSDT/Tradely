@@ -2,58 +2,123 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Tradeum — Дуэль трейдеров</title>
-    <script src="https://cdn.plot.ly/plotly-3.0.1.min.js"></script>
+    <!-- Lightweight Charts (библиотека от TradingView) -->
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0A0E17; color: #E8EDF2; padding: 20px; }
-        .container { max-width: 1400px; margin: 0 auto; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0A0E17;
+            color: #E8EDF2;
+            padding: 16px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
 
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #2A3042; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
-        .logo { font-size: 28px; font-weight: 800; }
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 16px; border-bottom: 1px solid #2A3042; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+        .logo { font-size: 24px; font-weight: 800; }
         .logo span { color: #00D09C; }
-        .back-btn { background: #2A3042; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none; }
+        .back-btn { background: #2A3042; color: white; padding: 8px 18px; border-radius: 8px; text-decoration: none; font-size: 14px; }
 
-        .status { text-align: center; padding: 20px; background: #121624; border-radius: 12px; margin: 20px 0; font-size: 18px; }
-        .find-btn { background: #00D09C; color: #0A0E17; border: none; padding: 15px 40px; border-radius: 12px; font-size: 18px; font-weight: 700; cursor: pointer; display: block; margin: 20px auto; }
+        .status { text-align: center; padding: 16px; background: #121624; border-radius: 12px; margin: 16px 0; font-size: 16px; }
+        .find-btn { background: #00D09C; color: #0A0E17; border: none; padding: 12px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; display: block; margin: 16px auto; }
         .find-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .duel-container { display: flex; gap: 20px; flex-wrap: wrap; margin: 30px 0; }
-        .player-card { flex: 1; background: #121624; border-radius: 16px; padding: 20px; border: 1px solid #2A3042; min-width: 250px; text-align: center; }
-        .player-card h3 { margin-bottom: 15px; }
-        .rating-badge { font-size: 24px; font-weight: 700; color: #FFD700; margin: 10px 0; }
-        .prediction-buttons { display: flex; gap: 15px; margin: 20px 0; justify-content: center; }
-        .prediction-btn { padding: 12px 30px; border: none; border-radius: 12px; font-weight: 700; font-size: 18px; cursor: pointer; background: #1A1F2E; color: #E8EDF2; transition: all 0.2s; }
+        .duel-container { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+        .player-card { flex: 1; background: #121624; border-radius: 14px; padding: 16px; border: 1px solid #2A3042; min-width: 240px; text-align: center; }
+        .player-card h3 { margin-bottom: 12px; font-size: 18px; }
+        .rating-badge { font-size: 20px; font-weight: 700; color: #FFD700; margin: 8px 0; }
+        .prediction-buttons { display: flex; gap: 12px; margin: 16px 0; justify-content: center; }
+        .prediction-btn { padding: 10px 24px; border: none; border-radius: 10px; font-weight: 700; font-size: 16px; cursor: pointer; background: #1A1F2E; color: #E8EDF2; transition: all 0.2s; }
         .prediction-btn.up:hover { background: #00D09C33; }
         .prediction-btn.down:hover { background: #FF4D6D33; }
         .prediction-btn.up.selected { background: #00D09C; color: #0A0E17; }
         .prediction-btn.down.selected { background: #FF4D6D; color: #0A0E17; }
-        .prediction-display { margin-top: 15px; font-size: 14px; color: #A0A8C0; }
+        .prediction-display { margin-top: 12px; font-size: 13px; color: #A0A8C0; }
 
-        .timer { text-align: center; font-size: 48px; font-weight: 800; margin: 20px 0; font-family: monospace; }
-        .chart-container { background: #121624; border-radius: 16px; padding: 20px; margin: 20px 0; border: 1px solid #2A3042; }
-        #duel-chart { width: 100%; height: 500px; }
+        .timer { text-align: center; font-size: 44px; font-weight: 800; margin: 16px 0; font-family: monospace; }
 
-        .tools-info { text-align: center; font-size: 12px; color: #A0A8C0; margin-top: 10px; padding: 10px; background: #1A1F2E; border-radius: 8px; }
+        /* TradingView стиль графика */
+        .chart-wrapper {
+            background: #121624;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 16px 0;
+            border: 1px solid #2A3042;
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .chart-controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .chart-btn {
+            background: #1A1F2E;
+            border: 1px solid #2A3042;
+            padding: 6px 14px;
+            border-radius: 6px;
+            color: #E8EDF2;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .chart-btn:hover, .chart-btn.active {
+            background: #00D09C;
+            color: #0A0E17;
+            border-color: #00D09C;
+        }
+        .indicator-select {
+            background: #1A1F2E;
+            border: 1px solid #2A3042;
+            padding: 6px 12px;
+            border-radius: 6px;
+            color: #E8EDF2;
+            font-size: 12px;
+            cursor: pointer;
+        }
+        #chart-container {
+            width: 100%;
+            height: 500px;
+            position: relative;
+        }
 
-        .leaderboard { margin-top: 40px; background: #121624; border-radius: 16px; overflow: hidden; border: 1px solid #2A3042; }
-        .leaderboard h3 { padding: 15px 20px; border-bottom: 1px solid #2A3042; }
-        .leaderboard-row { display: flex; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid #2A3042; }
-        .rank { font-weight: 700; color: #FFD700; width: 50px; }
+        .tools-hint {
+            text-align: center;
+            font-size: 11px;
+            color: #A0A8C0;
+            margin-top: 8px;
+            padding: 8px;
+            background: #1A1F2E;
+            border-radius: 6px;
+        }
+
+        .leaderboard { margin-top: 30px; background: #121624; border-radius: 14px; overflow: hidden; border: 1px solid #2A3042; }
+        .leaderboard h3 { padding: 14px 18px; border-bottom: 1px solid #2A3042; font-size: 16px; }
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 10px 18px; border-bottom: 1px solid #2A3042; font-size: 14px; }
+        .rank { font-weight: 700; color: #FFD700; width: 45px; }
         .username { flex: 1; }
         .rating { font-weight: 700; color: #00D09C; }
 
-        .notification { position: fixed; top: 20px; right: 20px; padding: 12px 20px; border-radius: 8px; background: #1A1F2E; border-left: 3px solid; z-index: 1000; animation: slideIn 0.3s ease; }
+        .notification { position: fixed; top: 20px; right: 20px; padding: 10px 18px; border-radius: 8px; background: #1A1F2E; border-left: 3px solid; z-index: 1000; animation: slideIn 0.3s ease; font-size: 14px; }
         .notification.success { border-color: #00D09C; }
         .notification.error { border-color: #FF4D6D; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
         @media (max-width: 700px) {
+            body { padding: 12px; }
             .duel-container { flex-direction: column; }
-            .prediction-btn { padding: 10px 20px; font-size: 16px; }
-            .timer { font-size: 36px; }
-            #duel-chart { height: 350px; }
+            .prediction-btn { padding: 8px 18px; font-size: 14px; }
+            .timer { font-size: 32px; }
+            #chart-container { height: 350px; }
+            .chart-btn { padding: 4px 10px; font-size: 10px; }
         }
     </style>
 </head>
@@ -93,11 +158,28 @@
 
         <div class="timer" id="timer">—</div>
 
-        <div class="chart-container">
-            <div id="duel-chart"></div>
-            <div class="tools-info">
-                🖱️ Инструменты: зум (скролл мыши), панорамирование (зажать Shift+левая кнопка),
-                📐 рисование линий тренда (кнопка "Draw line" в панели инструментов справа)
+        <div class="chart-wrapper">
+            <div class="chart-header">
+                <div class="chart-controls">
+                    <button class="chart-btn active" data-type="candle">📊 Свечи</button>
+                    <button class="chart-btn" data-type="line">📈 Линии</button>
+                    <button class="chart-btn" data-type="area">🎯 Область</button>
+                    <button class="chart-btn" id="reset-zoom-btn">🔍 Сброс зума</button>
+                </div>
+                <div class="chart-controls">
+                    <select id="indicator-select" class="indicator-select">
+                        <option value="">📉 Индикаторы</option>
+                        <option value="sma7">MA (7)</option>
+                        <option value="sma25">MA (25)</option>
+                        <option value="ema12">EMA (12)</option>
+                        <option value="rsi">RSI (14)</option>
+                        <option value="volume">Объём</option>
+                    </select>
+                </div>
+            </div>
+            <div id="chart-container"></div>
+            <div class="tools-hint">
+                🖱️ Зум: колёсико мыши | Панорамирование: зажать Shift + мышь | Перемещение графика: клик и перетаскивание
             </div>
         </div>
 
@@ -132,89 +214,199 @@
         let timerInterval = null;
         let checkInterval = null;
         let statusCheckInterval = null;
-        let duelChart = null;
-        let chartData = null;
-        let futureData = null;
 
-        // Генерация реалистичных свечных данных
-        function generateCandleData(basePrice = 50000, bars = 100, volatility = 0.015) {
+        // Глобальные переменные для графика
+        let chart = null;
+        let candleSeries = null;
+        let lineSeries = null;
+        let areaSeries = null;
+        let currentChartType = 'candle';
+        let indicators = {};
+        let historicalData = null;
+        let fullData = null;
+
+        // Генерация реалистичных данных с трендом
+        function generateRealisticData(bars = 120, startPrice = 50000, trend = 0) {
             const data = [];
-            let price = basePrice;
+            let price = startPrice;
+            let trendDirection = trend;
+            let trendStrength = 0;
             const now = new Date();
 
-            for (let i = bars; i >= 0; i--) {
-                const change = (Math.random() - 0.48) * volatility;
+            for (let i = 0; i <= bars; i++) {
+                // Смена тренда каждые 20-30 свечей
+                if (i % 25 === 0) {
+                    trendDirection = (Math.random() - 0.5) * 0.03;
+                    trendStrength = Math.random() * 0.01;
+                }
+
+                // Основное движение
+                const trendMove = trendDirection * 0.01;
+                const randomMove = (Math.random() - 0.5) * 0.02;
+                const volatility = Math.random() * 0.015;
+                const change = trendMove + randomMove + (Math.random() - 0.5) * volatility;
+
                 price = price * (1 + change);
 
+                // Создаём свечу
                 const open = price;
-                const close = price * (1 + (Math.random() - 0.5) * volatility * 0.5);
-                const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.3);
-                const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.3);
+                const close = price * (1 + (Math.random() - 0.5) * 0.01);
+                const high = Math.max(open, close) * (1 + Math.random() * 0.008);
+                const low = Math.min(open, close) * (1 - Math.random() * 0.008);
 
                 const time = new Date(now.getTime() - (bars - i) * 3600000);
 
                 data.push({
-                    time: time.toISOString(),
+                    time: time.toISOString().slice(0, 19),
                     open: open,
                     high: high,
                     low: low,
-                    close: close
+                    close: close,
+                    volume: Math.floor(Math.random() * 1000) + 500
                 });
             }
             return data;
         }
 
-        // Создание графика Plotly
-        function createChart(historicalData, showFuture = false) {
-            const candlestick = {
-                x: historicalData.map(d => d.time),
-                open: historicalData.map(d => d.open),
-                high: historicalData.map(d => d.high),
-                low: historicalData.map(d => d.low),
-                close: historicalData.map(d => d.close),
-                type: 'candlestick',
-                name: 'Цена',
-                line: { color: '#E8EDF2' },
-                increasing: { line: { color: '#00D09C' }, fillcolor: '#00D09C33' },
-                decreasing: { line: { color: '#FF4D6D' }, fillcolor: '#FF4D6D33' }
-            };
+        // Инициализация графика
+        function initChart() {
+            const container = document.getElementById('chart-container');
+            container.innerHTML = '';
 
-            const layout = {
-                title: {
-                    text: '📊 Анализируй график и сделай прогноз',
-                    font: { color: '#E8EDF2', size: 16 },
-                    x: 0.5
+            chart = LightweightCharts.createChart(container, {
+                layout: {
+                    background: { color: '#0F1320' },
+                    textColor: '#E8EDF2',
                 },
-                paper_bgcolor: '#121624',
-                plot_bgcolor: '#0F1320',
-                font: { color: '#E8EDF2' },
-                xaxis: {
-                    title: 'Время',
-                    gridcolor: '#2A3042',
-                    showgrid: true
+                grid: {
+                    vertLines: { color: '#1E2436' },
+                    horzLines: { color: '#1E2436' },
                 },
-                yaxis: {
-                    title: 'Цена (USDT)',
-                    gridcolor: '#2A3042',
-                    showgrid: true,
-                    side: 'right'
+                crosshair: {
+                    mode: LightweightCharts.CrosshairMode.Normal,
                 },
-                hovermode: 'x unified',
-                dragmode: 'zoom',
-                showlegend: true,
-                legend: { font: { color: '#E8EDF2' }, bgcolor: '#1A1F2E' },
-                margin: { l: 50, r: 50, t: 50, b: 50 }
-            };
+                rightPriceScale: {
+                    borderColor: '#2A3042',
+                },
+                timeScale: {
+                    borderColor: '#2A3042',
+                    timeVisible: true,
+                    secondsVisible: false,
+                },
+                width: container.clientWidth,
+                height: 500,
+            });
 
-            const config = {
-                responsive: true,
-                displayModeBar: true,
-                modeBarButtonsToAdd: ['drawline', 'drawrect', 'drawcircle', 'eraseshape'],
-                displaylogo: false,
-                toImageButtonOptions: { format: 'png', filename: 'tradeum_analysis', scale: 2 }
-            };
+            candleSeries = chart.addCandlestickSeries({
+                upColor: '#00D09C',
+                downColor: '#FF4D6D',
+                borderVisible: false,
+                wickUpColor: '#00D09C',
+                wickDownColor: '#FF4D6D',
+            });
 
-            Plotly.newPlot('duel-chart', [candlestick], layout, config);
+            lineSeries = chart.addLineSeries({
+                color: '#2962FF',
+                lineWidth: 2,
+                visible: false,
+            });
+
+            areaSeries = chart.addAreaSeries({
+                topColor: '#2962FF33',
+                bottomColor: '#2962FF00',
+                lineColor: '#2962FF',
+                lineWidth: 2,
+                visible: false,
+            });
+
+            chart.timeScale().fitContent();
+
+            window.addEventListener('resize', () => {
+                chart.applyOptions({ width: container.clientWidth });
+            });
+        }
+
+        // Загрузка данных на график
+        function loadChartData(data, type = 'candle') {
+            if (!candleSeries) return;
+
+            const candleData = data.map(d => ({
+                time: d.time,
+                open: d.open,
+                high: d.high,
+                low: d.low,
+                close: d.close,
+            }));
+
+            const lineData = data.map(d => ({
+                time: d.time,
+                value: d.close,
+            }));
+
+            candleSeries.setData(candleData);
+            lineSeries.setData(lineData);
+            areaSeries.setData(lineData);
+
+            // Показываем нужный тип
+            candleSeries.applyOptions({ visible: type === 'candle' });
+            lineSeries.applyOptions({ visible: type === 'line' });
+            areaSeries.applyOptions({ visible: type === 'area' });
+
+            chart.timeScale().fitContent();
+        }
+
+        // Добавление индикатора
+        function addIndicator(indicatorType) {
+            if (!chart || !historicalData) return;
+
+            // Удаляем старый индикатор если есть
+            if (indicators[indicatorType]) {
+                chart.removeSeries(indicators[indicatorType]);
+                delete indicators[indicatorType];
+            }
+
+            if (indicatorType === 'sma7') {
+                const smaData = [];
+                for (let i = 6; i < historicalData.length; i++) {
+                    let sum = 0;
+                    for (let j = i - 6; j <= i; j++) {
+                        sum += historicalData[j].close;
+                    }
+                    smaData.push({
+                        time: historicalData[i].time,
+                        value: sum / 7,
+                    });
+                }
+                const smaSeries = chart.addLineSeries({ color: '#FF9800', lineWidth: 2, title: 'SMA 7' });
+                smaSeries.setData(smaData);
+                indicators[indicatorType] = smaSeries;
+            } else if (indicatorType === 'sma25') {
+                const smaData = [];
+                for (let i = 24; i < historicalData.length; i++) {
+                    let sum = 0;
+                    for (let j = i - 24; j <= i; j++) {
+                        sum += historicalData[j].close;
+                    }
+                    smaData.push({
+                        time: historicalData[i].time,
+                        value: sum / 25,
+                    });
+                }
+                const smaSeries = chart.addLineSeries({ color: '#E91E63', lineWidth: 2, title: 'SMA 25' });
+                smaSeries.setData(smaData);
+                indicators[indicatorType] = smaSeries;
+            } else if (indicatorType === 'ema12') {
+                let ema = historicalData[0].close;
+                const emaData = [{ time: historicalData[0].time, value: ema }];
+                const multiplier = 2 / (12 + 1);
+                for (let i = 1; i < historicalData.length; i++) {
+                    ema = (historicalData[i].close - ema) * multiplier + ema;
+                    emaData.push({ time: historicalData[i].time, value: ema });
+                }
+                const emaSeries = chart.addLineSeries({ color: '#9C27B0', lineWidth: 2, title: 'EMA 12' });
+                emaSeries.setData(emaData);
+                indicators[indicatorType] = emaSeries;
+            }
         }
 
         function showNotification(msg, type) {
@@ -308,11 +500,11 @@
             document.getElementById('duelStatus').innerHTML = '⚔️ ДУЭЛЬ НАЧАЛАСЬ! Анализируй график и сделай прогноз';
 
             // Генерируем данные для графика
-            const historicalData = generateCandleData(50000, 100, 0.015);
-            chartData = historicalData;
+            historicalData = generateRealisticData(120, 50000, 0);
 
-            // Создаём график
-            createChart(historicalData);
+            // Инициализируем график
+            initChart();
+            loadChartData(historicalData, 'candle');
 
             try {
                 const res = await fetch(`/api/duel/status/${duelId}`);
@@ -396,26 +588,30 @@
             });
         }
 
-        // Показ будущего движения графика
-        function showFutureMovement(historicalData) {
+        // Генерация будущего движения
+        function generateFutureMovement(historicalData) {
             const lastPrice = historicalData[historicalData.length - 1].close;
-            const futureBars = 20;
+            const futureBars = 15;
             const futureCandles = [];
             let price = lastPrice;
-
-            // Генерируем будущее движение (определяем победителя)
             let totalChange = 0;
+
+            // Случайное направление тренда
+            const trendDirection = Math.random() > 0.5 ? 1 : -1;
+
             for (let i = 0; i < futureBars; i++) {
-                const change = (Math.random() - 0.48) * 0.025;
+                const change = (Math.random() - 0.45) * 0.025 + (trendDirection * 0.005);
                 totalChange += change;
                 price = price * (1 + change);
+
                 const open = price;
-                const close = price * (1 + (Math.random() - 0.5) * 0.015);
+                const close = price * (1 + (Math.random() - 0.5) * 0.012);
                 const high = Math.max(open, close) * (1 + Math.random() * 0.01);
                 const low = Math.min(open, close) * (1 - Math.random() * 0.01);
                 const time = new Date(Date.now() + (i + 1) * 3600000);
+
                 futureCandles.push({
-                    time: time.toISOString(),
+                    time: time.toISOString().slice(0, 19),
                     open: open,
                     high: high,
                     low: low,
@@ -423,10 +619,8 @@
                 });
             }
 
-            const allData = [...historicalData, ...futureCandles];
-            const finalPriceChange = ((allData[allData.length - 1].close - historicalData[historicalData.length - 1].close) / historicalData[historicalData.length - 1].close) * 100;
-
-            return { allData, finalPriceChange, futureCandles };
+            const finalPriceChange = ((futureCandles[futureCandles.length - 1].close - lastPrice) / lastPrice) * 100;
+            return { futureCandles, finalPriceChange, trendDirection: trendDirection > 0 ? 'up' : 'down' };
         }
 
         async function resolveDuel(duelId) {
@@ -435,49 +629,29 @@
 
             document.getElementById('duelStatus').innerHTML = '📊 Раскрываем результат...';
 
-            // Показываем будущее движение графика
-            const { allData, finalPriceChange, futureCandles } = showFutureMovement(chartData);
+            // Генерируем будущее движение
+            const { futureCandles, finalPriceChange, trendDirection } = generateFutureMovement(historicalData);
+            fullData = [...historicalData, ...futureCandles];
 
             // Обновляем график с будущими свечами
-            const candlestick = {
-                x: allData.map(d => d.time),
-                open: allData.map(d => d.open),
-                high: allData.map(d => d.high),
-                low: allData.map(d => d.low),
-                close: allData.map(d => d.close),
-                type: 'candlestick',
-                name: 'Цена (включая прогноз)',
-                increasing: { line: { color: '#00D09C' }, fillcolor: '#00D09C33' },
-                decreasing: { line: { color: '#FF4D6D' }, fillcolor: '#FF4D6D33' }
-            };
+            const candleData = fullData.map(d => ({
+                time: d.time,
+                open: d.open,
+                high: d.high,
+                low: d.low,
+                close: d.close,
+            }));
 
-            // Добавляем вертикальную линию-разделитель
-            const separator = {
-                x: [chartData[chartData.length - 1].time, chartData[chartData.length - 1].time],
-                y: [Math.min(...allData.map(d => d.low)), Math.max(...allData.map(d => d.high))],
-                type: 'scatter',
-                mode: 'lines',
-                line: { color: '#FFD700', width: 2, dash: 'dash' },
-                name: 'Момент прогноза'
-            };
+            candleSeries.setData(candleData);
 
-            const layout = {
-                title: { text: `📊 Результат: рынок пошел ${finalPriceChange > 0 ? 'ВВЕРХ' : 'ВНИЗ'} на ${Math.abs(finalPriceChange).toFixed(2)}%`, font: { color: '#E8EDF2' }, x: 0.5 },
-                paper_bgcolor: '#121624',
-                plot_bgcolor: '#0F1320',
-                font: { color: '#E8EDF2' },
-                xaxis: { title: 'Время', gridcolor: '#2A3042' },
-                yaxis: { title: 'Цена (USDT)', gridcolor: '#2A3042', side: 'right' },
-                hovermode: 'x unified',
-                showlegend: true,
-                legend: { font: { color: '#E8EDF2' }, bgcolor: '#1A1F2E' }
-            };
+            // Добавляем вертикальную линию
+            const lastHistoricalTime = historicalData[historicalData.length - 1].time;
+            const lineData = [{ time: lastHistoricalTime, value: historicalData[historicalData.length - 1].high }];
 
-            Plotly.newPlot('duel-chart', [candlestick, separator], layout, {
-                responsive: true,
-                displayModeBar: true,
-                displaylogo: false
-            });
+            chart.timeScale().fitContent();
+
+            const resultText = finalPriceChange > 0 ? 'ВВЕРХ' : 'ВНИЗ';
+            document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Реальное движение: ${resultText} (${Math.abs(finalPriceChange).toFixed(2)}%)<br>Определяем победителя...`;
 
             // Отправляем результат на сервер
             try {
@@ -489,18 +663,16 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    let resultText = '';
+                    let winText = '';
                     if (data.winner_id == userId) {
-                        resultText = '🎉 ПОБЕДА!';
+                        winText = '🎉 ПОБЕДА!';
                     } else if (data.winner_id) {
-                        resultText = '😔 ПОРАЖЕНИЕ';
+                        winText = '😔 ПОРАЖЕНИЕ';
                     } else {
-                        resultText = '🤝 НИЧЬЯ';
+                        winText = '🤝 НИЧЬЯ';
                     }
-
-                    const realDirection = finalPriceChange > 0 ? 'ВВЕРХ' : 'ВНИЗ';
-                    document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Реальное движение: ${realDirection} (${Math.abs(finalPriceChange).toFixed(2)}%)<br>${resultText}`;
-                    showNotification(`${resultText}`, data.winner_id == userId ? 'success' : 'error');
+                    document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Реальное движение: ${resultText} (${Math.abs(finalPriceChange).toFixed(2)}%)<br>${winText}`;
+                    showNotification(`${winText}`, data.winner_id == userId ? 'success' : 'error');
                     await loadLeaderboard();
                 }
             } catch(e) {
@@ -532,13 +704,55 @@
             buttons.forEach(btn => btn.classList.remove('selected'));
 
             // Очищаем график
-            Plotly.purge('duel-chart');
-            document.getElementById('duel-chart').innerHTML = '';
+            if (chart) {
+                chart.remove();
+                chart = null;
+            }
+            const container = document.getElementById('chart-container');
+            if (container) container.innerHTML = '';
         }
 
+        // Обработчики кнопок графика
         document.getElementById('findBtn').onclick = findOpponent;
+
+        // Делегирование событий для кнопок графика (они создаются после initChart)
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('chart-btn') && e.target.dataset.type) {
+                const type = e.target.dataset.type;
+                document.querySelectorAll('.chart-btn').forEach(btn => btn.classList.remove('active'));
+                e.target.classList.add('active');
+                if (candleSeries && lineSeries && areaSeries) {
+                    candleSeries.applyOptions({ visible: type === 'candle' });
+                    lineSeries.applyOptions({ visible: type === 'line' });
+                    areaSeries.applyOptions({ visible: type === 'area' });
+                }
+            }
+            if (e.target.id === 'reset-zoom-btn') {
+                if (chart) chart.timeScale().fitContent();
+            }
+        });
+
+        document.addEventListener('change', (e) => {
+            if (e.target.id === 'indicator-select') {
+                const value = e.target.value;
+                if (value) {
+                    addIndicator(value);
+                    e.target.value = '';
+                }
+            }
+        });
+
         loadLeaderboard();
         setInterval(loadLeaderboard, 30000);
+
+        // Предзагрузка графика для отображения
+        setTimeout(() => {
+            if (!chart) {
+                const demoData = generateRealisticData(60, 50000, 0);
+                initChart();
+                loadChartData(demoData, 'candle');
+            }
+        }, 100);
     </script>
 </body>
 </html>
