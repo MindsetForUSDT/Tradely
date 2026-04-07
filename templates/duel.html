@@ -9,88 +9,80 @@
         body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0A0E17; color: #E8EDF2; padding: 20px; }
         .container { max-width: 1400px; margin: 0 auto; }
 
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #2A3042; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .logo { font-size: 24px; font-weight: 800; }
-        .logo span { color: #00D09C; }
-        .back-btn { background: #2A3042; color: white; padding: 8px 18px; border-radius: 8px; text-decoration: none; font-size: 14px; }
+        /* Анимированная шапка */
+        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); margin-bottom: 20px; flex-wrap: wrap; gap: 12px; animation: fadeInDown 0.6s ease; }
+        .logo { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #FFFFFF, #00D09C); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .back-btn { background: rgba(18, 22, 35, 0.8); backdrop-filter: blur(10px); color: white; padding: 8px 18px; border-radius: 8px; text-decoration: none; font-size: 14px; border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.3s; }
+        .back-btn:hover { border-color: #00D09C; color: #00D09C; transform: translateY(-2px); }
 
-        .status { text-align: center; padding: 16px; background: #121624; border-radius: 12px; margin: 16px 0; font-size: 16px; }
-        .find-btn { background: #00D09C; color: #0A0E17; border: none; padding: 12px 32px; border-radius: 10px; font-size: 16px; font-weight: 700; cursor: pointer; display: block; margin: 16px auto; }
-        .find-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        /* Анимированный статус */
+        .status { text-align: center; padding: 20px; background: linear-gradient(135deg, #121624, #0F1320); border-radius: 16px; margin: 20px 0; font-size: 16px; border: 1px solid rgba(255, 255, 255, 0.05); animation: fadeInUp 0.6s ease; }
 
-        .duel-container { display: flex; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
-        .player-card { flex: 1; background: #121624; border-radius: 14px; padding: 16px; border: 1px solid #2A3042; min-width: 240px; text-align: center; }
-        .player-card h3 { margin-bottom: 12px; font-size: 18px; }
-        .rating-badge { font-size: 20px; font-weight: 700; color: #FFD700; margin: 8px 0; }
-        .prediction-buttons { display: flex; gap: 12px; margin: 16px 0; justify-content: center; }
-        .prediction-btn { padding: 10px 24px; border: none; border-radius: 10px; font-weight: 700; font-size: 16px; cursor: pointer; background: #1A1F2E; color: #E8EDF2; transition: all 0.2s; }
-        .prediction-btn.up:hover { background: #00D09C33; }
-        .prediction-btn.down:hover { background: #FF4D6D33; }
-        .prediction-btn.up.selected { background: #00D09C; color: #0A0E17; }
-        .prediction-btn.down.selected { background: #FF4D6D; color: #0A0E17; }
-        .prediction-display { margin-top: 12px; font-size: 13px; color: #A0A8C0; }
+        /* Кнопка поиска */
+        .find-btn { background: linear-gradient(135deg, #00D09C, #00A87D); color: #0A0E17; border: none; padding: 14px 40px; border-radius: 100px; font-size: 16px; font-weight: 700; cursor: pointer; display: block; margin: 20px auto; transition: all 0.3s; position: relative; overflow: hidden; }
+        .find-btn::before { content: ''; position: absolute; top: 50%; left: 50%; width: 0; height: 0; border-radius: 50%; background: rgba(255, 255, 255, 0.3); transform: translate(-50%, -50%); transition: width 0.6s, height 0.6s; }
+        .find-btn:hover::before { width: 300px; height: 300px; }
+        .find-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0, 208, 156, 0.4); }
+        .find-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-        .timer { text-align: center; font-size: 44px; font-weight: 800; margin: 16px 0; font-family: monospace; }
+        /* Карточки игроков */
+        .duel-container { display: flex; gap: 20px; flex-wrap: wrap; margin: 30px 0; animation: fadeInUp 0.6s ease 0.2s both; }
+        .player-card { flex: 1; background: linear-gradient(135deg, #121624, #0F1320); border-radius: 20px; padding: 24px; border: 1px solid rgba(255, 255, 255, 0.05); min-width: 260px; text-align: center; transition: all 0.3s; animation: slideIn 0.4s ease; }
+        .player-card:hover { transform: translateY(-4px); border-color: rgba(0, 208, 156, 0.3); box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3); }
+        .player-card h3 { margin-bottom: 16px; font-size: 18px; }
+        .rating-badge { font-size: 28px; font-weight: 800; color: #FFD700; margin: 12px 0; text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
 
-        .chart-wrapper {
-            background: #121624;
-            border-radius: 12px;
-            padding: 12px;
-            margin: 16px 0;
-            border: 1px solid #2A3042;
-        }
-        #chart-container {
-            width: 100%;
-            height: 500px;
-            position: relative;
-            background: #0F1320;
-            border-radius: 8px;
-        }
-        .chart-placeholder {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #A0A8C0;
-            flex-direction: column;
-            gap: 16px;
-        }
-        .tools-hint {
-            text-align: center;
-            font-size: 11px;
-            color: #A0A8C0;
-            margin-top: 8px;
-            padding: 8px;
-            background: #1A1F2E;
-            border-radius: 6px;
-        }
+        /* Кнопки прогноза */
+        .prediction-buttons { display: flex; gap: 12px; margin: 24px 0; justify-content: center; }
+        .prediction-btn { padding: 12px 28px; border: none; border-radius: 100px; font-weight: 700; font-size: 16px; cursor: pointer; background: #1A1F2E; color: #E8EDF2; transition: all 0.3s; position: relative; overflow: hidden; }
+        .prediction-btn.up:hover { background: rgba(0, 208, 156, 0.2); transform: scale(1.02); }
+        .prediction-btn.down:hover { background: rgba(255, 77, 109, 0.2); transform: scale(1.02); }
+        .prediction-btn.up.selected { background: linear-gradient(135deg, #00D09C, #00A87D); color: #0A0E17; box-shadow: 0 4px 15px rgba(0, 208, 156, 0.3); }
+        .prediction-btn.down.selected { background: linear-gradient(135deg, #FF4D6D, #E63946); color: #0A0E17; box-shadow: 0 4px 15px rgba(255, 77, 109, 0.3); }
 
-        .leaderboard { margin-top: 30px; background: #121624; border-radius: 14px; overflow: hidden; border: 1px solid #2A3042; }
-        .leaderboard h3 { padding: 14px 18px; border-bottom: 1px solid #2A3042; font-size: 16px; }
-        .leaderboard-row { display: flex; justify-content: space-between; padding: 10px 18px; border-bottom: 1px solid #2A3042; font-size: 14px; }
-        .rank { font-weight: 700; color: #FFD700; width: 45px; }
+        /* Таймер */
+        .timer { text-align: center; font-size: 56px; font-weight: 800; margin: 20px 0; font-family: monospace; background: linear-gradient(135deg, #00D09C, #FFD700); -webkit-background-clip: text; background-clip: text; color: transparent; animation: pulse 1s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+
+        /* Блок с графиком */
+        .chart-wrapper { background: linear-gradient(135deg, #121624, #0F1320); border-radius: 20px; padding: 20px; margin: 20px 0; border: 1px solid rgba(255, 255, 255, 0.05); animation: fadeInUp 0.6s ease 0.3s both; }
+        .chart-image-container { width: 100%; background: #0F1320; border-radius: 12px; overflow: hidden; text-align: center; }
+        .chart-image { width: 100%; max-width: 100%; height: auto; display: block; transition: transform 0.3s; }
+        .chart-image:hover { transform: scale(1.02); }
+        .tools-hint { text-align: center; font-size: 12px; color: #A0A8C0; margin-top: 12px; padding: 10px; background: rgba(26, 31, 46, 0.8); border-radius: 8px; }
+
+        /* Таблица лидеров */
+        .leaderboard { margin-top: 40px; background: linear-gradient(135deg, #121624, #0F1320); border-radius: 20px; overflow: hidden; border: 1px solid rgba(255, 255, 255, 0.05); animation: fadeInUp 0.6s ease 0.4s both; }
+        .leaderboard h3 { padding: 16px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 16px; }
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 12px 20px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); font-size: 14px; transition: all 0.3s; }
+        .leaderboard-row:hover { background: rgba(0, 208, 156, 0.05); transform: translateX(4px); }
+        .rank { font-weight: 700; color: #FFD700; width: 50px; }
         .username { flex: 1; }
         .rating { font-weight: 700; color: #00D09C; }
 
-        .notification { position: fixed; top: 20px; right: 20px; padding: 10px 18px; border-radius: 8px; background: #1A1F2E; border-left: 3px solid; z-index: 1000; animation: slideIn 0.3s ease; font-size: 14px; }
-        .notification.success { border-color: #00D09C; }
-        .notification.error { border-color: #FF4D6D; }
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        /* Уведомления */
+        .notification { position: fixed; top: 20px; right: 20px; padding: 14px 24px; border-radius: 12px; background: #1A1F2E; border-left: 3px solid; z-index: 1000; animation: slideInRight 0.3s ease; backdrop-filter: blur(10px); }
+        .notification.success { border-color: #00D09C; background: linear-gradient(135deg, #1A1F2E, rgba(0, 208, 156, 0.1)); }
+        .notification.error { border-color: #FF4D6D; background: linear-gradient(135deg, #1A1F2E, rgba(255, 77, 109, 0.1)); }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Анимации */
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeInDown { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideIn { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
 
         @media (max-width: 700px) {
             body { padding: 12px; }
             .duel-container { flex-direction: column; }
-            .prediction-btn { padding: 8px 18px; font-size: 14px; }
-            .timer { font-size: 32px; }
-            #chart-container { height: 350px; }
+            .prediction-btn { padding: 10px 20px; font-size: 14px; }
+            .timer { font-size: 40px; }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.js"></script>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <div class="logo">Trade<span>um</span> | Дуэль</div>
+            <div class="logo">Trade<span style="color: #00D09C;">um</span> | Дуэль</div>
             <a href="javascript:history.back()" class="back-btn">← Назад</a>
         </div>
 
@@ -106,7 +98,7 @@
                         <button class="prediction-btn down" data-dir="down">📉 ВНИЗ</button>
                     </div>
                 </div>
-                <div class="prediction-display" id="p1PredictionDisplay"></div>
+                <div class="prediction-display" id="p1PredictionDisplay" style="margin-top: 12px; font-size: 13px; color: #A0A8C0;"></div>
             </div>
             <div class="player-card">
                 <h3>👤 <span id="p2Name">—</span></h3>
@@ -117,20 +109,18 @@
                         <button class="prediction-btn down" data-dir="down">📉 ВНИЗ</button>
                     </div>
                 </div>
-                <div class="prediction-display" id="p2PredictionDisplay"></div>
+                <div class="prediction-display" id="p2PredictionDisplay" style="margin-top: 12px; font-size: 13px; color: #A0A8C0;"></div>
             </div>
         </div>
 
         <div class="timer" id="timer">—</div>
 
         <div class="chart-wrapper">
-            <div id="chart-container">
-                <div class="chart-placeholder">
-                    <div>📊 Загрузка графика...</div>
-                </div>
+            <div class="chart-image-container" id="chartContainer">
+                <img id="chartImage" class="chart-image" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 400'%3E%3Crect width='800' height='400' fill='%230F1320'/%3E%3Ctext x='400' y='200' text-anchor='middle' fill='%23A0A8C0' font-size='16' font-family='Arial'%3E📊 График для анализа%3C/text%3E%3C/svg%3E" alt="График для анализа">
             </div>
             <div class="tools-hint">
-                🖱️ Зум: колёсико мыши | Панорамирование: зажать Shift + мышь | Перемещение: клик и перетаскивание
+                📈 Анализируй график, используй свои знания и сделай точный прогноз!
             </div>
         </div>
 
@@ -143,20 +133,10 @@
     </div>
 
     <script>
-        // Получаем user_id из localStorage (сохраняем при входе)
         let userId = localStorage.getItem('tradeum_user_id');
-
-        // Если нет в localStorage, пробуем получить из URL
         const urlParams = new URLSearchParams(window.location.search);
-        if (!userId) {
-            userId = urlParams.get('user_id');
-        }
-
-        if (userId) {
-            localStorage.setItem('tradeum_user_id', userId);
-        }
-
-        console.log('User ID:', userId);
+        if (!userId) userId = urlParams.get('user_id');
+        if (userId) localStorage.setItem('tradeum_user_id', userId);
 
         if (!userId) {
             document.getElementById('duelStatus').innerHTML = '❌ Ошибка: не найден ID пользователя. <a href="/dashboard">Вернуться в дашборд</a>';
@@ -168,82 +148,6 @@
         let timerInterval = null;
         let checkInterval = null;
         let statusCheckInterval = null;
-        let chart = null;
-        let candleSeries = null;
-        let historicalData = null;
-
-        // Генерация реалистичных данных
-        function generateRealisticData(bars = 120, startPrice = 50000) {
-            const data = [];
-            let price = startPrice;
-            let trend = 0;
-            const now = new Date();
-
-            for (let i = 0; i <= bars; i++) {
-                if (i % 30 === 0 && i > 0) {
-                    trend = (Math.random() - 0.5) * 0.03;
-                }
-                const change = trend + (Math.random() - 0.5) * 0.02;
-                price = price * (1 + change);
-                const open = price;
-                const close = price * (1 + (Math.random() - 0.5) * 0.01);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-                const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-                const time = new Date(now.getTime() - (bars - i) * 3600000);
-                data.push({
-                    time: time.toISOString(),
-                    open: open,
-                    high: high,
-                    low: low,
-                    close: close
-                });
-            }
-            return data;
-        }
-
-        function initChart() {
-            const container = document.getElementById('chart-container');
-            if (!container) return;
-
-            container.innerHTML = '';
-
-            try {
-                chart = LightweightCharts.createChart(container, {
-                    layout: { background: { color: '#0F1320' }, textColor: '#E8EDF2' },
-                    grid: { vertLines: { color: '#1E2436' }, horzLines: { color: '#1E2436' } },
-                    crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
-                    rightPriceScale: { borderColor: '#2A3042' },
-                    timeScale: { borderColor: '#2A3042', timeVisible: true, secondsVisible: false },
-                    width: container.clientWidth,
-                    height: 500,
-                });
-
-                candleSeries = chart.addCandlestickSeries({
-                    upColor: '#00D09C',
-                    downColor: '#FF4D6D',
-                    borderVisible: false,
-                    wickUpColor: '#00D09C',
-                    wickDownColor: '#FF4D6D',
-                });
-
-                window.addEventListener('resize', () => {
-                    if (chart) chart.applyOptions({ width: container.clientWidth });
-                });
-
-                return true;
-            } catch(e) {
-                console.error('Chart init error:', e);
-                container.innerHTML = '<div class="chart-placeholder">⚠️ Ошибка инициализации графика</div>';
-                return false;
-            }
-        }
-
-        function loadChartData(data) {
-            if (!candleSeries) return;
-            const candleData = data.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }));
-            candleSeries.setData(candleData);
-            if (chart) chart.timeScale().fitContent();
-        }
 
         function showNotification(msg, type) {
             const div = document.createElement('div');
@@ -258,57 +162,29 @@
                 const res = await fetch('/api/duel/leaderboard');
                 const leaders = await res.json();
                 const container = document.getElementById('leaderboardList');
-                if (!leaders.length) {
-                    container.innerHTML = '<div class="leaderboard-row">Нет данных</div>';
-                    return;
-                }
-                container.innerHTML = leaders.slice(0, 10).map((l, idx) => `
-                    <div class="leaderboard-row">
-                        <div class="rank">#${idx + 1}</div>
-                        <div class="username">${l.username}</div>
-                        <div class="rating">⭐ ${l.rating}</div>
-                    </div>
-                `).join('');
+                if (!leaders.length) { container.innerHTML = '<div class="leaderboard-row">Нет данных</div>'; return; }
+                container.innerHTML = leaders.slice(0, 10).map((l, idx) => `<div class="leaderboard-row"><div class="rank">#${idx + 1}</div><div class="username">${l.username}</div><div class="rating">⭐ ${l.rating}</div></div>`).join('');
             } catch(e) { console.error(e); }
         }
 
         async function findOpponent() {
             if (!userId) { showNotification('Ошибка: пользователь не авторизован', 'error'); return; }
-
             const btn = document.getElementById('findBtn');
-            btn.disabled = true;
-            btn.textContent = '⏳ ПОИСК...';
+            btn.disabled = true; btn.textContent = '⏳ ПОИСК...';
             document.getElementById('duelStatus').innerHTML = '⏳ Поиск соперника...';
-
             try {
-                const res = await fetch('/api/duel/create', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ user_id: parseInt(userId) })
-                });
+                const res = await fetch('/api/duel/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: parseInt(userId) }) });
                 const data = await res.json();
-
                 if (data.success) {
                     currentDuelId = data.duel_id;
-                    if (data.action === 'joined') {
-                        showNotification('✅ Соперник найден! Дуэль начинается!', 'success');
-                        startDuel(currentDuelId);
-                    } else {
-                        showNotification('✅ Ожидаем соперника...', 'success');
-                        document.getElementById('duelStatus').innerHTML = '⏳ Ожидаем соперника...';
-                        waitForOpponent(currentDuelId);
-                    }
+                    if (data.action === 'joined') { showNotification('✅ Соперник найден! Дуэль начинается!', 'success'); startDuel(currentDuelId); }
+                    else { showNotification('✅ Ожидаем соперника...', 'success'); document.getElementById('duelStatus').innerHTML = '⏳ Ожидаем соперника...'; waitForOpponent(currentDuelId); }
                 } else {
                     showNotification(data.error || 'Ошибка поиска', 'error');
-                    btn.disabled = false;
-                    btn.textContent = '🔍 НАЙТИ СОПЕРНИКА';
+                    btn.disabled = false; btn.textContent = '🔍 НАЙТИ СОПЕРНИКА';
                     document.getElementById('duelStatus').innerHTML = '⚔️ Нажмите «Найти соперника»';
                 }
-            } catch(e) {
-                showNotification('Ошибка сервера', 'error');
-                btn.disabled = false;
-                btn.textContent = '🔍 НАЙТИ СОПЕРНИКА';
-            }
+            } catch(e) { showNotification('Ошибка сервера', 'error'); btn.disabled = false; btn.textContent = '🔍 НАЙТИ СОПЕРНИКА'; }
         }
 
         async function waitForOpponent(duelId) {
@@ -318,14 +194,8 @@
                 try {
                     const res = await fetch(`/api/duel/status/${duelId}`);
                     const data = await res.json();
-                    if (data.status === 'active') {
-                        clearInterval(statusCheckInterval);
-                        startDuel(duelId);
-                    } else if (attempts >= 30) {
-                        clearInterval(statusCheckInterval);
-                        showNotification('Время поиска истекло', 'error');
-                        resetDuel();
-                    }
+                    if (data.status === 'active') { clearInterval(statusCheckInterval); startDuel(duelId); }
+                    else if (attempts >= 30) { clearInterval(statusCheckInterval); showNotification('Время поиска истекло', 'error'); resetDuel(); }
                 } catch(e) { console.error(e); }
             }, 2000);
         }
@@ -335,20 +205,16 @@
             document.getElementById('findBtn').style.display = 'none';
             document.getElementById('duelStatus').innerHTML = '⚔️ ДУЭЛЬ НАЧАЛАСЬ! Анализируй график и сделай прогноз';
 
-            historicalData = generateRealisticData(120, 50000);
-            initChart();
-            loadChartData(historicalData);
+            const chartImg = document.getElementById('chartImage');
+            chartImg.src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 400'%3E%3Crect width='800' height='400' fill='%230F1320'/%3E%3Cpath d='M50,300 L150,280 L250,310 L350,250 L450,270 L550,200 L650,220 L750,180' stroke='%2300D09C' stroke-width='2' fill='none'/%3E%3Cpath d='M50,300 L150,280 L250,310 L350,250 L450,270 L550,200 L650,220 L750,180' stroke='%23FF4D6D' stroke-width='1' fill='none' stroke-dasharray='5,5'/%3E%3Ctext x='400' y='50' text-anchor='middle' fill='%23E8EDF2' font-size='14' font-family='Arial' font-weight='bold'%3EBTC/USDT - 1h Chart%3C/text%3E%3C/svg%3E";
 
             try {
                 const res = await fetch(`/api/duel/status/${duelId}`);
                 const data = await res.json();
-
                 const p1RatingRes = await fetch(`/api/duel/rating/${data.player1_id}`);
                 const p1Rating = await p1RatingRes.json();
-
                 document.getElementById('p1Name').innerText = data.player1_id == userId ? 'Вы' : `Игрок ${data.player1_id}`;
                 document.getElementById('p1Rating').innerText = `⭐ ${p1Rating.rating}`;
-
                 if (data.player2_id) {
                     const p2RatingRes = await fetch(`/api/duel/rating/${data.player2_id}`);
                     const p2Rating = await p2RatingRes.json();
@@ -366,10 +232,7 @@
                 const minutes = Math.floor(timeLeft / 60);
                 const seconds = timeLeft % 60;
                 timerElem.textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                if (timeLeft <= 0) {
-                    clearInterval(timerInterval);
-                    resolveDuel(duelId);
-                }
+                if (timeLeft <= 0) { clearInterval(timerInterval); resolveDuel(duelId); }
                 timeLeft--;
             }, 1000);
 
@@ -379,30 +242,18 @@
                 try {
                     const checkRes = await fetch(`/api/duel/check_predictions/${duelId}`);
                     const checkData = await checkRes.json();
-                    if (checkData.both_submitted) {
-                        clearInterval(checkInterval);
-                        showNotification('Оба игрока сделали прогноз!', 'success');
-                        setTimeout(() => resolveDuel(duelId), 3000);
-                    }
+                    if (checkData.both_submitted) { clearInterval(checkInterval); showNotification('Оба игрока сделали прогноз!', 'success'); setTimeout(() => resolveDuel(duelId), 3000); }
                 } catch(e) { console.error(e); }
             }, 1000);
         }
 
         function setupPredictionButtons(duelId) {
-            const buttons = document.querySelectorAll('.player-card .prediction-btn');
-            buttons.forEach(btn => {
+            document.querySelectorAll('.player-card .prediction-btn').forEach(btn => {
                 btn.onclick = async () => {
-                    if (myPrediction) {
-                        showNotification('Вы уже сделали прогноз!', 'error');
-                        return;
-                    }
+                    if (myPrediction) { showNotification('Вы уже сделали прогноз!', 'error'); return; }
                     const direction = btn.dataset.dir;
                     try {
-                        const res = await fetch('/api/duel/submit_prediction', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ duel_id: duelId, user_id: parseInt(userId), direction: direction })
-                        });
+                        const res = await fetch('/api/duel/submit_prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ duel_id: duelId, user_id: parseInt(userId), direction: direction }) });
                         const data = await res.json();
                         if (data.success) {
                             myPrediction = direction;
@@ -410,97 +261,39 @@
                             showNotification(`✅ Прогноз: ${direction === 'up' ? 'ВВЕРХ' : 'ВНИЗ'}`, 'success');
                             document.getElementById('p1PredictionDisplay').innerHTML = `Ваш прогноз: ${direction === 'up' ? '📈 ВВЕРХ' : '📉 ВНИЗ'}`;
                             document.getElementById('p1PredictionArea').style.display = 'none';
-                        } else {
-                            showNotification(data.error || 'Ошибка', 'error');
-                        }
-                    } catch(e) {
-                        showNotification('Ошибка отправки', 'error');
-                    }
+                        } else { showNotification(data.error || 'Ошибка', 'error'); }
+                    } catch(e) { showNotification('Ошибка отправки', 'error'); }
                 };
             });
         }
 
-        function generateFutureMovement(historicalData) {
-            const lastPrice = historicalData[historicalData.length - 1].close;
-            const futureBars = 15;
-            const futureCandles = [];
-            let price = lastPrice;
-            let totalChange = 0;
-            const trendDirection = Math.random() > 0.5 ? 1 : -1;
-
-            for (let i = 0; i < futureBars; i++) {
-                const change = (Math.random() - 0.45) * 0.025 + (trendDirection * 0.005);
-                totalChange += change;
-                price = price * (1 + change);
-                const open = price;
-                const close = price * (1 + (Math.random() - 0.5) * 0.012);
-                const high = Math.max(open, close) * (1 + Math.random() * 0.01);
-                const low = Math.min(open, close) * (1 - Math.random() * 0.01);
-                const time = new Date(Date.now() + (i + 1) * 3600000);
-                futureCandles.push({
-                    time: time.toISOString(),
-                    open: open,
-                    high: high,
-                    low: low,
-                    close: close
-                });
-            }
-            const finalPriceChange = ((futureCandles[futureCandles.length - 1].close - lastPrice) / lastPrice) * 100;
-            return { futureCandles, finalPriceChange, trendDirection: trendDirection > 0 ? 'up' : 'down' };
-        }
-
         async function resolveDuel(duelId) {
-            clearInterval(timerInterval);
-            clearInterval(checkInterval);
-
+            clearInterval(timerInterval); clearInterval(checkInterval);
             document.getElementById('duelStatus').innerHTML = '📊 Раскрываем результат...';
-
-            const { futureCandles, finalPriceChange } = generateFutureMovement(historicalData);
-            const fullData = [...historicalData, ...futureCandles];
-
-            if (candleSeries) {
-                const candleData = fullData.map(d => ({ time: d.time, open: d.open, high: d.high, low: d.low, close: d.close }));
-                candleSeries.setData(candleData);
-                if (chart) chart.timeScale().fitContent();
-            }
-
-            const resultText = finalPriceChange > 0 ? 'ВВЕРХ' : 'ВНИЗ';
-            document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Реальное движение: ${resultText} (${Math.abs(finalPriceChange).toFixed(2)}%)<br>Определяем победителя...`;
-
-            try {
-                const res = await fetch('/api/duel/resolve', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ duel_id: duelId })
-                });
-                const data = await res.json();
-
-                if (data.success) {
-                    let winText = '';
-                    if (data.winner_id == userId) {
-                        winText = '🎉 ПОБЕДА!';
-                    } else if (data.winner_id) {
-                        winText = '😔 ПОРАЖЕНИЕ';
-                    } else {
-                        winText = '🤝 НИЧЬЯ';
+            const chartImg = document.getElementById('chartImage');
+            const finalDirection = Math.random() > 0.5 ? 'up' : 'down';
+            const finalChange = (Math.random() * 5 + 1).toFixed(1);
+            chartImg.src = `data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 400'%3E%3Crect width='800' height='400' fill='%230F1320'/%3E%3Cpath d='M50,300 L150,280 L250,310 L350,250 L450,270 L550,200 L650,220 L750,180' stroke='%2300D09C' stroke-width='2' fill='none'/%3E%3Cpath d='M750,180 L780,${finalDirection === 'up' ? '120' : '240'}' stroke='%23FFD700' stroke-width='3' fill='none' stroke-dasharray='8,4'/%3E%3Ctext x='400' y='50' text-anchor='middle' fill='%23FFD700' font-size='14' font-family='Arial' font-weight='bold'%3EРЕЗУЛЬТАТ: ${finalDirection === 'up' ? '📈 РОСТ' : '📉 ПАДЕНИЕ'} ${finalChange}%%3C/text%3E%3C/svg%3E`;
+            setTimeout(async () => {
+                try {
+                    const res = await fetch('/api/duel/resolve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ duel_id: duelId }) });
+                    const data = await res.json();
+                    if (data.success) {
+                        let winText = data.winner_id == userId ? '🎉 ПОБЕДА!' : (data.winner_id ? '😔 ПОРАЖЕНИЕ' : '🤝 НИЧЬЯ');
+                        document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Движение: ${finalDirection === 'up' ? 'ВВЕРХ' : 'ВНИЗ'} (${finalChange}%)<br>${winText}`;
+                        showNotification(`${winText}`, data.winner_id == userId ? 'success' : 'error');
+                        await loadLeaderboard();
                     }
-                    document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Реальное движение: ${resultText} (${Math.abs(finalPriceChange).toFixed(2)}%)<br>${winText}`;
-                    showNotification(`${winText}`, data.winner_id == userId ? 'success' : 'error');
-                    await loadLeaderboard();
-                }
-            } catch(e) { console.error('Resolve error:', e); }
-
-            setTimeout(() => resetDuel(), 8000);
+                } catch(e) { console.error('Resolve error:', e); }
+                setTimeout(() => resetDuel(), 8000);
+            }, 2000);
         }
 
         function resetDuel() {
             if (statusCheckInterval) clearInterval(statusCheckInterval);
             if (timerInterval) clearInterval(timerInterval);
             if (checkInterval) clearInterval(checkInterval);
-
-            currentDuelId = null;
-            myPrediction = null;
-
+            currentDuelId = null; myPrediction = null;
             document.getElementById('duelContainer').style.display = 'none';
             document.getElementById('findBtn').style.display = 'block';
             document.getElementById('findBtn').disabled = false;
@@ -510,31 +303,13 @@
             document.getElementById('p1PredictionArea').style.display = 'block';
             document.getElementById('p1PredictionDisplay').innerHTML = '';
             document.getElementById('p2PredictionDisplay').innerHTML = '';
-
-            const buttons = document.querySelectorAll('.prediction-btn');
-            buttons.forEach(btn => btn.classList.remove('selected'));
-
-            if (chart) {
-                chart.remove();
-                chart = null;
-            }
-            candleSeries = null;
-
-            const container = document.getElementById('chart-container');
-            if (container) {
-                container.innerHTML = '<div class="chart-placeholder">📊 График будет здесь после начала дуэли</div>';
-            }
+            document.querySelectorAll('.prediction-btn').forEach(btn => btn.classList.remove('selected'));
+            document.getElementById('chartImage').src = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 400'%3E%3Crect width='800' height='400' fill='%230F1320'/%3E%3Ctext x='400' y='200' text-anchor='middle' fill='%23A0A8C0' font-size='16' font-family='Arial'%3E📊 График для анализа%3C/text%3E%3C/svg%3E";
         }
 
         document.getElementById('findBtn').onclick = findOpponent;
-
         loadLeaderboard();
         setInterval(loadLeaderboard, 30000);
-
-        // Показываем демо-график
-        const demoData = generateRealisticData(80, 50000);
-        initChart();
-        loadChartData(demoData);
     </script>
 </body>
 </html>
