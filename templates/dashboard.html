@@ -322,8 +322,8 @@
         <div class="header">
             <div class="logo">Trade<span>um</span></div>
             <div class="nav-links">
-                <a href="/duel" class="nav-link">⚔️ ДУЭЛЬ</a>
-                <a href="/leaderboard" class="nav-link">🏆 ЛИДЕРЫ</a>
+                <a href="/duel" class="nav-link" onclick="saveUserId()">⚔️ ДУЭЛЬ</a>
+                <a href="/leaderboard" class="nav-link" onclick="saveUserId()">🏆 ЛИДЕРЫ</a>
                 <a href="/" class="nav-link">🏠 НА ГЛАВНУЮ</a>
             </div>
             <div class="user-info">
@@ -411,7 +411,9 @@
         let lastPrices = { BTC: {{ btc_price }}, ETH: {{ eth_price }} };
         let chart = null;
         let candleSeries = null;
-
+        function saveUserId() {
+            localStorage.setItem('tradeum_user_id', userId);
+        }
         // Инициализация графика
         function initChart() {
             const container = document.getElementById('chart');

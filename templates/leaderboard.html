@@ -18,7 +18,7 @@
         .username { flex: 1; }
         .rating { font-weight: 700; color: #00D09C; width: 100px; }
         .stats { width: 120px; }
-        .back-btn { background: #2A3042; color: white; padding: 10px 20px; border-radius: 10px; text-decoration: none; }
+        .back-btn { background: #2A3042; color: white; padding: 10px 20px; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; }
         @media (max-width: 600px) { .stats { display: none; } }
     </style>
 </head>
@@ -26,21 +26,50 @@
     <div class="container">
         <div class="header">
             <div class="logo">Trade<span>um</span> | Лидеры</div>
-            <a href="/dashboard" class="back-btn">← Назад</a>
+            <a href="javascript:history.back()" class="back-btn">← Назад</a>
         </div>
+
         <div class="leaderboard">
-            <div class="leaderboard-header"><div class="rank">#</div><div class="username">Игрок</div><div class="rating">⭐ Рейтинг</div><div class="stats">📊 Победы/Поражения</div></div>
+            <div class="leaderboard-header">
+                <div class="rank">#</div>
+                <div class="username">Игрок</div>
+                <div class="rating">⭐ Рейтинг</div>
+                <div class="stats">📊 Победы/Поражения</div>
+            </div>
             <div id="leaderboardList"></div>
         </div>
     </div>
+
     <script>
-        async function loadLeaderboard() {
-            const res = await fetch('/api/duel/leaderboard'); const leaders = await res.json();
-            const container = document.getElementById('leaderboardList');
-            if (!leaders.length) { container.innerHTML = '<div class="leaderboard-row">Нет данных</div>'; return; }
-            container.innerHTML = leaders.map((l, idx) => `<div class="leaderboard-row"><div class="rank">#${idx+1}</div><div class="username">${l.username}</div><div class="rating">⭐ ${l.rating}</div><div class="stats">${l.wins}W / ${l.losses}L</div></div>`).join('');
+        // Сохраняем user_id в localStorage при заходе на страницу
+        const urlParams = new URLSearchParams(window.location.search);
+        let userId = urlParams.get('user_id');
+        if (userId) {
+            localStorage.setItem('tradeum_user_id', userId);
         }
-        loadLeaderboard(); setInterval(loadLeaderboard, 30000);
+
+        async function loadLeaderboard() {
+            try {
+                const res = await fetch('/api/duel/leaderboard');
+                const leaders = await res.json();
+                const container = document.getElementById('leaderboardList');
+                if (!leaders.length) {
+                    container.innerHTML = '<div class="leaderboard-row">Нет данных</div>';
+                    return;
+                }
+                container.innerHTML = leaders.map((l, idx) => `
+                    <div class="leaderboard-row">
+                        <div class="rank">#${idx + 1}</div>
+                        <div class="username">${l.username}</div>
+                        <div class="rating">⭐ ${l.rating}</div>
+                        <div class="stats">${l.wins}W / ${l.losses}L</div>
+                    </div>
+                `).join('');
+            } catch(e) { console.error(e); }
+        }
+
+        loadLeaderboard();
+        setInterval(loadLeaderboard, 30000);
     </script>
 </body>
 </html>
