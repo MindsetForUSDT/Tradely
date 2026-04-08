@@ -5,21 +5,37 @@ from fastapi.templating import Jinja2Templates
 import random
 import sqlite3
 import hashlib
-from datetime import datetime, timedelta
+import requests
+from datetime import datetime
 from contextlib import contextmanager
-import json
-from typing import Optional, List
 
-app = FastAPI(title="Tradeum Academy", description="Образовательная платформа по трейдингу")
+app = FastAPI(title="Tradeum", description="Трейдинг платформа с дуэлями")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
+# ========== РЕАЛЬНЫЕ ЦЕНЫ ==========
+def get_btc_price():
+    try:
+        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=5)
+        return float(response.json()["price"])
+    except:
+        return 50000.0
+
+
+def get_eth_price():
+    try:
+        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT", timeout=5)
+        return float(response.json()["price"])
+    except:
+        return 3000.0
+
+
 # ========== БАЗА ДАННЫХ ==========
 @contextmanager
 def get_db():
-    conn = sqlite3.connect("tradeum_academy.db")
+    conn = sqlite3.connect("tradeum.db")
     conn.row_factory = sqlite3.Row
     try:
         yield conn
@@ -35,44 +51,81 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                experience_points INTEGER DEFAULT 0,
-                level INTEGER DEFAULT 1,
-                total_correct INTEGER DEFAULT 0,
-                total_wrong INTEGER DEFAULT 0,
-                current_streak INTEGER DEFAULT 0,
-                best_streak INTEGER DEFAULT 0,
+                balance REAL DEFAULT 10000.0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
-        # Прогресс по карточкам
+        # Рейтинги для дуэлей
         conn.execute("""
-            CREATE TABLE IF NOT EXISTS user_progress (
+            CREATE TABLE IF NOT EXISTS user_ratings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                card_id INTEGER NOT NULL,
-                completed BOOLEAN DEFAULT FALSE,
-                correct BOOLEAN DEFAULT FALSE,
-                user_choice TEXT,
-                mistake_type TEXT,
-                completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, card_id),
+                user_id INTEGER UNIQUE NOT NULL,
+                rating INTEGER DEFAULT 400,
+                wins INTEGER DEFAULT 0,
+                losses INTEGER DEFAULT 0,
+                current_win_streak INTEGER DEFAULT 0,
+                current_loss_streak INTEGER DEFAULT 0,
+                best_win_streak INTEGER DEFAULT 0,
+                duels_total INTEGER DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
 
-        # Достижения
+        # Открытые позиции
         conn.execute("""
-            CREATE TABLE IF NOT EXISTS achievements (
+            CREATE TABLE IF NOT EXISTS open_positions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER NOT NULL,
-                achievement_type TEXT NOT NULL,
-                unlocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, achievement_type),
+                symbol TEXT NOT NULL,
+                position_type TEXT NOT NULL,
+                leverage INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                amount REAL NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
 
+        # История сделок
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS trades (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                symbol TEXT NOT NULL,
+                position_type TEXT NOT NULL,
+                leverage INTEGER NOT NULL,
+                entry_price REAL NOT NULL,
+                exit_price REAL NOT NULL,
+                amount REAL NOT NULL,
+                pnl REAL NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (user_id) REFERENCES users (id)
+            )
+        """)
+
+        # Дуэли
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS duels (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                player1_id INTEGER NOT NULL,
+                player2_id INTEGER,
+                status TEXT DEFAULT 'waiting',
+                start_price REAL,
+                end_price REAL,
+                direction TEXT,
+                player1_prediction TEXT,
+                player2_prediction TEXT,
+                player1_score_change INTEGER,
+                player2_score_change INTEGER,
+                winner_id INTEGER,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                started_at TIMESTAMP,
+                ended_at TIMESTAMP,
+                FOREIGN KEY (player1_id) REFERENCES users (id),
+                FOREIGN KEY (player2_id) REFERENCES users (id)
+            )
+        """)
         conn.commit()
 
 
@@ -81,488 +134,6 @@ init_db()
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
-
-
-# ========== УЧЕБНЫЕ КАРТОЧКИ ==========
-TRADING_CARDS = [
-    {
-        "id": 1,
-        "title": "Пробой уровня сопротивления",
-        "difficulty": "easy",
-        "category": "technical",
-        "description": "BTC/USDT тестирует уровень сопротивления $52,000 в третий раз за неделю. Объемы торгов растут.",
-        "news": [
-            "📊 Институциональные инвесторы увеличили позиции в BTC на 15%",
-            "🏦 Крупный банк объявил о запуске крипто-кастодиального сервиса",
-            "📈 Открытый интерес по фьючерсам BTC достиг месячного максимума"
-        ],
-        "chart_data": {
-            "type": "resistance_breakout",
-            "trend": "bullish",
-            "current_price": 52300
-        },
-        "correct_answer": "up",
-        "explanation": {
-            "correct": "Отлично! Вы правильно определили пробой уровня сопротивления. Растущие объемы и позитивные новости подтверждают бычий тренд.",
-            "wrong": {
-                "down": "Вы выбрали падение, но пропустили ключевые сигналы: пробой сопротивления на растущих объемах и позитивный новостной фон.",
-                "sideways": "Боковое движение маловероятно при пробое ключевого уровня с подтверждением объемами."
-            }
-        },
-        "xp_reward": 50
-    },
-    {
-        "id": 2,
-        "title": "Медвежье поглощение",
-        "difficulty": "medium",
-        "category": "patterns",
-        "description": "На дневном графике ETH/USDT сформировалась свечная модель 'медвежье поглощение' после длительного восходящего тренда.",
-        "news": [
-            "📉 Разработчики Ethereum отложили важное обновление сети",
-            "🐋 Крупный держатель ETH переместил 50,000 монет на биржу",
-            "💹 Индекс страха и жадности показывает 'экстремальную жадность'"
-        ],
-        "chart_data": {
-            "type": "bearish_engulfing",
-            "trend": "bearish",
-            "current_price": 3100
-        },
-        "correct_answer": "down",
-        "explanation": {
-            "correct": "Верно! Медвежье поглощение на пике тренда - классический сигнал разворота. Новости о переносе обновления усиливают медвежий настрой.",
-            "wrong": {
-                "up": "Вы проигнорировали медвежью свечную модель. После длительного роста формирование поглощения часто предшествует коррекции.",
-                "sideways": "Медвежье поглощение обычно приводит к движению вниз, а не к консолидации."
-            }
-        },
-        "xp_reward": 75
-    },
-    {
-        "id": 3,
-        "title": "Ложный пробой",
-        "difficulty": "hard",
-        "category": "traps",
-        "description": "Цена BTC ненадолго пробила поддержку $48,000, но быстро вернулась обратно. Объем на пробое был низким.",
-        "news": [
-            "📰 В СМИ появились неподтвержденные слухи о запрете криптовалют",
-            "💎 Большинство долгосрочных держателей не продают монеты",
-            "📊 Индекс доминирования BTC стабилен на уровне 52%"
-        ],
-        "chart_data": {
-            "type": "false_breakdown",
-            "trend": "bullish",
-            "current_price": 48700
-        },
-        "correct_answer": "up",
-        "explanation": {
-            "correct": "Превосходно! Вы распознали ложный пробой. Низкие объемы и быстрый возврат - классические признаки ловушки для медведей.",
-            "wrong": {
-                "down": "Вы попались в медвежью ловушку! Низкие объемы на пробое указывали на слабость продавцов.",
-                "sideways": "После ложного пробоя часто следует сильное движение в противоположную сторону."
-            }
-        },
-        "xp_reward": 100
-    },
-    {
-        "id": 4,
-        "title": "Дивергенция RSI",
-        "difficulty": "medium",
-        "category": "indicators",
-        "description": "На 4-часовом графике цена ETH показывает новый максимум, но RSI формирует более низкий пик.",
-        "news": [
-            "📈 Общая заблокированная стоимость в DeFi снижается третью неделю",
-            "🏢 Корпорации продолжают накапливать ETH",
-            "🌐 Активность в сети Ethereum снизилась на 12%"
-        ],
-        "chart_data": {
-            "type": "rsi_divergence",
-            "trend": "bearish",
-            "current_price": 3350
-        },
-        "correct_answer": "down",
-        "explanation": {
-            "correct": "Отлично замечено! Медвежья дивергенция RSI - надежный сигнал ослабления тренда. Снижение активности в сети подтверждает анализ.",
-            "wrong": {
-                "up": "Вы проигнорировали дивергенцию RSI. Когда цена растет, а индикатор падает - это предупреждение о возможном развороте.",
-                "sideways": "Дивергенция RSI обычно предвещает разворот тренда, а не консолидацию."
-            }
-        },
-        "xp_reward": 75
-    },
-    {
-        "id": 5,
-        "title": "Сжатие полос Боллинджера",
-        "difficulty": "easy",
-        "category": "indicators",
-        "description": "Полосы Боллинджера на дневном графике BTC максимально сузились за последние 2 недели. Волатильность на минимуме.",
-        "news": [
-            "⏳ До халвинга Bitcoin осталось 3 месяца",
-            "📊 Рыночные объемы на минимальных значениях за месяц",
-            "🏦 ФРС готовится к объявлению решения по ставке"
-        ],
-        "chart_data": {
-            "type": "bollinger_squeeze",
-            "trend": "neutral_volatile",
-            "current_price": 49500
-        },
-        "correct_answer": "up",
-        "explanation": {
-            "correct": "Правильно! Сжатие полос Боллинджера часто предшествует сильному движению. Приближение халвинга - исторически бычий фактор.",
-            "wrong": {
-                "down": "Хотя движение вниз возможно, исторические данные показывают, что перед халвингом Bitcoin чаще растет.",
-                "sideways": "Сжатие полос Боллинджера указывает на скорое окончание консолидации и начало тренда."
-            }
-        },
-        "xp_reward": 50
-    },
-    {
-        "id": 6,
-        "title": "Золотой крест",
-        "difficulty": "medium",
-        "category": "indicators",
-        "description": "50-дневная скользящая средняя пересекла 200-дневную снизу вверх на графике ETH/USDT.",
-        "news": [
-            "📈 Институциональные притоки в Ethereum-ETF растут",
-            "🔧 Успешное тестирование обновления Dencun в тестовой сети",
-            "🌍 Регуляторы ЕС одобрили новые правила для крипто-индустрии"
-        ],
-        "chart_data": {
-            "type": "golden_cross",
-            "trend": "bullish",
-            "current_price": 3400
-        },
-        "correct_answer": "up",
-        "explanation": {
-            "correct": "Великолепно! Золотой крест - один из самых надежных бычьих сигналов в техническом анализе.",
-            "wrong": {
-                "down": "Золотой крест исторически является сильным бычьим сигналом. Продавать при таком паттерне рискованно.",
-                "sideways": "После золотого креста обычно следует устойчивый восходящий тренд."
-            }
-        },
-        "xp_reward": 75
-    },
-    {
-        "id": 7,
-        "title": "Голова и плечи",
-        "difficulty": "hard",
-        "category": "patterns",
-        "description": "На недельном графике BTC формируется классическая модель 'голова и плечи' с четкой линией шеи.",
-        "news": [
-            "📉 Майнеры начали активно продавать накопленные резервы",
-            "💱 Стейблкоины отток с бирж",
-            "⚠️ Крупный маркетмейкер сокращает позиции в криптовалютах"
-        ],
-        "chart_data": {
-            "type": "head_and_shoulders",
-            "trend": "bearish",
-            "current_price": 46200
-        },
-        "correct_answer": "down",
-        "explanation": {
-            "correct": "Блестяще! Голова и плечи на недельном графике - серьезный сигнал разворота тренда. Продажи майнеров усиливают медвежий сценарий.",
-            "wrong": {
-                "up": "Модель 'голова и плечи' - классический разворотный паттерн. Игнорировать его на недельном таймфрейме опасно.",
-                "sideways": "Завершение модели 'голова и плечи' обычно приводит к сильному движению вниз."
-            }
-        },
-        "xp_reward": 100
-    },
-    {
-        "id": 8,
-        "title": "Восходящий треугольник",
-        "difficulty": "easy",
-        "category": "patterns",
-        "description": "Цена ETH формирует восходящий треугольник с горизонтальным сопротивлением на $3,500.",
-        "news": [
-            "📊 Количество активных адресов Ethereum достигло рекорда",
-            "🔥 Сжигание ETH через EIP-1559 ускорилось",
-            "🎮 Крупная игровая компания анонсировала запуск на Ethereum"
-        ],
-        "chart_data": {
-            "type": "ascending_triangle",
-            "trend": "bullish",
-            "current_price": 3480
-        },
-        "correct_answer": "up",
-        "explanation": {
-            "correct": "Правильно! Восходящий треугольник с растущими минимумами - бычья фигура продолжения тренда.",
-            "wrong": {
-                "down": "Восходящий треугольник - бычий паттерн. Минимумы повышаются, что говорит о силе покупателей.",
-                "sideways": "Треугольник близок к завершению, скоро произойдет пробой."
-            }
-        },
-        "xp_reward": 50
-    }
-]
-
-
-# ========== ФУНКЦИИ ДЛЯ РАБОТЫ С ПРОГРЕССОМ ==========
-def calculate_level(xp: int) -> int:
-    """Рассчитывает уровень на основе опыта"""
-    return int((xp / 100) ** 0.7) + 1
-
-
-def get_xp_for_next_level(level: int) -> int:
-    """Возвращает необходимое количество XP для следующего уровня"""
-    return int(((level) / 1) ** (1 / 0.7) * 100)
-
-
-def check_achievements(user_id: int):
-    """Проверяет и выдает достижения"""
-    with get_db() as conn:
-        user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-        progress = conn.execute(
-            "SELECT COUNT(*) as total, SUM(CASE WHEN correct THEN 1 ELSE 0 END) as correct FROM user_progress WHERE user_id = ?",
-            (user_id,)).fetchone()
-
-        achievements = []
-
-        # Достижения за стрик
-        if user["current_streak"] >= 3:
-            try:
-                conn.execute("INSERT INTO achievements (user_id, achievement_type) VALUES (?, 'streak_3')", (user_id,))
-                achievements.append("🔥 Серия из 3 побед!")
-            except:
-                pass
-
-        if user["current_streak"] >= 5:
-            try:
-                conn.execute("INSERT INTO achievements (user_id, achievement_type) VALUES (?, 'streak_5')", (user_id,))
-                achievements.append("⚡ Серия из 5 побед!")
-            except:
-                pass
-
-        # Достижения за количество правильных ответов
-        if progress["correct"] >= 10:
-            try:
-                conn.execute("INSERT INTO achievements (user_id, achievement_type) VALUES (?, 'correct_10')",
-                             (user_id,))
-                achievements.append("📚 10 правильных прогнозов!")
-            except:
-                pass
-
-        # Достижения за уровень
-        if user["level"] >= 5:
-            try:
-                conn.execute("INSERT INTO achievements (user_id, achievement_type) VALUES (?, 'level_5')", (user_id,))
-                achievements.append("🎯 Достигнут 5 уровень!")
-            except:
-                pass
-
-        conn.commit()
-        return achievements
-
-
-# ========== API ДЛЯ КАРТОЧЕК ==========
-@app.get("/api/cards/random")
-async def get_random_card(user_id: int):
-    """Возвращает случайную непройденную карточку"""
-    with get_db() as conn:
-        # Получаем ID пройденных карточек
-        completed = conn.execute(
-            "SELECT card_id FROM user_progress WHERE user_id = ? AND completed = TRUE",
-            (user_id,)
-        ).fetchall()
-        completed_ids = [c["card_id"] for c in completed]
-
-        # Выбираем непройденные карточки
-        available_cards = [c for c in TRADING_CARDS if c["id"] not in completed_ids]
-
-        if not available_cards:
-            # Если все карточки пройдены, сбрасываем прогресс для некоторых
-            return {"completed_all": True}
-
-        card = random.choice(available_cards).copy()
-
-        # Генерируем данные графика
-        chart_points = generate_chart_data(card["chart_data"]["type"], card["chart_data"]["trend"])
-        card["chart_points"] = chart_points
-
-        return card
-
-
-def generate_chart_data(pattern_type: str, trend: str):
-    """Генерирует данные для отрисовки графика"""
-    points = []
-    base_price = 50000 if "BTC" in pattern_type or trend else 3000
-
-    if pattern_type == "resistance_breakout":
-        for i in range(30):
-            if i < 20:
-                price = base_price + 1000 * (1 - i / 25) + random.randint(-200, 200)
-            else:
-                price = base_price + 1500 + (i - 20) * 100 + random.randint(-100, 300)
-            points.append({"x": i, "y": price})
-
-    elif pattern_type == "bearish_engulfing":
-        for i in range(30):
-            if i < 25:
-                price = base_price + i * 50 + random.randint(-100, 100)
-            else:
-                price = base_price + 1250 - (i - 25) * 100 + random.randint(-150, 50)
-            points.append({"x": i, "y": price})
-
-    elif pattern_type == "false_breakdown":
-        for i in range(30):
-            if i < 15:
-                price = base_price - i * 30 + random.randint(-100, 100)
-            elif i < 18:
-                price = base_price - 600 + random.randint(-50, 50)
-            else:
-                price = base_price - 600 + (i - 18) * 80 + random.randint(-100, 200)
-            points.append({"x": i, "y": price})
-
-    elif pattern_type == "head_and_shoulders":
-        for i in range(40):
-            if i < 10:
-                price = base_price + i * 30
-            elif i < 15:
-                price = base_price + 300 + (i - 10) * 60
-            elif i < 20:
-                price = base_price + 600 - (i - 15) * 60
-            elif i < 30:
-                price = base_price + 300 + (i - 20) * 20
-            else:
-                price = base_price + 500 - (i - 30) * 40
-            points.append({"x": i, "y": price + random.randint(-50, 50)})
-
-    else:
-        # Паттерн по умолчанию
-        for i in range(30):
-            if trend == "bullish":
-                price = base_price + i * 30 + random.randint(-150, 150)
-            else:
-                price = base_price - i * 30 + random.randint(-150, 150)
-            points.append({"x": i, "y": price})
-
-    return points
-
-
-@app.post("/api/cards/submit")
-async def submit_card_answer(request: Request):
-    """Обрабатывает ответ пользователя"""
-    try:
-        data = await request.json()
-        user_id = data.get("user_id")
-        card_id = data.get("card_id")
-        answer = data.get("answer")
-
-        card = next((c for c in TRADING_CARDS if c["id"] == card_id), None)
-        if not card:
-            return {"success": False, "error": "Card not found"}
-
-        is_correct = (answer == card["correct_answer"])
-        xp_earned = card["xp_reward"] if is_correct else 0
-
-        with get_db() as conn:
-            user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-
-            if is_correct:
-                new_streak = user["current_streak"] + 1
-                new_best_streak = max(user["best_streak"], new_streak)
-                total_correct = user["total_correct"] + 1
-                total_wrong = user["total_wrong"]
-            else:
-                new_streak = 0
-                new_best_streak = user["best_streak"]
-                total_correct = user["total_correct"]
-                total_wrong = user["total_wrong"] + 1
-
-            new_xp = user["experience_points"] + xp_earned
-            new_level = calculate_level(new_xp)
-
-            # Обновляем пользователя
-            conn.execute("""
-                UPDATE users SET 
-                    experience_points = ?,
-                    level = ?,
-                    total_correct = ?,
-                    total_wrong = ?,
-                    current_streak = ?,
-                    best_streak = ?
-                WHERE id = ?
-            """, (new_xp, new_level, total_correct, total_wrong, new_streak, new_best_streak, user_id))
-
-            # Сохраняем прогресс
-            mistake_type = None if is_correct else f"wrong_{answer}"
-            conn.execute("""
-                INSERT INTO user_progress (user_id, card_id, completed, correct, user_choice, mistake_type)
-                VALUES (?, ?, TRUE, ?, ?, ?)
-                ON CONFLICT(user_id, card_id) DO UPDATE SET
-                    completed = TRUE,
-                    correct = ?,
-                    user_choice = ?,
-                    mistake_type = ?,
-                    completed_at = CURRENT_TIMESTAMP
-            """, (user_id, card_id, is_correct, answer, mistake_type, is_correct, answer, mistake_type))
-
-            conn.commit()
-
-        # Проверяем достижения
-        achievements = check_achievements(user_id)
-
-        # Формируем объяснение
-        if is_correct:
-            explanation = card["explanation"]["correct"]
-        else:
-            explanation = card["explanation"]["wrong"].get(answer, "Проанализируйте график внимательнее.")
-
-        return {
-            "success": True,
-            "is_correct": is_correct,
-            "xp_earned": xp_earned,
-            "new_level": new_level,
-            "new_xp": new_xp,
-            "streak": new_streak,
-            "explanation": explanation,
-            "achievements": achievements,
-            "correct_answer": card["correct_answer"]
-        }
-
-    except Exception as e:
-        return {"success": False, "error": str(e)}
-
-
-@app.get("/api/user/stats/{user_id}")
-async def get_user_stats(user_id: int):
-    """Возвращает статистику пользователя"""
-    with get_db() as conn:
-        user = conn.execute("SELECT * FROM users WHERE id = ?", (user_id,)).fetchone()
-        if not user:
-            return {"error": "User not found"}
-
-        progress = conn.execute("""
-            SELECT COUNT(*) as total_completed,
-                   SUM(CASE WHEN correct THEN 1 ELSE 0 END) as correct_answers
-            FROM user_progress WHERE user_id = ?
-        """, (user_id,)).fetchone()
-
-        achievements = conn.execute(
-            "SELECT achievement_type FROM achievements WHERE user_id = ?",
-            (user_id,)
-        ).fetchall()
-
-        xp_for_next = get_xp_for_next_level(user["level"] + 1)
-        current_level_xp = get_xp_for_next_level(user["level"])
-        progress_to_next = ((user["experience_points"] - current_level_xp) / (xp_for_next - current_level_xp)) * 100
-
-        return {
-            "username": user["username"],
-            "level": user["level"],
-            "experience": user["experience_points"],
-            "xp_for_next": xp_for_next,
-            "progress_percent": min(100, max(0, progress_to_next)),
-            "total_correct": user["total_correct"],
-            "total_wrong": user["total_wrong"],
-            "current_streak": user["current_streak"],
-            "best_streak": user["best_streak"],
-            "cards_completed": progress["total_completed"] or 0,
-            "accuracy": (user["total_correct"] / (user["total_correct"] + user["total_wrong"]) * 100) if (user[
-                                                                                                              "total_correct"] +
-                                                                                                          user[
-                                                                                                              "total_wrong"]) > 0 else 0,
-            "achievements": [a["achievement_type"] for a in achievements]
-        }
 
 
 # ========== СТРАНИЦЫ ==========
@@ -584,9 +155,14 @@ async def login_page(request: Request, registered: str = None, error: str = None
 async def register(username: str = Form(...), password: str = Form(...)):
     try:
         with get_db() as conn:
-            conn.execute(
+            cursor = conn.execute(
                 "INSERT INTO users (username, password_hash) VALUES (?, ?)",
                 (username, hash_password(password))
+            )
+            user_id = cursor.lastrowid
+            conn.execute(
+                "INSERT INTO user_ratings (user_id, rating) VALUES (?, 400)",
+                (user_id,)
             )
             conn.commit()
         return RedirectResponse(url="/login?registered=1", status_code=303)
@@ -598,34 +174,61 @@ async def register(username: str = Form(...), password: str = Form(...)):
 async def login(username: str = Form(...), password: str = Form(...)):
     with get_db() as conn:
         user = conn.execute(
-            "SELECT id FROM users WHERE username = ? AND password_hash = ?",
+            "SELECT id, username FROM users WHERE username = ? AND password_hash = ?",
             (username, hash_password(password))
         ).fetchone()
 
         if not user:
             return RedirectResponse(url="/login?error=1", status_code=303)
 
-        response = RedirectResponse(url="/learn", status_code=303)
-        response.set_cookie(key="user_id", value=str(user["id"]), httponly=True, max_age=86400 * 30)
+        response = RedirectResponse(url=f"/dashboard?user_id={user['id']}", status_code=303)
+        response.set_cookie("user_id", str(user["id"]), httponly=True)
         return response
 
 
-@app.get("/learn", response_class=HTMLResponse)
-async def learn_page(request: Request):
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request, user_id: int = None):
+    if not user_id:
+        user_id = request.cookies.get("user_id")
+        if not user_id:
+            return RedirectResponse(url="/login")
+        user_id = int(user_id)
+
+    with get_db() as conn:
+        user = conn.execute(
+            "SELECT id, username, balance FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
+
+        if not user:
+            return RedirectResponse(url="/login")
+
+        rating = conn.execute(
+            "SELECT rating, wins, losses FROM user_ratings WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
+
+        recent_trades = conn.execute(
+            "SELECT symbol, position_type, leverage, pnl, created_at FROM trades WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
+            (user_id,)
+        ).fetchall()
+
+    return templates.TemplateResponse("dashboard.html", {
+        "request": request,
+        "user": user,
+        "rating": rating,
+        "recent_trades": recent_trades,
+        "btc_price": round(get_btc_price(), 2),
+        "eth_price": round(get_eth_price(), 2)
+    })
+
+
+@app.get("/duel", response_class=HTMLResponse)
+async def duel_page(request: Request):
     user_id = request.cookies.get("user_id")
     if not user_id:
         return RedirectResponse(url="/login")
-
-    return templates.TemplateResponse("learn.html", {"request": request, "user_id": user_id})
-
-
-@app.get("/profile", response_class=HTMLResponse)
-async def profile_page(request: Request):
-    user_id = request.cookies.get("user_id")
-    if not user_id:
-        return RedirectResponse(url="/login")
-
-    return templates.TemplateResponse("profile.html", {"request": request, "user_id": user_id})
+    return templates.TemplateResponse("duel.html", {"request": request, "user_id": int(user_id)})
 
 
 @app.get("/leaderboard", response_class=HTMLResponse)
@@ -640,16 +243,399 @@ async def logout():
     return response
 
 
-@app.get("/api/leaderboard")
-async def get_leaderboard():
+# ========== API ОБЫЧНОЙ ТОРГОВЛИ ==========
+@app.get("/api/price/{symbol}")
+async def get_price(symbol: str):
+    if symbol == "BTC":
+        return {"price": get_btc_price()}
+    else:
+        return {"price": get_eth_price()}
+
+
+@app.get("/api/positions/{user_id}")
+async def get_positions(user_id: int):
+    with get_db() as conn:
+        positions = conn.execute(
+            "SELECT id, symbol, position_type, leverage, entry_price, amount FROM open_positions WHERE user_id = ?",
+            (user_id,)
+        ).fetchall()
+        return [dict(p) for p in positions]
+
+
+@app.post("/api/position/open")
+async def open_position(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        symbol = data.get("symbol")
+        position_type = data.get("position_type")
+        leverage = data.get("leverage")
+        amount = data.get("amount")
+
+        with get_db() as conn:
+            user = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,)).fetchone()
+            if not user:
+                return {"success": False, "error": "User not found"}
+
+            margin = amount / leverage
+            if margin > user["balance"]:
+                return {"success": False, "error": f"Need ${margin:.2f} margin, have ${user['balance']:.2f}"}
+
+            if symbol == "BTC":
+                entry_price = get_btc_price()
+            else:
+                entry_price = get_eth_price()
+
+            new_balance = user["balance"] - margin
+            conn.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, user_id))
+
+            conn.execute("""
+                INSERT INTO open_positions (user_id, symbol, position_type, leverage, entry_price, amount)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (user_id, symbol, position_type, leverage, entry_price, amount))
+            conn.commit()
+
+            return {"success": True, "new_balance": new_balance, "entry_price": entry_price}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/position/close")
+async def close_position(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+        position_id = data.get("position_id")
+        close_amount = data.get("close_amount")
+
+        with get_db() as conn:
+            pos = conn.execute("SELECT * FROM open_positions WHERE id = ? AND user_id = ?",
+                               (position_id, user_id)).fetchone()
+            if not pos:
+                return {"success": False, "error": "Position not found"}
+
+            if close_amount > pos["amount"]:
+                close_amount = pos["amount"]
+
+            if pos["symbol"] == "BTC":
+                current_price = get_btc_price()
+            else:
+                current_price = get_eth_price()
+
+            if pos["position_type"] == "long":
+                price_change = (current_price - pos["entry_price"]) / pos["entry_price"]
+            else:
+                price_change = (pos["entry_price"] - current_price) / pos["entry_price"]
+
+            close_ratio = close_amount / pos["amount"]
+            pnl = pos["amount"] * price_change * pos["leverage"] * close_ratio
+            margin_return = (pos["amount"] / pos["leverage"]) * close_ratio
+            total_return = margin_return + pnl
+
+            user = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,)).fetchone()
+            new_balance = user["balance"] + total_return
+            conn.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, user_id))
+
+            remaining_amount = pos["amount"] - close_amount
+            if remaining_amount <= 0.01:
+                conn.execute("DELETE FROM open_positions WHERE id = ?", (position_id,))
+            else:
+                conn.execute("UPDATE open_positions SET amount = ? WHERE id = ?", (remaining_amount, position_id))
+
+            conn.execute("""
+                INSERT INTO trades (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, pnl)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, pos["symbol"], pos["position_type"], pos["leverage"],
+                  pos["entry_price"], current_price, close_amount, pnl))
+            conn.commit()
+
+            return {"success": True, "new_balance": new_balance, "pnl": pnl, "received": total_return}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/history/{user_id}")
+async def get_history(user_id: int):
+    with get_db() as conn:
+        trades = conn.execute("""
+            SELECT symbol, position_type, leverage, pnl, created_at
+            FROM trades
+            WHERE user_id = ?
+            ORDER BY created_at DESC
+            LIMIT 50
+        """, (user_id,)).fetchall()
+        return [{"symbol": t["symbol"], "position_type": t["position_type"],
+                 "leverage": t["leverage"], "pnl": t["pnl"],
+                 "created_at": t["created_at"][:19]} for t in trades]
+
+
+@app.get("/api/chart/{symbol}")
+async def get_chart_data(symbol: str, limit: int = 100):
+    """Генерирует данные для графика"""
+    data = []
+    if symbol == "BTC":
+        price = get_btc_price()
+    else:
+        price = get_eth_price()
+
+    now = datetime.now()
+    for i in range(limit, 0, -1):
+        price *= (1 + (random.random() - 0.5) * 0.01)
+        data.append({
+            "time": int((now.timestamp() - i * 3600) * 1000),
+            "open": price * (1 + (random.random() - 0.5) * 0.005),
+            "high": price * (1 + random.random() * 0.01),
+            "low": price * (1 - random.random() * 0.01),
+            "close": price
+        })
+    return data
+
+
+# ========== API ДУЭЛЕЙ ==========
+@app.get("/api/duel/rating/{user_id}")
+async def get_user_rating(user_id: int):
+    with get_db() as conn:
+        rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
+        if not rating:
+            return {"rating": 400, "wins": 0, "losses": 0, "streak": 0}
+        return dict(rating)
+
+
+@app.get("/api/duel/leaderboard")
+async def get_leaderboard(limit: int = 100):
     with get_db() as conn:
         leaders = conn.execute("""
-            SELECT username, level, experience_points, total_correct, current_streak
-            FROM users
-            ORDER BY experience_points DESC
-            LIMIT 50
-        """).fetchall()
+            SELECT u.username, r.rating, r.wins, r.losses, r.duels_total
+            FROM user_ratings r
+            JOIN users u ON r.user_id = u.id
+            ORDER BY r.rating DESC
+            LIMIT ?
+        """, (limit,)).fetchall()
         return [dict(l) for l in leaders]
+
+
+@app.post("/api/duel/create")
+async def create_duel(request: Request):
+    try:
+        data = await request.json()
+        user_id = data.get("user_id")
+
+        with get_db() as conn:
+            waiting = conn.execute(
+                "SELECT id FROM duels WHERE status = 'waiting' AND player1_id != ?",
+                (user_id,)
+            ).fetchone()
+
+            if waiting:
+                duel_id = waiting["id"]
+                conn.execute(
+                    "UPDATE duels SET player2_id = ?, status = 'active', started_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    (user_id, duel_id)
+                )
+                start_price = get_btc_price()
+                conn.execute("UPDATE duels SET start_price = ? WHERE id = ?", (start_price, duel_id))
+                conn.commit()
+                return {"success": True, "duel_id": duel_id, "action": "joined"}
+            else:
+                cursor = conn.execute(
+                    "INSERT INTO duels (player1_id, status) VALUES (?, 'waiting')",
+                    (user_id,)
+                )
+                duel_id = cursor.lastrowid
+                conn.commit()
+                return {"success": True, "duel_id": duel_id, "action": "created"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/duel/status/{duel_id}")
+async def get_duel_status(duel_id: int):
+    with get_db() as conn:
+        duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+        if not duel:
+            return {"error": "Duel not found"}
+
+        return {
+            "status": duel["status"],
+            "player1_id": duel["player1_id"],
+            "player2_id": duel["player2_id"],
+            "start_price": duel["start_price"],
+            "started_at": duel["started_at"]
+        }
+
+
+@app.post("/api/duel/submit_prediction")
+async def submit_prediction(request: Request):
+    try:
+        data = await request.json()
+        duel_id = data.get("duel_id")
+        user_id = data.get("user_id")
+        direction = data.get("direction")
+
+        with get_db() as conn:
+            duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+            if not duel or duel["status"] != "active":
+                return {"success": False, "error": "Duel not active"}
+
+            if duel["player1_id"] == user_id:
+                conn.execute("UPDATE duels SET player1_prediction = ? WHERE id = ?", (direction, duel_id))
+            elif duel["player2_id"] == user_id:
+                conn.execute("UPDATE duels SET player2_prediction = ? WHERE id = ?", (direction, duel_id))
+            else:
+                return {"success": False, "error": "Not a player in this duel"}
+
+            conn.commit()
+            return {"success": True}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.get("/api/duel/check_predictions/{duel_id}")
+async def check_predictions(duel_id: int):
+    with get_db() as conn:
+        duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+        if not duel:
+            return {"error": "Duel not found"}
+
+        both_submitted = duel["player1_prediction"] is not None and duel["player2_prediction"] is not None
+
+        return {
+            "both_submitted": both_submitted,
+            "player1_prediction": duel["player1_prediction"],
+            "player2_prediction": duel["player2_prediction"]
+        }
+
+
+def calculate_rating_change(current_rating, is_winner, streak_count):
+    if is_winner:
+        if streak_count >= 3:
+            return 15
+        elif streak_count == 2:
+            return 20
+        else:
+            return 25
+    else:
+        if streak_count >= 3:
+            return -15
+        elif streak_count == 2:
+            return -20
+        else:
+            return -25
+
+
+@app.post("/api/duel/resolve")
+async def resolve_duel(request: Request):
+    try:
+        data = await request.json()
+        duel_id = data.get("duel_id")
+
+        with get_db() as conn:
+            duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+            if not duel or duel["status"] != "active":
+                return {"success": False, "error": "Duel not active"}
+
+            end_price = get_btc_price()
+            price_change_pct = ((end_price - duel["start_price"]) / duel["start_price"]) * 100
+
+            if price_change_pct > 0.3:
+                real_direction = "up"
+            elif price_change_pct < -0.3:
+                real_direction = "down"
+            else:
+                real_direction = "sideways"
+
+            p1_pred = duel["player1_prediction"]
+            p2_pred = duel["player2_prediction"]
+
+            p1_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player1_id"],)).fetchone()
+            p2_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player2_id"],)).fetchone()
+
+            winner_id = None
+            p1_change = 0
+            p2_change = 0
+            new_p1_streak = 0
+            new_p2_streak = 0
+            new_p1_loss_streak = 0
+            new_p2_loss_streak = 0
+
+            if p1_pred == real_direction and p2_pred != real_direction:
+                winner_id = duel["player1_id"]
+                p1_change = calculate_rating_change(p1_rating["rating"], True, p1_rating["current_win_streak"])
+                p2_change = calculate_rating_change(p2_rating["rating"], False, p2_rating["current_loss_streak"])
+                new_p1_streak = p1_rating["current_win_streak"] + 1
+                new_p2_loss_streak = p2_rating["current_loss_streak"] + 1
+
+            elif p2_pred == real_direction and p1_pred != real_direction:
+                winner_id = duel["player2_id"]
+                p1_change = calculate_rating_change(p1_rating["rating"], False, p1_rating["current_loss_streak"])
+                p2_change = calculate_rating_change(p2_rating["rating"], True, p2_rating["current_win_streak"])
+                new_p1_loss_streak = p1_rating["current_loss_streak"] + 1
+                new_p2_streak = p2_rating["current_win_streak"] + 1
+
+            elif p1_pred == real_direction and p2_pred == real_direction:
+                p1_change = 0
+                p2_change = 0
+            else:
+                p1_change = -10
+                p2_change = -10
+                new_p1_loss_streak = p1_rating["current_loss_streak"] + 1
+                new_p2_loss_streak = p2_rating["current_loss_streak"] + 1
+
+            new_p1_rating = p1_rating["rating"] + p1_change
+            new_p2_rating = p2_rating["rating"] + p2_change
+
+            conn.execute("""
+                UPDATE user_ratings SET 
+                    rating = ?, 
+                    wins = wins + ?, 
+                    losses = losses + ?,
+                    current_win_streak = ?,
+                    current_loss_streak = ?,
+                    best_win_streak = MAX(best_win_streak, ?),
+                    duels_total = duels_total + 1
+                WHERE user_id = ?
+            """, (new_p1_rating, 1 if winner_id == duel["player1_id"] else 0,
+                  1 if winner_id == duel["player2_id"] else 0,
+                  new_p1_streak, new_p1_loss_streak, new_p1_streak, duel["player1_id"]))
+
+            conn.execute("""
+                UPDATE user_ratings SET 
+                    rating = ?, 
+                    wins = wins + ?, 
+                    losses = losses + ?,
+                    current_win_streak = ?,
+                    current_loss_streak = ?,
+                    best_win_streak = MAX(best_win_streak, ?),
+                    duels_total = duels_total + 1
+                WHERE user_id = ?
+            """, (new_p2_rating, 1 if winner_id == duel["player2_id"] else 0,
+                  1 if winner_id == duel["player1_id"] else 0,
+                  new_p2_streak, new_p2_loss_streak, new_p2_streak, duel["player2_id"]))
+
+            conn.execute("""
+                UPDATE duels SET 
+                    status = 'completed', 
+                    end_price = ?, 
+                    direction = ?,
+                    winner_id = ?,
+                    player1_score_change = ?,
+                    player2_score_change = ?,
+                    ended_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (end_price, real_direction, winner_id, p1_change, p2_change, duel_id))
+
+            conn.commit()
+
+            return {
+                "success": True,
+                "real_direction": real_direction,
+                "price_change_pct": round(price_change_pct, 2),
+                "winner_id": winner_id,
+                "player1_change": p1_change,
+                "player2_change": p2_change
+            }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 
 if __name__ == "__main__":
