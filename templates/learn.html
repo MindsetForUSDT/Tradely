@@ -29,7 +29,7 @@
         .difficulty.hard { background: rgba(248, 113, 113, 0.1); color: #F87171; }
         .description { color: #A1A6B0; margin-bottom: 24px; line-height: 1.6; }
         .chart-container { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
-        canvas { width: 100% !important; height: 300px !important; }
+        canvas { width: 100% !important; height: 350px !important; }
         .news-section { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
         .news-title { font-weight: 600; margin-bottom: 12px; color: #5EEAD4; }
         .news-list { list-style: none; }
@@ -76,7 +76,7 @@
         <div class="description" id="description"></div>
         <div class="chart-container"><canvas id="priceChart"></canvas></div>
         <div class="news-section"><div class="news-title">📰 Новости рынка</div><ul class="news-list" id="newsList"></ul></div>
-        <div class="prediction-btns" id="predictionBtns">
+        <div class="prediction-btns">
             <button class="pred-btn up" data-dir="up">📈 ВВЕРХ</button>
             <button class="pred-btn down" data-dir="down">📉 ВНИЗ</button>
             <button class="pred-btn sideways" data-dir="sideways">➡️ БОКОВИК</button>
@@ -104,11 +104,28 @@
         } catch(e) { console.error('Stats error:', e); }
     }
 
+    // Генерация свечных данных
+    function generateCandleData(basePrice, trend, bars = 40) {
+        const candles = [];
+        let price = basePrice;
+        let trendDirection = trend === 'bullish' ? 1 : (trend === 'bearish' ? -1 : 0);
+
+        for (let i = 0; i < bars; i++) {
+            const change = (Math.random() - 0.5 + trendDirection * 0.15) * 0.02;
+            price = price * (1 + change);
+            const open = price;
+            const close = price * (1 + (Math.random() - 0.5) * 0.01);
+            const high = Math.max(open, close) * (1 + Math.random() * 0.008);
+            const low = Math.min(open, close) * (1 - Math.random() * 0.008);
+            candles.push({ t: i, o: open, h: high, l: low, c: close });
+        }
+        return candles;
+    }
+
     async function loadCard() {
         try {
             const res = await fetch(`/api/cards/random?user_id=${userId}`);
             const card = await res.json();
-            console.log('Card loaded:', card);
 
             if (card.completed_all) {
                 document.getElementById('cardTitle').innerText = 'Поздравляем!';
@@ -124,48 +141,19 @@
             document.getElementById('difficulty').className = `difficulty ${card.difficulty}`;
             document.getElementById('newsList').innerHTML = card.news.map(n => `<li>${n}</li>`).join('');
 
-            // Создаём график
+            // Создаём свечной график
+            const candles = generateCandleData(card.current_price || 50000, card.trend, 40);
             const ctx = document.getElementById('priceChart').getContext('2d');
             if (chart) chart.destroy();
 
-            const points = card.chart_points || [];
-            const labels = points.map((_, i) => i + 1);
-            const values = points.map(p => p.y);
-
             chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Цена (USDT)',
-                        data: values,
-                        borderColor: '#5EEAD4',
-                        backgroundColor: 'rgba(94, 234, 212, 0.1)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 4,
-                        pointBackgroundColor: '#5EEAD4',
-                        pointBorderColor: '#5EEAD4'
-                    }]
-                },
+                type: 'candlestick',
+                data: { datasets: [{ label: 'Цена', data: candles.map(c => ({ x: c.t, o: c.o, h: c.h, l: c.l, c: c.c })) }] },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
-                    plugins: {
-                        legend: { labels: { color: '#A1A6B0' } },
-                        tooltip: { callbacks: { label: (ctx) => `Цена: $${ctx.raw.toFixed(2)}` } }
-                    },
-                    scales: {
-                        y: {
-                            grid: { color: '#1F232C' },
-                            ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` }
-                        },
-                        x: {
-                            grid: { color: '#1F232C' },
-                            ticks: { color: '#A1A6B0' },
-                            title: { display: true, text: 'Время (часы)', color: '#7A8190' }
-                        }
-                    }
+                    plugins: { legend: { labels: { color: '#A1A6B0' } }, tooltip: { callbacks: { label: (ctx) => { const item = ctx.raw; return [`O: $${item.o.toFixed(2)}`, `H: $${item.h.toFixed(2)}`, `L: $${item.l.toFixed(2)}`, `C: $${item.c.toFixed(2)}`]; } } } },
+                    scales: { y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } }, x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' }, title: { display: true, text: 'Время (часы)', color: '#7A8190' } } }
                 }
             });
 
@@ -175,10 +163,7 @@
             document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = false; btn.style.opacity = '1'; });
             canAnswer = true;
 
-        } catch(e) {
-            console.error('Load card error:', e);
-            document.getElementById('description').innerHTML = 'Ошибка загрузки карточки. Обновите страницу.';
-        }
+        } catch(e) { console.error('Load card error:', e); }
     }
 
     function showNotification(msg, type) {
@@ -190,11 +175,7 @@
     }
 
     async function submitAnswer(direction) {
-        if (!canAnswer || !currentCard) {
-            showNotification('Подождите, карточка загружается...', 'error');
-            return;
-        }
-
+        if (!canAnswer || !currentCard) return;
         canAnswer = false;
         document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = true; btn.style.opacity = '0.5'; });
 
@@ -205,49 +186,33 @@
                 body: JSON.stringify({ user_id: userId, card_id: currentCard.id, answer: direction })
             });
             const data = await res.json();
-            console.log('Submit response:', data);
 
             const resultBox = document.getElementById('resultBox');
-            if (data.success) {
-                if (data.is_correct) {
-                    resultBox.className = 'result-box correct';
-                    document.getElementById('resultTitle').innerHTML = '✅ ПРАВИЛЬНО!';
-                    document.getElementById('resultText').innerHTML = data.explanation;
-                    document.getElementById('xpGain').innerHTML = `+${data.xp_earned} XP`;
-                    showNotification(`+${data.xp_earned} XP!`, 'success');
-                } else {
-                    resultBox.className = 'result-box wrong';
-                    document.getElementById('resultTitle').innerHTML = '❌ НЕПРАВИЛЬНО';
-                    const correctText = data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК');
-                    document.getElementById('resultText').innerHTML = `${data.explanation}<br><br>Правильный ответ: ${correctText}`;
-                    document.getElementById('xpGain').innerHTML = `+0 XP`;
-                    showNotification('Неправильно!', 'error');
-                }
-                resultBox.style.display = 'block';
-                document.getElementById('nextBtn').style.display = 'block';
-                await loadStats();
-
-                if (data.achievements && data.achievements.length > 0) {
-                    for (const ach of data.achievements) {
-                        showNotification(`🏆 Достижение: ${ach}`, 'success');
-                    }
-                }
+            if (data.is_correct) {
+                resultBox.className = 'result-box correct';
+                document.getElementById('resultTitle').innerHTML = '✅ ПРАВИЛЬНО!';
+                document.getElementById('resultText').innerHTML = data.explanation;
+                document.getElementById('xpGain').innerHTML = `+${data.xp_earned} XP`;
+                showNotification(`+${data.xp_earned} XP!`, 'success');
             } else {
-                showNotification(data.error || 'Ошибка отправки', 'error');
-                canAnswer = true;
-                document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = false; btn.style.opacity = '1'; });
+                resultBox.className = 'result-box wrong';
+                document.getElementById('resultTitle').innerHTML = '❌ НЕПРАВИЛЬНО';
+                const correctText = data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК');
+                document.getElementById('resultText').innerHTML = `${data.explanation}<br><br>Правильный ответ: ${correctText}`;
+                document.getElementById('xpGain').innerHTML = `+0 XP`;
+                showNotification('Неправильно!', 'error');
             }
-        } catch(e) {
-            console.error('Submit error:', e);
-            showNotification('Ошибка сервера', 'error');
-            canAnswer = true;
-            document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = false; btn.style.opacity = '1'; });
-        }
+            resultBox.style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'block';
+            await loadStats();
+
+            if (data.achievements && data.achievements.length) {
+                data.achievements.forEach(ach => showNotification(`🏆 ${ach}`, 'success'));
+            }
+        } catch(e) { console.error(e); }
     }
 
-    document.querySelectorAll('.pred-btn').forEach(btn => {
-        btn.onclick = () => submitAnswer(btn.dataset.dir);
-    });
+    document.querySelectorAll('.pred-btn').forEach(btn => { btn.onclick = () => submitAnswer(btn.dataset.dir); });
     document.getElementById('nextBtn').onclick = () => loadCard();
 
     loadStats();

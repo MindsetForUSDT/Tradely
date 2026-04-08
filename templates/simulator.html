@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tradeum · Симулятор</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #0A0C10; color: #E6E8EC; padding: 24px; }
@@ -18,7 +18,7 @@
         .simulator-card { background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; }
         .balance { font-size: 36px; font-weight: 700; color: #5EEAD4; text-align: center; margin-bottom: 24px; }
         .chart-container { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
-        canvas { width: 100%; height: 300px; }
+        canvas { width: 100% !important; height: 300px !important; }
         .trade-panel { display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
         .trade-btn { padding: 12px 28px; border-radius: 40px; font-weight: 700; cursor: pointer; border: none; transition: all 0.3s; }
         .trade-btn.long { background: #5EEAD4; color: #0A0C10; }
@@ -26,12 +26,17 @@
         .trade-btn.short { background: #F87171; color: #0A0C10; }
         .trade-btn.short:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(248, 113, 113, 0.3); }
         .trade-btn.reset { background: #2E3440; color: #E6E8EC; }
-        .result { text-align: center; padding: 16px; background: #0A0C10; border-radius: 16px; margin-top: 16px; }
+        .result { text-align: center; padding: 16px; background: #0A0C10; border-radius: 16px; margin-bottom: 24px; }
         .result-positive { color: #5EEAD4; }
         .result-negative { color: #F87171; }
         .history { margin-top: 24px; }
         .history-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
-        .history-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #1F232C; font-size: 14px; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #1F232C; font-size: 14px; flex-wrap: wrap; gap: 10px; }
+        .notification { position: fixed; top: 20px; right: 20px; padding: 14px 24px; border-radius: 12px; background: #1A1F2A; border-left: 3px solid; z-index: 1000; animation: slideIn 0.3s ease; }
+        .notification.success { border-color: #5EEAD4; }
+        .notification.error { border-color: #F87171; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @media (max-width: 600px) { body { padding: 16px; } .history-item { flex-direction: column; } }
     </style>
 </head>
 <body>
@@ -68,9 +73,9 @@
     let position = null;
     let chart = null;
     let priceData = [];
-    let currentPrice = 50000;
-    let step = 0;
+    let currentIndex = 0;
     let history = [];
+    let intervalId = null;
 
     function generatePriceData() {
         const data = [];
@@ -85,20 +90,26 @@
 
     function initChart() {
         priceData = generatePriceData();
-        currentPrice = priceData[0];
-        step = 0;
+        currentIndex = 0;
+        updateChart();
+    }
 
+    function updateChart() {
         const ctx = document.getElementById('simulatorChart').getContext('2d');
         if (chart) chart.destroy();
+
+        const displayData = priceData.slice(0, currentIndex + 1);
+        const labels = displayData.map((_, i) => i + 1);
+
         chart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: Array.from({length: 100}, (_, i) => i + 1),
+                labels: labels,
                 datasets: [{
                     label: 'Цена BTC/USDT',
-                    data: priceData,
+                    data: displayData,
                     borderColor: '#5EEAD4',
-                    backgroundColor: 'rgba(94, 234, 212, 0.05)',
+                    backgroundColor: 'rgba(94, 234, 212, 0.1)',
                     fill: true,
                     tension: 0.3,
                     pointRadius: 0
@@ -110,70 +121,41 @@
                 plugins: { legend: { labels: { color: '#A1A6B0' } } },
                 scales: {
                     y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } },
-                    x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } }
+                    x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' }, title: { display: true, text: 'Время (шаги)', color: '#7A8190' } }
                 }
             }
         });
     }
 
     function updatePrice() {
-        if (step < priceData.length - 1) {
-            step++;
-            currentPrice = priceData[step];
+        if (currentIndex < priceData.length - 1) {
+            currentIndex++;
+            const currentPrice = priceData[currentIndex];
 
             if (position) {
-                const pnlPercent = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
-                const pnlAmount = (position.amount * pnlPercent) / 100;
-                document.getElementById('result').innerHTML = `
-                    <div>Открыта позиция: ${position.type === 'long' ? '📈 ЛОНГ' : '📉 ШОРТ'}</div>
-                    <div>Цена входа: $${position.entryPrice.toFixed(2)}</div>
-                    <div>Текущая цена: $${currentPrice.toFixed(2)}</div>
-                    <div class="${pnlAmount >= 0 ? 'result-positive' : 'result-negative'}">PnL: ${pnlAmount >= 0 ? '+' : ''}$${pnlAmount.toFixed(2)} (${pnlPercent.toFixed(2)}%)</div>
-                `;
-            } else {
-                document.getElementById('result').innerHTML = '<div>Нет открытых позиций</div>';
-            }
-
-            // Обновляем график с отметкой текущей позиции
-            const ctx = document.getElementById('simulatorChart').getContext('2d');
-            if (chart) chart.destroy();
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: Array.from({length: 100}, (_, i) => i + 1),
-                    datasets: [{
-                        label: 'Цена BTC/USDT',
-                        data: priceData,
-                        borderColor: '#5EEAD4',
-                        backgroundColor: 'rgba(94, 234, 212, 0.05)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 0
-                    }, {
-                        label: 'Текущая позиция',
-                        data: step > 0 ? Array(step).fill(null).concat([currentPrice]) : [null, currentPrice],
-                        borderColor: '#F4B740',
-                        backgroundColor: 'transparent',
-                        borderWidth: 2,
-                        pointRadius: 5,
-                        pointBackgroundColor: '#F4B740',
-                        showLine: false
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    plugins: { legend: { labels: { color: '#A1A6B0' } } },
-                    scales: {
-                        y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } },
-                        x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } }
-                    }
+                let pnl = 0;
+                if (position.type === 'long') {
+                    pnl = ((currentPrice - position.entryPrice) / position.entryPrice) * position.amount;
+                } else {
+                    pnl = ((position.entryPrice - currentPrice) / position.entryPrice) * position.amount;
                 }
-            });
+                document.getElementById('result').innerHTML = `
+                    <div>📊 Открыта позиция: ${position.type === 'long' ? '📈 ЛОНГ' : '📉 ШОРТ'}</div>
+                    <div>💰 Цена входа: $${position.entryPrice.toFixed(2)}</div>
+                    <div>💵 Текущая цена: $${currentPrice.toFixed(2)}</div>
+                    <div class="${pnl >= 0 ? 'result-positive' : 'result-negative'}">📈 PnL: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</div>
+                `;
 
-            if (position && step >= priceData.length - 1) {
-                closePosition();
+                if (currentIndex === priceData.length - 1) {
+                    closePosition(true);
+                }
+            } else {
+                document.getElementById('result').innerHTML = '<div>💤 Нет открытых позиций</div>';
             }
+
+            updateChart();
+        } else if (position) {
+            closePosition(true);
         }
     }
 
@@ -182,66 +164,95 @@
             document.getElementById('result').innerHTML = '<div class="result-negative">❌ Сначала закройте текущую позицию!</div>';
             return;
         }
+        const currentPrice = priceData[currentIndex];
         position = { type: type, entryPrice: currentPrice, amount: 1000 };
-        document.getElementById('result').innerHTML = `<div>✅ Открыта ${type === 'long' ? 'ЛОНГ' : 'ШОРТ'} позиция по $${currentPrice.toFixed(2)}</div>`;
+        document.getElementById('result').innerHTML = `<div class="result-positive">✅ Открыта ${type === 'long' ? 'ЛОНГ' : 'ШОРТ'} позиция по $${currentPrice.toFixed(2)}</div>`;
+        showNotification(`Позиция ${type === 'long' ? 'ЛОНГ' : 'ШОРТ'} открыта!`, 'success');
     }
 
-    function closePosition() {
+    function closePosition(isAuto = false) {
         if (!position) {
             document.getElementById('result').innerHTML = '<div class="result-negative">❌ Нет открытых позиций!</div>';
             return;
         }
-        const pnlPercent = ((currentPrice - position.entryPrice) / position.entryPrice) * 100;
-        const pnlAmount = (position.amount * pnlPercent) / 100;
-        const finalPnl = position.type === 'long' ? pnlAmount : -pnlAmount;
-        balance += finalPnl;
+        const currentPrice = priceData[currentIndex];
+        let pnl = 0;
+        if (position.type === 'long') {
+            pnl = ((currentPrice - position.entryPrice) / position.entryPrice) * position.amount;
+        } else {
+            pnl = ((position.entryPrice - currentPrice) / position.entryPrice) * position.amount;
+        }
+
+        balance += pnl;
 
         history.unshift({
+            id: Date.now(),
             type: position.type,
             entryPrice: position.entryPrice,
             exitPrice: currentPrice,
-            pnl: finalPnl,
+            pnl: pnl,
             time: new Date().toLocaleTimeString()
         });
 
         document.getElementById('balance').innerText = balance.toFixed(2);
         document.getElementById('result').innerHTML = `
             <div>🔒 Позиция закрыта</div>
-            <div class="${finalPnl >= 0 ? 'result-positive' : 'result-negative'}">Результат: ${finalPnl >= 0 ? '+' : ''}$${finalPnl.toFixed(2)} (${(finalPnl / position.amount * 100).toFixed(2)}%)</div>
-            <div>Новый баланс: $${balance.toFixed(2)}</div>
+            <div class="${pnl >= 0 ? 'result-positive' : 'result-negative'}">📊 Результат: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</div>
+            <div>💰 Новый баланс: $${balance.toFixed(2)}</div>
         `;
 
         updateHistoryDisplay();
         position = null;
+
+        if (!isAuto) {
+            showNotification(pnl >= 0 ? `+$${pnl.toFixed(2)} прибыль!` : `-$${Math.abs(pnl).toFixed(2)} убыток`, pnl >= 0 ? 'success' : 'error');
+        }
     }
 
     function updateHistoryDisplay() {
         const container = document.getElementById('historyList');
         if (history.length === 0) {
-            container.innerHTML = '<div style="color: #7A8190;">Нет сделок</div>';
+            container.innerHTML = '<div style="color: #7A8190; text-align: center; padding: 20px;">✨ Нет сделок. Начните торговать!</div>';
             return;
         }
         container.innerHTML = history.map(h => `
             <div class="history-item">
-                <span>${h.time}</span>
+                <span>⏰ ${h.time}</span>
                 <span>${h.type === 'long' ? '📈 ЛОНГ' : '📉 ШОРТ'}</span>
-                <span>Вход: $${h.entryPrice.toFixed(2)}</span>
-                <span>Выход: $${h.exitPrice.toFixed(2)}</span>
+                <span>💰 Вход: $${h.entryPrice.toFixed(2)}</span>
+                <span>💵 Выход: $${h.exitPrice.toFixed(2)}</span>
                 <span class="${h.pnl >= 0 ? 'result-positive' : 'result-negative'}">${h.pnl >= 0 ? '+' : ''}$${h.pnl.toFixed(2)}</span>
             </div>
         `).join('');
     }
 
     function resetSimulator() {
+        if (intervalId) clearInterval(intervalId);
         balance = 10000;
         position = null;
         history = [];
+        currentIndex = 0;
         document.getElementById('balance').innerText = balance;
-        document.getElementById('result').innerHTML = '<div>Симулятор сброшен</div>';
+        document.getElementById('result').innerHTML = '<div>🔄 Симулятор сброшен</div>';
         updateHistoryDisplay();
         initChart();
-        step = 0;
-        currentPrice = priceData[0];
+        showNotification('Симулятор сброшен', 'success');
+        startPriceUpdates();
+    }
+
+    function startPriceUpdates() {
+        if (intervalId) clearInterval(intervalId);
+        intervalId = setInterval(() => {
+            updatePrice();
+        }, 2000);
+    }
+
+    function showNotification(msg, type) {
+        const div = document.createElement('div');
+        div.className = `notification ${type}`;
+        div.innerText = msg;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
     }
 
     document.getElementById('longBtn').onclick = () => openPosition('long');
@@ -250,10 +261,7 @@
 
     initChart();
     updateHistoryDisplay();
-
-    setInterval(() => {
-        updatePrice();
-    }, 2000);
+    startPriceUpdates();
 </script>
 </body>
 </html>
