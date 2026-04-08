@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tradeum · Главная</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #0A0C10; color: #E6E8EC; height: 100vh; overflow: hidden; }
@@ -106,6 +107,67 @@
         .activity-text { color: #A1A6B0; }
         .activity-date { color: #7A8190; font-size: 12px; }
 
+        /* Стили для обучения */
+        .card-container { background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .card-title { font-size: 24px; font-weight: 700; }
+        .difficulty { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .difficulty.easy { background: rgba(94, 234, 212, 0.1); color: #5EEAD4; }
+        .difficulty.medium { background: rgba(244, 183, 64, 0.1); color: #F4B740; }
+        .difficulty.hard { background: rgba(248, 113, 113, 0.1); color: #F87171; }
+        .description { color: #A1A6B0; margin-bottom: 24px; line-height: 1.6; }
+        .chart-container { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
+        canvas { width: 100% !important; height: 300px !important; }
+        .news-section { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
+        .news-title { font-weight: 600; margin-bottom: 12px; color: #5EEAD4; }
+        .news-list { list-style: none; }
+        .news-list li { padding: 8px 0; border-bottom: 1px solid #1F232C; color: #A1A6B0; }
+        .prediction-btns { display: flex; gap: 15px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+        .pred-btn { padding: 12px 28px; border-radius: 40px; font-weight: 700; cursor: pointer; transition: all 0.3s; background: #0A0C10; border: none; }
+        .pred-btn.up { border: 1px solid #5EEAD4; color: #5EEAD4; }
+        .pred-btn.up:hover { background: #5EEAD4; color: #0A0C10; }
+        .pred-btn.down { border: 1px solid #F87171; color: #F87171; }
+        .pred-btn.down:hover { background: #F87171; color: #0A0C10; }
+        .pred-btn.sideways { border: 1px solid #F4B740; color: #F4B740; }
+        .pred-btn.sideways:hover { background: #F4B740; color: #0A0C10; }
+        .result-box { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; display: none; }
+        .result-box.correct { border-left: 4px solid #5EEAD4; display: block; }
+        .result-box.wrong { border-left: 4px solid #F87171; display: block; }
+        .result-title { font-weight: 700; margin-bottom: 8px; }
+        .next-btn { width: 100%; padding: 14px; background: #5EEAD4; color: #0A0C10; border: none; border-radius: 40px; font-weight: 700; cursor: pointer; display: none; }
+
+        /* Стили для дуэлей */
+        .mode-selector { display: flex; gap: 16px; margin-bottom: 24px; }
+        .mode-btn { flex: 1; padding: 16px; background: #12161E; border: 1px solid #1F232C; border-radius: 16px; color: #A1A6B0; font-weight: 600; cursor: pointer; text-align: center; transition: all 0.3s; }
+        .mode-btn.active { background: #5EEAD4; color: #0A0C10; border-color: #5EEAD4; }
+        .bots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .bot-card { background: #12161E; border: 1px solid #1F232C; border-radius: 16px; padding: 20px; cursor: pointer; transition: all 0.3s; text-align: center; }
+        .bot-card:hover { border-color: #F4B740; transform: translateY(-2px); }
+        .bot-card.selected { border-color: #F4B740; background: rgba(244, 183, 64, 0.05); }
+        .bot-name { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .bot-rating { font-size: 24px; font-weight: 700; color: #F4B740; margin-bottom: 8px; }
+        .bot-desc { font-size: 12px; color: #7A8190; }
+        .duel-container { background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; margin-top: 24px; display: none; }
+        .players { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 24px; }
+        .player-card { flex: 1; background: #0A0C10; border-radius: 20px; padding: 24px; text-align: center; }
+        .player-name { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .player-rating { font-size: 28px; font-weight: 700; color: #5EEAD4; margin-bottom: 20px; }
+        .duel-pred { padding: 12px 28px; border-radius: 40px; font-weight: 700; cursor: pointer; background: #0A0C10; border: none; transition: all 0.3s; margin: 0 5px; }
+        .duel-pred.up { border: 1px solid #5EEAD4; color: #5EEAD4; }
+        .duel-pred.up:hover { background: #5EEAD4; color: #0A0C10; }
+        .duel-pred.down { border: 1px solid #F87171; color: #F87171; }
+        .duel-pred.down:hover { background: #F87171; color: #0A0C10; }
+        .timer { font-size: 48px; font-weight: 700; text-align: center; margin: 20px 0; }
+        .duel-status { text-align: center; padding: 16px; background: #0A0C10; border-radius: 16px; margin-top: 20px; color: #7A8190; }
+        .find-btn { width: 100%; padding: 16px; background: #5EEAD4; color: #0A0C10; border: none; border-radius: 40px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 16px; transition: all 0.3s; }
+        .find-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(94, 234, 212, 0.3); }
+        .hidden { display: none; }
+
+        .notification { position: fixed; top: 20px; right: 20px; padding: 14px 24px; border-radius: 12px; background: #1A1F2A; border-left: 3px solid; z-index: 1000; animation: slideIn 0.3s ease; }
+        .notification.success { border-color: #5EEAD4; }
+        .notification.error { border-color: #F87171; }
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .nav-text, .user-info .username, .user-info .level { display: none; }
@@ -121,30 +183,30 @@
     <div class="sidebar">
         <div class="logo">Trade<span style="color: #5EEAD4;">um</span></div>
         <div class="nav-menu">
-            <a href="#" class="nav-item active" data-page="dashboard">
+            <div class="nav-item active" data-page="dashboard">
                 <span class="nav-icon">🏠</span>
                 <span class="nav-text">Главная</span>
-            </a>
-            <a href="#" class="nav-item" data-page="learn">
+            </div>
+            <div class="nav-item" data-page="learn">
                 <span class="nav-icon">📚</span>
                 <span class="nav-text">Обучение</span>
-            </a>
-            <a href="#" class="nav-item" data-page="duel">
+            </div>
+            <div class="nav-item" data-page="duel">
                 <span class="nav-icon">⚔️</span>
                 <span class="nav-text">Дуэли</span>
-            </a>
-            <a href="#" class="nav-item" data-page="library">
+            </div>
+            <div class="nav-item" data-page="library">
                 <span class="nav-icon">📖</span>
                 <span class="nav-text">Библиотека</span>
-            </a>
-            <a href="#" class="nav-item" data-page="simulator">
+            </div>
+            <div class="nav-item" data-page="simulator">
                 <span class="nav-icon">🎮</span>
                 <span class="nav-text">Симулятор</span>
-            </a>
-            <a href="#" class="nav-item" data-page="leaderboard">
+            </div>
+            <div class="nav-item" data-page="leaderboard">
                 <span class="nav-icon">🏆</span>
                 <span class="nav-text">Рейтинг</span>
-            </a>
+            </div>
         </div>
         <div class="user-info">
             <div class="username" id="username">—</div>
@@ -177,6 +239,30 @@
 <script>
     const userId = {{ user_id }};
     let currentPage = 'dashboard';
+    let currentCard = null;
+    let chart = null;
+    let canAnswer = true;
+
+    // Боты для дуэлей
+    const bots = [
+        { id: 1, name: "Трендовый Аналитик", rating: 580, desc: "Специализируется на определении трендов", accuracy: 0.65 },
+        { id: 2, name: "Контрарный Торговец", rating: 520, desc: "Ищет развороты на перекупленности", accuracy: 0.55 },
+        { id: 3, name: "Волатильный Мастер", rating: 610, desc: "Идеален для нестабильного рынка", accuracy: 0.70 },
+        { id: 4, name: "Скальпер", rating: 490, desc: "Быстрые решения на малых таймфреймах", accuracy: 0.50 },
+        { id: 5, name: "Фундаментальный Бот", rating: 550, desc: "Анализирует новости и события", accuracy: 0.60 }
+    ];
+
+    // Паттерны для библиотеки
+    const patterns = [
+        { name: "Пробой уровня сопротивления", type: "bullish", desc: "Цена пробивает ключевой уровень на объемах", signal: "Бычий сигнал. Ожидается продолжение роста." },
+        { name: "Медвежье поглощение", type: "bearish", desc: "Свечная модель разворота на вершине тренда", signal: "Медвежий сигнал. Ожидается разворот вниз." },
+        { name: "Ложный пробой", type: "bullish", desc: "Пробой уровня с быстрым возвратом", signal: "Бычий сигнал. Ловушка для продавцов." },
+        { name: "Дивергенция RSI", type: "bearish", desc: "Расхождение цены и осциллятора", signal: "Медвежий сигнал. Возможен разворот." },
+        { name: "Сжатие полос Боллинджера", type: "neutral", desc: "Низкая волатильность перед движением", signal: "Ожидается сильное движение." },
+        { name: "Золотой крест", type: "bullish", desc: "MA50 пересекает MA200 снизу вверх", signal: "Долгосрочный бычий сигнал." },
+        { name: "Голова и плечи", type: "bearish", desc: "Классический разворотный паттерн", signal: "Медвежий сигнал. Разворот тренда." },
+        { name: "Восходящий треугольник", type: "bullish", desc: "Горизонтальное сопротивление и восходящая поддержка", signal: "Бычий сигнал. Пробой вверх." }
+    ];
 
     async function loadStats() {
         try {
@@ -189,18 +275,26 @@
             document.getElementById('statStreak').innerText = stats.current_streak;
             document.getElementById('statAccuracy').innerText = `${Math.round(stats.accuracy)}%`;
             document.getElementById('statCards').innerText = `${stats.cards_completed}/${stats.total_cards}`;
-        } catch(e) { console.error(e); }
+        } catch(e) { console.error('Stats error:', e); }
+    }
+
+    function showNotification(msg, type) {
+        const div = document.createElement('div');
+        div.className = `notification ${type}`;
+        div.innerText = msg;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
     }
 
     async function loadPage(page) {
         currentPage = page;
         const titles = {
-            dashboard: { title: 'Главная', desc: 'Добро пожаловать в Tradeum Academy — твой путь к мастерству трейдинга' },
-            learn: { title: 'Обучение', desc: 'Изучай паттерны, анализируй графики и принимай правильные решения' },
-            duel: { title: 'Дуэли', desc: 'Соревнуйся с другими трейдерами и докажи своё мастерство' },
-            library: { title: 'Библиотека', desc: 'Коллекция торговых паттернов и стратегий для изучения' },
-            simulator: { title: 'Симулятор', desc: 'Тренируйся на исторических данных без риска' },
-            leaderboard: { title: 'Рейтинг', desc: 'Таблица лидеров среди всех трейдеров платформы' }
+            dashboard: { title: 'Главная', desc: 'Добро пожаловать в Tradeum Academy' },
+            learn: { title: 'Обучение', desc: 'Изучай паттерны и анализируй графики' },
+            duel: { title: 'Дуэли', desc: 'Соревнуйся с ИИ-ботами' },
+            library: { title: 'Библиотека', desc: 'Коллекция торговых паттернов' },
+            simulator: { title: 'Симулятор', desc: 'Тренируйся без риска' },
+            leaderboard: { title: 'Рейтинг', desc: 'Таблица лидеров' }
         };
         document.getElementById('pageTitle').innerText = titles[page].title;
         document.getElementById('pageDescription').innerText = titles[page].desc;
@@ -218,7 +312,6 @@
                     <div id="recentActivity"></div>
                 </div>
             `;
-            await loadStats();
             document.getElementById('statXp2').innerText = document.getElementById('statXp').innerText;
             document.getElementById('statStreak2').innerText = document.getElementById('statStreak').innerText;
             document.getElementById('statAccuracy2').innerText = document.getElementById('statAccuracy').innerText;
@@ -226,107 +319,80 @@
             document.getElementById('recentActivity').innerHTML = `
                 <div class="activity-item"><span class="activity-text">✅ Добро пожаловать в Tradeum Academy!</span><span class="activity-date">Только что</span></div>
                 <div class="activity-item"><span class="activity-text">📚 Начни обучение с первой карточки</span><span class="activity-date">—</span></div>
-                <div class="activity-item"><span class="activity-text">⚔️ Испытай себя в дуэлях с другими трейдерами</span><span class="activity-date">—</span></div>
+                <div class="activity-item"><span class="activity-text">⚔️ Испытай себя в дуэлях с ИИ</span><span class="activity-date">—</span></div>
             `;
         } else if (page === 'learn') {
-            const res = await fetch(`/api/cards/random?user_id=${userId}`);
-            const card = await res.json();
             document.getElementById('contentArea').innerHTML = `
-                <div id="learnContainer" style="background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px;">
-                    <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                        <h2 id="cardTitle">${card.title || 'Загрузка...'}</h2>
-                        <span class="difficulty" id="difficulty">${card.difficulty === 'easy' ? 'ЛЕГКИЙ' : (card.difficulty === 'medium' ? 'СРЕДНИЙ' : 'СЛОЖНЫЙ')}</span>
+                <div class="card-container">
+                    <div class="card-header"><div class="card-title" id="cardTitle">Загрузка...</div><div class="difficulty" id="difficulty">—</div></div>
+                    <div class="description" id="description"></div>
+                    <div class="chart-container"><canvas id="priceChart"></canvas></div>
+                    <div class="news-section"><div class="news-title">📰 Новости рынка</div><ul class="news-list" id="newsList"></ul></div>
+                    <div class="prediction-btns">
+                        <button class="pred-btn up" data-dir="up">📈 ВВЕРХ</button>
+                        <button class="pred-btn down" data-dir="down">📉 ВНИЗ</button>
+                        <button class="pred-btn sideways" data-dir="sideways">➡️ БОКОВИК</button>
                     </div>
-                    <p id="description" style="color: #A1A6B0; margin-bottom: 24px;">${card.description || ''}</p>
-                    <div class="chart-container" style="background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
-                        <canvas id="priceChart" style="width: 100%; height: 300px;"></canvas>
-                    </div>
-                    <div style="background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px;">
-                        <div style="font-weight: 600; margin-bottom: 12px;">📰 Новости рынка</div>
-                        <ul id="newsList" style="list-style: none;"></ul>
-                    </div>
-                    <div class="prediction-btns" style="display: flex; gap: 15px; justify-content: center; margin-bottom: 24px;">
-                        <button class="pred-btn up" data-dir="up" style="background: #0A0C10; border: 1px solid #5EEAD4; color: #5EEAD4; padding: 12px 28px; border-radius: 40px; cursor: pointer;">📈 ВВЕРХ</button>
-                        <button class="pred-btn down" data-dir="down" style="background: #0A0C10; border: 1px solid #F87171; color: #F87171; padding: 12px 28px; border-radius: 40px; cursor: pointer;">📉 ВНИЗ</button>
-                        <button class="pred-btn sideways" data-dir="sideways" style="background: #0A0C10; border: 1px solid #F4B740; color: #F4B740; padding: 12px 28px; border-radius: 40px; cursor: pointer;">➡️ БОКОВИК</button>
-                    </div>
-                    <div id="resultBox" style="background: #0A0C10; border-radius: 16px; padding: 20px; display: none;"></div>
-                    <button id="nextBtn" style="width: 100%; padding: 14px; background: #5EEAD4; color: #0A0C10; border: none; border-radius: 40px; font-weight: 700; cursor: pointer; display: none;">➡️ СЛЕДУЮЩАЯ КАРТОЧКА</button>
+                    <div class="result-box" id="resultBox"><div class="result-title" id="resultTitle"></div><div id="resultText"></div><div id="xpGain"></div></div>
+                    <button class="next-btn" id="nextBtn">➡️ СЛЕДУЮЩАЯ КАРТОЧКА</button>
                 </div>
             `;
-            if (card.id) await initLearnCard(card);
+            await loadLearnCard();
         } else if (page === 'duel') {
             document.getElementById('contentArea').innerHTML = `
-                <div style="background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; text-align: center;">
-                    <div style="font-size: 48px; margin-bottom: 20px;">⚔️</div>
-                    <h2 style="margin-bottom: 16px;">Дуэли трейдеров</h2>
-                    <p style="color: #A1A6B0; margin-bottom: 32px;">Соревнуйся с другими трейдерами в реальном времени</p>
-                    <button id="startDuelBtn" style="background: #5EEAD4; color: #0A0C10; border: none; padding: 14px 40px; border-radius: 40px; font-weight: 700; cursor: pointer;">🔍 НАЙТИ СОПЕРНИКА</button>
-                    <div id="duelStatus" style="margin-top: 24px; color: #7A8190;"></div>
-                    <div id="duelContainer" style="margin-top: 24px; display: none;">
-                        <div style="display: flex; gap: 24px; flex-wrap: wrap;">
-                            <div style="flex: 1; background: #0A0C10; border-radius: 20px; padding: 24px; text-align: center;">
-                                <div style="font-weight: 700; margin-bottom: 8px;">Вы</div>
-                                <div style="font-size: 28px; color: #5EEAD4;" id="myRating">—</div>
-                                <div id="myPredictionArea" style="margin-top: 20px;">
-                                    <div style="display: flex; gap: 12px; justify-content: center;">
-                                        <button class="duel-pred up" data-dir="up" style="background: #0A0C10; border: 1px solid #5EEAD4; color: #5EEAD4; padding: 10px 20px; border-radius: 30px; cursor: pointer;">📈</button>
-                                        <button class="duel-pred down" data-dir="down" style="background: #0A0C10; border: 1px solid #F87171; color: #F87171; padding: 10px 20px; border-radius: 30px; cursor: pointer;">📉</button>
-                                    </div>
-                                </div>
-                                <div id="myPredictionDisplay" style="margin-top: 16px; color: #7A8190;"></div>
-                            </div>
-                            <div style="flex: 1; background: #0A0C10; border-radius: 20px; padding: 24px; text-align: center;">
-                                <div style="font-weight: 700; margin-bottom: 8px;">Соперник</div>
-                                <div style="font-size: 28px; color: #F4B740;" id="opponentRating">—</div>
-                                <div id="opponentPredictionDisplay" style="margin-top: 16px; color: #7A8190;"></div>
-                            </div>
-                        </div>
-                        <div class="timer" style="font-size: 48px; font-weight: 700; text-align: center; margin: 20px 0;">30</div>
-                        <button id="resolveDuelBtn" style="background: #5EEAD4; color: #0A0C10; border: none; padding: 12px; border-radius: 40px; font-weight: 700; cursor: pointer; width: 100%; display: none;">ГОТОВО</button>
+                <div class="mode-selector">
+                    <div class="mode-btn active" data-mode="pvp">⚔️ PvP Дуэль</div>
+                    <div class="mode-btn" data-mode="bot">🤖 Против ИИ</div>
+                </div>
+                <div id="botSelection" class="hidden">
+                    <div class="bots-grid" id="botsList"></div>
+                </div>
+                <div id="duelStatus" class="duel-status">⚡ Выберите режим дуэли</div>
+                <button class="find-btn" id="findBtn">🔍 НАЙТИ СОПЕРНИКА</button>
+                <div class="duel-container" id="duelContainer">
+                    <div class="players">
+                        <div class="player-card"><div class="player-name">Вы</div><div class="player-rating" id="myRating">—</div><div id="myPredictionArea"><div class="prediction-btns"><button class="duel-pred up" data-dir="up">📈 ВВЕРХ</button><button class="duel-pred down" data-dir="down">📉 ВНИЗ</button></div></div><div id="myPredictionDisplay" style="margin-top: 16px;"></div></div>
+                        <div class="player-card"><div class="player-name" id="opponentName">Соперник</div><div class="player-rating" id="opponentRating">—</div><div id="opponentPredictionDisplay" style="margin-top: 16px;"></div></div>
                     </div>
+                    <div class="timer" id="timer">30</div>
+                    <div class="duel-status" id="duelMessage">Ожидание прогноза...</div>
                 </div>
             `;
             initDuel();
         } else if (page === 'library') {
-            document.getElementById('contentArea').innerHTML = `
-                <div style="background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px;">
-                    <h2 style="margin-bottom: 24px;">📖 Библиотека паттернов</h2>
-                    <div class="patterns-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;" id="patternsGrid"></div>
-                </div>
-            `;
-            const patterns = [
-                { name: "Пробой уровня", desc: "Цена пробивает ключевой уровень на объемах", type: "bullish" },
-                { name: "Медвежье поглощение", desc: "Свечная модель разворота на вершине", type: "bearish" },
-                { name: "Ложный пробой", desc: "Пробой уровня с последующим возвратом", type: "bullish" },
-                { name: "Дивергенция RSI", desc: "Расхождение цены и осциллятора", type: "bearish" },
-                { name: "Сжатие Боллинджера", desc: "Низкая волатильность перед движением", type: "neutral" },
-                { name: "Золотой крест", desc: "Пересечение MA 50 выше MA 200", type: "bullish" },
-                { name: "Голова и плечи", desc: "Классический разворотный паттерн", type: "bearish" },
-                { name: "Восходящий треугольник", desc: "Бычья фигура продолжения", type: "bullish" }
-            ];
-            document.getElementById('patternsGrid').innerHTML = patterns.map(p => `
-                <div style="background: #0A0C10; border-radius: 16px; padding: 20px; border-left: 3px solid ${p.type === 'bullish' ? '#5EEAD4' : (p.type === 'bearish' ? '#F87171' : '#F4B740')}">
-                    <div style="font-weight: 700; margin-bottom: 8px;">${p.name}</div>
-                    <div style="font-size: 13px; color: #7A8190;">${p.desc}</div>
+            document.getElementById('contentArea').innerHTML = `<div class="patterns-grid" id="patternsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>`;
+            const grid = document.getElementById('patternsGrid');
+            grid.innerHTML = patterns.map(p => `
+                <div class="bot-card" onclick="alert('${p.name}\\n\\n${p.desc}\\n\\n🎯 ${p.signal}')">
+                    <div class="bot-name">${p.name}</div>
+                    <div class="pattern-type" style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; margin-top: 8px; background: ${p.type === 'bullish' ? 'rgba(94,234,212,0.1)' : (p.type === 'bearish' ? 'rgba(248,113,113,0.1)' : 'rgba(244,183,64,0.1)')}; color: ${p.type === 'bullish' ? '#5EEAD4' : (p.type === 'bearish' ? '#F87171' : '#F4B740')}">${p.type === 'bullish' ? '📈 БЫЧИЙ' : (p.type === 'bearish' ? '📉 МЕДВЕЖИЙ' : '⚖️ НЕЙТРАЛЬНЫЙ')}</div>
+                    <div class="bot-desc" style="margin-top: 12px;">${p.desc}</div>
                 </div>
             `).join('');
         } else if (page === 'simulator') {
             document.getElementById('contentArea').innerHTML = `
-                <div style="background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; text-align: center;">
+                <div class="card-container" style="text-align: center;">
                     <div style="font-size: 48px; margin-bottom: 20px;">🎮</div>
                     <h2 style="margin-bottom: 16px;">Торговый симулятор</h2>
-                    <p style="color: #A1A6B0; margin-bottom: 24px;">Тренируйся на исторических данных без риска</p>
-                    <button id="startSimulatorBtn" style="background: #5EEAD4; color: #0A0C10; border: none; padding: 14px 40px; border-radius: 40px; font-weight: 700; cursor: pointer;">🚀 ЗАПУСТИТЬ СИМУЛЯТОР</button>
-                    <div id="simulatorInfo" style="margin-top: 24px; color: #7A8190;">В разработке</div>
+                    <p style="color: #A1A6B0; margin-bottom: 24px;">Тренируйся на исторических данных</p>
+                    <div class="balance" style="font-size: 36px; font-weight: 700; color: #5EEAD4; margin-bottom: 24px;">💰 $<span id="simBalance">10000</span></div>
+                    <div class="chart-container"><canvas id="simChart"></canvas></div>
+                    <div class="prediction-btns">
+                        <button class="pred-btn up" id="simLong">📈 ЛОНГ</button>
+                        <button class="pred-btn down" id="simShort">📉 ШОРТ</button>
+                        <button class="pred-btn sideways" id="simReset">🔄 СБРОС</button>
+                    </div>
+                    <div id="simResult" style="margin-top: 20px;"></div>
+                    <div class="news-section" style="margin-top: 20px;"><div class="news-title">📋 История сделок</div><div id="simHistory"></div></div>
                 </div>
             `;
+            initSimulator();
         } else if (page === 'leaderboard') {
             const res = await fetch('/api/leaderboard');
             const leaders = await res.json();
             document.getElementById('contentArea').innerHTML = `
                 <div style="background: #12161E; border: 1px solid #1F232C; border-radius: 24px; overflow: hidden;">
-                    <div style="display: grid; grid-template-columns: 80px 1fr 100px 100px; padding: 16px 24px; background: #0A0C10; color: #7A8190; font-size: 12px; font-weight: 600;">
+                    <div style="display: grid; grid-template-columns: 80px 1fr 100px 100px; padding: 16px 24px; background: #0A0C10; color: #7A8190; font-weight: 600;">
                         <div>Место</div><div>Трейдер</div><div>Уровень</div><div>Опыт</div>
                     </div>
                     <div id="leaderboardList"></div>
@@ -344,121 +410,316 @@
         }
     }
 
-    async function initLearnCard(card) {
-        let chart = null;
-        let canAnswer = true;
+    async function loadLearnCard() {
+        try {
+            const res = await fetch(`/api/cards/random?user_id=${userId}`);
+            const card = await res.json();
+            if (card.completed_all) {
+                document.getElementById('cardTitle').innerText = 'Поздравляем!';
+                document.getElementById('description').innerHTML = 'Вы прошли все карточки!';
+                return;
+            }
+            currentCard = card;
+            document.getElementById('cardTitle').innerText = card.title;
+            document.getElementById('description').innerHTML = card.description;
+            document.getElementById('difficulty').innerText = card.difficulty === 'easy' ? 'ЛЕГКИЙ' : (card.difficulty === 'medium' ? 'СРЕДНИЙ' : 'СЛОЖНЫЙ');
+            document.getElementById('difficulty').className = `difficulty ${card.difficulty}`;
+            document.getElementById('newsList').innerHTML = card.news.map(n => `<li>${n}</li>`).join('');
 
-        const ctx = document.getElementById('priceChart').getContext('2d');
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: { labels: card.chart_points.map((_, i) => i), datasets: [{ label: 'Цена', data: card.chart_points.map(p => p.y), borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.05)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#5EEAD4' }] },
-            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#A1A6B0' } } }, scales: { y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } }, x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } } } }
-        });
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            if (chart) chart.destroy();
+            const points = card.chart_points || [];
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: { labels: points.map((_, i) => i + 1), datasets: [{ label: 'Цена (USDT)', data: points.map(p => p.y), borderColor: '#5EEAD4', backgroundColor: 'rgba(94,234,212,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#5EEAD4' }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#A1A6B0' } }, tooltip: { callbacks: { label: (ctx) => `Цена: $${ctx.raw.toFixed(2)}` } } }, scales: { y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } }, x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } } } }
+            });
 
-        const newsList = document.getElementById('newsList');
-        newsList.innerHTML = card.news.map(n => `<li style="padding: 8px 0; border-bottom: 1px solid #1F232C; color: #A1A6B0;">${n}</li>`).join('');
+            document.getElementById('resultBox').style.display = 'none';
+            document.getElementById('nextBtn').style.display = 'none';
+            document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = false; btn.style.opacity = '1'; });
+            canAnswer = true;
 
-        document.querySelectorAll('.pred-btn').forEach(btn => {
-            btn.onclick = async () => {
-                if (!canAnswer) return;
-                canAnswer = false;
-                const direction = btn.dataset.dir;
-                document.querySelectorAll('.pred-btn').forEach(b => b.style.opacity = '0.5');
-                try {
-                    const res = await fetch('/api/cards/submit', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ user_id: userId, card_id: card.id, answer: direction })
-                    });
-                    const data = await res.json();
-                    const resultBox = document.getElementById('resultBox');
-                    if (data.is_correct) {
+            document.querySelectorAll('.pred-btn').forEach(btn => {
+                btn.onclick = async () => {
+                    if (!canAnswer) return;
+                    const direction = btn.dataset.dir;
+                    canAnswer = false;
+                    document.querySelectorAll('.pred-btn').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+                    try {
+                        const res = await fetch('/api/cards/submit', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ user_id: userId, card_id: currentCard.id, answer: direction })
+                        });
+                        const data = await res.json();
+                        const resultBox = document.getElementById('resultBox');
+                        if (data.is_correct) {
+                            resultBox.className = 'result-box correct';
+                            document.getElementById('resultTitle').innerHTML = '✅ ПРАВИЛЬНО!';
+                            document.getElementById('resultText').innerHTML = data.explanation;
+                            document.getElementById('xpGain').innerHTML = `+${data.xp_earned} XP`;
+                            showNotification(`+${data.xp_earned} XP!`, 'success');
+                        } else {
+                            resultBox.className = 'result-box wrong';
+                            document.getElementById('resultTitle').innerHTML = '❌ НЕПРАВИЛЬНО';
+                            const correctText = data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК');
+                            document.getElementById('resultText').innerHTML = `${data.explanation}<br><br>Правильный ответ: ${correctText}`;
+                            document.getElementById('xpGain').innerHTML = `+0 XP`;
+                            showNotification('Неправильно!', 'error');
+                        }
                         resultBox.style.display = 'block';
-                        resultBox.style.borderLeft = '4px solid #5EEAD4';
-                        resultBox.innerHTML = `<div style="color: #5EEAD4; font-weight: 700;">✅ ПРАВИЛЬНО!</div><div style="margin-top: 8px;">${data.explanation}</div><div style="margin-top: 8px; color: #5EEAD4;">+${data.xp_earned} XP</div>`;
-                    } else {
-                        resultBox.style.display = 'block';
-                        resultBox.style.borderLeft = '4px solid #F87171';
-                        resultBox.innerHTML = `<div style="color: #F87171; font-weight: 700;">❌ НЕПРАВИЛЬНО</div><div style="margin-top: 8px;">${data.explanation}</div><div style="margin-top: 8px; color: #7A8190;">Правильный ответ: ${data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК')}</div>`;
-                    }
-                    document.getElementById('nextBtn').style.display = 'block';
-                    await loadStats();
-                } catch(e) { console.error(e); }
+                        document.getElementById('nextBtn').style.display = 'block';
+                        await loadStats();
+                    } catch(e) { console.error(e); }
+                };
+            });
+            document.getElementById('nextBtn').onclick = () => loadLearnCard();
+        } catch(e) { console.error('Load card error:', e); }
+    }
+
+    let currentDuelMode = 'pvp';
+    let selectedBot = null;
+    let duelTimer = null;
+    let duelCheckInterval = null;
+    let currentDuelId = null;
+    let myDuelPrediction = null;
+    let isBotDuel = false;
+
+    function initDuel() {
+        const container = document.getElementById('botsList');
+        if (container) {
+            container.innerHTML = bots.map(bot => `
+                <div class="bot-card" data-bot-id="${bot.id}">
+                    <div class="bot-name">🤖 ${bot.name}</div>
+                    <div class="bot-rating">⭐ ${bot.rating}</div>
+                    <div class="bot-desc">${bot.desc}</div>
+                </div>
+            `).join('');
+            document.querySelectorAll('.bot-card').forEach(card => {
+                card.addEventListener('click', () => {
+                    document.querySelectorAll('.bot-card').forEach(c => c.classList.remove('selected'));
+                    card.classList.add('selected');
+                    selectedBot = parseInt(card.dataset.botId);
+                });
+            });
+        }
+
+        document.querySelectorAll('.mode-btn').forEach(btn => {
+            btn.onclick = () => {
+                document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentDuelMode = btn.dataset.mode;
+                const botDiv = document.getElementById('botSelection');
+                if (botDiv) botDiv.classList.toggle('hidden', currentDuelMode !== 'bot');
+                document.getElementById('duelStatus').innerHTML = currentDuelMode === 'bot' ? '🤖 Выберите ИИ-бота' : '⚡ Поиск соперника';
             };
         });
 
-        document.getElementById('nextBtn').onclick = () => { window.location.reload(); };
-    }
-
-    let duelId = null, duelTimer = null, duelCheckInterval = null;
-
-    async function initDuel() {
-        document.getElementById('startDuelBtn').onclick = async () => {
-            const btn = document.getElementById('startDuelBtn');
+        document.getElementById('findBtn').onclick = async () => {
+            if (currentDuelMode === 'bot' && !selectedBot) {
+                showNotification('Выберите ИИ-бота', 'error');
+                return;
+            }
+            const btn = document.getElementById('findBtn');
             btn.disabled = true;
             btn.textContent = '⏳ ПОИСК...';
             try {
-                const res = await fetch('/api/duel/create', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId }) });
+                const body = currentDuelMode === 'bot' ? { user_id: userId, bot_id: selectedBot } : { user_id: userId };
+                const res = await fetch('/api/duel/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
                 const data = await res.json();
                 if (data.success) {
-                    duelId = data.duel_id;
+                    currentDuelId = data.duel_id;
+                    isBotDuel = data.action === 'vs_bot' || currentDuelMode === 'bot';
                     document.getElementById('duelContainer').style.display = 'block';
-                    document.getElementById('duelStatus').innerHTML = data.action === 'joined' ? '✅ Соперник найден! Делайте прогноз' : '⏳ Ожидание соперника...';
-                    if (data.action === 'joined') startDuel();
-                    else waitForOpponent();
+                    document.getElementById('findBtn').style.display = 'none';
+                    document.getElementById('duelStatus').style.display = 'none';
+                    startDuel();
+                } else {
+                    showNotification(data.error || 'Ошибка', 'error');
+                    btn.disabled = false;
+                    btn.textContent = '🔍 НАЙТИ СОПЕРНИКА';
                 }
             } catch(e) { console.error(e); }
         };
     }
 
-    async function waitForOpponent() {
-        const interval = setInterval(async () => {
-            const res = await fetch(`/api/duel/check/${duelId}`);
-            const data = await res.json();
-            if (data.both_submitted) { clearInterval(interval); resolveDuel(); }
-            else if (data.player2_prediction !== null) { clearInterval(interval); startDuel(); }
-        }, 2000);
-    }
-
     async function startDuel() {
-        document.getElementById('duelStatus').innerHTML = '⚔️ ДУЭЛЬ НАЧАЛАСЬ! Сделайте прогноз';
+        const stats = await fetch(`/api/user/stats/${userId}`).then(r => r.json());
+        document.getElementById('myRating').innerText = stats.duel_rating;
+        if (isBotDuel && selectedBot) {
+            const bot = bots.find(b => b.id === selectedBot);
+            document.getElementById('opponentName').innerHTML = `🤖 ${bot.name}`;
+            document.getElementById('opponentRating').innerText = bot.rating;
+        } else {
+            document.getElementById('opponentName').innerText = 'Соперник';
+            document.getElementById('opponentRating').innerText = '500';
+        }
+
         let timeLeft = 30;
-        const timerElem = document.querySelector('.timer');
-        duelTimer = setInterval(() => { timerElem.innerText = timeLeft; if (timeLeft <= 0) { clearInterval(duelTimer); resolveDuel(); } timeLeft--; }, 1000);
+        const timerElem = document.getElementById('timer');
+        if (duelTimer) clearInterval(duelTimer);
+        duelTimer = setInterval(() => {
+            timerElem.innerText = timeLeft;
+            if (timeLeft <= 0) {
+                clearInterval(duelTimer);
+                resolveDuel();
+            }
+            timeLeft--;
+        }, 1000);
 
         document.querySelectorAll('.duel-pred').forEach(btn => {
             btn.onclick = async () => {
+                if (myDuelPrediction) return;
                 const direction = btn.dataset.dir;
-                const res = await fetch('/api/duel/submit_prediction', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ duel_id: duelId, user_id: userId, direction }) });
+                const res = await fetch('/api/duel/submit_prediction', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ duel_id: currentDuelId, user_id: userId, direction })
+                });
                 const data = await res.json();
                 if (data.success) {
+                    myDuelPrediction = direction;
                     document.getElementById('myPredictionDisplay').innerHTML = `Ваш прогноз: ${direction === 'up' ? '📈 ВВЕРХ' : '📉 ВНИЗ'}`;
                     document.getElementById('myPredictionArea').style.display = 'none';
-                    document.getElementById('duelStatus').innerHTML = '✅ Прогноз принят. Ожидаем соперника...';
-                    duelCheckInterval = setInterval(async () => {
-                        const checkRes = await fetch(`/api/duel/check/${duelId}`);
-                        const checkData = await checkRes.json();
-                        if (checkData.both_submitted) { clearInterval(duelCheckInterval); resolveDuel(); }
-                    }, 1000);
+                    document.getElementById('duelMessage').innerHTML = '✅ Прогноз принят';
+
+                    if (isBotDuel && selectedBot) {
+                        const botPred = Math.random() > 0.5 ? 'up' : 'down';
+                        document.getElementById('opponentPredictionDisplay').innerHTML = `Прогноз бота: ${botPred === 'up' ? '📈 ВВЕРХ' : '📉 ВНИЗ'}`;
+                        setTimeout(() => resolveDuel(), 2000);
+                    }
                 }
             };
         });
+
+        if (duelCheckInterval) clearInterval(duelCheckInterval);
+        duelCheckInterval = setInterval(async () => {
+            try {
+                const checkRes = await fetch(`/api/duel/check/${currentDuelId}`);
+                const checkData = await checkRes.json();
+                if (checkData.both_submitted) {
+                    clearInterval(duelCheckInterval);
+                    resolveDuel();
+                }
+            } catch(e) {}
+        }, 1000);
     }
 
     async function resolveDuel() {
-        clearInterval(duelTimer); clearInterval(duelCheckInterval);
-        const res = await fetch('/api/duel/resolve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ duel_id: duelId }) });
-        const data = await res.json();
-        const resultText = data.winner_id == userId ? '🎉 ПОБЕДА!' : (data.winner_id ? '😔 ПОРАЖЕНИЕ' : '🤝 НИЧЬЯ');
-        document.getElementById('duelStatus').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА! ${resultText}<br>Реальное движение: ${data.real_direction === 'up' ? '📈 ВВЕРХ' : '📉 ВНИЗ'}`;
-        document.getElementById('resolveDuelBtn').style.display = 'block';
-        document.getElementById('resolveDuelBtn').onclick = () => { window.location.reload(); };
-        await loadStats();
+        clearInterval(duelTimer);
+        clearInterval(duelCheckInterval);
+        try {
+            const res = await fetch('/api/duel/resolve', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ duel_id: currentDuelId })
+            });
+            const data = await res.json();
+            const isWinner = data.winner_id == userId;
+            document.getElementById('duelMessage').innerHTML = `🏁 ДУЭЛЬ ЗАВЕРШЕНА!<br>Реальное движение: ${data.real_direction === 'up' ? '📈 ВВЕРХ' : '📉 ВНИЗ'}<br>${isWinner ? '🎉 ПОБЕДА!' : '😔 ПОРАЖЕНИЕ'}`;
+            showNotification(isWinner ? 'Победа!' : 'Поражение', isWinner ? 'success' : 'error');
+            await loadStats();
+        } catch(e) { console.error(e); }
+        setTimeout(() => {
+            document.getElementById('duelContainer').style.display = 'none';
+            document.getElementById('findBtn').style.display = 'block';
+            document.getElementById('findBtn').disabled = false;
+            document.getElementById('findBtn').textContent = '🔍 НАЙТИ СОПЕРНИКА';
+            document.getElementById('duelStatus').style.display = 'block';
+            myDuelPrediction = null;
+        }, 3000);
+    }
+
+    let simBalance = 10000;
+    let simPosition = null;
+    let simChart = null;
+    let simPriceData = [];
+    let simStep = 0;
+    let simHistory = [];
+
+    function initSimulator() {
+        simBalance = 10000;
+        simPosition = null;
+        simHistory = [];
+        simPriceData = [];
+        let price = 50000;
+        for (let i = 0; i < 100; i++) {
+            price = price * (1 + (Math.random() - 0.48) * 0.02);
+            simPriceData.push(price);
+        }
+        simStep = 0;
+        updateSimChart();
+        document.getElementById('simBalance').innerText = simBalance;
+        updateSimHistory();
+
+        document.getElementById('simLong').onclick = () => {
+            if (simPosition) { showNotification('Сначала закройте позицию!', 'error'); return; }
+            simPosition = { type: 'long', entryPrice: simPriceData[simStep], amount: 1000 };
+            document.getElementById('simResult').innerHTML = `<div>✅ Открыта ЛОНГ по $${simPosition.entryPrice.toFixed(2)}</div>`;
+        };
+        document.getElementById('simShort').onclick = () => {
+            if (simPosition) { showNotification('Сначала закройте позицию!', 'error'); return; }
+            simPosition = { type: 'short', entryPrice: simPriceData[simStep], amount: 1000 };
+            document.getElementById('simResult').innerHTML = `<div>✅ Открыта ШОРТ по $${simPosition.entryPrice.toFixed(2)}</div>`;
+        };
+        document.getElementById('simReset').onclick = () => {
+            simBalance = 10000;
+            simPosition = null;
+            simHistory = [];
+            simStep = 0;
+            document.getElementById('simBalance').innerText = simBalance;
+            document.getElementById('simResult').innerHTML = '';
+            updateSimHistory();
+            showNotification('Симулятор сброшен', 'success');
+        };
+
+        setInterval(() => {
+            if (simStep < simPriceData.length - 1) {
+                simStep++;
+                const currentPrice = simPriceData[simStep];
+                if (simPosition) {
+                    let pnl = 0;
+                    if (simPosition.type === 'long') pnl = ((currentPrice - simPosition.entryPrice) / simPosition.entryPrice) * simPosition.amount;
+                    else pnl = ((simPosition.entryPrice - currentPrice) / simPosition.entryPrice) * simPosition.amount;
+                    document.getElementById('simResult').innerHTML = `<div>Позиция: ${simPosition.type === 'long' ? '📈 ЛОНГ' : '📉 ШОРТ'}<br>Вход: $${simPosition.entryPrice.toFixed(2)}<br>Текущая: $${currentPrice.toFixed(2)}<br>PnL: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</div>`;
+                    if (simStep === simPriceData.length - 1) {
+                        simBalance += pnl;
+                        simHistory.unshift({ type: simPosition.type, entryPrice: simPosition.entryPrice, exitPrice: currentPrice, pnl: pnl });
+                        document.getElementById('simBalance').innerText = simBalance.toFixed(2);
+                        document.getElementById('simResult').innerHTML += `<div class="${pnl >= 0 ? 'result-positive' : 'result-negative'}">Позиция закрыта! PnL: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</div>`;
+                        simPosition = null;
+                        updateSimHistory();
+                    }
+                }
+                updateSimChart();
+            }
+        }, 2000);
+    }
+
+    function updateSimChart() {
+        const ctx = document.getElementById('simChart').getContext('2d');
+        if (simChart) simChart.destroy();
+        simChart = new Chart(ctx, {
+            type: 'line',
+            data: { labels: simPriceData.map((_, i) => i + 1), datasets: [{ label: 'Цена BTC', data: simPriceData, borderColor: '#5EEAD4', backgroundColor: 'rgba(94,234,212,0.1)', fill: true, tension: 0.3, pointRadius: 0 }] },
+            options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#A1A6B0' } } }, scales: { y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } }, x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } } } }
+        });
+    }
+
+    function updateSimHistory() {
+        const container = document.getElementById('simHistory');
+        if (!container) return;
+        if (simHistory.length === 0) { container.innerHTML = '<div style="color: #7A8190;">Нет сделок</div>'; return; }
+        container.innerHTML = simHistory.map(h => `<div style="padding: 8px 0; border-bottom: 1px solid #1F232C;"><span>${h.type === 'long' ? '📈 ЛОНГ' : '📉 ШОРТ'}</span> | Вход: $${h.entryPrice.toFixed(2)} | Выход: $${h.exitPrice.toFixed(2)} | <span class="${h.pnl >= 0 ? 'result-positive' : 'result-negative'}">${h.pnl >= 0 ? '+' : ''}$${h.pnl.toFixed(2)}</span></div>`).join('');
     }
 
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
-            e.preventDefault();
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
             item.classList.add('active');
             loadPage(item.dataset.page);
