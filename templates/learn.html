@@ -15,6 +15,11 @@
         .back-link { background: #12161E; padding: 10px 22px; border-radius: 40px; text-decoration: none; color: #A1A6B0; border: 1px solid #262B36; transition: all 0.3s; }
         .back-link:hover { border-color: #5EEAD4; color: #FFFFFF; }
 
+        .stats-bar { background: #12161E; border: 1px solid #1F232C; border-radius: 20px; padding: 20px; margin-bottom: 24px; display: flex; justify-content: space-around; flex-wrap: wrap; gap: 20px; }
+        .stat { text-align: center; }
+        .stat-value { font-size: 28px; font-weight: 700; color: #5EEAD4; }
+        .stat-label { font-size: 12px; color: #7A8190; margin-top: 5px; }
+
         .card-container { background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; }
         .card-header { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
         .card-title { font-size: 24px; font-weight: 700; }
@@ -58,6 +63,14 @@
         <a href="/dashboard" class="back-link">← Назад</a>
     </div>
 
+    <div class="stats-bar" id="statsBar">
+        <div class="stat"><div class="stat-value" id="level">1</div><div class="stat-label">Уровень</div></div>
+        <div class="stat"><div class="stat-value" id="xp">0</div><div class="stat-label">Опыт</div></div>
+        <div class="stat"><div class="stat-value" id="streak">0</div><div class="stat-label">🔥 Серия</div></div>
+        <div class="stat"><div class="stat-value" id="accuracy">0%</div><div class="stat-label">Точность</div></div>
+        <div class="stat"><div class="stat-value" id="cardsCompleted">0</div><div class="stat-label">Пройдено карт</div></div>
+    </div>
+
     <div class="card-container" id="cardContainer">
         <div class="card-header"><div class="card-title" id="cardTitle">Загрузка...</div><div class="difficulty" id="difficulty">—</div></div>
         <div class="description" id="description"></div>
@@ -77,6 +90,18 @@
     const userId = {{ user_id }};
     let currentCard = null, chart = null, canAnswer = true;
 
+    async function loadStats() {
+        try {
+            const res = await fetch(`/api/user/stats/${userId}`);
+            const stats = await res.json();
+            document.getElementById('level').innerText = stats.level;
+            document.getElementById('xp').innerText = stats.experience;
+            document.getElementById('streak').innerText = stats.current_streak;
+            document.getElementById('accuracy').innerText = `${Math.round(stats.accuracy)}%`;
+            document.getElementById('cardsCompleted').innerText = `${stats.cards_completed}/${stats.total_cards}`;
+        } catch(e) { console.error(e); }
+    }
+
     async function loadCard() {
         try {
             const res = await fetch(`/api/cards/random?user_id=${userId}`);
@@ -93,12 +118,39 @@
             document.getElementById('difficulty').innerText = card.difficulty === 'easy' ? 'ЛЕГКИЙ' : (card.difficulty === 'medium' ? 'СРЕДНИЙ' : 'СЛОЖНЫЙ');
             document.getElementById('difficulty').className = `difficulty ${card.difficulty}`;
             document.getElementById('newsList').innerHTML = card.news.map(n => `<li>${n}</li>`).join('');
+
             if (chart) chart.destroy();
             const ctx = document.getElementById('priceChart').getContext('2d');
             chart = new Chart(ctx, {
-                type: 'line', data: { labels: card.chart_points.map((_, i) => i), datasets: [{ label: 'Цена', data: card.chart_points.map(p => p.y), borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.05)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#5EEAD4' }] },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#A1A6B0' } } }, scales: { y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } }, x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } } } }
+                type: 'line',
+                data: {
+                    labels: card.chart_points.map((_, i) => i + 1),
+                    datasets: [{
+                        label: 'Цена (USDT)',
+                        data: card.chart_points.map(p => p.y),
+                        borderColor: '#5EEAD4',
+                        backgroundColor: 'rgba(94, 234, 212, 0.05)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        pointBackgroundColor: '#5EEAD4',
+                        pointBorderColor: '#5EEAD4'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: true,
+                    plugins: {
+                        legend: { labels: { color: '#A1A6B0' } },
+                        tooltip: { callbacks: { label: (ctx) => `Цена: $${ctx.raw.toFixed(2)}` } }
+                    },
+                    scales: {
+                        y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } },
+                        x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' }, title: { display: true, text: 'Время (часы)', color: '#7A8190' } }
+                    }
+                }
             });
+
             document.getElementById('resultBox').className = 'result-box';
             document.getElementById('resultBox').style.display = 'none';
             document.getElementById('nextBtn').style.display = 'none';
@@ -112,7 +164,11 @@
         canAnswer = false;
         document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = true; btn.style.opacity = '0.5'; });
         try {
-            const res = await fetch('/api/cards/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, card_id: currentCard.id, answer: direction }) });
+            const res = await fetch('/api/cards/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: userId, card_id: currentCard.id, answer: direction })
+            });
             const data = await res.json();
             const resultBox = document.getElementById('resultBox');
             if (data.is_correct) {
@@ -120,20 +176,36 @@
                 document.getElementById('resultTitle').innerHTML = '✅ ПРАВИЛЬНО!';
                 document.getElementById('resultText').innerHTML = data.explanation;
                 document.getElementById('xpGain').innerHTML = `+${data.xp_earned} XP`;
+                showNotification(`+${data.xp_earned} XP!`, 'success');
             } else {
                 resultBox.className = 'result-box wrong';
                 document.getElementById('resultTitle').innerHTML = '❌ НЕПРАВИЛЬНО';
-                document.getElementById('resultText').innerHTML = `${data.explanation}<br><br>Правильный ответ: ${data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК')}`;
+                const correctText = data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК');
+                document.getElementById('resultText').innerHTML = `${data.explanation}<br><br>Правильный ответ: ${correctText}`;
                 document.getElementById('xpGain').innerHTML = `+0 XP`;
+                showNotification('Неправильно!', 'error');
             }
             resultBox.style.display = 'block';
             document.getElementById('nextBtn').style.display = 'block';
+            await loadStats();
+            for (const ach of data.achievements) {
+                showNotification(`🏆 Достижение: ${ach}`, 'success');
+            }
         } catch(e) { console.error(e); }
+    }
+
+    function showNotification(msg, type) {
+        const div = document.createElement('div');
+        div.className = `notification ${type}`;
+        div.innerText = msg;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
     }
 
     document.querySelectorAll('.pred-btn').forEach(btn => { btn.onclick = () => submitAnswer(btn.dataset.dir); });
     document.getElementById('nextBtn').onclick = () => loadCard();
 
+    loadStats();
     loadCard();
 </script>
 </body>

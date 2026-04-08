@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradeum · Библиотека паттернов</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0A0C10; color: #E6E8EC; padding: 24px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        .logo { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #FFFFFF, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .back-link { background: #12161E; padding: 10px 22px; border-radius: 40px; text-decoration: none; color: #A1A6B0; border: 1px solid #262B36; transition: all 0.3s; }
+        .back-link:hover { border-color: #5EEAD4; color: #FFFFFF; }
+
+        .patterns-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
+        .pattern-card { background: #12161E; border: 1px solid #1F232C; border-radius: 20px; padding: 24px; transition: all 0.3s; cursor: pointer; }
+        .pattern-card:hover { transform: translateY(-4px); border-color: #5EEAD4; }
+        .pattern-type { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; margin-bottom: 12px; }
+        .pattern-type.bullish { background: rgba(94, 234, 212, 0.1); color: #5EEAD4; }
+        .pattern-type.bearish { background: rgba(248, 113, 113, 0.1); color: #F87171; }
+        .pattern-type.neutral { background: rgba(244, 183, 64, 0.1); color: #F4B740; }
+        .pattern-name { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
+        .pattern-desc { color: #A1A6B0; font-size: 14px; line-height: 1.5; margin-bottom: 16px; }
+        .pattern-signal { font-size: 13px; color: #7A8190; border-top: 1px solid #1F232C; padding-top: 12px; margin-top: 8px; }
+
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 1000; align-items: center; justify-content: center; }
+        .modal-content { background: #12161E; border-radius: 24px; padding: 32px; max-width: 500px; width: 90%; border: 1px solid #5EEAD4; }
+        .modal-title { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+        .modal-desc { color: #A1A6B0; line-height: 1.6; margin-bottom: 16px; }
+        .modal-example { background: #0A0C10; border-radius: 12px; padding: 16px; margin: 16px 0; font-family: monospace; }
+        .close-modal { background: #5EEAD4; color: #0A0C10; border: none; padding: 10px 24px; border-radius: 40px; cursor: pointer; font-weight: 700; margin-top: 16px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">Trade<span>um</span> · Библиотека</div>
+        <a href="/dashboard" class="back-link">← Назад</a>
+    </div>
+
+    <div class="patterns-grid" id="patternsGrid"></div>
+</div>
+
+<div class="modal" id="patternModal">
+    <div class="modal-content">
+        <div class="modal-title" id="modalTitle"></div>
+        <div class="modal-desc" id="modalDesc"></div>
+        <div class="modal-example" id="modalExample"></div>
+        <button class="close-modal" onclick="closeModal()">Закрыть</button>
+    </div>
+</div>
+
+<script>
+    const patterns = [
+        { name: "Пробой уровня сопротивления", type: "bullish", desc: "Цена пробивает ключевой уровень сопротивления на растущих объемах. Сигнал к покупке.", signal: "Бычий сигнал. Ожидается продолжение роста.", example: "Пример: BTC пробивает $50,000 с объемом > среднего" },
+        { name: "Медвежье поглощение", type: "bearish", desc: "Свечная модель разворота на вершине тренда. Медвежья свеча полностью 'поглощает' предыдущую бычью.", signal: "Медвежий сигнал. Ожидается разворот вниз.", example: "Пример: После роста ETH формируется медвежье поглощение" },
+        { name: "Ложный пробой", type: "bullish", desc: "Цена ненадолго пробивает уровень, но быстро возвращается. Объем на пробое низкий.", signal: "Бычий сигнал. Ловушка для продавцов.", example: "Пример: Пробой поддержки $48,000 с быстрым возвратом" },
+        { name: "Дивергенция RSI", type: "bearish", desc: "Цена обновляет максимум, а RSI формирует более низкий пик. Ослабление тренда.", signal: "Медвежий сигнал. Возможен разворот.", example: "Пример: Новый максимум цены, RSI ниже предыдущего" },
+        { name: "Сжатие полос Боллинджера", type: "neutral", desc: "Полосы Боллинджера максимально сужаются. Низкая волатильность перед сильным движением.", signal: "Нейтрально. Ожидается сильное движение в любую сторону.", example: "Пример: Полосы сузились до минимума за месяц" },
+        { name: "Золотой крест", type: "bullish", desc: "50-дневная MA пересекает 200-дневную снизу вверх. Долгосрочный бычий сигнал.", signal: "Бычий сигнал. Начало долгосрочного восходящего тренда.", example: "Пример: MA50 пересекает MA200 вверх" },
+        { name: "Голова и плечи", type: "bearish", desc: "Классическая модель разворота с тремя пиками. Пробой линии шеи подтверждает разворот.", signal: "Медвежий сигнал. Разворот восходящего тренда.", example: "Пример: Левое плечо → Голова → Правое плечо" },
+        { name: "Восходящий треугольник", type: "bullish", desc: "Горизонтальное сопротивление и восходящая линия поддержки. Фигура продолжения тренда.", signal: "Бычий сигнал. Ожидается пробой вверх.", example: "Пример: Каждый новый минимум выше предыдущего" },
+        { name: "Нисходящий треугольник", type: "bearish", desc: "Горизонтальная поддержка и нисходящая линия сопротивления. Медвежья фигура.", signal: "Медвежий сигнал. Ожидается пробой вниз.", example: "Пример: Каждый новый максимум ниже предыдущего" },
+        { name: "Флаг", type: "neutral", desc: "Коррекция в виде параллельного канала после резкого движения. Фигура продолжения.", signal: "Продолжение тренда. Направление = предшествующему движению.", example: "Пример: Резкий рост → консолидация в канале" },
+        { name: "Клин", type: "neutral", desc: "Сужающийся канал. Может быть как бычьим, так и медвежьим.", signal: "Прорыв из клина = направление движения.", example: "Пример: Сужающиеся максимумы и минимумы" },
+        { name: "Двойное дно", type: "bullish", desc: "Два минимума на одном уровне. Разворотная модель после нисходящего тренда.", signal: "Бычий сигнал. Разворот вверх.", example: "Пример: Цена дважды тестирует поддержку и уходит вверх" }
+    ];
+
+    const grid = document.getElementById('patternsGrid');
+    grid.innerHTML = patterns.map(p => `
+        <div class="pattern-card" onclick="showPattern('${p.name}', '${p.desc}', '${p.signal}', '${p.example}')">
+            <div class="pattern-type ${p.type}">${p.type === 'bullish' ? '📈 БЫЧИЙ' : (p.type === 'bearish' ? '📉 МЕДВЕЖИЙ' : '⚖️ НЕЙТРАЛЬНЫЙ')}</div>
+            <div class="pattern-name">${p.name}</div>
+            <div class="pattern-desc">${p.desc}</div>
+            <div class="pattern-signal">🎯 Сигнал: ${p.signal}</div>
+        </div>
+    `).join('');
+
+    function showPattern(name, desc, signal, example) {
+        document.getElementById('modalTitle').innerText = name;
+        document.getElementById('modalDesc').innerHTML = `<strong>Описание:</strong> ${desc}<br><br><strong>🎯 Сигнал:</strong> ${signal}`;
+        document.getElementById('modalExample').innerHTML = `<strong>📊 Пример:</strong><br>${example}`;
+        document.getElementById('patternModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+        document.getElementById('patternModal').style.display = 'none';
+    }
+
+    document.getElementById('patternModal').addEventListener('click', (e) => {
+        if (e.target === document.getElementById('patternModal')) closeModal();
+    });
+</script>
+</body>
+</html>

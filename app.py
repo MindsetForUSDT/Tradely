@@ -81,6 +81,15 @@ TRADING_CARDS = [
     }
 ]
 
+# ИИ-Боты для дуэлей
+AI_BOTS = [
+    {"id": 1, "name": "Трендовый Аналитик", "description": "Специализируется на определении трендов", "rating": 580, "strategy": "trend_follower", "accuracy": 0.65},
+    {"id": 2, "name": "Контрарный Торговец", "description": "Ищет развороты на перекупленности", "rating": 520, "strategy": "contrarian", "accuracy": 0.55},
+    {"id": 3, "name": "Волатильный Мастер", "description": "Идеален для нестабильного рынка", "rating": 610, "strategy": "volatility", "accuracy": 0.70},
+    {"id": 4, "name": "Скальпер", "description": "Быстрые решения на малых таймфреймах", "rating": 490, "strategy": "scalper", "accuracy": 0.50},
+    {"id": 5, "name": "Фундаментальный Бот", "description": "Анализирует новости и события", "rating": 550, "strategy": "fundamental", "accuracy": 0.60}
+]
+
 # ========== БАЗА ДАННЫХ ==========
 @contextmanager
 def get_db():
@@ -139,9 +148,11 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 player1_id INTEGER NOT NULL,
                 player2_id INTEGER,
+                bot_id INTEGER,
                 status TEXT DEFAULT 'waiting',
                 player1_prediction TEXT,
                 player2_prediction TEXT,
+                bot_prediction TEXT,
                 winner_id INTEGER,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (player1_id) REFERENCES users (id),
@@ -282,23 +293,36 @@ async def get_leaderboard():
         leaders = conn.execute("SELECT username, level, experience_points, total_correct, current_streak FROM users ORDER BY experience_points DESC LIMIT 50").fetchall()
         return [dict(l) for l in leaders]
 
+@app.get("/api/bots")
+async def get_bots():
+    return AI_BOTS
+
 @app.post("/api/duel/create")
 async def create_duel(request: Request):
     try:
         data = await request.json()
         user_id = data.get("user_id")
+        bot_id = data.get("bot_id")
         with get_db() as conn:
-            waiting = conn.execute("SELECT id FROM duels WHERE status = 'waiting' AND player1_id != ?", (user_id,)).fetchone()
-            if waiting:
-                duel_id = waiting["id"]
-                conn.execute("UPDATE duels SET player2_id = ?, status = 'active' WHERE id = ?", (user_id, duel_id))
-                conn.commit()
-                return {"success": True, "duel_id": duel_id, "action": "joined"}
+            if bot_id:
+                bot = next((b for b in AI_BOTS if b["id"] == bot_id), None)
+                if bot:
+                    duel_id = random.randint(1000, 9999)
+                    conn.execute("INSERT INTO duels (player1_id, bot_id, status, player2_id) VALUES (?, ?, 'active', ?)", (user_id, bot_id, -bot_id))
+                    conn.commit()
+                    return {"success": True, "duel_id": duel_id, "action": "vs_bot", "bot": bot}
             else:
-                cursor = conn.execute("INSERT INTO duels (player1_id, status) VALUES (?, 'waiting')", (user_id,))
-                duel_id = cursor.lastrowid
-                conn.commit()
-                return {"success": True, "duel_id": duel_id, "action": "created"}
+                waiting = conn.execute("SELECT id FROM duels WHERE status = 'waiting' AND player1_id != ?", (user_id,)).fetchone()
+                if waiting:
+                    duel_id = waiting["id"]
+                    conn.execute("UPDATE duels SET player2_id = ?, status = 'active' WHERE id = ?", (user_id, duel_id))
+                    conn.commit()
+                    return {"success": True, "duel_id": duel_id, "action": "joined"}
+                else:
+                    cursor = conn.execute("INSERT INTO duels (player1_id, status) VALUES (?, 'waiting')", (user_id,))
+                    duel_id = cursor.lastrowid
+                    conn.commit()
+                    return {"success": True, "duel_id": duel_id, "action": "created"}
     except Exception as e: return {"success": False, "error": str(e)}
 
 @app.post("/api/duel/submit_prediction")
@@ -316,6 +340,18 @@ async def submit_duel_prediction(request: Request):
             return {"success": True}
     except Exception as e: return {"success": False, "error": str(e)}
 
+@app.post("/api/duel/bot_predict")
+async def bot_predict(request: Request):
+    try:
+        data = await request.json()
+        bot_id = data.get("bot_id")
+        bot = next((b for b in AI_BOTS if b["id"] == bot_id), None)
+        if not bot: return {"success": False, "error": "Bot not found"}
+        import random
+        prediction = random.choices(["up", "down"], weights=[bot["accuracy"]*100, (1-bot["accuracy"])*100])[0]
+        return {"success": True, "prediction": prediction, "bot": bot}
+    except Exception as e: return {"success": False, "error": str(e)}
+
 @app.post("/api/duel/resolve")
 async def resolve_duel(request: Request):
     try:
@@ -326,14 +362,26 @@ async def resolve_duel(request: Request):
             if not duel or duel["status"] != "active": return {"success": False, "error": "Duel not active"}
             real_direction = random.choice(["up", "down"])
             p1_pred, p2_pred = duel["player1_prediction"], duel["player2_prediction"]
-            winner_id = None
-            if p1_pred == real_direction and p2_pred != real_direction: winner_id = duel["player1_id"]
-            elif p2_pred == real_direction and p1_pred != real_direction: winner_id = duel["player2_id"]
-            if winner_id:
+            if duel["bot_id"]:
+                bot = next((b for b in AI_BOTS if b["id"] == duel["bot_id"]), None)
+                bot_pred = random.choices(["up", "down"], weights=[bot["accuracy"]*100, (1-bot["accuracy"])*100])[0] if bot else random.choice(["up", "down"])
+                winner_id = None
+                if p1_pred == real_direction and bot_pred != real_direction: winner_id = duel["player1_id"]
+                elif bot_pred == real_direction and p1_pred != real_direction: winner_id = -duel["bot_id"]
                 change = 25
-                conn.execute("UPDATE users SET duel_rating = duel_rating + ?, duel_wins = duel_wins + 1 WHERE id = ?", (change, winner_id))
-                loser_id = duel["player1_id"] if winner_id == duel["player2_id"] else duel["player2_id"]
-                conn.execute("UPDATE users SET duel_rating = duel_rating - ?, duel_losses = duel_losses + 1 WHERE id = ?", (change, loser_id))
+                if winner_id == duel["player1_id"]:
+                    conn.execute("UPDATE users SET duel_rating = duel_rating + ?, duel_wins = duel_wins + 1 WHERE id = ?", (change, duel["player1_id"]))
+                elif winner_id and winner_id < 0:
+                    conn.execute("UPDATE users SET duel_rating = duel_rating - ?, duel_losses = duel_losses + 1 WHERE id = ?", (change, duel["player1_id"]))
+            else:
+                winner_id = None
+                if p1_pred == real_direction and p2_pred != real_direction: winner_id = duel["player1_id"]
+                elif p2_pred == real_direction and p1_pred != real_direction: winner_id = duel["player2_id"]
+                if winner_id:
+                    change = 25
+                    conn.execute("UPDATE users SET duel_rating = duel_rating + ?, duel_wins = duel_wins + 1 WHERE id = ?", (change, winner_id))
+                    loser_id = duel["player1_id"] if winner_id == duel["player2_id"] else duel["player2_id"]
+                    conn.execute("UPDATE users SET duel_rating = duel_rating - ?, duel_losses = duel_losses + 1 WHERE id = ?", (change, loser_id))
             conn.execute("UPDATE duels SET status = 'completed', winner_id = ? WHERE id = ?", (winner_id, duel_id))
             conn.commit()
             return {"success": True, "winner_id": winner_id, "real_direction": real_direction}
@@ -344,8 +392,15 @@ async def check_duel(duel_id: int):
     with get_db() as conn:
         duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
         if not duel: return {"error": "Duel not found"}
-        both_submitted = duel["player1_prediction"] is not None and duel["player2_prediction"] is not None
+        both_submitted = duel["player1_prediction"] is not None and (duel["player2_prediction"] is not None or duel["bot_id"] is not None)
         return {"both_submitted": both_submitted, "player1_prediction": duel["player1_prediction"], "player2_prediction": duel["player2_prediction"]}
+
+@app.get("/api/duel/status/{duel_id}")
+async def get_duel_status(duel_id: int):
+    with get_db() as conn:
+        duel = conn.execute("SELECT * FROM duels WHERE id = ?", (duel_id,)).fetchone()
+        if not duel: return {"error": "Duel not found"}
+        return {"status": duel["status"], "player1_id": duel["player1_id"], "player2_id": duel["player2_id"], "bot_id": duel["bot_id"]}
 
 # ========== СТРАНИЦЫ ==========
 @app.get("/", response_class=HTMLResponse)
