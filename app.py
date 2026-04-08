@@ -308,7 +308,6 @@ async def close_position(request: Request):
             else:
                 current_price = get_eth_price()
 
-            # Исправленная формула PnL
             if pos["position_type"] == "long":
                 pnl_per_unit = (current_price - pos["entry_price"]) / pos["entry_price"] * pos["leverage"]
             else:
@@ -356,26 +355,36 @@ async def get_history(user_id: int):
                  "created_at": t["created_at"][:19]} for t in trades]
 
 
-@app.get("/api/history/{symbol}")
+@app.get("/api/chart/{symbol}")
 async def get_chart_history(symbol: str, limit: int = 100):
-    """Генерирует исторические данные для графика"""
+    """Генерирует реалистичные исторические данные для графика на основе текущей цены"""
     data = []
     if symbol == "BTC":
-        price = get_btc_price()
+        base_price = get_btc_price()
     else:
-        price = get_eth_price()
+        base_price = get_eth_price()
 
+    # Идем от прошлого к настоящему
+    current_price = base_price
     now = datetime.now()
+
     for i in range(limit, 0, -1):
-        # Более реалистичный шум
-        price = price * (1 + random.gauss(0, 0.005))
+        # Генерируем реалистичный шум (волатильность)
+        change = random.gauss(0, 0.008)  # 0.8% стандартное отклонение
+        open_price = current_price
+        close_price = open_price * (1 + change)
+        high_price = max(open_price, close_price) * (1 + abs(random.gauss(0, 0.002)))
+        low_price = min(open_price, close_price) * (1 - abs(random.gauss(0, 0.002)))
+
         data.append({
             "time": int((now - timedelta(hours=i)).timestamp()),
-            "open": price,
-            "high": price * (1 + abs(random.gauss(0, 0.003))),
-            "low": price * (1 - abs(random.gauss(0, 0.003))),
-            "close": price
+            "open": round(open_price, 2),
+            "high": round(high_price, 2),
+            "low": round(low_price, 2),
+            "close": round(close_price, 2)
         })
+        current_price = close_price
+
     return data
 
 
@@ -505,9 +514,7 @@ async def resolve_duel(request: Request):
             if not duel or duel["status"] != "active":
                 return {"success": False, "error": "Duel not active"}
 
-            # Определяем реальное движение
             end_price = get_btc_price()
-            # Имитация движения за время дуэли (упрощенно)
             price_change_pct = ((end_price - duel["start_price"]) / duel["start_price"]) * 100
 
             if price_change_pct > 0.3:
@@ -523,13 +530,11 @@ async def resolve_duel(request: Request):
             p1_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player1_id"],)).fetchone()
             p2_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player2_id"],)).fetchone()
 
-            # Определение победителя
             p1_win = (p1_pred == real_direction and p2_pred != real_direction) or (
                         p1_pred == "up" and real_direction == "up") or (p1_pred == "down" and real_direction == "down")
             p2_win = (p2_pred == real_direction and p1_pred != real_direction) or (
                         p2_pred == "up" and real_direction == "up") or (p2_pred == "down" and real_direction == "down")
 
-            # Оба угадали или оба не угадали - ничья
             if (p1_win and p2_win) or (not p1_win and not p2_win):
                 p1_change = 0
                 p2_change = 0
@@ -546,7 +551,7 @@ async def resolve_duel(request: Request):
                 new_p2_streak = 0
                 new_p1_loss = 0
                 new_p2_loss = p2_rating["current_loss_streak"] + 1
-            else:  # p2_win
+            else:
                 winner_id = duel["player2_id"]
                 p1_change = calculate_elo_change(p1_rating["rating"], p2_rating["rating"], False)
                 p2_change = calculate_elo_change(p2_rating["rating"], p1_rating["rating"], True)
@@ -558,7 +563,6 @@ async def resolve_duel(request: Request):
             new_p1_rating = p1_rating["rating"] + p1_change
             new_p2_rating = p2_rating["rating"] + p2_change
 
-            # Обновление P1
             conn.execute("""
                 UPDATE user_ratings SET 
                     rating = ?, 
@@ -573,7 +577,6 @@ async def resolve_duel(request: Request):
                   1 if winner_id == duel["player2_id"] else 0,
                   new_p1_streak, new_p1_loss, new_p1_streak, duel["player1_id"]))
 
-            # Обновление P2
             conn.execute("""
                 UPDATE user_ratings SET 
                     rating = ?, 

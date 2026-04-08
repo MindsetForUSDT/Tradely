@@ -12,7 +12,7 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', sans-serif;
-            background: #0B0E14;
+            background: #0A0C10;
             color: #E6E8EC;
             padding: 24px;
             line-height: 1.5;
@@ -20,7 +20,6 @@
         }
         .app { max-width: 1440px; margin: 0 auto; }
 
-        /* Header */
         .navbar {
             display: flex;
             justify-content: space-between;
@@ -31,15 +30,15 @@
         }
         .logo {
             font-size: 26px;
-            font-weight: 600;
+            font-weight: 700;
             letter-spacing: -0.02em;
             color: #FFFFFF;
         }
-        .logo-accent { color: #5EEAD4; font-weight: 500; }
-        .nav-links { display: flex; gap: 16px; }
+        .logo span { color: #5EEAD4; }
+        .nav-links { display: flex; gap: 12px; }
         .nav-link {
-            background: #141820;
-            padding: 8px 20px;
+            background: #12161E;
+            padding: 10px 22px;
             border-radius: 40px;
             text-decoration: none;
             color: #A1A6B0;
@@ -48,31 +47,25 @@
             border: 1px solid #262B36;
             transition: all 0.2s ease;
         }
-        .nav-link:hover { border-color: #5EEAD4; color: #FFFFFF; background: #1A1F2A; }
+        .nav-link:hover { border-color: #5EEAD4; color: #FFFFFF; }
         .user-panel {
             display: flex;
             align-items: center;
-            gap: 24px;
-            background: #141820;
+            gap: 20px;
+            background: #12161E;
             padding: 6px 16px 6px 24px;
             border-radius: 60px;
             border: 1px solid #262B36;
         }
-        .user-name { font-weight: 500; color: #FFFFFF; }
         .balance-badge {
-            background: #1F232C;
-            padding: 6px 16px;
+            background: #1A1F2A;
+            padding: 6px 18px;
             border-radius: 60px;
-            font-weight: 600;
+            font-weight: 700;
             color: #5EEAD4;
-            border-left: 1px solid #2E3440;
         }
-        .rating-badge {
-            font-weight: 600;
-            color: #F4B740;
-        }
+        .rating-badge { font-weight: 700; color: #F4B740; }
 
-        /* Prices Widgets */
         .price-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
@@ -84,28 +77,26 @@
             border: 1px solid #1F232C;
             border-radius: 20px;
             padding: 20px 24px;
-            transition: transform 0.2s ease;
         }
-        .price-card:hover { border-color: #2E3440; }
         .card-header {
             display: flex;
             justify-content: space-between;
-            color: #A1A6B0;
+            color: #7A8190;
             font-size: 13px;
-            font-weight: 500;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.03em;
             margin-bottom: 12px;
         }
         .price-value {
             font-size: 36px;
-            font-weight: 600;
+            font-weight: 700;
             letter-spacing: -0.02em;
             color: #FFFFFF;
         }
         .price-change {
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 600;
             padding: 4px 10px;
             border-radius: 30px;
             background: #1A1F2A;
@@ -113,7 +104,6 @@
         .change-up { color: #5EEAD4; }
         .change-down { color: #F87171; }
 
-        /* Chart */
         .chart-container {
             background: #12161E;
             border: 1px solid #1F232C;
@@ -123,20 +113,12 @@
         }
         #chart { width: 100%; height: 480px; }
 
-        /* Trading Panel */
         .trading-card {
             background: #12161E;
             border: 1px solid #1F232C;
             border-radius: 20px;
             padding: 28px;
             margin-bottom: 32px;
-        }
-        .card-title {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 24px;
-            color: #FFFFFF;
-            letter-spacing: -0.01em;
         }
         .trade-form {
             display: grid;
@@ -146,7 +128,7 @@
         }
         .input-label {
             font-size: 11px;
-            font-weight: 600;
+            font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: #7A8190;
@@ -155,13 +137,12 @@
         select, input {
             width: 100%;
             padding: 14px 16px;
-            background: #0B0E14;
+            background: #0A0C10;
             border: 1px solid #262B36;
             border-radius: 14px;
             color: #FFFFFF;
             font-size: 15px;
             font-weight: 500;
-            font-family: 'Inter', sans-serif;
             transition: border 0.2s;
         }
         select:focus, input:focus { outline: none; border-color: #5EEAD4; }
@@ -169,7 +150,7 @@
         .direction-switch {
             display: flex;
             gap: 10px;
-            background: #0B0E14;
+            background: #0A0C10;
             padding: 4px;
             border-radius: 16px;
             border: 1px solid #262B36;
@@ -179,36 +160,29 @@
             text-align: center;
             padding: 12px 0;
             border-radius: 12px;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 14px;
             cursor: pointer;
             transition: all 0.2s;
             color: #7A8190;
         }
-        .dir-btn.long.active { background: #5EEAD4; color: #0B0E14; }
-        .dir-btn.short.active { background: #F87171; color: #0B0E14; }
+        .dir-btn.long.active { background: #5EEAD4; color: #0A0C10; }
+        .dir-btn.short.active { background: #F87171; color: #0A0C10; }
 
         .action-btn {
             background: #5EEAD4;
-            color: #0B0E14;
+            color: #0A0C10;
             border: none;
             padding: 14px 10px;
             border-radius: 14px;
             font-weight: 700;
             font-size: 15px;
             cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid #5EEAD4;
+            transition: all 0.25s;
         }
         .action-btn:hover { background: #2DD4BF; transform: translateY(-1px); }
 
-        /* Positions */
-        .positions-list {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 32px;
-        }
+        .positions-list { display: flex; flex-direction: column; gap: 12px; margin-bottom: 32px; }
         .position-item {
             background: #12161E;
             border: 1px solid #1F232C;
@@ -217,10 +191,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 20px;
         }
-        .pos-details { display: flex; gap: 32px; align-items: center; flex-wrap: wrap; }
         .pos-badge {
             font-weight: 700;
             padding: 6px 12px;
@@ -229,16 +200,6 @@
         }
         .pos-badge.long { background: rgba(94, 234, 212, 0.1); color: #5EEAD4; }
         .pos-badge.short { background: rgba(248, 113, 113, 0.1); color: #F87171; }
-        .pos-controls { display: flex; gap: 12px; }
-        .close-input {
-            width: 120px;
-            padding: 10px;
-            background: #0B0E14;
-            border: 1px solid #262B36;
-            border-radius: 12px;
-            text-align: right;
-            color: #fff;
-        }
         .close-btn {
             padding: 10px 18px;
             border-radius: 12px;
@@ -250,10 +211,9 @@
             color: #E6E8EC;
             transition: all 0.2s;
         }
-        .close-btn.full { background: #F87171; border-color: #F87171; color: #0B0E14; }
+        .close-btn.full { background: #F87171; border-color: #F87171; color: #0A0C10; }
         .close-btn.full:hover { background: #EF4444; }
 
-        /* History Table */
         .history-table {
             background: #12161E;
             border: 1px solid #1F232C;
@@ -266,15 +226,12 @@
             padding: 14px 24px;
             border-bottom: 1px solid #1F232C;
             font-size: 14px;
-            align-items: center;
         }
-        .history-header { color: #7A8190; font-weight: 600; font-size: 12px; text-transform: uppercase; }
-        .history-row:last-child { border-bottom: none; }
-        .pnl-positive { color: #5EEAD4; font-weight: 600; }
-        .pnl-negative { color: #F87171; font-weight: 600; }
+        .history-header { color: #7A8190; font-weight: 700; font-size: 12px; text-transform: uppercase; }
+        .pnl-positive { color: #5EEAD4; font-weight: 700; }
+        .pnl-negative { color: #F87171; font-weight: 700; }
         .empty-state { padding: 48px; text-align: center; color: #7A8190; }
 
-        /* Notifications */
         .toast {
             position: fixed;
             top: 24px;
@@ -283,10 +240,8 @@
             background: #1A1F2A;
             border: 1px solid #2E3440;
             border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
             z-index: 1000;
             animation: slide 0.3s ease;
-            backdrop-filter: blur(8px);
         }
         .toast.success { border-left: 4px solid #5EEAD4; }
         .toast.error { border-left: 4px solid #F87171; }
@@ -296,14 +251,14 @@
 <body>
 <div class="app">
     <div class="navbar">
-        <div class="logo">Trade<span class="logo-accent">um</span></div>
+        <div class="logo">Trade<span>um</span></div>
         <div class="nav-links">
             <a href="/duel" class="nav-link" onclick="localStorage.setItem('tradeum_user_id', {{ user.id }})">Дуэль</a>
             <a href="/leaderboard" class="nav-link" onclick="localStorage.setItem('tradeum_user_id', {{ user.id }})">Рейтинг</a>
             <a href="/" class="nav-link">Выход</a>
         </div>
         <div class="user-panel">
-            <span class="user-name">{{ user.username }}</span>
+            <span style="font-weight: 600;">{{ user.username }}</span>
             <span class="balance-badge">$<span id="balance">{{ "%.2f"|format(user.balance) }}</span></span>
             <span class="rating-badge">⚡ <span id="rating">{{ rating.rating if rating else 1200 }}</span></span>
         </div>
@@ -311,12 +266,12 @@
 
     <div class="price-grid">
         <div class="price-card">
-            <div class="card-header"><span>Bitcoin / USDT</span><span>LIVE</span></div>
+            <div class="card-header"><span>Bitcoin</span><span>LIVE</span></div>
             <div class="price-value" id="btc-price">${{ btc_price }}</div>
             <div id="btc-change" class="price-change">—</div>
         </div>
         <div class="price-card">
-            <div class="card-header"><span>Ethereum / USDT</span><span>LIVE</span></div>
+            <div class="card-header"><span>Ethereum</span><span>LIVE</span></div>
             <div class="price-value" id="eth-price">${{ eth_price }}</div>
             <div id="eth-change" class="price-change">—</div>
         </div>
@@ -325,7 +280,6 @@
     <div class="chart-container"><div id="chart"></div></div>
 
     <div class="trading-card">
-        <div class="card-title">Новая позиция</div>
         <div class="trade-form">
             <div><div class="input-label">Актив</div><select id="symbol"><option value="BTC">BTC/USDT</option><option value="ETH">ETH/USDT</option></select></div>
             <div><div class="input-label">Направление</div>
@@ -340,7 +294,7 @@
         </div>
     </div>
 
-    <div style="margin-bottom: 20px;"><span style="font-weight: 600; letter-spacing: -0.01em;">Открытые позиции</span></div>
+    <div style="margin-bottom: 20px;"><span style="font-weight: 700; letter-spacing: -0.01em; font-size: 18px;">Открытые позиции</span></div>
     <div class="positions-list" id="openPositions"></div>
 
     <div class="history-table">
@@ -392,10 +346,12 @@
 
     async function loadChartData(symbol) {
         try {
-            const res = await fetch(`/api/history/${symbol}?limit=120`);
+            const res = await fetch(`/api/chart/${symbol}?limit=120`);
             const data = await res.json();
-            if (data && data.length) candleSeries.setData(data);
-            chart.timeScale().fitContent();
+            if (data && data.length) {
+                candleSeries.setData(data);
+                chart.timeScale().fitContent();
+            }
         } catch(e) { console.error(e); }
     }
 
@@ -403,8 +359,8 @@
         try {
             const btc = await fetch('/api/price/BTC').then(r => r.json());
             const eth = await fetch('/api/price/ETH').then(r => r.json());
-            document.getElementById('btc-price').innerText = `$${btc.price.toFixed(2)}`;
-            document.getElementById('eth-price').innerText = `$${eth.price.toFixed(2)}`;
+            document.getElementById('btc-price').innerText = `$${btc.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('eth-price').innerText = `$${eth.price.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 
             const btcChange = ((btc.price - lastPrices.BTC) / lastPrices.BTC * 100);
             const ethChange = ((eth.price - lastPrices.ETH) / lastPrices.ETH * 100);
@@ -444,15 +400,15 @@
                 }
                 return `
                 <div class="position-item">
-                    <div class="pos-details">
+                    <div style="display: flex; gap: 24px; align-items: center;">
                         <span class="pos-badge ${pos.position_type}">${pos.position_type.toUpperCase()} ${pos.leverage}x</span>
                         <span><span style="color: #7A8190;">Вход</span> $${pos.entry_price.toFixed(2)}</span>
                         <span><span style="color: #7A8190;">Тек.</span> $${currentPrice.toFixed(2)}</span>
                         <span><span style="color: #7A8190;">Объем</span> $${pos.amount}</span>
-                        <span class="${pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}" style="font-weight: 600;">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)</span>
+                        <span class="${pnl >= 0 ? 'pnl-positive' : 'pnl-negative'}" style="font-weight: 700;">${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)} (${pnlPercent.toFixed(2)}%)</span>
                     </div>
-                    <div class="pos-controls">
-                        <input type="number" id="partial-${pos.id}" class="close-input" value="${pos.amount.toFixed(2)}" step="10">
+                    <div style="display: flex; gap: 12px;">
+                        <input type="number" id="partial-${pos.id}" style="width: 120px; padding: 10px; background: #0A0C10; border: 1px solid #262B36; border-radius: 12px; color: #fff;" value="${pos.amount.toFixed(2)}" step="10">
                         <button class="close-btn" onclick="closePartial(${pos.id})">Частично</button>
                         <button class="close-btn full" onclick="closeFull(${pos.id})">Закрыть</button>
                     </div>
@@ -534,7 +490,6 @@
         `).join('');
     }
 
-    // Инициализация
     document.querySelectorAll('.dir-btn').forEach(btn => {
         btn.onclick = () => {
             document.querySelectorAll('.dir-btn').forEach(b => b.classList.remove('active'));

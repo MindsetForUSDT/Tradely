@@ -3,126 +3,134 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вход — Tradeum</title>
+    <title>Вход · Tradeum</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #0A0E17 0%, #0F1320 100%);
-            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+            background: #0A0C10;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            min-height: 100vh;
+            padding: 24px;
         }
         .auth-card {
-            background: #121624;
+            background: #12161E;
+            border: 1px solid #1F232C;
             border-radius: 32px;
             padding: 48px;
             width: 100%;
-            max-width: 450px;
-            border: 1px solid #2A3042;
+            max-width: 440px;
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
         }
-        h1 {
+        .logo {
             font-size: 32px;
+            font-weight: 700;
+            color: #FFFFFF;
             margin-bottom: 8px;
-            color: white;
         }
-        h1 span {
-            color: #00D09C;
-        }
-        .subtitle {
-            color: #A0A8C0;
-            margin-bottom: 32px;
-        }
+        .logo span { color: #5EEAD4; }
+        .subtitle { color: #7A8190; margin-bottom: 32px; font-weight: 400; }
+
         .tabs {
             display: flex;
-            gap: 16px;
+            gap: 24px;
             margin-bottom: 32px;
-            border-bottom: 1px solid #2A3042;
+            border-bottom: 1px solid #1F232C;
         }
         .tab {
-            padding: 12px 0;
+            padding-bottom: 12px;
             cursor: pointer;
-            color: #A0A8C0;
+            color: #7A8190;
             font-weight: 600;
+            font-size: 16px;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
         }
         .tab.active {
-            color: #00D09C;
-            border-bottom: 2px solid #00D09C;
+            color: #5EEAD4;
+            border-bottom: 2px solid #5EEAD4;
         }
-        .form-group {
-            margin-bottom: 24px;
-        }
+
+        .form-group { margin-bottom: 24px; }
         label {
             display: block;
             margin-bottom: 8px;
-            color: #E8EDF2;
-            font-size: 14px;
+            color: #A1A6B0;
+            font-size: 13px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
         input {
             width: 100%;
             padding: 14px 16px;
-            background: #1A1F2E;
-            border: 1px solid #2A3042;
-            border-radius: 12px;
-            color: white;
+            background: #0A0C10;
+            border: 1px solid #262B36;
+            border-radius: 16px;
+            color: #FFFFFF;
             font-size: 16px;
+            font-weight: 500;
+            transition: border 0.2s;
         }
         input:focus {
             outline: none;
-            border-color: #00D09C;
+            border-color: #5EEAD4;
         }
         button {
             width: 100%;
-            padding: 14px;
-            background: #00D09C;
+            padding: 16px;
+            background: #5EEAD4;
             border: none;
-            border-radius: 12px;
+            border-radius: 16px;
             font-weight: 700;
             font-size: 16px;
-            color: #0A0E17;
+            color: #0A0C10;
             cursor: pointer;
+            transition: all 0.25s;
             margin-top: 8px;
         }
+        button:hover {
+            background: #2DD4BF;
+            transform: translateY(-2px);
+        }
         .alert {
-            padding: 12px;
-            border-radius: 12px;
+            padding: 12px 16px;
+            border-radius: 16px;
             margin-bottom: 24px;
             font-size: 14px;
+            font-weight: 500;
         }
         .alert-success {
-            background: rgba(0, 208, 156, 0.1);
-            border: 1px solid #00D09C;
-            color: #00D09C;
+            background: rgba(94, 234, 212, 0.08);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+            color: #5EEAD4;
         }
         .alert-error {
-            background: rgba(255, 77, 109, 0.1);
-            border: 1px solid #FF4D6D;
-            color: #FF4D6D;
+            background: rgba(248, 113, 113, 0.08);
+            border: 1px solid rgba(248, 113, 113, 0.3);
+            color: #F87171;
         }
-        .hidden {
-            display: none;
-        }
+        .hidden { display: none; }
     </style>
 </head>
 <body>
     <div class="auth-card">
-        <h1>Trade<span>um</span></h1>
-        <div class="subtitle">Войди или создай аккаунт</div>
+        <div class="logo">Trade<span>um</span></div>
+        <div class="subtitle">Доступ к платформе</div>
 
         {% if registered %}
-        <div class="alert alert-success">✅ Регистрация успешна! Войдите.</div>
+        <div class="alert alert-success">Регистрация успешна. Войдите.</div>
         {% endif %}
         {% if error == '1' %}
-        <div class="alert alert-error">❌ Неверное имя или пароль</div>
+        <div class="alert alert-error">Неверное имя или пароль</div>
         {% endif %}
         {% if error == 'exists' %}
-        <div class="alert alert-error">❌ Пользователь уже существует</div>
+        <div class="alert alert-error">Пользователь уже существует</div>
         {% endif %}
 
         <div class="tabs">
@@ -132,46 +140,28 @@
 
         <div id="login-form">
             <form action="/login" method="post">
-                <div class="form-group">
-                    <label>Имя пользователя</label>
-                    <input type="text" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label>Пароль</label>
-                    <input type="password" name="password" required>
-                </div>
+                <div class="form-group"><label>Имя пользователя</label><input type="text" name="username" required></div>
+                <div class="form-group"><label>Пароль</label><input type="password" name="password" required></div>
                 <button type="submit">Войти</button>
             </form>
         </div>
 
         <div id="register-form" class="hidden">
             <form action="/register" method="post">
-                <div class="form-group">
-                    <label>Имя пользователя</label>
-                    <input type="text" name="username" required>
-                </div>
-                <div class="form-group">
-                    <label>Пароль</label>
-                    <input type="password" name="password" required>
-                </div>
-                <button type="submit">Зарегистрироваться</button>
+                <div class="form-group"><label>Имя пользователя</label><input type="text" name="username" required></div>
+                <div class="form-group"><label>Пароль</label><input type="password" name="password" required></div>
+                <button type="submit">Создать аккаунт</button>
             </form>
         </div>
     </div>
-
     <script>
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
-                const tabName = tab.dataset.tab;
-                if (tabName === 'login') {
-                    document.getElementById('login-form').classList.remove('hidden');
-                    document.getElementById('register-form').classList.add('hidden');
-                } else {
-                    document.getElementById('login-form').classList.add('hidden');
-                    document.getElementById('register-form').classList.remove('hidden');
-                }
+                const isLogin = tab.dataset.tab === 'login';
+                document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+                document.getElementById('register-form').classList.toggle('hidden', isLogin);
             });
         });
     </script>
