@@ -6,34 +6,29 @@ import random
 import sqlite3
 import hashlib
 import requests
-from datetime import datetime
+from datetime import datetime, timedelta
 from contextlib import contextmanager
+import math
 
-app = FastAPI(title="Tradeum")
+app = FastAPI(title="Tradeum", description="Трейдинг симулятор с реальными ценами")
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 
-# ========== ЦЕНЫ ==========
+# ========== РЕАЛЬНЫЕ ЦЕНЫ ==========
 def get_btc_price():
     try:
-        r = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=5)
-        return float(r.json()["price"])
+        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", timeout=5)
+        return float(response.json()["price"])
     except:
         return 50000.0
 
-@app.get("/api/duel/rating/{user_id}")
-async def get_user_rating(user_id: int):
-    with get_db() as conn:
-        rating = conn.execute("SELECT rating, wins, losses, current_win_streak FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
-        if not rating:
-            return {"rating": 400, "wins": 0, "losses": 0, "streak": 0}
-        return dict(rating)
+
 def get_eth_price():
     try:
-        r = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT", timeout=5)
-        return float(r.json()["price"])
+        response = requests.get("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT", timeout=5)
+        return float(response.json()["price"])
     except:
         return 3000.0
 
@@ -51,7 +46,6 @@ def get_db():
 
 def init_db():
     with get_db() as conn:
-        # Таблица пользователей
         conn.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,12 +56,11 @@ def init_db():
             )
         """)
 
-        # Таблица рейтингов
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_ratings (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 user_id INTEGER UNIQUE NOT NULL,
-                rating INTEGER DEFAULT 400,
+                rating INTEGER DEFAULT 1200,
                 wins INTEGER DEFAULT 0,
                 losses INTEGER DEFAULT 0,
                 current_win_streak INTEGER DEFAULT 0,
@@ -78,7 +71,6 @@ def init_db():
             )
         """)
 
-        # Таблица открытых позиций (для обычной торговли)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS open_positions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -88,12 +80,12 @@ def init_db():
                 leverage INTEGER NOT NULL,
                 entry_price REAL NOT NULL,
                 amount REAL NOT NULL,
+                margin REAL NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (user_id) REFERENCES users (id)
             )
         """)
 
-        # Таблица истории сделок (обычная торговля)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS trades (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -110,7 +102,6 @@ def init_db():
             )
         """)
 
-        # Таблица дуэлей
         conn.execute("""
             CREATE TABLE IF NOT EXISTS duels (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -142,6 +133,13 @@ def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
 
 
+# ========== ЭЛО РЕЙТИНГ ==========
+def calculate_elo_change(rating_a, rating_b, is_winner_a, k=32):
+    expected_a = 1 / (1 + 10 ** ((rating_b - rating_a) / 400))
+    score_a = 1 if is_winner_a else 0
+    return round(k * (score_a - expected_a))
+
+
 # ========== СТРАНИЦЫ ==========
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request):
@@ -150,40 +148,61 @@ async def home(request: Request):
 
 @app.get("/login", response_class=HTMLResponse)
 async def login_page(request: Request, registered: str = None, error: str = None):
-    return templates.TemplateResponse("login.html", {"request": request, "registered": registered, "error": error})
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "registered": registered,
+        "error": error
+    })
 
 
 @app.post("/register")
 async def register(username: str = Form(...), password: str = Form(...)):
     try:
         with get_db() as conn:
-            cursor = conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)",
-                                  (username, hash_password(password)))
+            cursor = conn.execute(
+                "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+                (username, hash_password(password))
+            )
             user_id = cursor.lastrowid
-            conn.execute("INSERT INTO user_ratings (user_id, rating) VALUES (?, 400)", (user_id,))
+            conn.execute(
+                "INSERT INTO user_ratings (user_id, rating) VALUES (?, 1200)",
+                (user_id,)
+            )
             conn.commit()
         return RedirectResponse(url="/login?registered=1", status_code=303)
-    except:
+    except sqlite3.IntegrityError:
         return RedirectResponse(url="/login?error=exists", status_code=303)
 
 
 @app.post("/login")
 async def login(username: str = Form(...), password: str = Form(...)):
     with get_db() as conn:
-        user = conn.execute("SELECT id, username, password_hash FROM users WHERE username = ?", (username,)).fetchone()
+        user = conn.execute(
+            "SELECT id, username, password_hash FROM users WHERE username = ?",
+            (username,)
+        ).fetchone()
+
         if not user or user["password_hash"] != hash_password(password):
             return RedirectResponse(url="/login?error=1", status_code=303)
+
         return RedirectResponse(url=f"/dashboard?user_id={user['id']}", status_code=303)
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, user_id: int):
     with get_db() as conn:
-        user = conn.execute("SELECT id, username, balance FROM users WHERE id = ?", (user_id,)).fetchone()
+        user = conn.execute(
+            "SELECT id, username, balance FROM users WHERE id = ?",
+            (user_id,)
+        ).fetchone()
+
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
 
-        rating = conn.execute("SELECT rating, wins, losses FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
+        rating = conn.execute(
+            "SELECT rating, wins, losses FROM user_ratings WHERE user_id = ?",
+            (user_id,)
+        ).fetchone()
 
         recent_trades = conn.execute(
             "SELECT symbol, position_type, leverage, pnl, created_at FROM trades WHERE user_id = ? ORDER BY created_at DESC LIMIT 20",
@@ -223,7 +242,7 @@ async def get_price(symbol: str):
 async def get_positions(user_id: int):
     with get_db() as conn:
         positions = conn.execute(
-            "SELECT id, symbol, position_type, leverage, entry_price, amount FROM open_positions WHERE user_id = ?",
+            "SELECT id, symbol, position_type, leverage, entry_price, amount, margin FROM open_positions WHERE user_id = ?",
             (user_id,)
         ).fetchall()
         return [dict(p) for p in positions]
@@ -257,9 +276,9 @@ async def open_position(request: Request):
             conn.execute("UPDATE users SET balance = ? WHERE id = ?", (new_balance, user_id))
 
             conn.execute("""
-                INSERT INTO open_positions (user_id, symbol, position_type, leverage, entry_price, amount)
-                VALUES (?, ?, ?, ?, ?, ?)
-            """, (user_id, symbol, position_type, leverage, entry_price, amount))
+                INSERT INTO open_positions (user_id, symbol, position_type, leverage, entry_price, amount, margin)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (user_id, symbol, position_type, leverage, entry_price, amount, margin))
             conn.commit()
 
             return {"success": True, "new_balance": new_balance, "entry_price": entry_price}
@@ -289,14 +308,14 @@ async def close_position(request: Request):
             else:
                 current_price = get_eth_price()
 
+            # Исправленная формула PnL
             if pos["position_type"] == "long":
-                price_change = (current_price - pos["entry_price"]) / pos["entry_price"]
+                pnl_per_unit = (current_price - pos["entry_price"]) / pos["entry_price"] * pos["leverage"]
             else:
-                price_change = (pos["entry_price"] - current_price) / pos["entry_price"]
+                pnl_per_unit = (pos["entry_price"] - current_price) / pos["entry_price"] * pos["leverage"]
 
-            close_ratio = close_amount / pos["amount"]
-            pnl = pos["amount"] * price_change * pos["leverage"] * close_ratio
-            margin_return = (pos["amount"] / pos["leverage"]) * close_ratio
+            pnl = pos["amount"] * pnl_per_unit * (close_amount / pos["amount"])
+            margin_return = (pos["margin"] * (close_amount / pos["amount"]))
             total_return = margin_return + pnl
 
             user = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,)).fetchone()
@@ -307,7 +326,8 @@ async def close_position(request: Request):
             if remaining_amount <= 0.01:
                 conn.execute("DELETE FROM open_positions WHERE id = ?", (position_id,))
             else:
-                conn.execute("UPDATE open_positions SET amount = ? WHERE id = ?", (remaining_amount, position_id))
+                conn.execute("UPDATE open_positions SET amount = ?, margin = ? WHERE id = ?",
+                             (remaining_amount, pos["margin"] * (remaining_amount / pos["amount"]), position_id))
 
             conn.execute("""
                 INSERT INTO trades (user_id, symbol, position_type, leverage, entry_price, exit_price, amount, pnl)
@@ -336,13 +356,36 @@ async def get_history(user_id: int):
                  "created_at": t["created_at"][:19]} for t in trades]
 
 
+@app.get("/api/history/{symbol}")
+async def get_chart_history(symbol: str, limit: int = 100):
+    """Генерирует исторические данные для графика"""
+    data = []
+    if symbol == "BTC":
+        price = get_btc_price()
+    else:
+        price = get_eth_price()
+
+    now = datetime.now()
+    for i in range(limit, 0, -1):
+        # Более реалистичный шум
+        price = price * (1 + random.gauss(0, 0.005))
+        data.append({
+            "time": int((now - timedelta(hours=i)).timestamp()),
+            "open": price,
+            "high": price * (1 + abs(random.gauss(0, 0.003))),
+            "low": price * (1 - abs(random.gauss(0, 0.003))),
+            "close": price
+        })
+    return data
+
+
 # ========== API ДУЭЛЕЙ ==========
 @app.get("/api/duel/rating/{user_id}")
 async def get_user_rating(user_id: int):
     with get_db() as conn:
         rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
         if not rating:
-            return {"rating": 400, "wins": 0, "losses": 0, "streak": 0}
+            return {"rating": 1200, "wins": 0, "losses": 0, "streak": 0}
         return dict(rating)
 
 
@@ -366,7 +409,6 @@ async def create_duel(request: Request):
         user_id = data.get("user_id")
 
         with get_db() as conn:
-            # Проверяем, есть ли ожидающие дуэли
             waiting = conn.execute(
                 "SELECT id FROM duels WHERE status = 'waiting' AND player1_id != ?",
                 (user_id,)
@@ -452,24 +494,6 @@ async def check_predictions(duel_id: int):
         }
 
 
-def calculate_rating_change(current_rating, is_winner, streak_count):
-    """Расчёт изменения рейтинга на основе серии побед/поражений"""
-    if is_winner:
-        if streak_count >= 3:
-            return 15
-        elif streak_count == 2:
-            return 20
-        else:
-            return 25
-    else:
-        if streak_count >= 3:
-            return -15
-        elif streak_count == 2:
-            return -20
-        else:
-            return -25
-
-
 @app.post("/api/duel/resolve")
 async def resolve_duel(request: Request):
     try:
@@ -481,7 +505,9 @@ async def resolve_duel(request: Request):
             if not duel or duel["status"] != "active":
                 return {"success": False, "error": "Duel not active"}
 
+            # Определяем реальное движение
             end_price = get_btc_price()
+            # Имитация движения за время дуэли (упрощенно)
             price_change_pct = ((end_price - duel["start_price"]) / duel["start_price"]) * 100
 
             if price_change_pct > 0.3:
@@ -491,54 +517,48 @@ async def resolve_duel(request: Request):
             else:
                 real_direction = "sideways"
 
-            p1_pred = duel["player1_prediction"]
-            p2_pred = duel["player2_prediction"]
+            p1_pred = duel["player1_prediction"] or "sideways"
+            p2_pred = duel["player2_prediction"] or "sideways"
 
-            # Загружаем рейтинги
             p1_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player1_id"],)).fetchone()
             p2_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player2_id"],)).fetchone()
 
-            winner_id = None
-            p1_change = 0
-            p2_change = 0
-            new_p1_streak = 0
-            new_p2_streak = 0
-            new_p1_loss_streak = 0
-            new_p2_loss_streak = 0
+            # Определение победителя
+            p1_win = (p1_pred == real_direction and p2_pred != real_direction) or (
+                        p1_pred == "up" and real_direction == "up") or (p1_pred == "down" and real_direction == "down")
+            p2_win = (p2_pred == real_direction and p1_pred != real_direction) or (
+                        p2_pred == "up" and real_direction == "up") or (p2_pred == "down" and real_direction == "down")
 
-            if p1_pred == real_direction and p2_pred != real_direction:
-                winner_id = duel["player1_id"]
-                p1_change = calculate_rating_change(p1_rating["rating"], True, p1_rating["current_win_streak"])
-                p2_change = calculate_rating_change(p2_rating["rating"], False, p2_rating["current_loss_streak"])
-                new_p1_streak = p1_rating["current_win_streak"] + 1
-                new_p2_loss_streak = p2_rating["current_loss_streak"] + 1
-
-            elif p2_pred == real_direction and p1_pred != real_direction:
-                winner_id = duel["player2_id"]
-                p1_change = calculate_rating_change(p1_rating["rating"], False, p1_rating["current_loss_streak"])
-                p2_change = calculate_rating_change(p2_rating["rating"], True, p2_rating["current_win_streak"])
-                new_p1_loss_streak = p1_rating["current_loss_streak"] + 1
-                new_p2_streak = p2_rating["current_win_streak"] + 1
-
-            elif p1_pred == real_direction and p2_pred == real_direction:
-                # Ничья — без изменений
+            # Оба угадали или оба не угадали - ничья
+            if (p1_win and p2_win) or (not p1_win and not p2_win):
                 p1_change = 0
                 p2_change = 0
+                winner_id = None
                 new_p1_streak = 0
                 new_p2_streak = 0
-                new_p1_loss_streak = 0
-                new_p2_loss_streak = 0
-            else:
-                # Оба не угадали
-                p1_change = -10
-                p2_change = -10
-                new_p1_loss_streak = p1_rating["current_loss_streak"] + 1
-                new_p2_loss_streak = p2_rating["current_loss_streak"] + 1
+                new_p1_loss = p1_rating["current_loss_streak"] + 1
+                new_p2_loss = p2_rating["current_loss_streak"] + 1
+            elif p1_win:
+                winner_id = duel["player1_id"]
+                p1_change = calculate_elo_change(p1_rating["rating"], p2_rating["rating"], True)
+                p2_change = calculate_elo_change(p2_rating["rating"], p1_rating["rating"], False)
+                new_p1_streak = p1_rating["current_win_streak"] + 1
+                new_p2_streak = 0
+                new_p1_loss = 0
+                new_p2_loss = p2_rating["current_loss_streak"] + 1
+            else:  # p2_win
+                winner_id = duel["player2_id"]
+                p1_change = calculate_elo_change(p1_rating["rating"], p2_rating["rating"], False)
+                p2_change = calculate_elo_change(p2_rating["rating"], p1_rating["rating"], True)
+                new_p1_streak = 0
+                new_p2_streak = p2_rating["current_win_streak"] + 1
+                new_p1_loss = p1_rating["current_loss_streak"] + 1
+                new_p2_loss = 0
 
-            # Обновляем рейтинги
             new_p1_rating = p1_rating["rating"] + p1_change
             new_p2_rating = p2_rating["rating"] + p2_change
 
+            # Обновление P1
             conn.execute("""
                 UPDATE user_ratings SET 
                     rating = ?, 
@@ -551,8 +571,9 @@ async def resolve_duel(request: Request):
                 WHERE user_id = ?
             """, (new_p1_rating, 1 if winner_id == duel["player1_id"] else 0,
                   1 if winner_id == duel["player2_id"] else 0,
-                  new_p1_streak, new_p1_loss_streak, new_p1_streak, duel["player1_id"]))
+                  new_p1_streak, new_p1_loss, new_p1_streak, duel["player1_id"]))
 
+            # Обновление P2
             conn.execute("""
                 UPDATE user_ratings SET 
                     rating = ?, 
@@ -565,9 +586,8 @@ async def resolve_duel(request: Request):
                 WHERE user_id = ?
             """, (new_p2_rating, 1 if winner_id == duel["player2_id"] else 0,
                   1 if winner_id == duel["player1_id"] else 0,
-                  new_p2_streak, new_p2_loss_streak, new_p2_streak, duel["player2_id"]))
+                  new_p2_streak, new_p2_loss, new_p2_streak, duel["player2_id"]))
 
-            # Завершаем дуэль
             conn.execute("""
                 UPDATE duels SET 
                     status = 'completed', 
