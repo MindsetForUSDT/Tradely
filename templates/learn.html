@@ -9,281 +9,131 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #0A0C10; color: #E6E8EC; padding: 24px; }
-        .container { max-width: 1200px; margin: 0 auto; }
-
-        .header { display: flex; justify-content: space-between; align-items: center; padding-bottom: 20px; border-bottom: 1px solid #1F232C; margin-bottom: 30px; flex-wrap: wrap; gap: 15px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
         .logo { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #FFFFFF, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; }
-        .nav-links { display: flex; gap: 12px; }
-        .nav-link { background: #12161E; padding: 10px 22px; border-radius: 40px; text-decoration: none; color: #A1A6B0; font-size: 14px; font-weight: 500; border: 1px solid #262B36; transition: all 0.3s; }
-        .nav-link:hover { border-color: #5EEAD4; color: #FFFFFF; }
+        .back-link { background: #12161E; padding: 10px 22px; border-radius: 40px; text-decoration: none; color: #A1A6B0; border: 1px solid #262B36; transition: all 0.3s; }
+        .back-link:hover { border-color: #5EEAD4; color: #FFFFFF; }
 
-        .stats-bar { background: #12161E; border: 1px solid #1F232C; border-radius: 20px; padding: 20px 30px; margin-bottom: 30px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 20px; }
-        .stat { text-align: center; }
-        .stat-value { font-size: 28px; font-weight: 700; color: #5EEAD4; }
-        .stat-label { font-size: 12px; color: #7A8190; margin-top: 5px; }
-
-        .card-container { background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; margin-bottom: 30px; }
-        .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
+        .card-container { background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; }
+        .card-header { display: flex; justify-content: space-between; margin-bottom: 20px; flex-wrap: wrap; gap: 15px; }
         .card-title { font-size: 24px; font-weight: 700; }
         .difficulty { padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .difficulty.easy { background: rgba(94, 234, 212, 0.1); color: #5EEAD4; }
         .difficulty.medium { background: rgba(244, 183, 64, 0.1); color: #F4B740; }
         .difficulty.hard { background: rgba(248, 113, 113, 0.1); color: #F87171; }
-
         .description { color: #A1A6B0; margin-bottom: 24px; line-height: 1.6; }
-
         .chart-container { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
         canvas { width: 100%; height: 300px; }
-
         .news-section { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; }
-        .news-title { font-size: 14px; font-weight: 600; color: #5EEAD4; margin-bottom: 12px; }
+        .news-title { font-weight: 600; margin-bottom: 12px; color: #5EEAD4; }
         .news-list { list-style: none; }
-        .news-list li { padding: 8px 0; color: #A1A6B0; font-size: 14px; border-bottom: 1px solid #1F232C; }
-        .news-list li:last-child { border-bottom: none; }
-
+        .news-list li { padding: 8px 0; border-bottom: 1px solid #1F232C; color: #A1A6B0; }
         .prediction-btns { display: flex; gap: 15px; justify-content: center; margin-bottom: 24px; }
-        .pred-btn { padding: 14px 32px; border-radius: 60px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s; border: none; }
-        .pred-btn.up { background: #0A0C10; border: 1px solid #5EEAD4; color: #5EEAD4; }
+        .pred-btn { padding: 12px 28px; border-radius: 40px; font-weight: 700; cursor: pointer; transition: all 0.3s; background: #0A0C10; border: none; }
+        .pred-btn.up { border: 1px solid #5EEAD4; color: #5EEAD4; }
         .pred-btn.up:hover { background: #5EEAD4; color: #0A0C10; }
-        .pred-btn.down { background: #0A0C10; border: 1px solid #F87171; color: #F87171; }
+        .pred-btn.down { border: 1px solid #F87171; color: #F87171; }
         .pred-btn.down:hover { background: #F87171; color: #0A0C10; }
-        .pred-btn.sideways { background: #0A0C10; border: 1px solid #F4B740; color: #F4B740; }
+        .pred-btn.sideways { border: 1px solid #F4B740; color: #F4B740; }
         .pred-btn.sideways:hover { background: #F4B740; color: #0A0C10; }
-        .pred-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
         .result-box { background: #0A0C10; border-radius: 16px; padding: 20px; margin-bottom: 24px; display: none; }
         .result-box.correct { border-left: 4px solid #5EEAD4; display: block; }
         .result-box.wrong { border-left: 4px solid #F87171; display: block; }
-        .result-title { font-size: 18px; font-weight: 700; margin-bottom: 10px; }
+        .result-title { font-weight: 700; margin-bottom: 8px; }
         .result-box.correct .result-title { color: #5EEAD4; }
         .result-box.wrong .result-title { color: #F87171; }
-        .result-text { color: #A1A6B0; line-height: 1.6; }
-        .xp-gain { margin-top: 10px; font-size: 14px; color: #5EEAD4; }
-
-        .next-btn { width: 100%; padding: 16px; background: #5EEAD4; color: #0A0C10; border: none; border-radius: 60px; font-weight: 700; font-size: 16px; cursor: pointer; transition: all 0.3s; display: none; }
-        .next-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(94, 234, 212, 0.3); }
-
+        .next-btn { width: 100%; padding: 14px; background: #5EEAD4; color: #0A0C10; border: none; border-radius: 40px; font-weight: 700; cursor: pointer; display: none; }
         .notification { position: fixed; top: 20px; right: 20px; padding: 14px 24px; border-radius: 12px; background: #1A1F2A; border-left: 3px solid; z-index: 1000; animation: slideIn 0.3s ease; }
         .notification.success { border-color: #5EEAD4; }
         .notification.error { border-color: #F87171; }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-
-        @media (max-width: 768px) { body { padding: 16px; } .stats-bar { flex-direction: column; text-align: center; } .prediction-btns { flex-direction: column; } }
+        @media (max-width: 600px) { body { padding: 16px; } .prediction-btns { flex-direction: column; } }
     </style>
 </head>
 <body>
 <div class="container">
     <div class="header">
         <div class="logo">Trade<span>um</span> · Обучение</div>
-        <div class="nav-links">
-            <a href="/profile" class="nav-link">👤 Профиль</a>
-            <a href="/leaderboard" class="nav-link">🏆 Рейтинг</a>
-            <a href="/logout" class="nav-link">🚪 Выход</a>
-        </div>
-    </div>
-
-    <div class="stats-bar" id="statsBar">
-        <div class="stat"><div class="stat-value" id="level">1</div><div class="stat-label">Уровень</div></div>
-        <div class="stat"><div class="stat-value" id="xp">0</div><div class="stat-label">Опыт</div></div>
-        <div class="stat"><div class="stat-value" id="streak">0</div><div class="stat-label">🔥 Серия</div></div>
-        <div class="stat"><div class="stat-value" id="accuracy">0%</div><div class="stat-label">Точность</div></div>
-        <div class="stat"><div class="stat-value" id="cardsCompleted">0</div><div class="stat-label">Пройдено карт</div></div>
+        <a href="/dashboard" class="back-link">← Назад</a>
     </div>
 
     <div class="card-container" id="cardContainer">
-        <div class="card-header">
-            <div class="card-title" id="cardTitle">Загрузка...</div>
-            <div class="difficulty" id="difficulty">—</div>
-        </div>
+        <div class="card-header"><div class="card-title" id="cardTitle">Загрузка...</div><div class="difficulty" id="difficulty">—</div></div>
         <div class="description" id="description"></div>
-
-        <div class="chart-container">
-            <canvas id="priceChart"></canvas>
-        </div>
-
-        <div class="news-section">
-            <div class="news-title">📰 Новости рынка</div>
-            <ul class="news-list" id="newsList"></ul>
-        </div>
-
+        <div class="chart-container"><canvas id="priceChart"></canvas></div>
+        <div class="news-section"><div class="news-title">📰 Новости рынка</div><ul class="news-list" id="newsList"></ul></div>
         <div class="prediction-btns" id="predictionBtns">
             <button class="pred-btn up" data-dir="up">📈 ВВЕРХ</button>
             <button class="pred-btn down" data-dir="down">📉 ВНИЗ</button>
             <button class="pred-btn sideways" data-dir="sideways">➡️ БОКОВИК</button>
         </div>
-
-        <div class="result-box" id="resultBox">
-            <div class="result-title" id="resultTitle"></div>
-            <div class="result-text" id="resultText"></div>
-            <div class="xp-gain" id="xpGain"></div>
-        </div>
-
+        <div class="result-box" id="resultBox"><div class="result-title" id="resultTitle"></div><div id="resultText"></div><div id="xpGain"></div></div>
         <button class="next-btn" id="nextBtn">➡️ СЛЕДУЮЩАЯ КАРТОЧКА</button>
     </div>
 </div>
 
 <script>
     const userId = {{ user_id }};
-    let currentCard = null;
-    let chart = null;
-    let canAnswer = true;
-
-    function showNotification(msg, type) {
-        const div = document.createElement('div');
-        div.className = `notification ${type}`;
-        div.innerText = msg;
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 3000);
-    }
-
-    async function loadStats() {
-        try {
-            const res = await fetch(`/api/user/stats/${userId}`);
-            const stats = await res.json();
-            document.getElementById('level').innerText = stats.level;
-            document.getElementById('xp').innerText = stats.experience;
-            document.getElementById('streak').innerText = stats.current_streak;
-            document.getElementById('accuracy').innerText = `${Math.round(stats.accuracy)}%`;
-            document.getElementById('cardsCompleted').innerText = `${stats.cards_completed}/${stats.total_cards}`;
-        } catch(e) { console.error(e); }
-    }
+    let currentCard = null, chart = null, canAnswer = true;
 
     async function loadCard() {
         try {
             const res = await fetch(`/api/cards/random?user_id=${userId}`);
             const card = await res.json();
-
             if (card.completed_all) {
                 document.getElementById('cardTitle').innerText = 'Поздравляем!';
                 document.getElementById('description').innerHTML = 'Вы прошли все карточки! Отличная работа! 🎉';
                 document.getElementById('predictionBtns').style.display = 'none';
-                document.getElementById('nextBtn').style.display = 'none';
                 return;
             }
-
             currentCard = card;
-            canAnswer = true;
-
             document.getElementById('cardTitle').innerText = card.title;
             document.getElementById('description').innerHTML = card.description;
             document.getElementById('difficulty').innerText = card.difficulty === 'easy' ? 'ЛЕГКИЙ' : (card.difficulty === 'medium' ? 'СРЕДНИЙ' : 'СЛОЖНЫЙ');
             document.getElementById('difficulty').className = `difficulty ${card.difficulty}`;
-
-            const newsList = document.getElementById('newsList');
-            newsList.innerHTML = card.news.map(n => `<li>${n}</li>`).join('');
-
-            drawChart(card.chart_points);
-
+            document.getElementById('newsList').innerHTML = card.news.map(n => `<li>${n}</li>`).join('');
+            if (chart) chart.destroy();
+            const ctx = document.getElementById('priceChart').getContext('2d');
+            chart = new Chart(ctx, {
+                type: 'line', data: { labels: card.chart_points.map((_, i) => i), datasets: [{ label: 'Цена', data: card.chart_points.map(p => p.y), borderColor: '#5EEAD4', backgroundColor: 'rgba(94, 234, 212, 0.05)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#5EEAD4' }] },
+                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#A1A6B0' } } }, scales: { y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } }, x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } } } }
+            });
             document.getElementById('resultBox').className = 'result-box';
             document.getElementById('resultBox').style.display = 'none';
             document.getElementById('nextBtn').style.display = 'none';
-            document.querySelectorAll('.pred-btn').forEach(btn => btn.disabled = false);
-
-        } catch(e) {
-            console.error(e);
-            showNotification('Ошибка загрузки карточки', 'error');
-        }
-    }
-
-    function drawChart(points) {
-        const ctx = document.getElementById('priceChart').getContext('2d');
-        if (chart) chart.destroy();
-
-        chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: points.map((_, i) => i),
-                datasets: [{
-                    label: 'Цена',
-                    data: points.map(p => p.y),
-                    borderColor: '#5EEAD4',
-                    backgroundColor: 'rgba(94, 234, 212, 0.05)',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 3,
-                    pointBackgroundColor: '#5EEAD4'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: { labels: { color: '#A1A6B0' } },
-                    tooltip: { callbacks: { label: (ctx) => `Цена: $${ctx.raw.toFixed(2)}` } }
-                },
-                scales: {
-                    y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } },
-                    x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } }
-                }
-            }
-        });
+            document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = false; btn.style.opacity = '1'; });
+            canAnswer = true;
+        } catch(e) { console.error(e); }
     }
 
     async function submitAnswer(direction) {
         if (!canAnswer || !currentCard) return;
         canAnswer = false;
-
-        document.querySelectorAll('.pred-btn').forEach(btn => btn.disabled = true);
-
+        document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = true; btn.style.opacity = '0.5'; });
         try {
-            const res = await fetch('/api/cards/submit', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    user_id: userId,
-                    card_id: currentCard.id,
-                    answer: direction
-                })
-            });
+            const res = await fetch('/api/cards/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ user_id: userId, card_id: currentCard.id, answer: direction }) });
             const data = await res.json();
-
-            if (data.success) {
-                const resultBox = document.getElementById('resultBox');
-                const resultTitle = document.getElementById('resultTitle');
-                const resultText = document.getElementById('resultText');
-                const xpGain = document.getElementById('xpGain');
-
-                if (data.is_correct) {
-                    resultBox.className = 'result-box correct';
-                    resultTitle.innerText = '✅ ПРАВИЛЬНО!';
-                    resultText.innerText = data.explanation;
-                    xpGain.innerText = `+${data.xp_earned} XP`;
-                    showNotification(`+${data.xp_earned} XP!`, 'success');
-                } else {
-                    resultBox.className = 'result-box wrong';
-                    resultTitle.innerText = '❌ НЕПРАВИЛЬНО';
-                    const correctText = currentCard.correct_answer === 'up' ? 'ВВЕРХ' : (currentCard.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК');
-                    resultText.innerText = `${data.explanation}\n\nПравильный ответ: ${correctText}`;
-                    xpGain.innerText = `+0 XP`;
-                    showNotification('Неправильно!', 'error');
-                }
-
-                resultBox.style.display = 'block';
-                document.getElementById('nextBtn').style.display = 'block';
-
-                for (const ach of data.achievements) {
-                    showNotification(`🏆 Достижение: ${ach}`, 'success');
-                }
-
-                await loadStats();
+            const resultBox = document.getElementById('resultBox');
+            if (data.is_correct) {
+                resultBox.className = 'result-box correct';
+                document.getElementById('resultTitle').innerHTML = '✅ ПРАВИЛЬНО!';
+                document.getElementById('resultText').innerHTML = data.explanation;
+                document.getElementById('xpGain').innerHTML = `+${data.xp_earned} XP`;
+            } else {
+                resultBox.className = 'result-box wrong';
+                document.getElementById('resultTitle').innerHTML = '❌ НЕПРАВИЛЬНО';
+                document.getElementById('resultText').innerHTML = `${data.explanation}<br><br>Правильный ответ: ${data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК')}`;
+                document.getElementById('xpGain').innerHTML = `+0 XP`;
             }
-        } catch(e) {
-            console.error(e);
-            showNotification('Ошибка отправки ответа', 'error');
-            canAnswer = true;
-            document.querySelectorAll('.pred-btn').forEach(btn => btn.disabled = false);
-        }
+            resultBox.style.display = 'block';
+            document.getElementById('nextBtn').style.display = 'block';
+        } catch(e) { console.error(e); }
     }
 
-    document.querySelectorAll('.pred-btn').forEach(btn => {
-        btn.addEventListener('click', () => submitAnswer(btn.dataset.dir));
-    });
+    document.querySelectorAll('.pred-btn').forEach(btn => { btn.onclick = () => submitAnswer(btn.dataset.dir); });
+    document.getElementById('nextBtn').onclick = () => loadCard();
 
-    document.getElementById('nextBtn').addEventListener('click', () => {
-        loadCard();
-    });
-
-    loadStats();
     loadCard();
 </script>
 </body>
