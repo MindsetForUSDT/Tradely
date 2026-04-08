@@ -9,6 +9,7 @@ import requests
 from datetime import datetime, timedelta
 from contextlib import contextmanager
 import math
+from typing import Optional
 
 app = FastAPI(title="Tradeum", description="Трейдинг симулятор с реальными ценами")
 
@@ -107,6 +108,7 @@ def init_db():
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 player1_id INTEGER NOT NULL,
                 player2_id INTEGER,
+                is_bot INTEGER DEFAULT 0,
                 status TEXT DEFAULT 'waiting',
                 start_price REAL,
                 end_price REAL,
@@ -131,6 +133,62 @@ init_db()
 
 def hash_password(password: str) -> str:
     return hashlib.sha256(password.encode()).hexdigest()
+
+
+# ========== ИИ-БОТЫ ==========
+class AIBot:
+    def __init__(self, bot_id, name, rating=1200):
+        self.id = bot_id
+        self.name = name
+        self.rating = rating
+        self.wins = 0
+        self.losses = 0
+
+    def analyze_market(self, price_history):
+        """Анализирует график и возвращает прогноз"""
+        if len(price_history) < 10:
+            return random.choice(["up", "down", "sideways"])
+
+        # Технический анализ
+        recent_prices = [p["close"] for p in price_history[-20:]]
+
+        # Скользящие средние
+        sma_5 = sum(recent_prices[-5:]) / 5
+        sma_20 = sum(recent_prices) / len(recent_prices)
+
+        # RSI упрощенный
+        gains = sum(max(0, recent_prices[i] - recent_prices[i - 1]) for i in range(1, len(recent_prices)))
+        losses = sum(max(0, recent_prices[i - 1] - recent_prices[i]) for i in range(1, len(recent_prices)))
+        rsi = 100 - (100 / (1 + gains / losses)) if losses > 0 else 100
+
+        # Волатильность
+        volatility = math.sqrt(sum((p - sma_20) ** 2 for p in recent_prices) / len(recent_prices)) / sma_20
+
+        # Принятие решения
+        if volatility > 0.02:  # Высокая волатильность
+            if rsi < 30 and sma_5 > sma_20:
+                return "up"
+            elif rsi > 70 and sma_5 < sma_20:
+                return "down"
+            else:
+                return "sideways"
+        else:  # Низкая волатильность
+            if sma_5 > sma_20 * 1.01:
+                return "up"
+            elif sma_5 < sma_20 * 0.99:
+                return "down"
+            else:
+                return "sideways"
+
+
+# Создаем ботов
+BOTS = {
+    -1: AIBot(-1, "Quantum AI", 1450),
+    -2: AIBot(-2, "Neural Trader", 1380),
+    -3: AIBot(-3, "Deep Alpha", 1520),
+    -4: AIBot(-4, "Sigma Bot", 1410),
+    -5: AIBot(-5, "Tensor Flow", 1350)
+}
 
 
 # ========== ЭЛО РЕЙТИНГ ==========
@@ -185,11 +243,17 @@ async def login(username: str = Form(...), password: str = Form(...)):
         if not user or user["password_hash"] != hash_password(password):
             return RedirectResponse(url="/login?error=1", status_code=303)
 
-        return RedirectResponse(url=f"/dashboard?user_id={user['id']}", status_code=303)
+        response = RedirectResponse(url="/dashboard", status_code=303)
+        response.set_cookie(key="user_id", value=str(user["id"]), httponly=True, max_age=86400 * 30)
+        return response
 
 
 @app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request, user_id: int):
+async def dashboard(request: Request):
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        return RedirectResponse(url="/login")
+
     with get_db() as conn:
         user = conn.execute(
             "SELECT id, username, balance FROM users WHERE id = ?",
@@ -197,7 +261,7 @@ async def dashboard(request: Request, user_id: int):
         ).fetchone()
 
         if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+            return RedirectResponse(url="/login")
 
         rating = conn.execute(
             "SELECT rating, wins, losses FROM user_ratings WHERE user_id = ?",
@@ -221,12 +285,30 @@ async def dashboard(request: Request, user_id: int):
 
 @app.get("/duel", response_class=HTMLResponse)
 async def duel_page(request: Request):
-    return templates.TemplateResponse("duel.html", {"request": request})
+    user_id = request.cookies.get("user_id")
+    if not user_id:
+        return RedirectResponse(url="/login")
+
+    # Получаем список ботов для отображения
+    bots_list = [{"id": bot_id, "name": bot.name, "rating": bot.rating} for bot_id, bot in BOTS.items()]
+
+    return templates.TemplateResponse("duel.html", {
+        "request": request,
+        "user_id": user_id,
+        "bots": bots_list
+    })
 
 
 @app.get("/leaderboard", response_class=HTMLResponse)
 async def leaderboard_page(request: Request):
     return templates.TemplateResponse("leaderboard.html", {"request": request})
+
+
+@app.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/")
+    response.delete_cookie("user_id")
+    return response
 
 
 # ========== API ОБЫЧНОЙ ТОРГОВЛИ ==========
@@ -357,20 +439,18 @@ async def get_history(user_id: int):
 
 @app.get("/api/chart/{symbol}")
 async def get_chart_history(symbol: str, limit: int = 100):
-    """Генерирует реалистичные исторические данные для графика на основе текущей цены"""
+    """Генерирует реалистичные исторические данные для графика"""
     data = []
     if symbol == "BTC":
         base_price = get_btc_price()
     else:
         base_price = get_eth_price()
 
-    # Идем от прошлого к настоящему
     current_price = base_price
     now = datetime.now()
 
     for i in range(limit, 0, -1):
-        # Генерируем реалистичный шум (волатильность)
-        change = random.gauss(0, 0.008)  # 0.8% стандартное отклонение
+        change = random.gauss(0, 0.008)
         open_price = current_price
         close_price = open_price * (1 + change)
         high_price = max(open_price, close_price) * (1 + abs(random.gauss(0, 0.002)))
@@ -391,6 +471,11 @@ async def get_chart_history(symbol: str, limit: int = 100):
 # ========== API ДУЭЛЕЙ ==========
 @app.get("/api/duel/rating/{user_id}")
 async def get_user_rating(user_id: int):
+    # Проверяем, не бот ли это
+    if user_id < 0 and user_id in BOTS:
+        bot = BOTS[user_id]
+        return {"rating": bot.rating, "wins": bot.wins, "losses": bot.losses, "streak": 0}
+
     with get_db() as conn:
         rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
         if not rating:
@@ -408,7 +493,22 @@ async def get_leaderboard(limit: int = 100):
             ORDER BY r.rating DESC
             LIMIT ?
         """, (limit,)).fetchall()
-        return [dict(l) for l in leaders]
+
+        result = [dict(l) for l in leaders]
+
+        # Добавляем ботов в таблицу лидеров
+        for bot_id, bot in BOTS.items():
+            result.append({
+                "username": f"🤖 {bot.name}",
+                "rating": bot.rating,
+                "wins": bot.wins,
+                "losses": bot.losses,
+                "duels_total": bot.wins + bot.losses
+            })
+
+        # Сортируем по рейтингу
+        result.sort(key=lambda x: x["rating"], reverse=True)
+        return result[:limit]
 
 
 @app.post("/api/duel/create")
@@ -416,31 +516,84 @@ async def create_duel(request: Request):
     try:
         data = await request.json()
         user_id = data.get("user_id")
+        vs_bot = data.get("vs_bot", False)
+        bot_id = data.get("bot_id")
 
         with get_db() as conn:
-            waiting = conn.execute(
-                "SELECT id FROM duels WHERE status = 'waiting' AND player1_id != ?",
-                (user_id,)
-            ).fetchone()
-
-            if waiting:
-                duel_id = waiting["id"]
-                conn.execute(
-                    "UPDATE duels SET player2_id = ?, status = 'active', started_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    (user_id, duel_id)
-                )
-                start_price = get_btc_price()
-                conn.execute("UPDATE duels SET start_price = ? WHERE id = ?", (start_price, duel_id))
-                conn.commit()
-                return {"success": True, "duel_id": duel_id, "action": "joined"}
-            else:
+            if vs_bot and bot_id:
+                # Создаем дуэль с ботом
                 cursor = conn.execute(
-                    "INSERT INTO duels (player1_id, status) VALUES (?, 'waiting')",
-                    (user_id,)
+                    "INSERT INTO duels (player1_id, player2_id, is_bot, status) VALUES (?, ?, 1, 'active')",
+                    (user_id, bot_id)
                 )
                 duel_id = cursor.lastrowid
+                start_price = get_btc_price()
+                conn.execute("UPDATE duels SET start_price = ?, started_at = CURRENT_TIMESTAMP WHERE id = ?",
+                             (start_price, duel_id))
                 conn.commit()
-                return {"success": True, "duel_id": duel_id, "action": "created"}
+                return {"success": True, "duel_id": duel_id, "action": "vs_bot", "bot_id": bot_id}
+            else:
+                # Поиск реального соперника
+                waiting = conn.execute(
+                    "SELECT id FROM duels WHERE status = 'waiting' AND player1_id != ? AND is_bot = 0",
+                    (user_id,)
+                ).fetchone()
+
+                if waiting:
+                    duel_id = waiting["id"]
+                    conn.execute(
+                        "UPDATE duels SET player2_id = ?, status = 'active', started_at = CURRENT_TIMESTAMP WHERE id = ?",
+                        (user_id, duel_id)
+                    )
+                    start_price = get_btc_price()
+                    conn.execute("UPDATE duels SET start_price = ? WHERE id = ?", (start_price, duel_id))
+                    conn.commit()
+                    return {"success": True, "duel_id": duel_id, "action": "joined"}
+                else:
+                    cursor = conn.execute(
+                        "INSERT INTO duels (player1_id, status) VALUES (?, 'waiting')",
+                        (user_id,)
+                    )
+                    duel_id = cursor.lastrowid
+                    conn.commit()
+                    return {"success": True, "duel_id": duel_id, "action": "created"}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+
+@app.post("/api/duel/bot_prediction")
+async def get_bot_prediction(request: Request):
+    """Бот анализирует график и делает прогноз"""
+    try:
+        data = await request.json()
+        bot_id = data.get("bot_id")
+        duel_id = data.get("duel_id")
+
+        # Получаем историю цен для анализа
+        chart_data = await get_chart_history("BTC", 50)
+
+        bot = BOTS.get(bot_id)
+        if not bot:
+            return {"success": False, "error": "Bot not found"}
+
+        prediction = bot.analyze_market(chart_data)
+
+        # Сохраняем прогноз бота в дуэли
+        with get_db() as conn:
+            conn.execute(
+                "UPDATE duels SET player2_prediction = ? WHERE id = ?",
+                (prediction, duel_id)
+            )
+            conn.commit()
+
+        return {
+            "success": True,
+            "prediction": prediction,
+            "analysis": {
+                "bot_name": bot.name,
+                "confidence": random.randint(65, 95)
+            }
+        }
     except Exception as e:
         return {"success": False, "error": str(e)}
 
@@ -456,6 +609,7 @@ async def get_duel_status(duel_id: int):
             "status": duel["status"],
             "player1_id": duel["player1_id"],
             "player2_id": duel["player2_id"],
+            "is_bot": bool(duel["is_bot"]),
             "start_price": duel["start_price"],
             "started_at": duel["started_at"]
         }
@@ -482,6 +636,19 @@ async def submit_prediction(request: Request):
                 return {"success": False, "error": "Not a player in this duel"}
 
             conn.commit()
+
+            # Если это дуэль с ботом, сразу запускаем прогноз бота
+            if duel["is_bot"] and duel["player2_id"] and duel["player2_id"] < 0:
+                chart_data = await get_chart_history("BTC", 50)
+                bot = BOTS.get(duel["player2_id"])
+                if bot:
+                    bot_prediction = bot.analyze_market(chart_data)
+                    conn.execute(
+                        "UPDATE duels SET player2_prediction = ? WHERE id = ?",
+                        (bot_prediction, duel_id)
+                    )
+                    conn.commit()
+
             return {"success": True}
     except Exception as e:
         return {"success": False, "error": str(e)}
@@ -527,69 +694,53 @@ async def resolve_duel(request: Request):
             p1_pred = duel["player1_prediction"] or "sideways"
             p2_pred = duel["player2_prediction"] or "sideways"
 
-            p1_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player1_id"],)).fetchone()
-            p2_rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (duel["player2_id"],)).fetchone()
+            # Получаем рейтинги
+            p1_rating_data = await get_user_rating(duel["player1_id"])
+            p2_rating_data = await get_user_rating(duel["player2_id"])
 
-            p1_win = (p1_pred == real_direction and p2_pred != real_direction) or (
-                        p1_pred == "up" and real_direction == "up") or (p1_pred == "down" and real_direction == "down")
-            p2_win = (p2_pred == real_direction and p1_pred != real_direction) or (
-                        p2_pred == "up" and real_direction == "up") or (p2_pred == "down" and real_direction == "down")
+            p1_win = p1_pred == real_direction
+            p2_win = p2_pred == real_direction
 
-            if (p1_win and p2_win) or (not p1_win and not p2_win):
+            if p1_win and not p2_win:
+                winner_id = duel["player1_id"]
+            elif p2_win and not p1_win:
+                winner_id = duel["player2_id"]
+            else:
+                winner_id = None
+
+            # Расчет изменения рейтинга
+            if winner_id == duel["player1_id"]:
+                p1_change = calculate_elo_change(p1_rating_data["rating"], p2_rating_data["rating"], True)
+                p2_change = calculate_elo_change(p2_rating_data["rating"], p1_rating_data["rating"], False)
+            elif winner_id == duel["player2_id"]:
+                p1_change = calculate_elo_change(p1_rating_data["rating"], p2_rating_data["rating"], False)
+                p2_change = calculate_elo_change(p2_rating_data["rating"], p1_rating_data["rating"], True)
+            else:
                 p1_change = 0
                 p2_change = 0
-                winner_id = None
-                new_p1_streak = 0
-                new_p2_streak = 0
-                new_p1_loss = p1_rating["current_loss_streak"] + 1
-                new_p2_loss = p2_rating["current_loss_streak"] + 1
-            elif p1_win:
-                winner_id = duel["player1_id"]
-                p1_change = calculate_elo_change(p1_rating["rating"], p2_rating["rating"], True)
-                p2_change = calculate_elo_change(p2_rating["rating"], p1_rating["rating"], False)
-                new_p1_streak = p1_rating["current_win_streak"] + 1
-                new_p2_streak = 0
-                new_p1_loss = 0
-                new_p2_loss = p2_rating["current_loss_streak"] + 1
-            else:
-                winner_id = duel["player2_id"]
-                p1_change = calculate_elo_change(p1_rating["rating"], p2_rating["rating"], False)
-                p2_change = calculate_elo_change(p2_rating["rating"], p1_rating["rating"], True)
-                new_p1_streak = 0
-                new_p2_streak = p2_rating["current_win_streak"] + 1
-                new_p1_loss = p1_rating["current_loss_streak"] + 1
-                new_p2_loss = 0
 
-            new_p1_rating = p1_rating["rating"] + p1_change
-            new_p2_rating = p2_rating["rating"] + p2_change
+            # Обновляем рейтинги
+            if duel["player1_id"] > 0:  # Реальный пользователь
+                await update_user_rating(duel["player1_id"], p1_change, winner_id == duel["player1_id"])
+            else:  # Бот
+                bot = BOTS.get(duel["player1_id"])
+                if bot:
+                    bot.rating += p1_change
+                    if winner_id == duel["player1_id"]:
+                        bot.wins += 1
+                    else:
+                        bot.losses += 1
 
-            conn.execute("""
-                UPDATE user_ratings SET 
-                    rating = ?, 
-                    wins = wins + ?, 
-                    losses = losses + ?,
-                    current_win_streak = ?,
-                    current_loss_streak = ?,
-                    best_win_streak = MAX(best_win_streak, ?),
-                    duels_total = duels_total + 1
-                WHERE user_id = ?
-            """, (new_p1_rating, 1 if winner_id == duel["player1_id"] else 0,
-                  1 if winner_id == duel["player2_id"] else 0,
-                  new_p1_streak, new_p1_loss, new_p1_streak, duel["player1_id"]))
-
-            conn.execute("""
-                UPDATE user_ratings SET 
-                    rating = ?, 
-                    wins = wins + ?, 
-                    losses = losses + ?,
-                    current_win_streak = ?,
-                    current_loss_streak = ?,
-                    best_win_streak = MAX(best_win_streak, ?),
-                    duels_total = duels_total + 1
-                WHERE user_id = ?
-            """, (new_p2_rating, 1 if winner_id == duel["player2_id"] else 0,
-                  1 if winner_id == duel["player1_id"] else 0,
-                  new_p2_streak, new_p2_loss, new_p2_streak, duel["player2_id"]))
+            if duel["player2_id"] > 0:  # Реальный пользователь
+                await update_user_rating(duel["player2_id"], p2_change, winner_id == duel["player2_id"])
+            else:  # Бот
+                bot = BOTS.get(duel["player2_id"])
+                if bot:
+                    bot.rating += p2_change
+                    if winner_id == duel["player2_id"]:
+                        bot.wins += 1
+                    else:
+                        bot.losses += 1
 
             conn.execute("""
                 UPDATE duels SET 
@@ -615,6 +766,25 @@ async def resolve_duel(request: Request):
             }
     except Exception as e:
         return {"success": False, "error": str(e)}
+
+
+async def update_user_rating(user_id: int, rating_change: int, is_win: bool):
+    with get_db() as conn:
+        rating = conn.execute("SELECT * FROM user_ratings WHERE user_id = ?", (user_id,)).fetchone()
+        if rating:
+            new_rating = rating["rating"] + rating_change
+            new_wins = rating["wins"] + (1 if is_win else 0)
+            new_losses = rating["losses"] + (0 if is_win else 1)
+
+            conn.execute("""
+                UPDATE user_ratings SET 
+                    rating = ?, 
+                    wins = ?, 
+                    losses = ?,
+                    duels_total = duels_total + 1
+                WHERE user_id = ?
+            """, (new_rating, new_wins, new_losses, user_id))
+            conn.commit()
 
 
 if __name__ == "__main__":
