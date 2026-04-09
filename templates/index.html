@@ -38,16 +38,18 @@
         .animate-right { animation: fadeRight 0.6s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
 
-        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ВО ВСЮ ВЫСОТУ) ========== */
+        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ПРАВЫЙ КРАЙ ЭКРАНА) ========== */
         .floating-image-container {
             position: fixed;
             right: 0;
             top: 0;
-            width: 380px;
+            width: 45vw;
+            min-width: 400px;
+            max-width: 700px;
             height: 100vh;
-            z-index: 1000;
+            z-index: 100;
             pointer-events: none;
-            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.4, 1);
             will-change: transform;
             overflow: hidden;
         }
@@ -56,18 +58,19 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            object-position: center;
+            object-position: left center;
             display: block;
         }
 
-        /* Адаптив для плавающего изображения */
-        @media (max-width: 1400px) {
+        /* Адаптив */
+        @media (max-width: 1200px) {
             .floating-image-container {
-                width: 300px;
+                width: 50vw;
+                min-width: 350px;
             }
         }
 
-        @media (max-width: 1200px) {
+        @media (max-width: 900px) {
             .floating-image-container {
                 display: none;
             }
@@ -390,7 +393,7 @@
     </style>
 </head>
 <body>
-<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ НА ВСЮ ВЫСОТУ -->
+<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ПРИЖАТО К ПРАВОМУ КРАЮ) -->
 <div class="floating-image-container" id="floatingImage">
     <img class="floating-image" id="floatingImg" src="" alt="Trading visualization">
 </div>
@@ -551,42 +554,42 @@
         }
     }
 
-    // ========== ЛОГИКА ПЛАВАЮЩЕГО ИЗОБРАЖЕНИЯ ПРИ СКРОЛЛЕ ==========
+    // ========== ЛОГИКА ВЫЕЗЖАНИЯ ПРИ СКРОЛЛЕ ==========
     const floatingImage = document.getElementById('floatingImage');
+    let maxTranslate = 0;
 
     function updateFloatingImagePosition() {
-        if (window.innerWidth <= 1200) return;
+        if (window.innerWidth <= 900) return;
 
-        // Получаем правый край контейнера
-        const containerRect = document.querySelector('.container').getBoundingClientRect();
-        const containerRight = containerRect.right;
+        // Получаем прогресс скролла (0 в начале, 1 в конце страницы)
+        const scrollTop = window.scrollY;
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        const scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // Текущее положение изображения (правый край)
-        const imageRect = floatingImage.getBoundingClientRect();
-        const imageRight = imageRect.right;
+        // Максимальное смещение влево (в процентах от ширины экрана)
+        // Чем дальше скролл, тем больше выезжает
+        const maxOffsetPercent = 35; // максимум 35% ширины экрана
 
-        // Расстояние от изображения до правого края контейнера
-        const distanceToContainer = containerRight - imageRight;
+        // Вычисляем смещение: от 0% до maxOffsetPercent
+        const offsetPercent = scrollProgress * maxOffsetPercent;
 
-        // Если изображение заехало на контейнер, считаем насколько
-        let offset = 0;
-        if (distanceToContainer < 0) {
-            offset = Math.min(Math.abs(distanceToContainer), 300);
-        }
+        // Преобразуем в пиксели относительно ширины экрана
+        const offsetPx = (window.innerWidth * offsetPercent) / 100;
 
-        // Максимум 280px влево
-        const translateX = Math.min(offset, 280);
+        // Ограничиваем максимальное смещение (чтобы не перекрыть весь контент)
+        const maxOffsetPx = Math.min(window.innerWidth * 0.4, 500);
+        const finalOffset = Math.min(offsetPx, maxOffsetPx);
 
-        // Применяем transform (без translateY, так как top: 0)
-        floatingImage.style.transform = `translateX(-${translateX}px)`;
+        // Применяем трансформацию (отрицательное значение = влево)
+        floatingImage.style.transform = `translateX(-${finalOffset}px)`;
     }
 
-    // Слушаем событие скролла
+    // Слушаем скролл
     window.addEventListener('scroll', () => {
         requestAnimationFrame(updateFloatingImagePosition);
     });
 
-    // Также при ресайзе
+    // При ресайзе тоже обновляем
     window.addEventListener('resize', () => {
         requestAnimationFrame(updateFloatingImagePosition);
     });
@@ -596,7 +599,7 @@
         updateFloatingImagePosition();
     }, 100);
 
-    // ========== УКАЖИ ЗДЕСЬ ПУТЬ К ТВОЕМУ ФАЙЛУ ==========
+    // ========== УКАЖИ ПУТЬ К ТВОЕМУ ИЗОБРАЖЕНИЮ ==========
     setFloatingImage('/static/--.png');
 
     // Для карточек (раскомментируй при наличии)
