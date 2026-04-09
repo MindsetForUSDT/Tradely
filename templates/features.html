@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradeum · Возможности</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0A0C10; color: #E6E8EC; padding: 24px; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .logo { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #FFFFFF, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .back-link { background: #12161E; padding: 10px 22px; border-radius: 40px; text-decoration: none; color: #A1A6B0; border: 1px solid #262B36; transition: all 0.3s; }
+        .back-link:hover { border-color: #5EEAD4; color: #FFFFFF; }
+
+        h1 { font-size: 36px; font-weight: 700; margin-bottom: 16px; text-align: center; }
+        .subtitle { color: #7A8190; text-align: center; margin-bottom: 48px; }
+
+        .features-list { display: flex; flex-direction: column; gap: 24px; }
+        .feature-detail { background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; transition: all 0.3s; }
+        .feature-detail:hover { transform: translateX(8px); border-color: #5EEAD4; }
+        .feature-detail-icon { font-size: 48px; margin-bottom: 20px; }
+        .feature-detail-title { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+        .feature-detail-desc { color: #A1A6B0; line-height: 1.6; margin-bottom: 16px; }
+        .feature-detail-list { list-style: none; color: #7A8190; }
+        .feature-detail-list li { padding: 8px 0; padding-left: 24px; position: relative; }
+        .feature-detail-list li::before { content: "✓"; position: absolute; left: 0; color: #5EEAD4; }
+
+        @media (max-width: 600px) { body { padding: 16px; } h1 { font-size: 28px; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">Trade<span>um</span> Academy</div>
+        <a href="/" class="back-link">← На главную</a>
+    </div>
+
+    <h1>Возможности платформы</h1>
+    <div class="subtitle">Всё, что нужно для профессионального развития трейдера</div>
+
+    <div class="features-list">
+        <div class="feature-detail">
+            <div class="feature-detail-icon">📚</div>
+            <div class="feature-detail-title">Интерактивное обучение</div>
+            <div class="feature-detail-desc">Изучайте торговые паттерны на реальных примерах с интерактивными графиками.</div>
+            <ul class="feature-detail-list">
+                <li>8+ обучающих карточек с разными паттернами</li>
+                <li>Реалистичные графики с историческими данными</li>
+                <li>Подробные объяснения правильных и неправильных ответов</li>
+                <li>Система XP и уровней для отслеживания прогресса</li>
+            </ul>
+        </div>
+
+        <div class="feature-detail">
+            <div class="feature-detail-icon">⚔️</div>
+            <div class="feature-detail-title">Дуэли с ИИ и игроками</div>
+            <div class="feature-detail-desc">Соревнуйтесь с продвинутыми ИИ-ботами или реальными трейдерами.</div>
+            <ul class="feature-detail-list">
+                <li>5 уникальных ИИ-ботов с разными стратегиями</li>
+                <li>PvP-режим для дуэлей с реальными игроками</li>
+                <li>Рейтинговая система Эло</li>
+                <li>Анализ графиков и прогнозирование движения</li>
+            </ul>
+        </div>
+
+        <div class="feature-detail">
+            <div class="feature-detail-icon">📖</div>
+            <div class="feature-detail-title">Библиотека паттернов</div>
+            <div class="feature-detail-desc">Полная коллекция торговых паттернов с подробными описаниями.</div>
+            <ul class="feature-detail-list">
+                <li>12+ торговых паттернов</li>
+                <li>Бычьи и медвежьи фигуры</li>
+                <li>Индикаторы и их применение</li>
+                <li>Примеры использования на реальных графиках</li>
+            </ul>
+        </div>
+
+        <div class="feature-detail">
+            <div class="feature-detail-icon">🎮</div>
+            <div class="feature-detail-title">Торговый симулятор</div>
+            <div class="feature-detail-desc">Тренируйтесь на исторических данных без риска потери средств.</div>
+            <ul class="feature-detail-list">
+                <li>Реалистичная симуляция рынка</li>
+                <li>Открытие лонг и шорт позиций</li>
+                <li>История сделок и расчёт PnL</li>
+                <li>Идеально для отработки стратегий</li>
+            </ul>
+        </div>
+
+        <div class="feature-detail">
+            <div class="feature-detail-icon">🏆</div>
+            <div class="feature-detail-title">Система достижений</div>
+            <div class="feature-detail-desc">Зарабатывайте достижения и поднимайтесь в таблице лидеров.</div>
+            <ul class="feature-detail-list">
+                <li>Достижения за серии побед</li>
+                <li>Награды за количество правильных ответов</li>
+                <li>Рейтинг лучших трейдеров платформы</li>
+                <li>Отслеживание личного прогресса</li>
+            </ul>
+        </div>
+    </div>
+</div>
+</body>
+</html>

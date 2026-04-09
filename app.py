@@ -247,7 +247,13 @@ async def get_user_stats(user_id: int):
             "accuracy": (user["total_correct"] / (user["total_correct"] + user["total_wrong"]) * 100) if (user["total_correct"] + user["total_wrong"]) > 0 else 0,
             "achievements": [a["achievement_type"] for a in achievements]
         }
+@app.get("/faq", response_class=HTMLResponse)
+async def faq_page(request: Request):
+    return templates.TemplateResponse("faq.html", {"request": request})
 
+@app.get("/features", response_class=HTMLResponse)
+async def features_page(request: Request):
+    return templates.TemplateResponse("features.html", {"request": request})
 @app.get("/api/cards/random")
 async def get_random_card(user_id: int):
     with get_db() as conn:

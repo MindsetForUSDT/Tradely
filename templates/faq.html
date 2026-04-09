@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tradeum · FAQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0A0C10; color: #E6E8EC; padding: 24px; }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 40px; }
+        .logo { font-size: 26px; font-weight: 800; background: linear-gradient(135deg, #FFFFFF, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .back-link { background: #12161E; padding: 10px 22px; border-radius: 40px; text-decoration: none; color: #A1A6B0; border: 1px solid #262B36; transition: all 0.3s; }
+        .back-link:hover { border-color: #5EEAD4; color: #FFFFFF; }
+
+        h1 { font-size: 36px; font-weight: 700; margin-bottom: 16px; }
+        .subtitle { color: #7A8190; margin-bottom: 48px; }
+
+        .faq-item { background: #12161E; border: 1px solid #1F232C; border-radius: 20px; margin-bottom: 16px; overflow: hidden; }
+        .faq-question { padding: 20px 24px; font-weight: 600; font-size: 18px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
+        .faq-question:hover { background: #1A1F2A; }
+        .faq-question .icon { font-size: 24px; transition: transform 0.3s; }
+        .faq-question.active .icon { transform: rotate(45deg); }
+        .faq-answer { padding: 0 24px; max-height: 0; overflow: hidden; transition: max-height 0.3s ease, padding 0.3s ease; color: #A1A6B0; line-height: 1.6; }
+        .faq-question.active + .faq-answer { padding: 0 24px 20px 24px; max-height: 300px; }
+
+        @media (max-width: 600px) { body { padding: 16px; } h1 { font-size: 28px; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div class="logo">Trade<span>um</span> Academy</div>
+        <a href="/" class="back-link">← На главную</a>
+    </div>
+
+    <h1>Часто задаваемые вопросы</h1>
+    <div class="subtitle">Ответы на популярные вопросы о платформе</div>
+
+    <div class="faq-list">
+        <div class="faq-item">
+            <div class="faq-question">Что такое Tradeum Academy? <span class="icon">+</span></div>
+            <div class="faq-answer">Tradeum Academy — это образовательная платформа для трейдеров. Мы предлагаем интерактивные карточки для изучения паттернов технического анализа, дуэли с ИИ и реальными игроками, торговый симулятор и библиотеку паттернов.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Сколько стоит обучение? <span class="icon">+</span></div>
+            <div class="faq-answer">Обучение полностью бесплатное! Все функции платформы доступны без каких-либо платежей. Мы верим, что качественное образование должно быть доступным.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Нужен ли мне опыт в трейдинге? <span class="icon">+</span></div>
+            <div class="faq-answer">Нет, платформа подходит как для начинающих, так и для опытных трейдеров. Мы начинаем с основ и постепенно усложняем материал. Каждая карточка содержит подробное объяснение.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Как работают дуэли? <span class="icon">+</span></div>
+            <div class="faq-answer">Вы можете выбрать дуэль с ИИ-ботом (5 ботов с разными стратегиями) или найти реального соперника. Оба игрока анализируют одинаковый график и делают прогноз движения цены. Победитель получает рейтинговые очки.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Что такое XP и уровни? <span class="icon">+</span></div>
+            <div class="faq-answer">XP (опыт) начисляется за правильные ответы в обучающих карточках. С каждым новым уровнем открываются более сложные задания и растёт ваш рейтинг в таблице лидеров.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Есть ли торговля реальными деньгами? <span class="icon">+</span></div>
+            <div class="faq-answer">Нет, Tradeum Academy — это исключительно обучающая платформа. Все сделки в симуляторе и прогнозы в дуэлях производятся на виртуальные средства.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Как зарегистрироваться? <span class="icon">+</span></div>
+            <div class="faq-answer">Нажмите кнопку "Регистрация" в правом верхнем углу, придумайте имя пользователя и пароль. После регистрации вы сразу попадёте в личный кабинет.</div>
+        </div>
+        <div class="faq-item">
+            <div class="faq-question">Могу ли я соревноваться с друзьями? <span class="icon">+</span></div>
+            <div class="faq-answer">Да! В режиме дуэли вы можете найти соперника в реальном времени или пригласить друга через реферальную ссылку (функция в разработке).</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll('.faq-question').forEach(question => {
+        question.addEventListener('click', () => {
+            const isActive = question.classList.contains('active');
+            document.querySelectorAll('.faq-question').forEach(q => {
+                q.classList.remove('active');
+            });
+            if (!isActive) {
+                question.classList.add('active');
+            }
+        });
+    });
+</script>
+</body>
+</html>
