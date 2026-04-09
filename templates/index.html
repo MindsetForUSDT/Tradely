@@ -16,20 +16,41 @@
             to { opacity: 1; transform: translateY(0); }
         }
         @keyframes fadeInLeft {
-            from { opacity: 0; transform: translateX(-40px); }
+            from { opacity: 0; transform: translateX(-50px); }
             to { opacity: 1; transform: translateX(0); }
         }
         @keyframes fadeInRight {
-            from { opacity: 0; transform: translateX(40px); }
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        @keyframes floatDelay {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-15px); }
+        }
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-100px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(100px); }
             to { opacity: 1; transform: translateX(0); }
         }
         @keyframes scaleIn {
-            from { opacity: 0; transform: scale(0.9); }
+            from { opacity: 0; transform: scale(0.8); }
             to { opacity: 1; transform: scale(1); }
         }
+
         .animate-fade-up { animation: fadeInUp 0.6s ease forwards; }
         .animate-fade-left { animation: fadeInLeft 0.6s ease forwards; }
         .animate-fade-right { animation: fadeInRight 0.6s ease forwards; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+        .animate-float-delay { animation: floatDelay 4s ease-in-out infinite; }
+        .animate-slide-left { animation: slideInLeft 0.8s ease forwards; }
+        .animate-slide-right { animation: slideInRight 0.8s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
 
         /* Header */
@@ -39,7 +60,7 @@
         .nav a:hover { color: #5EEAD4; }
 
         /* Hero */
-        .hero { display: flex; align-items: center; gap: 60px; margin-bottom: 80px; flex-wrap: wrap; }
+        .hero { display: flex; align-items: center; gap: 60px; margin-bottom: 80px; flex-wrap: wrap; position: relative; }
         .hero-content { flex: 1; opacity: 0; animation: fadeInLeft 0.6s ease 0.2s forwards; }
         .badge { display: inline-block; background: rgba(94, 234, 212, 0.1); padding: 6px 16px; border-radius: 100px; font-size: 13px; color: #5EEAD4; margin-bottom: 24px; }
         h1 { font-size: 56px; font-weight: 800; line-height: 1.1; margin-bottom: 24px; letter-spacing: -0.02em; }
@@ -56,6 +77,54 @@
         .stat-item:last-child { border-bottom: none; }
         .stat-label { color: #7A8190; }
         .stat-value { font-size: 24px; font-weight: 700; color: #5EEAD4; }
+
+        /* Плавающие карточки */
+        .floating-cards {
+            position: relative;
+            min-height: 200px;
+            margin-bottom: 60px;
+        }
+        .float-card {
+            position: absolute;
+            background: linear-gradient(135deg, #1A1F2E, #12161E);
+            border: 1px solid #2E3440;
+            border-radius: 20px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        .float-card-1 { top: -30px; left: 5%; animation: float 4s ease-in-out infinite; }
+        .float-card-2 { top: 50px; right: 3%; animation: floatDelay 5s ease-in-out infinite; }
+        .float-card-3 { bottom: -40px; left: 15%; animation: float 3.5s ease-in-out infinite; }
+        .float-card-4 { bottom: -20px; right: 12%; animation: floatDelay 4.5s ease-in-out infinite; }
+        .float-card-icon { font-size: 32px; }
+        .float-card-text { font-weight: 600; }
+        .float-card-sub { font-size: 12px; color: #7A8190; }
+
+        /* Изображения */
+        .image-spot {
+            background: linear-gradient(135deg, #1A1F2E, #12161E);
+            border-radius: 24px;
+            padding: 40px;
+            text-align: center;
+            border: 1px dashed #2E3440;
+            margin: 40px 0;
+        }
+        .image-spot img {
+            max-width: 100%;
+            border-radius: 16px;
+        }
+        .image-placeholder {
+            background: #0A0C10;
+            border-radius: 16px;
+            padding: 60px;
+            text-align: center;
+            color: #4A4F6A;
+        }
 
         /* Features */
         .section-title { font-size: 36px; font-weight: 700; text-align: center; margin-bottom: 48px; opacity: 0; animation: fadeInUp 0.6s ease 0.1s forwards; }
@@ -106,6 +175,7 @@
             .footer-content { flex-direction: column; text-align: center; }
             .footer-desc { margin: 0 auto; }
             .about-stats { gap: 24px; }
+            .float-card { display: none; }
         }
     </style>
 </head>
@@ -116,6 +186,26 @@
         <div class="nav">
             <a href="/login">Вход</a>
             <a href="/register">Регистрация</a>
+        </div>
+    </div>
+
+    <!-- Плавающие карточки -->
+    <div class="floating-cards">
+        <div class="float-card float-card-1">
+            <div class="float-card-icon">📊</div>
+            <div><div class="float-card-text">+1,247 учеников</div><div class="float-card-sub">за последний месяц</div></div>
+        </div>
+        <div class="float-card float-card-2">
+            <div class="float-card-icon">🏆</div>
+            <div><div class="float-card-text">Топ-3 по трейдингу</div><div class="float-card-sub">в рейтинге 2026</div></div>
+        </div>
+        <div class="float-card float-card-3">
+            <div class="float-card-icon">⚡</div>
+            <div><div class="float-card-text">98% точности</div><div class="float-card-sub">у лучших учеников</div></div>
+        </div>
+        <div class="float-card float-card-4">
+            <div class="float-card-icon">🎓</div>
+            <div><div class="float-card-text">8 обучающих карт</div><div class="float-card-sub">+ новые каждую неделю</div></div>
         </div>
     </div>
 
@@ -137,6 +227,15 @@
         </div>
     </div>
 
+    <!-- Место для картинки 1 -->
+    <div class="image-spot" id="imageSpot1">
+        <img id="tradingImage1" src="" alt="Трейдинг график" style="display: none;">
+        <div class="image-placeholder" id="placeholder1">
+            🖼️ Здесь будет график трейдинга<br>
+            <span style="font-size: 12px;">Рекомендуемый размер: 800x400px</span>
+        </div>
+    </div>
+
     <div class="features-grid" id="features">
         <div class="feature-card" data-delay="0"><div class="feature-icon">📚</div><div class="feature-title">Интерактивное обучение</div><div class="feature-desc">Изучай реальные рыночные паттерны на практических примерах с интерактивными графиками.</div></div>
         <div class="feature-card" data-delay="0.1"><div class="feature-icon">⚔️</div><div class="feature-title">Дуэли с ИИ и игроками</div><div class="feature-desc">Соревнуйся с 5 разными ИИ-ботами или с реальными трейдерами в режиме реального времени.</div></div>
@@ -144,6 +243,15 @@
         <div class="feature-card" data-delay="0.3"><div class="feature-icon">📖</div><div class="feature-title">Библиотека паттернов</div><div class="feature-desc">Полная коллекция торговых паттернов с подробными описаниями и примерами использования.</div></div>
         <div class="feature-card" data-delay="0.4"><div class="feature-icon">🎮</div><div class="feature-title">Торговый симулятор</div><div class="feature-desc">Тренируйся на исторических данных без риска потери реальных средств.</div></div>
         <div class="feature-card" data-delay="0.5"><div class="feature-icon">💡</div><div class="feature-title">Обратная связь</div><div class="feature-desc">Подробные объяснения правильных и неправильных ответов для лучшего понимания.</div></div>
+    </div>
+
+    <!-- Место для картинки 2 -->
+    <div class="image-spot" id="imageSpot2">
+        <img id="tradingImage2" src="" alt="Дуэль трейдеров" style="display: none;">
+        <div class="image-placeholder" id="placeholder2">
+            🎮 Здесь будет изображение дуэли трейдеров<br>
+            <span style="font-size: 12px;">Рекомендуемый размер: 1200x400px</span>
+        </div>
     </div>
 
     <div class="duel-banner" id="duel-banner">
@@ -168,8 +276,8 @@
         </div>
         <div class="about-stats">
             <div class="about-stat"><div class="about-stat-value">24/7</div><div class="about-stat-label">Доступ к платформе</div></div>
-            <div class="about-stat"><div class="about-stat-value">100%</div><div class="about-stat-label">Бесплатно</div></div>
-            <div class="about-stat"><div class="about-stat-value">0₽</div><div class="about-stat-label">Никаких скрытых платежей</div></div>
+            <div class="about-stat"><div class="about-stat-value">8+</div><div class="about-stat-label">Обучающих карточек</div></div>
+            <div class="about-stat"><div class="about-stat-value">5</div><div class="about-stat-label">Уровней сложности</div></div>
         </div>
     </div>
 
@@ -200,8 +308,7 @@
         <div class="footer-bottom">
             <div>© 2026 Tradeum Academy. Образовательная платформа для трейдеров.</div>
             <div style="margin-top: 12px; font-size: 12px;">
-                Tradeum Academy не предоставляет инвестиционных консультаций. Все материалы носят образовательный характер.<br>
-                Торговля на финансовых рынках сопряжена с риском. Всегда проводите собственный анализ перед принятием решений.
+                Tradeum Academy не предоставляет инвестиционных консультаций. Все материалы носят образовательный характер.
             </div>
         </div>
     </div>
@@ -235,7 +342,6 @@
         });
     }, observerOptions);
 
-    // Наблюдаем за элементами
     document.querySelectorAll('.feature-card').forEach(card => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(30px)';
@@ -244,6 +350,19 @@
 
     observer.observe(document.querySelector('.about-section'));
     observer.observe(document.querySelector('.duel-banner'));
+
+    // Функция для вставки картинок
+    window.insertImage = function(slotId, imageUrl, width = '100%') {
+        const spot = document.getElementById(slotId);
+        const img = spot.querySelector('img');
+        const placeholder = spot.querySelector('.image-placeholder');
+
+        img.src = imageUrl;
+        img.style.display = 'block';
+        img.style.width = width;
+        img.style.height = 'auto';
+        placeholder.style.display = 'none';
+    };
 </script>
 </body>
 </html>
