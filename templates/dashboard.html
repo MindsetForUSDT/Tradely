@@ -26,7 +26,6 @@
         }
         .logo { font-size: 24px; font-weight: 800; padding: 0 24px 24px 24px; border-bottom: 1px solid #1F232C; margin-bottom: 24px; background: linear-gradient(135deg, #FFFFFF, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-        /* Горизонтальный скролл для навигации на мобилках */
         .nav-menu { flex: 1; }
         .nav-item {
             display: flex;
@@ -336,8 +335,8 @@
             width: 55px;
             height: 55px;
             border-radius: 50%;
-            background: #F4B740;
-            color: #0A0C10;
+            background: linear-gradient(135deg, #F4B740, #F06292);
+            color: white;
             border: none;
             cursor: pointer;
             display: flex;
@@ -346,7 +345,7 @@
             font-size: 28px;
             transition: all 0.3s;
             z-index: 99;
-            box-shadow: 0 4px 15px rgba(244, 183, 64, 0.3);
+            box-shadow: 0 4px 15px rgba(240, 98, 146, 0.4);
         }
         .support-fab:hover {
             transform: scale(1.05);
@@ -361,7 +360,6 @@
             .content-header { padding: 20px; }
             .content-area { padding: 20px; }
 
-            /* Горизонтальный скролл навигации */
             .nav-menu {
                 overflow-x: auto;
                 white-space: nowrap;
@@ -487,7 +485,7 @@
             });
         }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
 
-        document.querySelectorAll('.stat-card, .library-pattern-card, .feature-card').forEach(el => {
+        document.querySelectorAll('.stat-card, .library-pattern-card').forEach(el => {
             observer.observe(el);
         });
     }
