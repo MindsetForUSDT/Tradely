@@ -33,6 +33,10 @@
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
         }
+        @keyframes slideInLeft {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-80px); }
+        }
         .animate-up { animation: fadeUp 0.6s ease forwards; }
         .animate-left { animation: fadeLeft 0.6s ease forwards; }
         .animate-right { animation: fadeRight 0.6s ease forwards; }
@@ -47,9 +51,16 @@
             height: 100vh;
             z-index: 100;
             pointer-events: none;
-            transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.4, 1);
+            transition: transform 0.1s linear;
             will-change: transform;
             overflow: visible;
+            /* Начальное положение: полностью справа (не выехало) */
+            transform: translateX(0);
+        }
+
+        /* Анимация выезжания при загрузке */
+        .floating-image-container.initial-slide {
+            animation: slideInLeft 0.8s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards;
         }
 
         .floating-image {
@@ -65,11 +76,19 @@
             .floating-image-container {
                 width: 420px;
             }
+            @keyframes slideInLeft {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-60px); }
+            }
         }
 
         @media (max-width: 1200px) {
             .floating-image-container {
                 width: 350px;
+            }
+            @keyframes slideInLeft {
+                0% { transform: translateX(0); }
+                100% { transform: translateX(-50px); }
             }
         }
 
@@ -557,49 +576,62 @@
         }
     }
 
-    // ========== ЛОГИКА ВЫЕЗЖАНИЯ ПРИ СКРОЛЛЕ ==========
+    // ========== АНИМАЦИЯ ПРИ ЗАГРУЗКЕ (выезжает без скролла) ==========
     const floatingImage = document.getElementById('floatingImage');
-    let imageWidth = 500;
-    let startOffset = 0; // Начальное смещение (половина ширины)
-    let isInitialized = false;
+    let baseOffset = 0; // Базовое смещение после начальной анимации
+    let animationCompleted = false;
 
+    // Запускаем анимацию выезжания при загрузке
+    setTimeout(() => {
+        floatingImage.classList.add('initial-slide');
+
+        // После завершения анимации запоминаем базовое смещение
+        setTimeout(() => {
+            animationCompleted = true;
+            // Получаем текущее смещение из transform
+            const transform = window.getComputedStyle(floatingImage).transform;
+            if (transform && transform !== 'none') {
+                const matrix = transform.match(/matrix.*\((.+)\)/);
+                if (matrix) {
+                    const values = matrix[1].split(', ');
+                    baseOffset = Math.abs(parseFloat(values[4])); // translateX значение
+                }
+            }
+            // Если не удалось получить, устанавливаем стандартное значение
+            if (baseOffset === 0 || isNaN(baseOffset)) {
+                if (window.innerWidth <= 1200) baseOffset = 50;
+                else if (window.innerWidth <= 1400) baseOffset = 60;
+                else baseOffset = 80;
+            }
+        }, 850);
+    }, 100);
+
+    // ========== ЛОГИКА ДОПОЛНИТЕЛЬНОГО ВЫЕЗЖАНИЯ ПРИ СКРОЛЛЕ ==========
     function updateFloatingImagePosition() {
         if (window.innerWidth <= 900) return;
-
-        // Получаем ширину фото из CSS
-        const containerStyle = window.getComputedStyle(floatingImage);
-        imageWidth = parseFloat(containerStyle.width);
-
-        // Устанавливаем начальное смещение (половина ширины) при загрузке
-        if (!isInitialized) {
-            startOffset = imageWidth / 2; // Ровно половина фото
-            floatingImage.style.transform = `translateX(-${startOffset}px)`;
-            isInitialized = true;
-        }
+        if (!animationCompleted) return;
 
         // Прогресс скролла (0 в начале, 1 в конце)
         const scrollTop = window.scrollY;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // Плавное увеличение: от 0 до 1 (дополнительное смещение от половины до полной ширины)
-        // То есть при скролле фото будет выезжать ещё на половину своей ширины
-
-        // Начинаем выезжать с 10% скролла, заканчиваем к 90%
-        let adjustedProgress = 0;
-        if (scrollProgress <= 0.1) {
-            adjustedProgress = 0;
-        } else if (scrollProgress >= 0.9) {
-            adjustedProgress = 1;
+        // Начинаем дополнительное выезжание с 20% скролла, заканчиваем к 80%
+        let extraProgress = 0;
+        if (scrollProgress <= 0.2) {
+            extraProgress = 0;
+        } else if (scrollProgress >= 0.8) {
+            extraProgress = 1;
         } else {
-            adjustedProgress = (scrollProgress - 0.1) / 0.8;
+            extraProgress = (scrollProgress - 0.2) / 0.6;
         }
 
-        // Дополнительное смещение (от половины до полной ширины)
-        const extraOffset = adjustedProgress * (imageWidth / 2);
+        // Максимальное дополнительное смещение (ещё 60-80px)
+        const maxExtraOffset = window.innerWidth <= 1200 ? 60 : 80;
+        const extraOffset = extraProgress * maxExtraOffset;
 
-        // Итоговое смещение = начальное (половина) + дополнительное (ещё половина)
-        const totalOffset = startOffset + extraOffset;
+        // Итоговое смещение = базовое (от анимации) + дополнительное (от скролла)
+        const totalOffset = baseOffset + extraOffset;
 
         // Применяем трансформацию
         floatingImage.style.transform = `translateX(-${totalOffset}px)`;
@@ -610,16 +642,13 @@
         requestAnimationFrame(updateFloatingImagePosition);
     });
 
-    // При ресайзе
+    // При ресайзе обновляем базовое смещение
     window.addEventListener('resize', () => {
-        isInitialized = false;
-        requestAnimationFrame(updateFloatingImagePosition);
-    });
-
-    // Инициализация
-    setTimeout(() => {
+        if (window.innerWidth <= 1200) baseOffset = 50;
+        else if (window.innerWidth <= 1400) baseOffset = 60;
+        else baseOffset = 80;
         updateFloatingImagePosition();
-    }, 100);
+    });
 
     // ========== УКАЖИ ПУТЬ К ТВОЕМУ ИЗОБРАЖЕНИЮ ==========
     setFloatingImage('/static/--.png');
