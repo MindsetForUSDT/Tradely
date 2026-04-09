@@ -24,7 +24,7 @@
         .gradient-text { background: linear-gradient(135deg, #5EEAD4, #F4B740); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .hero-desc { color: #A1A6B0; font-size: 18px; margin-bottom: 32px; max-width: 500px; }
         .btn-group { display: flex; gap: 16px; }
-        .btn-primary { background: #5EEAD4; color: #0A0C10; padding: 14px 32px; border-radius: 40px; text-decoration: none; font-weight: 700; transition: all 0.3s; }
+        .btn-primary { background: #5EEAD4; color: #0A0C10; padding: 14px 32px; border-radius: 40px; text-decoration: none; font-weight: 700; transition: all 0.3s; display: inline-block; }
         .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(94, 234, 212, 0.3); }
         .btn-secondary { background: transparent; border: 1px solid #2E3440; color: #E6E8EC; padding: 14px 32px; border-radius: 40px; text-decoration: none; font-weight: 600; transition: all 0.3s; }
         .btn-secondary:hover { border-color: #5EEAD4; color: #5EEAD4; }
@@ -44,15 +44,44 @@
         .feature-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
         .feature-desc { color: #A1A6B0; font-size: 14px; line-height: 1.6; }
 
-        /* About */
+        /* About Section */
         .about-section { background: #12161E; border-radius: 32px; padding: 48px; margin-bottom: 60px; text-align: center; }
         .about-title { font-size: 28px; font-weight: 700; margin-bottom: 24px; }
         .about-text { color: #A1A6B0; max-width: 800px; margin: 0 auto; line-height: 1.8; }
+        .about-stats { display: flex; justify-content: center; gap: 48px; margin-top: 32px; flex-wrap: wrap; }
+        .about-stat { text-align: center; }
+        .about-stat-value { font-size: 32px; font-weight: 700; color: #5EEAD4; }
+        .about-stat-label { font-size: 13px; color: #7A8190; margin-top: 8px; }
+
+        /* Duel Banner */
+        .duel-banner { background: linear-gradient(135deg, #1A1F2A, #12161E); border-radius: 32px; padding: 48px; margin-bottom: 60px; text-align: center; border: 1px solid #2E3440; }
+        .duel-banner-icon { font-size: 48px; margin-bottom: 20px; }
+        .duel-banner-title { font-size: 28px; font-weight: 700; margin-bottom: 16px; }
+        .duel-banner-text { color: #A1A6B0; max-width: 600px; margin: 0 auto 24px auto; }
+        .duel-badge { display: inline-block; background: rgba(94, 234, 212, 0.1); padding: 8px 20px; border-radius: 100px; font-size: 13px; color: #5EEAD4; margin-top: 16px; }
 
         /* Footer */
-        .footer { border-top: 1px solid #1F232C; padding: 40px 0; text-align: center; color: #7A8190; font-size: 14px; }
+        .footer { border-top: 1px solid #1F232C; padding: 48px 0 32px 0; }
+        .footer-content { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 40px; margin-bottom: 32px; }
+        .footer-section { flex: 1; min-width: 200px; }
+        .footer-logo { font-size: 24px; font-weight: 800; background: linear-gradient(135deg, #FFFFFF, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; margin-bottom: 16px; display: inline-block; }
+        .footer-desc { color: #7A8190; font-size: 14px; line-height: 1.6; max-width: 250px; }
+        .footer-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; color: #FFFFFF; }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 10px; }
+        .footer-links a { color: #7A8190; text-decoration: none; font-size: 14px; transition: color 0.3s; }
+        .footer-links a:hover { color: #5EEAD4; }
+        .footer-bottom { text-align: center; padding-top: 32px; border-top: 1px solid #1F232C; color: #4A4F6A; font-size: 13px; }
+        .footer-bottom a { color: #5EEAD4; text-decoration: none; }
 
-        @media (max-width: 768px) { h1 { font-size: 36px; } .hero { flex-direction: column; } .nav a { margin-left: 16px; } }
+        @media (max-width: 768px) {
+            h1 { font-size: 36px; }
+            .hero { flex-direction: column; }
+            .nav a { margin-left: 16px; }
+            .footer-content { flex-direction: column; text-align: center; }
+            .footer-desc { margin: 0 auto; }
+            .about-stats { gap: 24px; }
+        }
     </style>
 </head>
 <body>
@@ -62,7 +91,7 @@
         <div class="nav">
             <a href="#features">О платформе</a>
             <a href="/login">Вход</a>
-            <a href="/login?register=1">Регистрация</a>
+            <a href="/register">Регистрация</a>
         </div>
     </div>
 
@@ -72,25 +101,32 @@
             <h1>Стань мастером<br><span class="gradient-text">технического анализа</span></h1>
             <div class="hero-desc">Изучай торговые паттерны, анализируй графики, соревнуйся с другими трейдерами и становись профессионалом.</div>
             <div class="btn-group">
-                <a href="/login" class="btn-primary">🚀 Начать обучение</a>
-                <a href="/login" class="btn-secondary">📊 Войти</a>
+                <a href="/register" class="btn-primary">Начать обучение</a>
+                <a href="/login" class="btn-secondary">Войти</a>
             </div>
         </div>
         <div class="hero-stats">
-            <div class="stat-item"><span class="stat-label">📚 Учебных карточек</span><span class="stat-value">8+</span></div>
-            <div class="stat-item"><span class="stat-label">⚔️ ИИ-соперников</span><span class="stat-value">5</span></div>
-            <div class="stat-item"><span class="stat-label">🏆 Активных трейдеров</span><span class="stat-value">1,247</span></div>
-            <div class="stat-item"><span class="stat-label">📈 Паттернов в библиотеке</span><span class="stat-value">12</span></div>
+            <div class="stat-item"><span class="stat-label">📚 Интерактивных карточек</span><span class="stat-value">8+</span></div>
+            <div class="stat-item"><span class="stat-label">⚔️ Режимов дуэлей</span><span class="stat-value">2</span></div>
+            <div class="stat-item"><span class="stat-label">🎓 Активных учеников</span><span class="stat-value">1,247</span></div>
+            <div class="stat-item"><span class="stat-label">📊 Торговых паттернов</span><span class="stat-value">12</span></div>
         </div>
     </div>
 
     <div class="features-grid" id="features">
-        <div class="feature-card"><div class="feature-icon">📚</div><div class="feature-title">Интерактивное обучение</div><div class="feature-desc">Изучай реальные рыночные паттерны на практических примерах с графиками.</div></div>
-        <div class="feature-card"><div class="feature-icon">⚔️</div><div class="feature-title">Дуэли с ИИ</div><div class="feature-desc">Соревнуйся с 5 разными ИИ-ботами с уникальными стратегиями.</div></div>
-        <div class="feature-card"><div class="feature-icon">🏆</div><div class="feature-title">Система рейтинга</div><div class="feature-desc">Зарабатывай XP, повышай уровень и соревнуйся в таблице лидеров.</div></div>
-        <div class="feature-card"><div class="feature-icon">📖</div><div class="feature-title">Библиотека паттернов</div><div class="feature-desc">Полная коллекция торговых паттернов с подробными описаниями.</div></div>
-        <div class="feature-card"><div class="feature-icon">🎮</div><div class="feature-title">Торговый симулятор</div><div class="feature-desc">Тренируйся на исторических данных без риска потери средств.</div></div>
-        <div class="feature-card"><div class="feature-icon">💡</div><div class="feature-title">Обратная связь</div><div class="feature-desc">Подробные объяснения правильных и неправильных ответов.</div></div>
+        <div class="feature-card"><div class="feature-icon">📚</div><div class="feature-title">Интерактивное обучение</div><div class="feature-desc">Изучай реальные рыночные паттерны на практических примерах с интерактивными графиками.</div></div>
+        <div class="feature-card"><div class="feature-icon">⚔️</div><div class="feature-title">Дуэли с ИИ и игроками</div><div class="feature-desc">Соревнуйся с 5 разными ИИ-ботами или с реальными трейдерами в режиме реального времени.</div></div>
+        <div class="feature-card"><div class="feature-icon">🏆</div><div class="feature-title">Система рейтинга</div><div class="feature-desc">Зарабатывай XP, повышай уровень, получай достижения и соревнуйся в таблице лидеров.</div></div>
+        <div class="feature-card"><div class="feature-icon">📖</div><div class="feature-title">Библиотека паттернов</div><div class="feature-desc">Полная коллекция торговых паттернов с подробными описаниями и примерами использования.</div></div>
+        <div class="feature-card"><div class="feature-icon">🎮</div><div class="feature-title">Торговый симулятор</div><div class="feature-desc">Тренируйся на исторических данных без риска потери реальных средств.</div></div>
+        <div class="feature-card"><div class="feature-icon">💡</div><div class="feature-title">Обратная связь</div><div class="feature-desc">Подробные объяснения правильных и неправильных ответов для лучшего понимания.</div></div>
+    </div>
+
+    <div class="duel-banner">
+        <div class="duel-banner-icon">⚔️</div>
+        <div class="duel-banner-title">Дуэли с ИИ и реальными игроками</div>
+        <div class="duel-banner-text">Испытай свои навыки в захватывающих дуэлях! Соревнуйся с продвинутыми ИИ-ботами, каждый из которых имеет уникальную стратегию, или найди соперника среди реальных трейдеров. Повышай свой рейтинг, зарабатывай очки и докажи, что ты лучший!</div>
+        <div class="duel-badge">🎯 5 уникальных ИИ-противников | ⚡ Реальные соперники онлайн | 🏆 Рейтинговая система</div>
     </div>
 
     <div class="about-section">
@@ -101,12 +137,57 @@
             делать прогнозы и получать мгновенную обратную связь. Наши карточки охватывают ключевые паттерны
             технического анализа: от пробоев уровней до сложных фигур разворота.
             <br><br>
-            Соревнуйся с ИИ-ботами, повышай свой рейтинг и становись настоящим мастером рынка!
+            Платформа предлагает уникальную систему дуэлей, где вы можете соревноваться как с искусственным интеллектом,
+            так и с другими трейдерами. Каждый ИИ-бот имеет свою стратегию и стиль торговли — от консервативного
+            следования тренду до агрессивного поиска разворотов. А благодаря системе рейтинга и достижений,
+            вы всегда будете видеть свой прогресс и стремиться к новым вершинам.
+        </div>
+        <div class="about-stats">
+            <div class="about-stat"><div class="about-stat-value">24/7</div><div class="about-stat-label">Доступ к платформе</div></div>
+            <div class="about-stat"><div class="about-stat-value">100%</div><div class="about-stat-label">Бесплатно</div></div>
+            <div class="about-stat"><div class="about-stat-value">0₽</div><div class="about-stat-label">Никаких скрытых платежей</div></div>
         </div>
     </div>
 
     <div class="footer">
-        <div>© 2026 Tradeum Academy. Образовательная платформа для трейдеров.</div>
+        <div class="footer-content">
+            <div class="footer-section">
+                <div class="footer-logo">Tradeum Academy</div>
+                <div class="footer-desc">Образовательная платформа для трейдеров. Обучайся, практикуйся, побеждай.</div>
+            </div>
+            <div class="footer-section">
+                <div class="footer-title">Навигация</div>
+                <ul class="footer-links">
+                    <li><a href="/learn">Обучение</a></li>
+                    <li><a href="/duel">Дуэли</a></li>
+                    <li><a href="/library">Библиотека</a></li>
+                    <li><a href="/simulator">Симулятор</a></li>
+                    <li><a href="/leaderboard">Рейтинг</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <div class="footer-title">О проекте</div>
+                <ul class="footer-links">
+                    <li><a href="#features">Возможности</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Контакты</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <div class="footer-title">Контакты</div>
+                <ul class="footer-links">
+                    <li><a href="#">📧 support@tradeum.com</a></li>
+                    <li><a href="#">📱 Telegram-канал</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <div>© 2026 Tradeum Academy. Образовательная платформа для трейдеров.</div>
+            <div style="margin-top: 12px; font-size: 12px;">
+                Tradeum Academy не предоставляет инвестиционных консультаций. Все материалы носят образовательный характер.<br>
+                Торговля на финансовых рынках сопряжена с риском. Всегда проводите собственный анализ перед принятием решений.
+            </div>
+        </div>
     </div>
 </div>
 </body>
