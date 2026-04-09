@@ -413,17 +413,29 @@ async def get_duel_status(duel_id: int):
 async def home(request: Request): return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, registered: str = None, error: str = None): return templates.TemplateResponse("login.html", {"request": request, "registered": registered, "error": error})
+async def login_page(request: Request, registered: str = None, error: str = None):
+    return templates.TemplateResponse("login.html", {
+        "request": request,
+        "registered": registered,
+        "error": error
+    })
+
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    return templates.TemplateResponse("login.html", {"request": request, "registered": None, "error": None})
 
 @app.post("/register")
 async def register(username: str = Form(...), password: str = Form(...)):
     try:
         with get_db() as conn:
-            conn.execute("INSERT INTO users (username, password_hash) VALUES (?, ?)", (username, hash_password(password)))
+            conn.execute(
+                "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+                (username, hash_password(password))
+            )
             conn.commit()
         return RedirectResponse(url="/login?registered=1", status_code=303)
-    except sqlite3.IntegrityError: return RedirectResponse(url="/login?error=exists", status_code=303)
-
+    except sqlite3.IntegrityError:
+        return RedirectResponse(url="/login?error=exists", status_code=303)
 @app.post("/login")
 async def login(username: str = Form(...), password: str = Form(...)):
     with get_db() as conn:
