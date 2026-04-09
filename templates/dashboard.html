@@ -2,9 +2,11 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>Tradeum · Главная</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -12,7 +14,7 @@
 
         .app { display: flex; height: 100vh; }
 
-        /* Боковое меню */
+        /* ========== БОКОВОЕ МЕНЮ ========== */
         .sidebar {
             width: 280px;
             background: #12161E;
@@ -20,9 +22,11 @@
             display: flex;
             flex-direction: column;
             padding: 24px 0;
+            transition: width 0.3s ease;
         }
         .logo { font-size: 24px; font-weight: 800; padding: 0 24px 24px 24px; border-bottom: 1px solid #1F232C; margin-bottom: 24px; background: linear-gradient(135deg, #FFFFFF, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
+        /* Горизонтальный скролл для навигации на мобилках */
         .nav-menu { flex: 1; }
         .nav-item {
             display: flex;
@@ -51,7 +55,7 @@
         .level-bar { background: #1F232C; border-radius: 10px; height: 6px; margin-top: 8px; overflow: hidden; }
         .level-fill { background: #5EEAD4; height: 100%; width: 0%; transition: width 0.3s; }
 
-        /* Основной контент */
+        /* ========== ОСНОВНОЙ КОНТЕНТ ========== */
         .main-content {
             flex: 1;
             display: flex;
@@ -85,7 +89,11 @@
             border-radius: 20px;
             padding: 20px;
             text-align: center;
+            transition: all 0.3s ease;
+            opacity: 0;
+            transform: translateY(20px);
         }
+        .stat-card.visible { opacity: 1; transform: translateY(0); }
         .stat-value { font-size: 32px; font-weight: 700; color: #5EEAD4; }
         .stat-label { font-size: 12px; color: #7A8190; margin-top: 8px; }
 
@@ -94,6 +102,7 @@
             border: 1px solid #1F232C;
             border-radius: 20px;
             padding: 20px;
+            margin-bottom: 32px;
         }
         .recent-title { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
         .activity-item {
@@ -106,6 +115,77 @@
         .activity-item:last-child { border-bottom: none; }
         .activity-text { color: #A1A6B0; }
         .activity-date { color: #7A8190; font-size: 12px; }
+
+        /* Слайдер "Часто изучают" */
+        .popular-slider-section {
+            margin-bottom: 32px;
+        }
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .slider-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .slider-nav {
+            display: flex;
+            gap: 12px;
+        }
+        .slider-btn {
+            background: #1F232C;
+            border: none;
+            color: #A1A6B0;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .slider-btn:hover {
+            background: #5EEAD4;
+            color: #0A0C10;
+        }
+        .patterns-slider {
+            overflow: hidden;
+            border-radius: 20px;
+        }
+        .patterns-slider .swiper-slide {
+            width: auto;
+        }
+        .slider-pattern-card {
+            background: #12161E;
+            border: 1px solid #1F232C;
+            border-radius: 20px;
+            padding: 20px;
+            width: 260px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .slider-pattern-card:hover {
+            transform: translateY(-4px);
+            border-color: #5EEAD4;
+        }
+        .pattern-type {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+        .pattern-type.bullish { background: rgba(94, 234, 212, 0.1); color: #5EEAD4; }
+        .pattern-type.bearish { background: rgba(248, 113, 113, 0.1); color: #F87171; }
+        .pattern-type.neutral { background: rgba(244, 183, 64, 0.1); color: #F4B740; }
+        .slider-pattern-name { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+        .slider-pattern-desc { color: #A1A6B0; font-size: 13px; line-height: 1.4; margin-bottom: 12px; }
 
         /* Стили для обучения */
         .card-container { background: #12161E; border: 1px solid #1F232C; border-radius: 24px; padding: 32px; }
@@ -152,22 +232,127 @@
         .player-card { flex: 1; background: #0A0C10; border-radius: 20px; padding: 24px; text-align: center; }
         .player-name { font-size: 20px; font-weight: 700; margin-bottom: 8px; }
         .player-rating { font-size: 28px; font-weight: 700; color: #5EEAD4; margin-bottom: 20px; }
-        .duel-pred { padding: 12px 28px; border-radius: 40px; font-weight: 700; cursor: pointer; background: #0A0C10; border: none; transition: all 0.3s; margin: 0 5px; }
+        .duel-pred { padding: 12px 28px; border-radius: 40px; font-weight: 700; cursor: pointer; background: #0A0C10; border: none; margin: 0 5px; }
         .duel-pred.up { border: 1px solid #5EEAD4; color: #5EEAD4; }
         .duel-pred.up:hover { background: #5EEAD4; color: #0A0C10; }
         .duel-pred.down { border: 1px solid #F87171; color: #F87171; }
         .duel-pred.down:hover { background: #F87171; color: #0A0C10; }
-        .timer { font-size: 48px; font-weight: 700; text-align: center; margin: 20px 0; }
+        .timer { font-size: 48px; font-weight: 700; text-align: center; margin: 20px 0; font-family: monospace; }
         .duel-status { text-align: center; padding: 16px; background: #0A0C10; border-radius: 16px; margin-top: 20px; color: #7A8190; }
         .find-btn { width: 100%; padding: 16px; background: #5EEAD4; color: #0A0C10; border: none; border-radius: 40px; font-weight: 700; font-size: 16px; cursor: pointer; margin-top: 16px; transition: all 0.3s; }
         .find-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(94, 234, 212, 0.3); }
         .hidden { display: none; }
 
-        .notification { position: fixed; top: 20px; right: 20px; padding: 14px 24px; border-radius: 12px; background: #1A1F2A; border-left: 3px solid; z-index: 1000; animation: slideIn 0.3s ease; }
-        .notification.success { border-color: #5EEAD4; }
-        .notification.error { border-color: #F87171; }
+        /* Библиотека паттернов */
+        .patterns-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 20px;
+        }
+        .library-pattern-card {
+            background: #12161E;
+            border: 1px solid #1F232C;
+            border-radius: 20px;
+            padding: 24px;
+            transition: all 0.3s;
+            cursor: pointer;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        .library-pattern-card.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .library-pattern-card:hover {
+            transform: translateY(-4px);
+            border-color: #5EEAD4;
+        }
+
+        /* Симулятор */
+        .balance { font-size: 36px; font-weight: 700; color: #5EEAD4; text-align: center; margin-bottom: 24px; }
+        .trade-panel { display: flex; gap: 16px; justify-content: center; margin-bottom: 24px; flex-wrap: wrap; }
+        .trade-btn { padding: 12px 28px; border-radius: 40px; font-weight: 700; cursor: pointer; border: none; transition: all 0.3s; }
+        .trade-btn.long { background: #5EEAD4; color: #0A0C10; }
+        .trade-btn.long:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(94, 234, 212, 0.3); }
+        .trade-btn.short { background: #F87171; color: #0A0C10; }
+        .trade-btn.short:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(248, 113, 113, 0.3); }
+        .trade-btn.reset { background: #2E3440; color: #E6E8EC; }
+        .result-positive { color: #5EEAD4; }
+        .result-negative { color: #F87171; }
+        .history-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #1F232C; font-size: 14px; flex-wrap: wrap; gap: 10px; }
+
+        /* Уведомления */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 14px 24px;
+            border-radius: 12px;
+            background: #1A1F2A;
+            border-left: 3px solid;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+        .notification.success { border-color: #5EEAD4; background: rgba(94, 234, 212, 0.1); }
+        .notification.error { border-color: #F87171; background: rgba(248, 113, 113, 0.1); }
         @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
 
+        /* Кнопка вверх */
+        .scroll-top-btn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #5EEAD4;
+            color: #0A0C10;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+            z-index: 99;
+            box-shadow: 0 4px 15px rgba(94, 234, 212, 0.3);
+        }
+        .scroll-top-btn.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        .scroll-top-btn:hover {
+            transform: translateY(-3px);
+        }
+
+        /* Плавающая кнопка поддержки */
+        .support-fab {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            background: #F4B740;
+            color: #0A0C10;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            transition: all 0.3s;
+            z-index: 99;
+            box-shadow: 0 4px 15px rgba(244, 183, 64, 0.3);
+        }
+        .support-fab:hover {
+            transform: scale(1.05);
+        }
+
+        /* Адаптация */
         @media (max-width: 768px) {
             .sidebar { width: 80px; }
             .nav-text, .user-info .username, .user-info .level { display: none; }
@@ -175,6 +360,26 @@
             .nav-item { justify-content: center; padding: 14px 0; margin: 4px 8px; }
             .content-header { padding: 20px; }
             .content-area { padding: 20px; }
+
+            /* Горизонтальный скролл навигации */
+            .nav-menu {
+                overflow-x: auto;
+                white-space: nowrap;
+                display: flex;
+                flex-wrap: nowrap;
+                padding-bottom: 10px;
+                -webkit-overflow-scrolling: touch;
+            }
+            .nav-menu .nav-item {
+                display: inline-flex;
+                flex-shrink: 0;
+                white-space: nowrap;
+            }
+            .nav-menu::-webkit-scrollbar { display: none; }
+            .nav-menu { -ms-overflow-style: none; scrollbar-width: none; }
+
+            .scroll-top-btn { bottom: 20px; right: 20px; width: 45px; height: 45px; font-size: 20px; }
+            .support-fab { bottom: 20px; left: 20px; width: 45px; height: 45px; font-size: 24px; }
         }
     </style>
 </head>
@@ -222,19 +427,15 @@
         </div>
         <div class="content-area" id="contentArea">
             <!-- Контент загружается динамически -->
-            <div class="stats-grid">
-                <div class="stat-card"><div class="stat-value" id="statXp">0</div><div class="stat-label">Опыт (XP)</div></div>
-                <div class="stat-card"><div class="stat-value" id="statStreak">0</div><div class="stat-label">🔥 Серия</div></div>
-                <div class="stat-card"><div class="stat-value" id="statAccuracy">0%</div><div class="stat-label">Точность</div></div>
-                <div class="stat-card"><div class="stat-value" id="statCards">0</div><div class="stat-label">Пройдено карт</div></div>
-            </div>
-            <div class="recent-activity">
-                <div class="recent-title">📋 Последняя активность</div>
-                <div id="recentActivity"></div>
-            </div>
         </div>
     </div>
 </div>
+
+<!-- Кнопка "Вверх" -->
+<button class="scroll-top-btn" id="scrollTopBtn" aria-label="Наверх">↑</button>
+
+<!-- Плавающая кнопка поддержки -->
+<button class="support-fab" id="supportBtn" aria-label="Поддержка">💬</button>
 
 <script>
     const userId = {{ user_id }};
@@ -252,7 +453,7 @@
         { id: 5, name: "Фундаментальный Бот", rating: 550, desc: "Анализирует новости и события", accuracy: 0.60 }
     ];
 
-    // Паттерны для библиотеки
+    // Паттерны для библиотеки и слайдера
     const patterns = [
         { name: "Пробой уровня сопротивления", type: "bullish", desc: "Цена пробивает ключевой уровень на объемах", signal: "Бычий сигнал. Ожидается продолжение роста." },
         { name: "Медвежье поглощение", type: "bearish", desc: "Свечная модель разворота на вершине тренда", signal: "Медвежий сигнал. Ожидается разворот вниз." },
@@ -261,9 +462,37 @@
         { name: "Сжатие полос Боллинджера", type: "neutral", desc: "Низкая волатильность перед движением", signal: "Ожидается сильное движение." },
         { name: "Золотой крест", type: "bullish", desc: "MA50 пересекает MA200 снизу вверх", signal: "Долгосрочный бычий сигнал." },
         { name: "Голова и плечи", type: "bearish", desc: "Классический разворотный паттерн", signal: "Медвежий сигнал. Разворот тренда." },
-        { name: "Восходящий треугольник", type: "bullish", desc: "Горизонтальное сопротивление и восходящая поддержка", signal: "Бычий сигнал. Пробой вверх." }
+        { name: "Восходящий треугольник", type: "bullish", desc: "Горизонтальное сопротивление и восходящая поддержка", signal: "Бычий сигнал. Пробой вверх." },
+        { name: "Нисходящий треугольник", type: "bearish", desc: "Горизонтальная поддержка и нисходящее сопротивление", signal: "Медвежий сигнал. Пробой вниз." },
+        { name: "Двойное дно", type: "bullish", desc: "Разворотная модель после нисходящего тренда", signal: "Бычий сигнал. Разворот вверх." }
     ];
 
+    // Уведомления
+    function showNotification(msg, type) {
+        const div = document.createElement('div');
+        div.className = `notification ${type}`;
+        div.innerHTML = `<span style="margin-right: 10px;">${type === 'success' ? '✅' : '❌'}</span>${msg}`;
+        document.body.appendChild(div);
+        setTimeout(() => div.remove(), 3000);
+    }
+
+    // Плавное появление карточек
+    function initIntersectionObserver() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, { threshold: 0.1, rootMargin: '0px 0px -30px 0px' });
+
+        document.querySelectorAll('.stat-card, .library-pattern-card, .feature-card').forEach(el => {
+            observer.observe(el);
+        });
+    }
+
+    // Загрузка статистики
     async function loadStats() {
         try {
             const res = await fetch(`/api/user/stats/${userId}`);
@@ -271,21 +500,11 @@
             document.getElementById('username').innerText = stats.username;
             document.getElementById('levelText').innerText = `Уровень ${stats.level}`;
             document.getElementById('levelFill').style.width = `${stats.progress_percent}%`;
-            document.getElementById('statXp').innerText = stats.experience;
-            document.getElementById('statStreak').innerText = stats.current_streak;
-            document.getElementById('statAccuracy').innerText = `${Math.round(stats.accuracy)}%`;
-            document.getElementById('statCards').innerText = `${stats.cards_completed}/${stats.total_cards}`;
-        } catch(e) { console.error('Stats error:', e); }
+            return stats;
+        } catch(e) { console.error('Stats error:', e); return null; }
     }
 
-    function showNotification(msg, type) {
-        const div = document.createElement('div');
-        div.className = `notification ${type}`;
-        div.innerText = msg;
-        document.body.appendChild(div);
-        setTimeout(() => div.remove(), 3000);
-    }
-
+    // Загрузка страницы
     async function loadPage(page) {
         currentPage = page;
         const titles = {
@@ -300,27 +519,69 @@
         document.getElementById('pageDescription').innerText = titles[page].desc;
 
         if (page === 'dashboard') {
+            const stats = await loadStats();
             document.getElementById('contentArea').innerHTML = `
                 <div class="stats-grid">
-                    <div class="stat-card"><div class="stat-value" id="statXp2">0</div><div class="stat-label">Опыт (XP)</div></div>
-                    <div class="stat-card"><div class="stat-value" id="statStreak2">0</div><div class="stat-label">🔥 Серия</div></div>
-                    <div class="stat-card"><div class="stat-value" id="statAccuracy2">0%</div><div class="stat-label">Точность</div></div>
-                    <div class="stat-card"><div class="stat-value" id="statCards2">0</div><div class="stat-label">Пройдено карт</div></div>
+                    <div class="stat-card"><div class="stat-value" id="statXp">${stats?.experience || 0}</div><div class="stat-label">Опыт (XP)</div></div>
+                    <div class="stat-card"><div class="stat-value" id="statStreak">${stats?.current_streak || 0}</div><div class="stat-label">🔥 Серия</div></div>
+                    <div class="stat-card"><div class="stat-value" id="statAccuracy">${Math.round(stats?.accuracy || 0)}%</div><div class="stat-label">Точность</div></div>
+                    <div class="stat-card"><div class="stat-value" id="statCards">${stats?.cards_completed || 0}/${stats?.total_cards || 8}</div><div class="stat-label">Пройдено карт</div></div>
                 </div>
+
+                <!-- Слайдер "Часто изучают" -->
+                <div class="popular-slider-section">
+                    <div class="slider-header">
+                        <div class="slider-title">🔥 Часто изучают</div>
+                        <div class="slider-nav">
+                            <button class="slider-btn" id="sliderPrev">←</button>
+                            <button class="slider-btn" id="sliderNext">→</button>
+                        </div>
+                    </div>
+                    <div class="patterns-slider swiper" id="popularSlider">
+                        <div class="swiper-wrapper" id="sliderWrapper"></div>
+                    </div>
+                </div>
+
                 <div class="recent-activity">
                     <div class="recent-title">📋 Что нового?</div>
-                    <div id="recentActivity"></div>
+                    <div class="activity-item"><span class="activity-text">✅ Добро пожаловать в Tradeum Academy!</span><span class="activity-date">Только что</span></div>
+                    <div class="activity-item"><span class="activity-text">📚 Начни обучение с первой карточки</span><span class="activity-date">—</span></div>
+                    <div class="activity-item"><span class="activity-text">⚔️ Испытай себя в дуэлях с ИИ</span><span class="activity-date">—</span></div>
                 </div>
             `;
-            document.getElementById('statXp2').innerText = document.getElementById('statXp').innerText;
-            document.getElementById('statStreak2').innerText = document.getElementById('statStreak').innerText;
-            document.getElementById('statAccuracy2').innerText = document.getElementById('statAccuracy').innerText;
-            document.getElementById('statCards2').innerText = document.getElementById('statCards').innerText;
-            document.getElementById('recentActivity').innerHTML = `
-                <div class="activity-item"><span class="activity-text">✅ Добро пожаловать в Tradeum Academy!</span><span class="activity-date">Только что</span></div>
-                <div class="activity-item"><span class="activity-text">📚 Начни обучение с первой карточки</span><span class="activity-date">—</span></div>
-                <div class="activity-item"><span class="activity-text">⚔️ Испытай себя в дуэлях с ИИ</span><span class="activity-date">—</span></div>
-            `;
+
+            // Заполняем слайдер
+            const sliderWrapper = document.getElementById('sliderWrapper');
+            if (sliderWrapper) {
+                sliderWrapper.innerHTML = patterns.map(p => `
+                    <div class="swiper-slide">
+                        <div class="slider-pattern-card" onclick="showPatternModal('${p.name}', '${p.desc}', '${p.signal}')">
+                            <div class="pattern-type ${p.type}">${p.type === 'bullish' ? '📈 БЫЧИЙ' : (p.type === 'bearish' ? '📉 МЕДВЕЖИЙ' : '⚖️ НЕЙТРАЛЬНЫЙ')}</div>
+                            <div class="slider-pattern-name">${p.name}</div>
+                            <div class="slider-pattern-desc">${p.desc.substring(0, 60)}${p.desc.length > 60 ? '...' : ''}</div>
+                        </div>
+                    </div>
+                `).join('');
+
+                // Инициализируем Swiper
+                new Swiper('#popularSlider', {
+                    slidesPerView: 'auto',
+                    spaceBetween: 15,
+                    freeMode: true,
+                    navigation: {
+                        prevEl: '#sliderPrev',
+                        nextEl: '#sliderNext',
+                    },
+                    breakpoints: {
+                        320: { slidesPerView: 1.5, spaceBetween: 12 },
+                        480: { slidesPerView: 2, spaceBetween: 15 },
+                        768: { slidesPerView: 3, spaceBetween: 15 },
+                        1024: { slidesPerView: 4, spaceBetween: 20 }
+                    }
+                });
+            }
+            initIntersectionObserver();
+
         } else if (page === 'learn') {
             document.getElementById('contentArea').innerHTML = `
                 <div class="card-container">
@@ -338,6 +599,7 @@
                 </div>
             `;
             await loadLearnCard();
+
         } else if (page === 'duel') {
             document.getElementById('contentArea').innerHTML = `
                 <div class="mode-selector">
@@ -359,34 +621,39 @@
                 </div>
             `;
             initDuel();
+
         } else if (page === 'library') {
-            document.getElementById('contentArea').innerHTML = `<div class="patterns-grid" id="patternsGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>`;
+            document.getElementById('contentArea').innerHTML = `<div class="patterns-grid" id="patternsGrid"></div>`;
             const grid = document.getElementById('patternsGrid');
-            grid.innerHTML = patterns.map(p => `
-                <div class="bot-card" onclick="alert('${p.name}\\n\\n${p.desc}\\n\\n🎯 ${p.signal}')">
-                    <div class="bot-name">${p.name}</div>
-                    <div class="pattern-type" style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; margin-top: 8px; background: ${p.type === 'bullish' ? 'rgba(94,234,212,0.1)' : (p.type === 'bearish' ? 'rgba(248,113,113,0.1)' : 'rgba(244,183,64,0.1)')}; color: ${p.type === 'bullish' ? '#5EEAD4' : (p.type === 'bearish' ? '#F87171' : '#F4B740')}">${p.type === 'bullish' ? '📈 БЫЧИЙ' : (p.type === 'bearish' ? '📉 МЕДВЕЖИЙ' : '⚖️ НЕЙТРАЛЬНЫЙ')}</div>
-                    <div class="bot-desc" style="margin-top: 12px;">${p.desc}</div>
+            grid.innerHTML = patterns.map((p, idx) => `
+                <div class="library-pattern-card" data-delay="${idx * 0.05}" onclick="showPatternModal('${p.name}', '${p.desc}', '${p.signal}')">
+                    <div class="pattern-type ${p.type}">${p.type === 'bullish' ? '📈 БЫЧИЙ' : (p.type === 'bearish' ? '📉 МЕДВЕЖИЙ' : '⚖️ НЕЙТРАЛЬНЫЙ')}</div>
+                    <div class="slider-pattern-name">${p.name}</div>
+                    <div class="slider-pattern-desc" style="margin-top: 8px;">${p.desc}</div>
+                    <div style="margin-top: 12px; font-size: 12px; color: #5EEAD4;">🎯 ${p.signal}</div>
                 </div>
             `).join('');
+            initIntersectionObserver();
+
         } else if (page === 'simulator') {
             document.getElementById('contentArea').innerHTML = `
                 <div class="card-container" style="text-align: center;">
                     <div style="font-size: 48px; margin-bottom: 20px;">🎮</div>
                     <h2 style="margin-bottom: 16px;">Торговый симулятор</h2>
                     <p style="color: #A1A6B0; margin-bottom: 24px;">Тренируйся на исторических данных</p>
-                    <div class="balance" style="font-size: 36px; font-weight: 700; color: #5EEAD4; margin-bottom: 24px;">💰 $<span id="simBalance">10000</span></div>
+                    <div class="balance">💰 $<span id="simBalance">10000</span></div>
                     <div class="chart-container"><canvas id="simChart"></canvas></div>
-                    <div class="prediction-btns">
-                        <button class="pred-btn up" id="simLong">📈 ЛОНГ</button>
-                        <button class="pred-btn down" id="simShort">📉 ШОРТ</button>
-                        <button class="pred-btn sideways" id="simReset">🔄 СБРОС</button>
+                    <div class="trade-panel">
+                        <button class="trade-btn long" id="simLong">📈 ЛОНГ</button>
+                        <button class="trade-btn short" id="simShort">📉 ШОРТ</button>
+                        <button class="trade-btn reset" id="simReset">🔄 СБРОС</button>
                     </div>
                     <div id="simResult" style="margin-top: 20px;"></div>
                     <div class="news-section" style="margin-top: 20px;"><div class="news-title">📋 История сделок</div><div id="simHistory"></div></div>
                 </div>
             `;
             initSimulator();
+
         } else if (page === 'leaderboard') {
             const res = await fetch('/api/leaderboard');
             const leaders = await res.json();
@@ -410,6 +677,13 @@
         }
     }
 
+    // Функция для показа модального окна с паттерном
+    window.showPatternModal = function(name, desc, signal) {
+        showNotification(`${name}: ${signal}`, 'success');
+        alert(`${name}\n\n${desc}\n\n🎯 ${signal}`);
+    }
+
+    // Загрузка карточки обучения
     async function loadLearnCard() {
         try {
             const res = await fetch(`/api/cards/random?user_id=${userId}`);
@@ -478,6 +752,7 @@
         } catch(e) { console.error('Load card error:', e); }
     }
 
+    // Переменные для дуэлей
     let currentDuelMode = 'pvp';
     let selectedBot = null;
     let duelTimer = null;
@@ -635,6 +910,7 @@
         }, 3000);
     }
 
+    // Симулятор
     let simBalance = 10000;
     let simPosition = null;
     let simChart = null;
@@ -661,11 +937,13 @@
             if (simPosition) { showNotification('Сначала закройте позицию!', 'error'); return; }
             simPosition = { type: 'long', entryPrice: simPriceData[simStep], amount: 1000 };
             document.getElementById('simResult').innerHTML = `<div>✅ Открыта ЛОНГ по $${simPosition.entryPrice.toFixed(2)}</div>`;
+            showNotification('ЛОНГ позиция открыта', 'success');
         };
         document.getElementById('simShort').onclick = () => {
             if (simPosition) { showNotification('Сначала закройте позицию!', 'error'); return; }
             simPosition = { type: 'short', entryPrice: simPriceData[simStep], amount: 1000 };
             document.getElementById('simResult').innerHTML = `<div>✅ Открыта ШОРТ по $${simPosition.entryPrice.toFixed(2)}</div>`;
+            showNotification('ШОРТ позиция открыта', 'success');
         };
         document.getElementById('simReset').onclick = () => {
             simBalance = 10000;
@@ -675,6 +953,7 @@
             document.getElementById('simBalance').innerText = simBalance;
             document.getElementById('simResult').innerHTML = '';
             updateSimHistory();
+            updateSimChart();
             showNotification('Симулятор сброшен', 'success');
         };
 
@@ -692,6 +971,7 @@
                         simHistory.unshift({ type: simPosition.type, entryPrice: simPosition.entryPrice, exitPrice: currentPrice, pnl: pnl });
                         document.getElementById('simBalance').innerText = simBalance.toFixed(2);
                         document.getElementById('simResult').innerHTML += `<div class="${pnl >= 0 ? 'result-positive' : 'result-negative'}">Позиция закрыта! PnL: ${pnl >= 0 ? '+' : ''}$${pnl.toFixed(2)}</div>`;
+                        showNotification(pnl >= 0 ? `+$${pnl.toFixed(2)} прибыль!` : `-$${Math.abs(pnl).toFixed(2)} убыток`, pnl >= 0 ? 'success' : 'error');
                         simPosition = null;
                         updateSimHistory();
                     }
@@ -715,9 +995,34 @@
         const container = document.getElementById('simHistory');
         if (!container) return;
         if (simHistory.length === 0) { container.innerHTML = '<div style="color: #7A8190;">Нет сделок</div>'; return; }
-        container.innerHTML = simHistory.map(h => `<div style="padding: 8px 0; border-bottom: 1px solid #1F232C;"><span>${h.type === 'long' ? '📈 ЛОНГ' : '📉 ШОРТ'}</span> | Вход: $${h.entryPrice.toFixed(2)} | Выход: $${h.exitPrice.toFixed(2)} | <span class="${h.pnl >= 0 ? 'result-positive' : 'result-negative'}">${h.pnl >= 0 ? '+' : ''}$${h.pnl.toFixed(2)}</span></div>`).join('');
+        container.innerHTML = simHistory.map(h => `<div class="history-item"><span>${h.type === 'long' ? '📈 ЛОНГ' : '📉 ШОРТ'}</span><span>Вход: $${h.entryPrice.toFixed(2)}</span><span>Выход: $${h.exitPrice.toFixed(2)}</span><span class="${h.pnl >= 0 ? 'result-positive' : 'result-negative'}">${h.pnl >= 0 ? '+' : ''}$${h.pnl.toFixed(2)}</span></div>`).join('');
     }
 
+    // Кнопка вверх
+    const scrollTopBtn = document.getElementById('scrollTopBtn');
+    const contentArea = document.querySelector('.content-area');
+    if (scrollTopBtn && contentArea) {
+        contentArea.addEventListener('scroll', () => {
+            if (contentArea.scrollTop > 300) {
+                scrollTopBtn.classList.add('show');
+            } else {
+                scrollTopBtn.classList.remove('show');
+            }
+        });
+        scrollTopBtn.addEventListener('click', () => {
+            contentArea.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+    }
+
+    // Кнопка поддержки
+    const supportBtn = document.getElementById('supportBtn');
+    if (supportBtn) {
+        supportBtn.addEventListener('click', () => {
+            showNotification('Чат поддержки: support@tradeum.ru', 'success');
+        });
+    }
+
+    // Навигация
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
             document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
@@ -726,6 +1031,7 @@
         });
     });
 
+    // Запуск
     loadStats();
     loadPage('dashboard');
 </script>
