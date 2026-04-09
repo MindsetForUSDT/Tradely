@@ -47,7 +47,7 @@
             height: 100vh;
             z-index: 100;
             pointer-events: none;
-            transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1);
+            transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.4, 1);
             will-change: transform;
             overflow: visible;
         }
@@ -559,9 +559,9 @@
 
     // ========== ЛОГИКА ВЫЕЗЖАНИЯ ПРИ СКРОЛЛЕ ==========
     const floatingImage = document.getElementById('floatingImage');
-
-    // Ширина фото (из CSS)
     let imageWidth = 500;
+    let startOffset = 0; // Начальное смещение (половина ширины)
+    let isInitialized = false;
 
     function updateFloatingImagePosition() {
         if (window.innerWidth <= 900) return;
@@ -570,34 +570,39 @@
         const containerStyle = window.getComputedStyle(floatingImage);
         imageWidth = parseFloat(containerStyle.width);
 
+        // Устанавливаем начальное смещение (половина ширины) при загрузке
+        if (!isInitialized) {
+            startOffset = imageWidth / 2; // Ровно половина фото
+            floatingImage.style.transform = `translateX(-${startOffset}px)`;
+            isInitialized = true;
+        }
+
         // Прогресс скролла (0 в начале, 1 в конце)
         const scrollTop = window.scrollY;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // Немного задержки: начинаем выезжать не сразу, а после 10% скролла
-        let adjustedProgress = Math.max(0, (scrollProgress - 0.1) / 0.9);
-        adjustedProgress = Math.min(1, adjustedProgress);
+        // Плавное увеличение: от 0 до 1 (дополнительное смещение от половины до полной ширины)
+        // То есть при скролле фото будет выезжать ещё на половину своей ширины
 
-        // Максимальное смещение = полная ширина фото (выезжает полностью)
-        // Но ограничиваем, чтобы не заезжало слишком далеко на контент
-        const containerRect = document.querySelector('.container').getBoundingClientRect();
-        const containerLeft = containerRect.left;
+        // Начинаем выезжать с 10% скролла, заканчиваем к 90%
+        let adjustedProgress = 0;
+        if (scrollProgress <= 0.1) {
+            adjustedProgress = 0;
+        } else if (scrollProgress >= 0.9) {
+            adjustedProgress = 1;
+        } else {
+            adjustedProgress = (scrollProgress - 0.1) / 0.8;
+        }
 
-        // Максимальное смещение = ширина фото, но не больше расстояния до левого края контейнера + запас
-        let maxOffset = imageWidth;
+        // Дополнительное смещение (от половины до полной ширины)
+        const extraOffset = adjustedProgress * (imageWidth / 2);
 
-        // Чтобы фото не перекрывало основной контент слишком сильно,
-        // оставляем минимум 100px от левого края контейнера
-        const minLeftSpace = 100;
-        const maxAllowedOffset = Math.max(0, imageWidth - minLeftSpace);
-        maxOffset = Math.min(maxOffset, maxAllowedOffset);
-
-        // Текущее смещение от прогресса скролла
-        let offset = adjustedProgress * maxOffset;
+        // Итоговое смещение = начальное (половина) + дополнительное (ещё половина)
+        const totalOffset = startOffset + extraOffset;
 
         // Применяем трансформацию
-        floatingImage.style.transform = `translateX(-${offset}px)`;
+        floatingImage.style.transform = `translateX(-${totalOffset}px)`;
     }
 
     // Слушаем скролл
@@ -607,6 +612,7 @@
 
     // При ресайзе
     window.addEventListener('resize', () => {
+        isInitialized = false;
         requestAnimationFrame(updateFloatingImagePosition);
     });
 
