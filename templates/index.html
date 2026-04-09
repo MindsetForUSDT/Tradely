@@ -34,8 +34,8 @@
             to { opacity: 1; transform: scale(1); }
         }
         @keyframes slideInLeft {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-80px); }
+            0% { transform: translateX(0); opacity: 0; }
+            100% { transform: translateX(-70px); opacity: 1; }
         }
         .animate-up { animation: fadeUp 0.6s ease forwards; }
         .animate-left { animation: fadeLeft 0.6s ease forwards; }
@@ -51,15 +51,11 @@
             height: 100vh;
             z-index: 100;
             pointer-events: none;
-            transition: transform 0.1s linear;
             will-change: transform;
             overflow: visible;
-            /* Начальное положение: полностью справа (не выехало) */
+            /* Начальное положение: полностью справа, невидимо */
             transform: translateX(0);
-        }
-
-        /* Анимация выезжания при загрузке */
-        .floating-image-container.initial-slide {
+            opacity: 0;
             animation: slideInLeft 0.8s cubic-bezier(0.2, 0.9, 0.4, 1.1) forwards;
         }
 
@@ -77,8 +73,8 @@
                 width: 420px;
             }
             @keyframes slideInLeft {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-60px); }
+                0% { transform: translateX(0); opacity: 0; }
+                100% { transform: translateX(-50px); opacity: 1; }
             }
         }
 
@@ -87,8 +83,8 @@
                 width: 350px;
             }
             @keyframes slideInLeft {
-                0% { transform: translateX(0); }
-                100% { transform: translateX(-50px); }
+                0% { transform: translateX(0); opacity: 0; }
+                100% { transform: translateX(-40px); opacity: 1; }
             }
         }
 
@@ -576,62 +572,55 @@
         }
     }
 
-    // ========== АНИМАЦИЯ ПРИ ЗАГРУЗКЕ (выезжает без скролла) ==========
+    // ========== ЛОГИКА ВЫЕЗЖАНИЯ ПРИ СКРОЛЛЕ (В ОБЕ СТОРОНЫ) ==========
     const floatingImage = document.getElementById('floatingImage');
-    let baseOffset = 0; // Базовое смещение после начальной анимации
-    let animationCompleted = false;
 
-    // Запускаем анимацию выезжания при загрузке
+    // Получаем начальное смещение после CSS-анимации
+    let initialOffset = 0;
+
+    // Функция для получения текущего translateX
+    function getCurrentTranslateX() {
+        const transform = window.getComputedStyle(floatingImage).transform;
+        if (transform && transform !== 'none') {
+            const matrix = transform.match(/matrix.*\((.+)\)/);
+            if (matrix) {
+                const values = matrix[1].split(', ');
+                return Math.abs(parseFloat(values[4])); // translateX значение
+            }
+        }
+        return 0;
+    }
+
+    // Запоминаем начальное смещение после анимации
     setTimeout(() => {
-        floatingImage.classList.add('initial-slide');
+        initialOffset = getCurrentTranslateX();
+        if (initialOffset === 0 || isNaN(initialOffset)) {
+            // Если не удалось получить, устанавливаем значения по умолчанию
+            if (window.innerWidth <= 1200) initialOffset = 40;
+            else if (window.innerWidth <= 1400) initialOffset = 50;
+            else initialOffset = 70;
+        }
+    }, 900);
 
-        // После завершения анимации запоминаем базовое смещение
-        setTimeout(() => {
-            animationCompleted = true;
-            // Получаем текущее смещение из transform
-            const transform = window.getComputedStyle(floatingImage).transform;
-            if (transform && transform !== 'none') {
-                const matrix = transform.match(/matrix.*\((.+)\)/);
-                if (matrix) {
-                    const values = matrix[1].split(', ');
-                    baseOffset = Math.abs(parseFloat(values[4])); // translateX значение
-                }
-            }
-            // Если не удалось получить, устанавливаем стандартное значение
-            if (baseOffset === 0 || isNaN(baseOffset)) {
-                if (window.innerWidth <= 1200) baseOffset = 50;
-                else if (window.innerWidth <= 1400) baseOffset = 60;
-                else baseOffset = 80;
-            }
-        }, 850);
-    }, 100);
-
-    // ========== ЛОГИКА ДОПОЛНИТЕЛЬНОГО ВЫЕЗЖАНИЯ ПРИ СКРОЛЛЕ ==========
     function updateFloatingImagePosition() {
         if (window.innerWidth <= 900) return;
-        if (!animationCompleted) return;
 
         // Прогресс скролла (0 в начале, 1 в конце)
         const scrollTop = window.scrollY;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // Начинаем дополнительное выезжание с 20% скролла, заканчиваем к 80%
-        let extraProgress = 0;
-        if (scrollProgress <= 0.2) {
-            extraProgress = 0;
-        } else if (scrollProgress >= 0.8) {
-            extraProgress = 1;
-        } else {
-            extraProgress = (scrollProgress - 0.2) / 0.6;
-        }
+        // Дополнительное смещение зависит от прогресса скролла
+        // При скролле вниз (progress увеличивается) — выезжаем влево
+        // При скроллле вверх (progress уменьшается) — возвращаемся вправо
+        const maxExtraOffset = window.innerWidth <= 1200 ? 50 : 70;
 
-        // Максимальное дополнительное смещение (ещё 60-80px)
-        const maxExtraOffset = window.innerWidth <= 1200 ? 60 : 80;
-        const extraOffset = extraProgress * maxExtraOffset;
+        // Плавная кривая: начинаем с 0, заканчиваем maxExtraOffset
+        // При 0% скролла = 0, при 100% скролла = maxExtraOffset
+        const extraOffset = scrollProgress * maxExtraOffset;
 
-        // Итоговое смещение = базовое (от анимации) + дополнительное (от скролла)
-        const totalOffset = baseOffset + extraOffset;
+        // Итоговое смещение = начальное + дополнительное (от скролла)
+        const totalOffset = initialOffset + extraOffset;
 
         // Применяем трансформацию
         floatingImage.style.transform = `translateX(-${totalOffset}px)`;
@@ -642,11 +631,11 @@
         requestAnimationFrame(updateFloatingImagePosition);
     });
 
-    // При ресайзе обновляем базовое смещение
+    // При ресайзе обновляем
     window.addEventListener('resize', () => {
-        if (window.innerWidth <= 1200) baseOffset = 50;
-        else if (window.innerWidth <= 1400) baseOffset = 60;
-        else baseOffset = 80;
+        if (window.innerWidth <= 1200) initialOffset = 40;
+        else if (window.innerWidth <= 1400) initialOffset = 50;
+        else initialOffset = 70;
         updateFloatingImagePosition();
     });
 
