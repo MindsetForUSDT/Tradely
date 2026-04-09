@@ -3,249 +3,245 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tradeum Academy — минимализм и мастерство трейдинга</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+    <title>Tradeum Academy — стань мастером трейдинга</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             background: #0A0C10;
             color: #E6E8EC;
             line-height: 1.5;
-            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 24px;
-        }
-
-        /* ========== АНИМАЦИИ (минимальные, плавные) ========== */
+        /* ========== АНИМАЦИИ ========== */
         @keyframes fadeUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeLeft {
+            from { opacity: 0; transform: translateX(-30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes fadeRight {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        .animate-up { animation: fadeUp 0.6s ease forwards; }
+        .animate-left { animation: fadeLeft 0.6s ease forwards; }
+        .animate-right { animation: fadeRight 0.6s ease forwards; }
+        .animate-scale { animation: scaleIn 0.5s ease forwards; }
+
+        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ ========== */
+        .floating-image-container {
+            position: fixed;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 380px;
+            height: auto;
+            z-index: 1000;
+            pointer-events: none;
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            will-change: transform;
+        }
+
+        .floating-image {
+            width: 100%;
+            height: auto;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+            opacity: 0.95;
+            transition: all 0.3s;
+        }
+
+        .floating-image:hover {
+            opacity: 1;
+            border-color: #5EEAD4;
+        }
+
+        /* Адаптив для плавающего изображения */
+        @media (max-width: 1400px) {
+            .floating-image-container {
+                width: 300px;
             }
         }
 
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
+        @media (max-width: 1200px) {
+            .floating-image-container {
+                display: none;
             }
         }
 
-        .animate-up {
-            animation: fadeUp 0.5s ease forwards;
-        }
-
-        /* ========== ШАПКА (строгая типографика) ========== */
+        /* ========== ШАПКА ========== */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 28px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 24px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
             margin-bottom: 80px;
+            flex-wrap: wrap;
+            gap: 20px;
             opacity: 0;
-            animation: fadeUp 0.5s ease 0.1s forwards;
+            animation: fadeUp 0.6s ease 0.1s forwards;
         }
-
         .logo {
-            font-size: 22px;
+            font-size: 26px;
             font-weight: 700;
-            letter-spacing: -0.3px;
-            color: #FFFFFF;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #FFFFFF, #5EEAD4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
-
-        .logo span {
-            color: #5EEAD4;
-            font-weight: 500;
-        }
-
-        .nav {
-            display: flex;
-            gap: 28px;
-        }
-
+        .nav { display: flex; gap: 32px; }
         .nav a {
-            color: #9CA3AF;
+            color: #A1A6B0;
             text-decoration: none;
             font-size: 14px;
             font-weight: 500;
-            transition: color 0.2s ease;
+            transition: color 0.2s;
         }
+        .nav a:hover { color: #5EEAD4; }
 
-        .nav a:hover {
-            color: #5EEAD4;
-        }
-
-        /* ========== ГЕРОЙ (минималистичный, без лишних блоков) ========== */
+        /* ========== ГЕРОЙ ========== */
         .hero {
             display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
+            align-items: center;
             gap: 60px;
             margin-bottom: 100px;
             flex-wrap: wrap;
         }
-
         .hero-content {
-            flex: 1.2;
+            flex: 1;
             opacity: 0;
-            animation: fadeUp 0.5s ease 0.2s forwards;
+            animation: fadeLeft 0.6s ease 0.2s forwards;
         }
-
         .badge {
             display: inline-block;
-            background: rgba(94, 234, 212, 0.06);
-            padding: 4px 12px;
-            border-radius: 40px;
+            background: rgba(94, 234, 212, 0.08);
+            padding: 6px 14px;
+            border-radius: 100px;
             font-size: 12px;
             font-weight: 500;
             color: #5EEAD4;
             margin-bottom: 24px;
-            letter-spacing: 0.2px;
+            letter-spacing: 0.3px;
         }
-
         h1 {
-            font-size: 52px;
-            font-weight: 700;
+            font-size: 56px;
+            font-weight: 800;
             line-height: 1.1;
             letter-spacing: -0.02em;
             margin-bottom: 24px;
-            color: #FFFFFF;
         }
-
         .gradient-text {
-            color: #5EEAD4;
-            font-weight: 600;
+            background: linear-gradient(135deg, #5EEAD4, #F4B740);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
         }
-
         .hero-desc {
-            color: #9CA3AF;
-            font-size: 15px;
+            color: #A1A6B0;
+            font-size: 16px;
             line-height: 1.6;
-            margin-bottom: 36px;
-            max-width: 440px;
+            margin-bottom: 32px;
+            max-width: 460px;
         }
-
-        .btn-group {
-            display: flex;
-            gap: 14px;
-        }
-
+        .btn-group { display: flex; gap: 16px; }
         .btn-primary {
             background: #5EEAD4;
             color: #0A0C10;
-            padding: 10px 24px;
-            border-radius: 32px;
+            padding: 12px 28px;
+            border-radius: 40px;
             text-decoration: none;
             font-weight: 600;
             font-size: 14px;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
-
         .btn-primary:hover {
-            background: #4ad0bb;
-            transform: translateY(-1px);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(94, 234, 212, 0.2);
         }
-
         .btn-secondary {
             background: transparent;
-            border: 1px solid #2A2F3A;
+            border: 1px solid #2E3440;
             color: #E6E8EC;
-            padding: 10px 24px;
-            border-radius: 32px;
+            padding: 12px 28px;
+            border-radius: 40px;
             text-decoration: none;
             font-weight: 500;
             font-size: 14px;
-            transition: all 0.2s ease;
+            transition: all 0.2s;
         }
-
         .btn-secondary:hover {
             border-color: #5EEAD4;
             color: #5EEAD4;
         }
 
         .hero-stats {
-            flex: 0.8;
-            background: #12161E;
-            border-radius: 20px;
-            padding: 28px 32px;
-            border: 1px solid #1E232C;
+            flex: 1;
+            background: rgba(18, 22, 30, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 24px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
             opacity: 0;
-            animation: fadeUp 0.5s ease 0.3s forwards;
+            animation: fadeRight 0.6s ease 0.3s forwards;
         }
-
         .stat-item {
             display: flex;
             justify-content: space-between;
-            padding: 12px 0;
-            border-bottom: 1px solid #1E232C;
+            padding: 14px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label { color: #7A8190; font-size: 14px; }
+        .stat-value { font-size: 24px; font-weight: 700; color: #5EEAD4; }
 
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: #9CA3AF;
-            font-size: 13px;
-            font-weight: 400;
-        }
-
-        .stat-value {
-            font-size: 22px;
-            font-weight: 600;
-            color: #5EEAD4;
-        }
-
-        /* ========== ИЗОБРАЖЕНИЯ (минималистичные карточки) ========== */
+        /* ========== ИЗОБРАЖЕНИЯ ========== */
         .image-row {
             display: flex;
             gap: 24px;
-            margin: 60px 0 80px;
+            margin: 60px 0;
             flex-wrap: wrap;
         }
-
         .image-card {
             flex: 1;
             background: #12161E;
             border-radius: 20px;
             overflow: hidden;
-            border: 1px solid #1E232C;
-            transition: all 0.2s ease;
+            border: 1px solid #1F232C;
+            transition: all 0.3s;
+            opacity: 0;
+            animation: scaleIn 0.5s ease forwards;
         }
-
-        .image-card:hover {
-            border-color: #5EEAD4;
-        }
-
+        .image-card:nth-child(1) { animation-delay: 0.1s; }
+        .image-card:nth-child(2) { animation-delay: 0.2s; }
+        .image-card:hover { transform: translateY(-4px); border-color: #5EEAD4; }
         .image-placeholder {
-            background: #0F1117;
-            aspect-ratio: 16 / 9;
+            background: linear-gradient(135deg, #1A1F2E, #12161E);
+            aspect-ratio: 16/9;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 10px;
-            color: #4B5565;
-            font-size: 13px;
+            gap: 12px;
+            color: #4A4F6A;
+            font-size: 14px;
         }
-
         .image-card img {
             width: 100%;
             height: 100%;
@@ -253,131 +249,95 @@
             display: block;
         }
 
-        /* ========== СЕКЦИИ (единый ритм) ========== */
+        /* ========== КАРТОЧКИ ПРЕИМУЩЕСТВ ========== */
         .section-header {
             text-align: center;
             margin-bottom: 48px;
+            opacity: 0;
+            animation: fadeUp 0.6s ease forwards;
         }
-
         .section-title {
-            font-size: 28px;
-            font-weight: 600;
-            letter-spacing: -0.3px;
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
             margin-bottom: 12px;
-            color: #FFFFFF;
         }
-
         .section-subtitle {
-            color: #9CA3AF;
-            font-size: 14px;
-            font-weight: 400;
+            color: #7A8190;
+            font-size: 15px;
         }
-
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
             margin-bottom: 80px;
         }
-
         .feature-card {
             background: #12161E;
-            border: 1px solid #1E232C;
+            border: 1px solid #1F232C;
             border-radius: 20px;
-            padding: 28px 24px;
-            transition: all 0.2s ease;
+            padding: 28px;
+            transition: all 0.3s;
+            opacity: 0;
+            transform: translateY(20px);
         }
-
+        .feature-card.visible {
+            animation: fadeUp 0.5s ease forwards;
+        }
         .feature-card:hover {
+            transform: translateY(-4px);
             border-color: #5EEAD4;
-            transform: translateY(-2px);
         }
+        .feature-icon { font-size: 36px; margin-bottom: 20px; }
+        .feature-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; }
+        .feature-desc { color: #A1A6B0; font-size: 14px; line-height: 1.6; }
 
-        .feature-icon {
-            font-size: 28px;
-            margin-bottom: 20px;
-            opacity: 0.9;
-        }
-
-        .feature-title {
-            font-size: 17px;
-            font-weight: 600;
-            margin-bottom: 8px;
-            color: #FFFFFF;
-        }
-
-        .feature-desc {
-            color: #9CA3AF;
-            font-size: 13px;
-            line-height: 1.5;
-        }
-
-        /* ========== БАННЕР ДУЭЛИ (лёгкий, без перегруза) ========== */
+        /* ========== БАННЕР ДУЭЛИ ========== */
         .duel-banner {
-            background: #12161E;
-            border-radius: 20px;
-            padding: 40px;
-            text-align: center;
-            border: 1px solid #1E232C;
-            margin: 40px 0 60px;
-        }
-
-        .duel-banner-icon {
-            font-size: 36px;
-            margin-bottom: 16px;
-        }
-
-        .duel-banner-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 12px;
-            color: #FFFFFF;
-        }
-
-        .duel-banner-text {
-            color: #9CA3AF;
-            max-width: 560px;
-            margin: 0 auto;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
-        .duel-badge {
-            display: inline-block;
-            background: rgba(94, 234, 212, 0.06);
-            padding: 4px 14px;
-            border-radius: 40px;
-            font-size: 11px;
-            color: #5EEAD4;
-            margin-top: 18px;
-            letter-spacing: 0.2px;
-        }
-
-        /* ========== О ПРОЕКТЕ (лаконично) ========== */
-        .about-section {
-            background: #12161E;
-            border-radius: 20px;
+            background: linear-gradient(135deg, #12161E, #0F1320);
+            border-radius: 24px;
             padding: 48px;
             text-align: center;
-            border: 1px solid #1E232C;
+            border: 1px solid #1F232C;
+            margin: 40px 0 60px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
+        }
+        .duel-banner.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        .duel-banner-icon { font-size: 48px; margin-bottom: 20px; }
+        .duel-banner-title { font-size: 24px; font-weight: 700; margin-bottom: 16px; }
+        .duel-banner-text { color: #A1A6B0; max-width: 600px; margin: 0 auto; font-size: 14px; }
+        .duel-badge {
+            display: inline-block;
+            background: rgba(94, 234, 212, 0.08);
+            padding: 6px 16px;
+            border-radius: 100px;
+            font-size: 12px;
+            color: #5EEAD4;
+            margin-top: 20px;
+        }
+
+        /* ========== О ПРОЕКТЕ ========== */
+        .about-section {
+            background: #12161E;
+            border-radius: 24px;
+            padding: 48px;
+            text-align: center;
             margin-bottom: 60px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.6s ease;
         }
-
-        .about-title {
-            font-size: 20px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #FFFFFF;
+        .about-section.visible {
+            opacity: 1;
+            transform: translateY(0);
         }
-
-        .about-text {
-            color: #9CA3AF;
-            max-width: 720px;
-            margin: 0 auto;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-
+        .about-title { font-size: 24px; font-weight: 700; margin-bottom: 20px; }
+        .about-text { color: #A1A6B0; max-width: 800px; margin: 0 auto; font-size: 14px; line-height: 1.7; }
         .about-stats {
             display: flex;
             justify-content: center;
@@ -385,26 +345,15 @@
             margin-top: 32px;
             flex-wrap: wrap;
         }
+        .about-stat-value { font-size: 28px; font-weight: 700; color: #5EEAD4; }
+        .about-stat-label { font-size: 13px; color: #7A8190; margin-top: 6px; }
 
-        .about-stat-value {
-            font-size: 26px;
-            font-weight: 600;
-            color: #5EEAD4;
-        }
-
-        .about-stat-label {
-            font-size: 12px;
-            color: #9CA3AF;
-            margin-top: 6px;
-        }
-
-        /* ========== ФУТЕР (строгий) ========== */
+        /* ========== ФУТЕР ========== */
         .footer {
-            border-top: 1px solid #1E232C;
+            border-top: 1px solid #1F232C;
             padding: 48px 0 32px;
             margin-top: 20px;
         }
-
         .footer-content {
             display: flex;
             justify-content: space-between;
@@ -412,103 +361,67 @@
             gap: 40px;
             margin-bottom: 32px;
         }
-
         .footer-logo {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
-            color: #FFFFFF;
+            background: linear-gradient(135deg, #FFFFFF, #5EEAD4);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
             margin-bottom: 12px;
             display: inline-block;
         }
-
-        .footer-desc {
-            color: #9CA3AF;
-            font-size: 12px;
-            max-width: 240px;
-            line-height: 1.5;
-        }
-
-        .footer-title {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            color: #FFFFFF;
-        }
-
-        .footer-links {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 10px;
-        }
-
+        .footer-desc { color: #7A8190; font-size: 13px; max-width: 250px; line-height: 1.6; }
+        .footer-title { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #FFFFFF; }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 10px; }
         .footer-links a {
-            color: #9CA3AF;
+            color: #7A8190;
             text-decoration: none;
-            font-size: 12px;
-            transition: color 0.2s ease;
+            font-size: 13px;
+            transition: color 0.2s;
         }
-
-        .footer-links a:hover {
-            color: #5EEAD4;
-        }
-
+        .footer-links a:hover { color: #5EEAD4; }
         .footer-bottom {
             text-align: center;
-            padding-top: 28px;
-            border-top: 1px solid #1E232C;
-            color: #6B7280;
-            font-size: 11px;
+            padding-top: 32px;
+            border-top: 1px solid #1F232C;
+            color: #4A4F6A;
+            font-size: 12px;
         }
 
-        /* ========== АДАПТИВ ========== */
         @media (max-width: 768px) {
-            .container {
-                padding: 0 20px;
-            }
-
-            h1 {
-                font-size: 36px;
-            }
-
-            .hero {
-                flex-direction: column;
-                gap: 40px;
-            }
-
-            .nav {
-                gap: 20px;
-            }
-
-            .about-stats {
-                gap: 28px;
-            }
-
-            .image-row {
-                flex-direction: column;
-            }
-
-            .duel-banner {
-                padding: 32px 24px;
-            }
-
-            .about-section {
-                padding: 32px 24px;
-            }
+            .container { padding: 0 20px; }
+            h1 { font-size: 36px; }
+            .hero { flex-direction: column; gap: 40px; }
+            .nav { gap: 20px; }
+            .about-stats { gap: 24px; }
+            .image-row { flex-direction: column; }
         }
     </style>
 </head>
 <body>
+<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ -->
+<div class="floating-image-container" id="floatingImage">
+    <img class="floating-image" id="floatingImg" src="" alt="Trading visualization" style="display: none;">
+    <!-- Плейсхолдер, пока нет картинки -->
+    <div id="floatingPlaceholder" style="width: 100%; aspect-ratio: 1/1; background: linear-gradient(135deg, #1A1F2E, #12161E); border-radius: 20px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; border: 1px solid #2E3440;">
+        <span style="font-size: 48px;">📈</span>
+        <span style="color: #5EEAD4; font-size: 12px;">Торговый график</span>
+    </div>
+</div>
+
 <div class="container">
+    <!-- Шапка -->
     <div class="header">
-        <div class="logo">Trade<span>um</span> Academy</div>
+        <div class="logo">Trade<span style="color: #5EEAD4;">um</span> Academy</div>
         <div class="nav">
             <a href="/login">Вход</a>
             <a href="/register">Регистрация</a>
         </div>
     </div>
 
+    <!-- Герой-секция -->
     <div class="hero">
         <div class="hero-content">
             <div class="badge">ОБУЧАЮЩАЯ ПЛАТФОРМА</div>
@@ -522,52 +435,62 @@
         <div class="hero-stats">
             <div class="stat-item"><span class="stat-label">Интерактивных карточек</span><span class="stat-value">8+</span></div>
             <div class="stat-item"><span class="stat-label">Режимов дуэлей</span><span class="stat-value">2</span></div>
-            <div class="stat-item"><span class="stat-label">Активных учеников</span><span class="stat-value">1 247</span></div>
+            <div class="stat-item"><span class="stat-label">Активных учеников</span><span class="stat-value">1,247</span></div>
             <div class="stat-item"><span class="stat-label">Торговых паттернов</span><span class="stat-value">12</span></div>
         </div>
     </div>
 
+    <!-- Изображения (рядом) -->
     <div class="image-row">
         <div class="image-card" id="imageCard1">
             <div class="image-placeholder" id="placeholder1">
-                <span>📈</span>
+                <span>📊</span>
                 <span>График технического анализа</span>
+                <span style="font-size: 11px;">800×450px</span>
             </div>
-            <img id="img1" src="" alt="график" style="display: none;">
+            <img id="img1" src="" alt="Трейдинг график" style="display: none;">
         </div>
         <div class="image-card" id="imageCard2">
             <div class="image-placeholder" id="placeholder2">
-                <span>⚡</span>
+                <span>⚔️</span>
                 <span>Дуэль трейдеров</span>
+                <span style="font-size: 11px;">800×450px</span>
             </div>
-            <img id="img2" src="" alt="дуэль" style="display: none;">
+            <img id="img2" src="" alt="Дуэль трейдеров" style="display: none;">
         </div>
     </div>
 
+    <!-- Преимущества -->
     <div class="section-header">
         <div class="section-title">Почему выбирают нас</div>
         <div class="section-subtitle">Всё для эффективного обучения трейдингу</div>
     </div>
 
-    <div class="features-grid">
-        <div class="feature-card"><div class="feature-icon">📚</div><div class="feature-title">Интерактивное обучение</div><div class="feature-desc">Изучай рыночные паттерны на реальных примерах с интерактивными графиками.</div></div>
-        <div class="feature-card"><div class="feature-icon">⚔️</div><div class="feature-title">Дуэли с ИИ и игроками</div><div class="feature-desc">Соревнуйся с 5 ИИ-ботами или реальными трейдерами.</div></div>
-        <div class="feature-card"><div class="feature-icon">🏆</div><div class="feature-title">Система рейтинга</div><div class="feature-desc">Зарабатывай XP, повышай уровень и становись лучшим.</div></div>
-        <div class="feature-card"><div class="feature-icon">📖</div><div class="feature-title">Библиотека паттернов</div><div class="feature-desc">Коллекция торговых паттернов с описаниями и примерами.</div></div>
-        <div class="feature-card"><div class="feature-icon">🎮</div><div class="feature-title">Торговый симулятор</div><div class="feature-desc">Тренируйся на исторических данных без финансового риска.</div></div>
-        <div class="feature-card"><div class="feature-icon">💡</div><div class="feature-title">Обратная связь</div><div class="feature-desc">Подробные объяснения каждого ответа и ошибок.</div></div>
+    <div class="features-grid" id="featuresGrid">
+        <div class="feature-card" data-delay="0"><div class="feature-icon">📚</div><div class="feature-title">Интерактивное обучение</div><div class="feature-desc">Изучай рыночные паттерны на реальных примерах с интерактивными графиками.</div></div>
+        <div class="feature-card" data-delay="0.1"><div class="feature-icon">⚔️</div><div class="feature-title">Дуэли с ИИ и игроками</div><div class="feature-desc">Соревнуйся с 5 ИИ-ботами или реальными трейдерами.</div></div>
+        <div class="feature-card" data-delay="0.2"><div class="feature-icon">🏆</div><div class="feature-title">Система рейтинга</div><div class="feature-desc">Зарабатывай XP, повышай уровень и становись лучшим.</div></div>
+        <div class="feature-card" data-delay="0.3"><div class="feature-icon">📖</div><div class="feature-title">Библиотека паттернов</div><div class="feature-desc">Коллекция торговых паттернов с описаниями.</div></div>
+        <div class="feature-card" data-delay="0.4"><div class="feature-icon">🎮</div><div class="feature-title">Торговый симулятор</div><div class="feature-desc">Тренируйся на исторических данных без риска.</div></div>
+        <div class="feature-card" data-delay="0.5"><div class="feature-icon">💡</div><div class="feature-title">Обратная связь</div><div class="feature-desc">Подробные объяснения каждого ответа.</div></div>
     </div>
 
-    <div class="duel-banner">
+    <!-- Баннер дуэли -->
+    <div class="duel-banner" id="duelBanner">
         <div class="duel-banner-icon">⚔️</div>
         <div class="duel-banner-title">Дуэли с ИИ и реальными игроками</div>
-        <div class="duel-banner-text">Соревнуйся с 5 уникальными ИИ-ботами или найди соперника среди реальных трейдеров. Повышай рейтинг и докажи своё мастерство.</div>
+        <div class="duel-banner-text">Соревнуйся с 5 уникальными ИИ-ботами или найди соперника среди реальных трейдеров. Повышай рейтинг и докажи своё мастерство!</div>
         <div class="duel-badge">5 ИИ-противников | Реальные игроки | Рейтинговая система</div>
     </div>
 
-    <div class="about-section">
+    <!-- О проекте -->
+    <div class="about-section" id="aboutSection">
         <div class="about-title">📈 О проекте Tradeum Academy</div>
-        <div class="about-text">Tradeum Academy — образовательная платформа для обучения трейдингу через практику. Наши карточки охватывают ключевые паттерны технического анализа: от пробоев уровней до сложных фигур разворота. Соревнуйся с ИИ-ботами, повышай свой рейтинг и становись настоящим мастером рынка.</div>
+        <div class="about-text">
+            Tradeum Academy — образовательная платформа для обучения трейдингу через практику.
+            Наши карточки охватывают ключевые паттерны технического анализа: от пробоев уровней до сложных фигур разворота.
+            Соревнуйся с ИИ-ботами, повышай свой рейтинг и становись настоящим мастером рынка!
+        </div>
         <div class="about-stats">
             <div class="about-stat"><div class="about-stat-value">24/7</div><div class="about-stat-label">Доступ к платформе</div></div>
             <div class="about-stat"><div class="about-stat-value">8+</div><div class="about-stat-label">Обучающих карточек</div></div>
@@ -575,6 +498,7 @@
         </div>
     </div>
 
+    <!-- Футер -->
     <div class="footer">
         <div class="footer-content">
             <div class="footer-section">
@@ -587,7 +511,7 @@
             </div>
             <div class="footer-section">
                 <div class="footer-title">О проекте</div>
-                <ul class="footer-links"><li><a href="#features">Возможности</a></li><li><a href="/faq">FAQ</a></li></ul>
+                <ul class="footer-links"><li><a href="#featuresGrid">Возможности</a></li><li><a href="/faq">FAQ</a></li></ul>
             </div>
         </div>
         <div class="footer-bottom">
@@ -598,6 +522,31 @@
 </div>
 
 <script>
+    // Анимация при скролле
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                if (entry.target.classList.contains('feature-card')) {
+                    const delay = entry.target.dataset.delay || 0;
+                    entry.target.style.animation = `fadeUp 0.5s ease ${delay}s forwards`;
+                } else if (entry.target.id === 'duelBanner') {
+                    entry.target.classList.add('visible');
+                } else if (entry.target.id === 'aboutSection') {
+                    entry.target.classList.add('visible');
+                }
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.1 });
+
+    document.querySelectorAll('.feature-card').forEach(card => {
+        card.style.opacity = '0';
+        observer.observe(card);
+    });
+    observer.observe(document.getElementById('duelBanner'));
+    observer.observe(document.getElementById('aboutSection'));
+
+    // Функция для вставки изображений в карточки
     function setImage(cardId, imgId, placeholderId, imageUrl) {
         const card = document.getElementById(cardId);
         const img = document.getElementById(imgId);
@@ -610,9 +559,73 @@
         }
     }
 
-    // Раскомментируй и укажи пути к изображениям
-    // setImage('imageCard1', 'img1', 'placeholder1', '/static/chart-minimal.png');
-    // setImage('imageCard2', 'img2', 'placeholder2', '/static/duel-minimal.png');
+    // Функция для установки плавающего изображения
+    function setFloatingImage(imageUrl) {
+        const floatingImg = document.getElementById('floatingImg');
+        const floatingPlaceholder = document.getElementById('floatingPlaceholder');
+        if (imageUrl && imageUrl !== '') {
+            floatingImg.src = imageUrl;
+            floatingImg.style.display = 'block';
+            floatingPlaceholder.style.display = 'none';
+        }
+    }
+
+    // ========== ЛОГИКА ПЛАВАЮЩЕГО ИЗОБРАЖЕНИЯ ПРИ СКРОЛЛЕ ==========
+    const floatingImage = document.getElementById('floatingImage');
+    let maxTranslate = 0; // Максимальное смещение влево (в пикселях)
+    let startRight = 0;   // Изначальное положение справа
+
+    function updateFloatingImagePosition() {
+        if (window.innerWidth <= 1200) return;
+
+        // Получаем ширину контейнера и окна
+        const containerWidth = document.querySelector('.container').offsetWidth;
+        const windowWidth = window.innerWidth;
+
+        // Вычисляем, где находится правый край контейнера
+        const containerRect = document.querySelector('.container').getBoundingClientRect();
+        const containerRight = containerRect.right;
+
+        // Текущее положение изображения (правый край)
+        const imageRect = floatingImage.getBoundingClientRect();
+        const imageRight = imageRect.right;
+
+        // Расстояние от изображения до правого края контейнера
+        const distanceToContainer = containerRight - imageRight;
+
+        // Если изображение заехало на контейнер, считаем насколько
+        let offset = 0;
+        if (distanceToContainer < 0) {
+            // Изображение перекрывает контейнер
+            offset = Math.min(Math.abs(distanceToContainer), 300); // Не более 300px
+        }
+
+        // Плавно применяем трансформацию
+        const translateX = Math.min(offset, 280); // Максимум 280px влево
+
+        // Применяем transform (отрицательное значение = влево)
+        floatingImage.style.transform = `translateY(-50%) translateX(-${translateX}px)`;
+    }
+
+    // Слушаем событие скролла
+    window.addEventListener('scroll', () => {
+        requestAnimationFrame(updateFloatingImagePosition);
+    });
+
+    // Также при ресайзе
+    window.addEventListener('resize', () => {
+        requestAnimationFrame(updateFloatingImagePosition);
+    });
+
+    // Инициализация
+    setTimeout(() => {
+        updateFloatingImagePosition();
+    }, 100);
+
+    // Пример использования (раскомментируйте и укажите пути к вашим картинкам):
+    // setImage('imageCard1', 'img1', 'placeholder1', '/static/chart.png');
+    // setImage('imageCard2', 'img2', 'placeholder2', '/static/duel.png');
+    setFloatingImage('/static/--.png');
 </script>
 </body>
 </html>
