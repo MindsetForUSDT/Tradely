@@ -33,42 +33,31 @@
             from { opacity: 0; transform: scale(0.95); }
             to { opacity: 1; transform: scale(1); }
         }
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-6px); }
-        }
         .animate-up { animation: fadeUp 0.6s ease forwards; }
         .animate-left { animation: fadeLeft 0.6s ease forwards; }
         .animate-right { animation: fadeRight 0.6s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
 
-        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ ========== */
+        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ВО ВСЮ ВЫСОТУ) ========== */
         .floating-image-container {
             position: fixed;
             right: 0;
-            top: 50%;
-            transform: translateY(-50%);
+            top: 0;
             width: 380px;
-            height: auto;
+            height: 100vh;
             z-index: 1000;
             pointer-events: none;
             transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             will-change: transform;
+            overflow: hidden;
         }
 
         .floating-image {
             width: 100%;
-            height: auto;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(94, 234, 212, 0.3);
-            opacity: 0.95;
-            transition: all 0.3s;
-        }
-
-        .floating-image:hover {
-            opacity: 1;
-            border-color: #5EEAD4;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            display: block;
         }
 
         /* Адаптив для плавающего изображения */
@@ -401,14 +390,9 @@
     </style>
 </head>
 <body>
-<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ -->
+<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ НА ВСЮ ВЫСОТУ -->
 <div class="floating-image-container" id="floatingImage">
-    <img class="floating-image" id="floatingImg" src="" alt="Trading visualization" style="display: none;">
-    <!-- Плейсхолдер, пока нет картинки -->
-    <div id="floatingPlaceholder" style="width: 100%; aspect-ratio: 1/1; background: linear-gradient(135deg, #1A1F2E, #12161E); border-radius: 20px; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; border: 1px solid #2E3440;">
-        <span style="font-size: 48px;">📈</span>
-        <span style="color: #5EEAD4; font-size: 12px;">Торговый график</span>
-    </div>
+    <img class="floating-image" id="floatingImg" src="" alt="Trading visualization">
 </div>
 
 <div class="container">
@@ -562,27 +546,18 @@
     // Функция для установки плавающего изображения
     function setFloatingImage(imageUrl) {
         const floatingImg = document.getElementById('floatingImg');
-        const floatingPlaceholder = document.getElementById('floatingPlaceholder');
         if (imageUrl && imageUrl !== '') {
             floatingImg.src = imageUrl;
-            floatingImg.style.display = 'block';
-            floatingPlaceholder.style.display = 'none';
         }
     }
 
     // ========== ЛОГИКА ПЛАВАЮЩЕГО ИЗОБРАЖЕНИЯ ПРИ СКРОЛЛЕ ==========
     const floatingImage = document.getElementById('floatingImage');
-    let maxTranslate = 0; // Максимальное смещение влево (в пикселях)
-    let startRight = 0;   // Изначальное положение справа
 
     function updateFloatingImagePosition() {
         if (window.innerWidth <= 1200) return;
 
-        // Получаем ширину контейнера и окна
-        const containerWidth = document.querySelector('.container').offsetWidth;
-        const windowWidth = window.innerWidth;
-
-        // Вычисляем, где находится правый край контейнера
+        // Получаем правый край контейнера
         const containerRect = document.querySelector('.container').getBoundingClientRect();
         const containerRight = containerRect.right;
 
@@ -596,15 +571,14 @@
         // Если изображение заехало на контейнер, считаем насколько
         let offset = 0;
         if (distanceToContainer < 0) {
-            // Изображение перекрывает контейнер
-            offset = Math.min(Math.abs(distanceToContainer), 300); // Не более 300px
+            offset = Math.min(Math.abs(distanceToContainer), 300);
         }
 
-        // Плавно применяем трансформацию
-        const translateX = Math.min(offset, 280); // Максимум 280px влево
+        // Максимум 280px влево
+        const translateX = Math.min(offset, 280);
 
-        // Применяем transform (отрицательное значение = влево)
-        floatingImage.style.transform = `translateY(-50%) translateX(-${translateX}px)`;
+        // Применяем transform (без translateY, так как top: 0)
+        floatingImage.style.transform = `translateX(-${translateX}px)`;
     }
 
     // Слушаем событие скролла
@@ -622,10 +596,12 @@
         updateFloatingImagePosition();
     }, 100);
 
-    // Пример использования (раскомментируйте и укажите пути к вашим картинкам):
+    // ========== УКАЖИ ЗДЕСЬ ПУТЬ К ТВОЕМУ ФАЙЛУ ==========
+    setFloatingImage('/static/--.png');
+
+    // Для карточек (раскомментируй при наличии)
     // setImage('imageCard1', 'img1', 'placeholder1', '/static/chart.png');
     // setImage('imageCard2', 'img2', 'placeholder2', '/static/duel.png');
-    setFloatingImage('/static/--.png');
 </script>
 </body>
 </html>
