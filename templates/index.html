@@ -25,6 +25,48 @@
             scroll-behavior: smooth;
         }
 
+        /* ========== КНОПКИ СКРОЛЛА ========== */
+        .scroll-btn {
+            position: fixed;
+            left: 24px;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: rgba(18, 22, 30, 0.8);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(94, 234, 212, 0.3);
+            color: #5EEAD4;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .scroll-btn.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .scroll-btn:hover {
+            background: #5EEAD4;
+            color: #0A0C10;
+            transform: scale(1.05);
+            border-color: #5EEAD4;
+        }
+
+        .scroll-top {
+            top: 100px;
+        }
+
+        .scroll-bottom {
+            bottom: 100px;
+        }
+
         /* ========== ОСНОВНОЙ КОНТЕЙНЕР ========== */
         .container {
             max-width: 1000px;
@@ -88,6 +130,11 @@
             to { opacity: 1; transform: scale(1); }
         }
 
+        @keyframes slideImage {
+            0% { transform: translateX(200px); opacity: 0; }
+            100% { transform: translateX(130px); opacity: 1; }
+        }
+
         .animate-up { animation: fadeUp 0.5s ease forwards; }
         .animate-left { animation: fadeLeft 0.5s ease forwards; }
         .animate-right { animation: fadeRight 0.5s ease forwards; }
@@ -104,7 +151,9 @@
             pointer-events: none;
             transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
             will-change: transform;
-            transform: translateX(0);
+            transform: translateX(200px);
+            opacity: 0;
+            animation: slideImage 0.8s ease-out 0.3s forwards;
         }
 
         .floating-image {
@@ -170,6 +219,21 @@
 
         .nav a:hover {
             color: #5EEAD4;
+        }
+
+        /* Линия под навигацией */
+        .header {
+            position: relative;
+        }
+
+        .header::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(94, 234, 212, 0.8) 0%, rgba(94, 234, 212, 0.8) 60%, transparent 100%);
         }
 
         /* ========== ГЕРОЙ ========== */
@@ -242,6 +306,8 @@
             font-size: 14px;
             transition: all 0.25s ease;
             display: inline-block;
+            cursor: pointer;
+            border: none;
         }
 
         .btn-primary:hover {
@@ -391,10 +457,16 @@
             transition: all 0.3s ease;
             opacity: 0;
             transform: translateY(20px);
+            will-change: transform, opacity;
         }
 
         .feature-card.visible {
             animation: fadeUp 0.5s ease forwards;
+        }
+
+        .feature-card.hidden {
+            opacity: 0;
+            transform: translateY(20px);
         }
 
         .feature-card:hover {
@@ -527,7 +599,7 @@
             margin-top: 6px;
         }
 
-        /* ========== ФУТЕР (ЭСТЕТИЧНЫЙ) ========== */
+        /* ========== ФУТЕР ========== */
         .footer {
             border-top: 1px solid rgba(255, 255, 255, 0.05);
             padding: 56px 0 40px;
@@ -580,36 +652,29 @@
             margin-bottom: 20px;
         }
 
-        .footer-social {
-            display: flex;
-            gap: 12px;
-        }
-
-        .social-link {
-            color: #8E97A6;
-            text-decoration: none;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.2s ease;
-            width: 32px;
-            height: 32px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .social-link:hover {
+        .contact-btn {
+            background: rgba(94, 234, 212, 0.1);
+            border: 1px solid rgba(94, 234, 212, 0.3);
             color: #5EEAD4;
-            border-color: #5EEAD4;
-            background: rgba(94, 234, 212, 0.08);
+            padding: 10px 20px;
+            border-radius: 40px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .contact-btn:hover {
+            background: #5EEAD4;
+            color: #0A0C10;
             transform: translateY(-2px);
         }
 
         .footer-section {
-            min-width: 120px;
+            min-width: 140px;
         }
 
         .footer-title {
@@ -636,6 +701,7 @@
             font-size: 13px;
             transition: all 0.2s ease;
             display: inline-block;
+            cursor: pointer;
         }
 
         .footer-links a:hover {
@@ -662,6 +728,7 @@
             text-decoration: none;
             font-size: 11px;
             transition: color 0.2s ease;
+            cursor: pointer;
         }
 
         .footer-bottom-links a:hover {
@@ -672,6 +739,138 @@
             color: #5B687C;
             font-size: 10px;
             letter-spacing: 0.2px;
+        }
+
+        /* ========== МОДАЛЬНЫЕ ОКНА ========== */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal.active {
+            display: flex;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background: #12161E;
+            border-radius: 28px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid rgba(94, 234, 212, 0.3);
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal.active .modal-content {
+            transform: scale(1);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .modal-header h3 {
+            font-size: 24px;
+            color: #FFFFFF;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: #8E97A6;
+            font-size: 28px;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .modal-close:hover {
+            color: #5EEAD4;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #A3ABB8;
+            font-size: 13px;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            background: #1A1F2E;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            color: #FFFFFF;
+            font-family: inherit;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #5EEAD4;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .submit-btn {
+            background: #5EEAD4;
+            color: #0A0C10;
+            padding: 12px 28px;
+            border-radius: 40px;
+            border: none;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            width: 100%;
+        }
+
+        .submit-btn:hover {
+            background: #4bd5bf;
+            transform: translateY(-2px);
+        }
+
+        .policy-text, .terms-text {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #A3ABB8;
+        }
+
+        .policy-text h4, .terms-text h4 {
+            color: #FFFFFF;
+            margin: 20px 0 10px;
+        }
+
+        .policy-text p, .terms-text p {
+            margin-bottom: 12px;
         }
 
         /* ========== АДАПТИВ ========== */
@@ -687,7 +886,7 @@
                 gap: 40px;
             }
             .nav {
-                gap: 24px;
+                gap: 20px;
             }
             .about-stats {
                 gap: 28px;
@@ -718,9 +917,6 @@
                 margin-left: auto;
                 margin-right: auto;
             }
-            .footer-social {
-                justify-content: center;
-            }
             .footer-section {
                 text-align: center;
             }
@@ -730,6 +926,18 @@
             .footer-bottom-links {
                 flex-direction: column;
                 gap: 10px;
+            }
+            .scroll-btn {
+                left: 16px;
+                width: 36px;
+                height: 36px;
+                font-size: 18px;
+            }
+            .scroll-top {
+                top: 80px;
+            }
+            .scroll-bottom {
+                bottom: 80px;
             }
         }
 
@@ -745,6 +953,10 @@
     </style>
 </head>
 <body>
+
+<!-- Кнопки скролла -->
+<button class="scroll-btn scroll-top" id="scrollTopBtn" aria-label="Наверх">↑</button>
+<button class="scroll-btn scroll-bottom" id="scrollBottomBtn" aria-label="Вниз">↓</button>
 
 <div class="floating-image-container" id="floatingImage">
     <img class="floating-image" id="floatingImg" src="" alt="Trading visualization">
@@ -827,7 +1039,7 @@
         </div>
     </div>
 
-    <!-- ========== ФУТЕР ========== -->
+    <!-- ФУТЕР -->
     <div class="footer">
         <div class="footer-content">
             <div class="footer-brand">
@@ -839,11 +1051,7 @@
                     Образовательная платформа для трейдеров.<br>
                     Обучайся, практикуйся, побеждай.
                 </div>
-                <div class="footer-social">
-                    <a href="#" class="social-link">TG</a>
-                    <a href="#" class="social-link">X</a>
-                    <a href="#" class="social-link">GH</a>
-                </div>
+                <button class="contact-btn" id="contactBtn">✉️ Написать нам</button>
             </div>
 
             <div class="footer-section">
@@ -866,22 +1074,13 @@
                     <li><a href="#">Контакты</a></li>
                 </ul>
             </div>
-
-            <div class="footer-section">
-                <div class="footer-title">Ресурсы</div>
-                <ul class="footer-links">
-                    <li><a href="#">Документация</a></li>
-                    <li><a href="#">API</a></li>
-                    <li><a href="#">Статус</a></li>
-                </ul>
-            </div>
         </div>
 
         <div class="footer-bottom">
             <div>© 2026 Tradeum Academy</div>
             <div class="footer-bottom-links">
-                <a href="#">Политика конфиденциальности</a>
-                <a href="#">Условия использования</a>
+                <a id="privacyLink">Политика конфиденциальности</a>
+                <a id="termsLink">Условия использования</a>
             </div>
             <div class="footer-disclaimer">
                 Tradeum Academy не предоставляет инвестиционных консультаций. Все материалы носят образовательный характер.
@@ -890,31 +1089,140 @@
     </div>
 </div>
 
+<!-- Модальное окно контактов -->
+<div class="modal" id="contactModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✉️ Связаться с нами</h3>
+            <button class="modal-close" onclick="closeModal('contactModal')">×</button>
+        </div>
+        <form id="contactForm">
+            <div class="form-group">
+                <label>Ваше имя</label>
+                <input type="text" id="userName" required placeholder="Иван Иванов">
+            </div>
+            <div class="form-group">
+                <label>Ваш email</label>
+                <input type="email" id="userEmail" required placeholder="ivan@example.com">
+            </div>
+            <div class="form-group">
+                <label>Сообщение</label>
+                <textarea id="userMessage" required placeholder="Опишите ваш вопрос..."></textarea>
+            </div>
+            <button type="submit" class="submit-btn">Отправить письмо</button>
+        </form>
+    </div>
+</div>
+
+<!-- Модальное окно политики -->
+<div class="modal" id="privacyModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>🔒 Политика конфиденциальности</h3>
+            <button class="modal-close" onclick="closeModal('privacyModal')">×</button>
+        </div>
+        <div class="policy-text">
+            <p>Настоящая Политика конфиденциальности описывает, как Tradeum Academy собирает, использует и защищает информацию, которую вы предоставляете при использовании нашей платформы.</p>
+
+            <h4>1. Собираемая информация</h4>
+            <p>Мы собираем имя, адрес электронной почты и сообщения, которые вы отправляете через форму обратной связи. Также мы автоматически собираем техническую информацию (IP-адрес, тип браузера, время посещения).</p>
+
+            <h4>2. Использование информации</h4>
+            <p>Ваша информация используется исключительно для ответа на ваши запросы, улучшения качества обучения и отправки важных уведомлений о работе платформы.</p>
+
+            <h4>3. Защита данных</h4>
+            <p>Мы используем современные методы шифрования и защиты данных. Доступ к личной информации имеют только авторизованные сотрудники.</p>
+
+            <h4>4. Файлы cookie</h4>
+            <p>Платформа использует cookie для персонализации обучения и анализа трафика. Вы можете отключить cookie в настройках браузера.</p>
+
+            <h4>5. Передача данных третьим лицам</h4>
+            <p>Мы не передаем ваши личные данные третьим лицам, за исключением случаев, предусмотренных законодательством.</p>
+
+            <h4>6. Ваши права</h4>
+            <p>Вы имеете право запросить удаление ваших данных или изменить их, связавшись с нами по email: privacy@tradeum.com</p>
+
+            <p><strong>Дата последнего обновления:</strong> 10 апреля 2026 г.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно условий -->
+<div class="modal" id="termsModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📜 Условия использования</h3>
+            <button class="modal-close" onclick="closeModal('termsModal')">×</button>
+        </div>
+        <div class="terms-text">
+            <p>Добро пожаловать в Tradeum Academy! Используя нашу платформу, вы соглашаетесь с настоящими Условиями использования.</p>
+
+            <h4>1. Образовательный характер</h4>
+            <p>Все материалы на платформе носят исключительно образовательный характер. Tradeum Academy не предоставляет инвестиционных консультаций и не несет ответственности за финансовые решения, принятые на основе полученных знаний.</p>
+
+            <h4>2. Регистрация и аккаунт</h4>
+            <p>Для доступа к платформе необходима регистрация. Вы несете ответственность за сохранность ваших учетных данных и всю активность под вашим аккаунтом.</p>
+
+            <h4>3. Права на контент</h4>
+            <p>Все материалы, включая обучающие карточки, графики и тексты, являются интеллектуальной собственностью Tradeum Academy. Копирование и распространение без разрешения запрещены.</p>
+
+            <h4>4. Поведение пользователей</h4>
+            <p>Запрещается использовать платформу для спама, оскорблений, распространения вредоносного ПО или любых других незаконных действий.</p>
+
+            <h4>5. Изменение условий</h4>
+            <p>Мы оставляем право изменять условия использования. О важных изменениях мы уведомим вас по email.</p>
+
+            <h4>6. Ответственность</h4>
+            <p>Tradeum Academy не гарантирует 100% прибыли от трейдинга и не несет ответственности за убытки, понесенные в результате использования платформы.</p>
+
+            <p><strong>Последнее обновление:</strong> 10 апреля 2026 г.</p>
+        </div>
+    </div>
+</div>
+
 <script>
-    // Анимация при скролле
-    const observer = new IntersectionObserver((entries) => {
+    // Анимация при скролле с появлением/исчезновением плашек
+    const observerOptions = { threshold: 0.1, rootMargin: "0px 0px -20px 0px" };
+
+    const featureObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
-                if (entry.target.classList.contains('feature-card')) {
-                    const delay = entry.target.dataset.delay || 0;
-                    entry.target.style.animation = `fadeUp 0.5s ease ${delay}s forwards`;
-                } else if (entry.target.id === 'duelBanner') {
+                const delay = entry.target.dataset.delay || 0;
+                entry.target.style.animation = `fadeUp 0.5s ease ${delay}s forwards`;
+                entry.target.classList.remove('hidden');
+            } else {
+                entry.target.style.animation = '';
+                entry.target.style.opacity = '0';
+                entry.target.style.transform = 'translateY(20px)';
+                entry.target.classList.add('hidden');
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.feature-card').forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        featureObserver.observe(card);
+    });
+
+    // Другие элементы (появляются один раз)
+    const onceObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                if (entry.target.id === 'duelBanner') {
                     entry.target.classList.add('visible');
                 } else if (entry.target.id === 'aboutSection') {
                     entry.target.classList.add('visible');
                 }
-                observer.unobserve(entry.target);
+                onceObserver.unobserve(entry.target);
             }
         });
-    }, { threshold: 0.1, rootMargin: "0px 0px -20px 0px" });
+    }, { threshold: 0.1 });
 
-    document.querySelectorAll('.feature-card').forEach(card => {
-        card.style.opacity = '0';
-        observer.observe(card);
-    });
-    observer.observe(document.getElementById('duelBanner'));
-    observer.observe(document.getElementById('aboutSection'));
+    onceObserver.observe(document.getElementById('duelBanner'));
+    onceObserver.observe(document.getElementById('aboutSection'));
 
+    // Функции для изображений
     function setImage(cardId, imgId, placeholderId, imageUrl) {
         const img = document.getElementById(imgId);
         const placeholder = document.getElementById(placeholderId);
@@ -932,11 +1240,8 @@
         }
     }
 
+    // Плавающее изображение
     const floatingImage = document.getElementById('floatingImage');
-
-    setTimeout(() => {
-        floatingImage.style.transform = `translateX(130px)`;
-    }, 200);
 
     function updateFloatingImagePosition() {
         if (window.innerWidth <= 900) return;
@@ -951,6 +1256,86 @@
 
     window.addEventListener('scroll', () => {
         requestAnimationFrame(updateFloatingImagePosition);
+    });
+
+    // Кнопки скролла
+    const scrollTopBtn = document.getElementById('scrollTopBtn');
+    const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+
+    function checkScrollButtons() {
+        const scrollTop = window.scrollY;
+        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+
+        if (scrollTop > 200) {
+            scrollTopBtn.classList.add('visible');
+        } else {
+            scrollTopBtn.classList.remove('visible');
+        }
+
+        if (scrollTop < maxScroll - 200) {
+            scrollBottomBtn.classList.add('visible');
+        } else {
+            scrollBottomBtn.classList.remove('visible');
+        }
+    }
+
+    scrollTopBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    scrollBottomBtn.addEventListener('click', () => {
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+    });
+
+    window.addEventListener('scroll', checkScrollButtons);
+    window.addEventListener('resize', checkScrollButtons);
+    checkScrollButtons();
+
+    // Модальные окна
+    function openModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        modal.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+
+    // Контактная форма
+    document.getElementById('contactBtn').addEventListener('click', () => {
+        openModal('contactModal');
+    });
+
+    document.getElementById('contactForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const name = document.getElementById('userName').value;
+        const email = document.getElementById('userEmail').value;
+        const message = document.getElementById('userMessage').value;
+
+        // Имитация отправки письма
+        alert(`Письмо отправлено!\n\nОт: ${name} (${email})\nСообщение: ${message}\n\nНаш менеджер свяжется с вами в ближайшее время.`);
+        closeModal('contactModal');
+        document.getElementById('contactForm').reset();
+    });
+
+    // Политика и условия
+    document.getElementById('privacyLink').addEventListener('click', () => {
+        openModal('privacyModal');
+    });
+
+    document.getElementById('termsLink').addEventListener('click', () => {
+        openModal('termsModal');
+    });
+
+    // Закрытие модальных окон при клике вне контента
+    window.addEventListener('click', (e) => {
+        if (e.target.classList.contains('modal')) {
+            e.target.classList.remove('active');
+            document.body.style.overflow = '';
+        }
     });
 
     setFloatingImage('/static/--.png');
