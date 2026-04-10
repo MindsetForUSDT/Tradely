@@ -109,13 +109,14 @@
             from { opacity: 0; transform: scale(0.96); }
             to { opacity: 1; transform: scale(1); }
         }
-        @keyframes slideImage {
-            0% { transform: translateX(100%); opacity: 0; }
-            100% { transform: translateX(80px); opacity: 1; }
-        }
         @keyframes slideFromLeft {
             from { opacity: 0; transform: translateX(-60px); }
             to { opacity: 1; transform: translateX(0); }
+        }
+        /* Анимация вылетания фото при загрузке */
+        @keyframes flyIn {
+            0% { transform: translateX(100%); opacity: 0; }
+            100% { transform: translateX(0); opacity: 1; }
         }
 
         .animate-up { animation: fadeUp 0.5s ease forwards; }
@@ -132,10 +133,11 @@
             height: 100vh;
             z-index: 0;
             pointer-events: none;
-            transition: transform 0.08s linear;
+            transition: transform 0.1s linear;
             will-change: transform;
-            transform: translateX(80px);
-            opacity: 1;
+            transform: translateX(100%);
+            opacity: 0;
+            animation: flyIn 0.8s cubic-bezier(0.2, 0.8, 0.4, 1) 0.2s forwards;
             overflow: visible;
         }
 
@@ -149,10 +151,10 @@
         }
 
         @media (max-width: 1400px) {
-            .floating-image-container { width: 480px; transform: translateX(60px); }
+            .floating-image-container { width: 480px; }
         }
         @media (max-width: 1200px) {
-            .floating-image-container { width: 420px; transform: translateX(40px); }
+            .floating-image-container { width: 420px; }
         }
         @media (max-width: 900px) {
             .floating-image-container { display: none; }
@@ -776,18 +778,29 @@
     slideObserver.observe(document.getElementById('duelBanner'));
     slideObserver.observe(document.getElementById('aboutSection'));
 
-    // ========== ДВИЖЕНИЕ ФОТО (СНАЧАЛА ВЛЕВО, ПОТОМ ВПРАВО) ==========
+    // ========== ДВИЖЕНИЕ ФОТО ==========
     const floatingImage = document.getElementById('floatingImage');
-
-    // Получаем начальное смещение в зависимости от ширины экрана
-    function getBaseOffset() {
-        if (window.innerWidth <= 1200) return 40;
-        if (window.innerWidth <= 1400) return 60;
-        return 80;
-    }
-
-    let baseOffset = getBaseOffset();
+    let startPosition = 0; // начальная позиция после анимации (будет определена)
     let ticking = false;
+
+    // Получаем финальную позицию после CSS-анимации
+    setTimeout(() => {
+        const computedStyle = window.getComputedStyle(floatingImage);
+        const transform = computedStyle.transform;
+        if (transform && transform !== 'none') {
+            const matrix = transform.match(/matrix.*\((.+)\)/);
+            if (matrix) {
+                const values = matrix[1].split(', ');
+                startPosition = parseFloat(values[4]);
+            }
+        }
+        if (isNaN(startPosition) || startPosition === 0) {
+            if (window.innerWidth <= 1200) startPosition = 40;
+            else if (window.innerWidth <= 1400) startPosition = 60;
+            else startPosition = 80;
+        }
+        floatingImage.style.transform = `translateX(${startPosition}px)`;
+    }, 850);
 
     function updateFloatingImage() {
         if (window.innerWidth <= 900) return;
@@ -796,26 +809,12 @@
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // Движение: от 0% до 30% скролла - уходим влево (уменьшаем offset)
-        // от 30% до 100% - возвращаемся вправо (увеличиваем offset)
-        let newOffset;
-        const minOffset = baseOffset - 35; // минимум (влево)
-        const maxOffset = baseOffset + 25; // максимум (вправо)
+        // При скролле смещаемся влево максимум на 40px
+        const maxShift = 40;
+        const shift = progress * maxShift;
+        const newOffset = startPosition - shift;
 
-        if (progress <= 0.3) {
-            // Первые 30%: плавно уходим влево
-            const t = progress / 0.3; // 0 → 1
-            newOffset = baseOffset - (t * 35);
-        } else {
-            // Оставшиеся 70%: возвращаемся вправо и чуть дальше
-            const t = (progress - 0.3) / 0.7; // 0 → 1
-            newOffset = (baseOffset - 35) + (t * 60);
-        }
-
-        // Ограничиваем
-        newOffset = Math.max(20, Math.min(maxOffset, newOffset));
-
-        floatingImage.style.transform = `translateX(${newOffset}px)`;
+        floatingImage.style.transform = `translateX(${Math.max(20, newOffset)}px)`;
         ticking = false;
     }
 
@@ -826,18 +825,7 @@
         }
     }
 
-    function onResize() {
-        baseOffset = getBaseOffset();
-        updateFloatingImage();
-    }
-
     window.addEventListener('scroll', onScroll);
-    window.addEventListener('resize', onResize);
-
-    // Устанавливаем начальное положение
-    setTimeout(() => {
-        updateFloatingImage();
-    }, 100);
 
     // Кнопки скролла
     const scrollTopBtn = document.getElementById('scrollTopBtn');
