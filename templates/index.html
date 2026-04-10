@@ -55,6 +55,7 @@
             transition: transform 0.15s ease-out;
             will-change: transform;
             transform: translateX(0);
+            overflow: visible;
         }
 
         .floating-image {
@@ -575,12 +576,13 @@
         }
     }
 
-    // ========== ПРОСТАЯ ЛОГИКА ДЛЯ ПЛАВАЮЩЕГО ИЗОБРАЖЕНИЯ ==========
+    // ========== ЛОГИКА ДЛЯ ПЛАВАЮЩЕГО ИЗОБРАЖЕНИЯ ==========
     const floatingImage = document.getElementById('floatingImage');
 
-    // Начальное положение: выезжает всего на 15px (едва заметно)
+    // Начальное положение: фото сдвинуто ВПРАВО на 130px (видно только 70% фото)
+    // При ширине фото 450px, сдвиг на 130px скрывает 130px правой части = видно ~70%
     setTimeout(() => {
-        floatingImage.style.transform = `translateX(200 px)`;
+        floatingImage.style.transform = `translateX(130px)`;
     }, 200);
 
     function updateFloatingImagePosition() {
@@ -590,10 +592,11 @@
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // От 15px до 45px максимум (выезжает совсем немного)
-        const newOffset = 45 + (scrollProgress * 30);
+        // При скролле: от 130px (видно 70%) до 30px (видно ~93%)
+        // Отрицательные значения не используем, фото не уходит влево за край
+        const newOffset = 130 - (scrollProgress * 100);
 
-        floatingImage.style.transform = `translateX(-${newOffset}px)`;
+        floatingImage.style.transform = `translateX(${newOffset}px)`;
     }
 
     window.addEventListener('scroll', () => {
