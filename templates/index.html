@@ -109,10 +109,6 @@
             from { opacity: 0; transform: scale(0.96); }
             to { opacity: 1; transform: scale(1); }
         }
-        @keyframes slideFromLeft {
-            from { opacity: 0; transform: translateX(-60px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
         @keyframes flyIn {
             0% { transform: translateX(100%); opacity: 0; }
             100% { transform: translateX(0); opacity: 1; }
@@ -132,7 +128,7 @@
             height: 100vh;
             z-index: 0;
             pointer-events: none;
-            transition: transform 0.08s linear;
+            transition: transform 0.05s linear;
             will-change: transform;
             transform: translateX(100%);
             opacity: 0;
@@ -793,10 +789,10 @@
     <div class="header">
         <div class="logo">Trade<span style="color: #5EEAD4;">um</span></div>
         <div class="nav">
-            <a href="#">Главная</a>
-            <a href="#">Обучение</a>
-            <a href="#">Дуэли</a>
-            <a href="#">Профиль</a>
+            <a href="/">Главная</a>
+            <a href="/learn">Обучение</a>
+            <a href="/duel">Дуэли</a>
+            <a href="/dashboard">Профиль</a>
         </div>
     </div>
 
@@ -806,8 +802,8 @@
             <h1>Стань мастером<br><span class="gradient-text">технического анализа</span></h1>
             <div class="hero-desc">Изучай торговые паттерны, анализируй графики, соревнуйся с другими трейдерами.</div>
             <div class="btn-group">
-                <a href="#" class="btn-primary">Начать обучение</a>
-                <a href="#" class="btn-secondary">Войти</a>
+                <a href="/learn" class="btn-primary">Начать обучение</a>
+                <a href="/login" class="btn-secondary">Войти</a>
             </div>
         </div>
         <div class="hero-stats">
@@ -905,11 +901,20 @@
             </div>
             <div class="footer-section">
                 <div class="footer-title">Навигация</div>
-                <ul class="footer-links"><li><a href="#">Обучение</a></li><li><a href="#">Дуэли</a></li><li><a href="#">Библиотека</a></li><li><a href="#">Симулятор</a></li><li><a href="#">Рейтинг</a></li></ul>
+                <ul class="footer-links">
+                    <li><a href="/learn">Обучение</a></li>
+                    <li><a href="/duel">Дуэли</a></li>
+                    <li><a href="/library">Библиотека</a></li>
+                    <li><a href="/simulator">Симулятор</a></li>
+                    <li><a href="/leaderboard">Рейтинг</a></li>
+                </ul>
             </div>
             <div class="footer-section">
                 <div class="footer-title">О проекте</div>
-                <ul class="footer-links"><li><a id="faqLink">FAQ</a></li></ul>
+                <ul class="footer-links">
+                    <li><a href="/features">Возможности</a></li>
+                    <li><a id="faqLink">FAQ</a></li>
+                </ul>
             </div>
         </div>
         <div class="footer-bottom">
@@ -960,28 +965,16 @@
     slideObserver.observe(document.getElementById('duelBanner'));
     slideObserver.observe(document.getElementById('aboutSection'));
 
-    // ========== ДВИЖЕНИЕ ФОТО (РАБОТАЕТ) ==========
+    // ========== ДВИЖЕНИЕ ФОТО (ИСПРАВЛЕНО) ==========
     const floatingImage = document.getElementById('floatingImage');
-    let startPosition = 80; // значение по умолчанию
+    let startPosition = 80;
     let ticking = false;
 
-    // Получаем реальную позицию после CSS-анимации
+    // Определяем начальную позицию после анимации
     setTimeout(() => {
-        const computedStyle = window.getComputedStyle(floatingImage);
-        const transform = computedStyle.transform;
-        if (transform && transform !== 'none') {
-            const matrix = transform.match(/matrix.*\((.+)\)/);
-            if (matrix) {
-                const values = matrix[1].split(', ');
-                const parsed = parseFloat(values[4]);
-                if (!isNaN(parsed)) startPosition = parsed;
-            }
-        }
-        // Адаптация под размер экрана
         if (window.innerWidth <= 1200) startPosition = 40;
         else if (window.innerWidth <= 1400) startPosition = 60;
         else startPosition = 80;
-
         floatingImage.style.transform = `translateX(${startPosition}px)`;
     }, 900);
 
@@ -992,12 +985,15 @@
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // При скролле смещаемся влево максимум на 35px
+        // Плавное смещение влево при скролле (максимум 35px)
         const maxShift = 35;
         const shift = progress * maxShift;
-        const newOffset = startPosition - shift;
+        let newOffset = startPosition - shift;
 
-        floatingImage.style.transform = `translateX(${Math.max(20, newOffset)}px)`;
+        // Ограничиваем минимальное смещение
+        newOffset = Math.max(20, newOffset);
+
+        floatingImage.style.transform = `translateX(${newOffset}px)`;
         ticking = false;
     }
 
@@ -1009,16 +1005,24 @@
     }
 
     window.addEventListener('scroll', onScroll);
+    window.addEventListener('resize', () => {
+        if (window.innerWidth <= 1200) startPosition = 40;
+        else if (window.innerWidth <= 1400) startPosition = 60;
+        else startPosition = 80;
+        updateFloatingImage();
+    });
 
     // Кнопки скролла
     const scrollTopBtn = document.getElementById('scrollTopBtn');
     const scrollBottomBtn = document.getElementById('scrollBottomBtn');
+
     function checkScrollButtons() {
         const scrollTop = window.scrollY;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         scrollTopBtn.classList.toggle('visible', scrollTop > 200);
         scrollBottomBtn.classList.toggle('visible', scrollTop < maxScroll - 200);
     }
+
     scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     scrollBottomBtn.addEventListener('click', () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }));
     window.addEventListener('scroll', checkScrollButtons);
@@ -1034,16 +1038,19 @@
         document.getElementById(id).classList.remove('active');
         document.body.style.overflow = '';
     }
+
     document.getElementById('contactBtn').addEventListener('click', () => openModal('contactModal'));
     document.getElementById('privacyLink').addEventListener('click', () => openModal('privacyModal'));
     document.getElementById('termsLink').addEventListener('click', () => openModal('termsModal'));
     document.getElementById('faqLink').addEventListener('click', () => openModal('faqModal'));
+
     document.getElementById('contactForm').addEventListener('submit', (e) => {
         e.preventDefault();
         alert('✅ Письмо отправлено! Наш менеджер свяжется с вами.');
         closeModal('contactModal');
         document.getElementById('contactForm').reset();
     });
+
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal')) {
             e.target.classList.remove('active');
@@ -1051,6 +1058,7 @@
         }
     });
 
+    // Функция для установки изображения (опционально)
     function setFloatingImage(url) {
         const img = document.getElementById('floatingImg');
         if (url && url !== '') img.src = url;
