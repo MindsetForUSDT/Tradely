@@ -25,15 +25,14 @@
             scroll-behavior: smooth;
         }
 
-        /* ========== ОСНОВНОЙ КОНТЕЙНЕР С ОГРАНИЧЕНИЕМ ШИРИНЫ ========== */
+        /* ========== ОСНОВНОЙ КОНТЕЙНЕР ========== */
         .container {
-            max-width: 1000px;  /* Уменьшено, чтобы текст не доходил до фото */
+            max-width: 1000px;
             margin: 0 auto;
             padding: 0 32px;
             position: relative;
         }
 
-        /* Сдвиг контента влево на больших экранах */
         @media (min-width: 1400px) {
             .container {
                 margin-left: 100px;
@@ -528,11 +527,11 @@
             margin-top: 6px;
         }
 
-        /* ========== ФУТЕР ========== */
+        /* ========== ФУТЕР (ЭСТЕТИЧНЫЙ) ========== */
         .footer {
             border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 52px 0 36px;
-            margin-top: 20px;
+            padding: 56px 0 40px;
+            margin-top: 40px;
             position: relative;
             z-index: 2;
         }
@@ -542,33 +541,85 @@
             justify-content: space-between;
             flex-wrap: wrap;
             gap: 48px;
-            margin-bottom: 36px;
+            margin-bottom: 48px;
+        }
+
+        .footer-brand {
+            flex: 1;
+            min-width: 240px;
         }
 
         .footer-logo {
-            font-size: 18px;
+            font-size: 20px;
             font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-mark {
+            font-size: 18px;
+            color: #5EEAD4;
+            font-weight: 400;
+        }
+
+        .footer-logo span:not(.logo-mark) {
             background: linear-gradient(135deg, #FFFFFF, #5EEAD4);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            margin-bottom: 12px;
-            display: inline-block;
         }
 
         .footer-desc {
             color: #8E97A6;
-            font-size: 12px;
-            max-width: 260px;
+            font-size: 13px;
             line-height: 1.6;
+            max-width: 280px;
+            margin-bottom: 20px;
+        }
+
+        .footer-social {
+            display: flex;
+            gap: 12px;
+        }
+
+        .social-link {
+            color: #8E97A6;
+            text-decoration: none;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .social-link:hover {
+            color: #5EEAD4;
+            border-color: #5EEAD4;
+            background: rgba(94, 234, 212, 0.08);
+            transform: translateY(-2px);
+        }
+
+        .footer-section {
+            min-width: 120px;
         }
 
         .footer-title {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 600;
-            margin-bottom: 18px;
+            margin-bottom: 20px;
             color: #FFFFFF;
-            letter-spacing: -0.2px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            opacity: 0.6;
         }
 
         .footer-links {
@@ -576,26 +627,51 @@
         }
 
         .footer-links li {
-            margin-bottom: 10px;
+            margin-bottom: 12px;
         }
 
         .footer-links a {
             color: #8E97A6;
             text-decoration: none;
-            font-size: 12px;
-            transition: color 0.2s ease;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            display: inline-block;
         }
 
         .footer-links a:hover {
             color: #5EEAD4;
+            transform: translateX(4px);
         }
 
         .footer-bottom {
             text-align: center;
             padding-top: 32px;
             border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .footer-bottom-links {
+            display: flex;
+            justify-content: center;
+            gap: 28px;
+            margin: 14px 0 18px;
+            flex-wrap: wrap;
+        }
+
+        .footer-bottom-links a {
             color: #6B7588;
+            text-decoration: none;
             font-size: 11px;
+            transition: color 0.2s ease;
+        }
+
+        .footer-bottom-links a:hover {
+            color: #5EEAD4;
+        }
+
+        .footer-disclaimer {
+            color: #5B687C;
+            font-size: 10px;
+            letter-spacing: 0.2px;
         }
 
         /* ========== АДАПТИВ ========== */
@@ -630,6 +706,30 @@
             }
             .section-header {
                 text-align: center;
+            }
+            .footer-content {
+                flex-direction: column;
+                gap: 36px;
+            }
+            .footer-brand {
+                text-align: center;
+            }
+            .footer-desc {
+                margin-left: auto;
+                margin-right: auto;
+            }
+            .footer-social {
+                justify-content: center;
+            }
+            .footer-section {
+                text-align: center;
+            }
+            .footer-links a:hover {
+                transform: translateX(0);
+            }
+            .footer-bottom-links {
+                flex-direction: column;
+                gap: 10px;
             }
         }
 
@@ -727,24 +827,65 @@
         </div>
     </div>
 
+    <!-- ========== ФУТЕР ========== -->
     <div class="footer">
         <div class="footer-content">
-            <div class="footer-section">
-                <div class="footer-logo">Tradeum Academy</div>
-                <div class="footer-desc">Образовательная платформа для трейдеров. Обучайся, практикуйся, побеждай.</div>
+            <div class="footer-brand">
+                <div class="footer-logo">
+                    <span class="logo-mark">◈</span>
+                    <span>Tradeum Academy</span>
+                </div>
+                <div class="footer-desc">
+                    Образовательная платформа для трейдеров.<br>
+                    Обучайся, практикуйся, побеждай.
+                </div>
+                <div class="footer-social">
+                    <a href="#" class="social-link">TG</a>
+                    <a href="#" class="social-link">X</a>
+                    <a href="#" class="social-link">GH</a>
+                </div>
             </div>
+
             <div class="footer-section">
                 <div class="footer-title">Навигация</div>
-                <ul class="footer-links"><li><a href="#">Обучение</a></li><li><a href="#">Дуэли</a></li><li><a href="#">Библиотека</a></li><li><a href="#">Симулятор</a></li><li><a href="#">Рейтинг</a></li></ul>
+                <ul class="footer-links">
+                    <li><a href="#">Обучение</a></li>
+                    <li><a href="#">Дуэли</a></li>
+                    <li><a href="#">Библиотека</a></li>
+                    <li><a href="#">Симулятор</a></li>
+                    <li><a href="#">Рейтинг</a></li>
+                </ul>
             </div>
+
             <div class="footer-section">
                 <div class="footer-title">О проекте</div>
-                <ul class="footer-links"><li><a href="#">Возможности</a></li><li><a href="#">FAQ</a></li></ul>
+                <ul class="footer-links">
+                    <li><a href="#">Возможности</a></li>
+                    <li><a href="#">FAQ</a></li>
+                    <li><a href="#">Блог</a></li>
+                    <li><a href="#">Контакты</a></li>
+                </ul>
+            </div>
+
+            <div class="footer-section">
+                <div class="footer-title">Ресурсы</div>
+                <ul class="footer-links">
+                    <li><a href="#">Документация</a></li>
+                    <li><a href="#">API</a></li>
+                    <li><a href="#">Статус</a></li>
+                </ul>
             </div>
         </div>
+
         <div class="footer-bottom">
-            <div>© 2026 Tradeum Academy. Образовательная платформа для трейдеров.</div>
-            <div style="margin-top: 12px;">Tradeum Academy не предоставляет инвестиционных консультаций. Все материалы носят образовательный характер.</div>
+            <div>© 2026 Tradeum Academy</div>
+            <div class="footer-bottom-links">
+                <a href="#">Политика конфиденциальности</a>
+                <a href="#">Условия использования</a>
+            </div>
+            <div class="footer-disclaimer">
+                Tradeum Academy не предоставляет инвестиционных консультаций. Все материалы носят образовательный характер.
+            </div>
         </div>
     </div>
 </div>
@@ -774,7 +915,6 @@
     observer.observe(document.getElementById('duelBanner'));
     observer.observe(document.getElementById('aboutSection'));
 
-    // Функции для изображений
     function setImage(cardId, imgId, placeholderId, imageUrl) {
         const img = document.getElementById(imgId);
         const placeholder = document.getElementById(placeholderId);
@@ -792,7 +932,6 @@
         }
     }
 
-    // Плавающее изображение
     const floatingImage = document.getElementById('floatingImage');
 
     setTimeout(() => {
@@ -814,7 +953,6 @@
         requestAnimationFrame(updateFloatingImagePosition);
     });
 
-    // Укажи путь к изображению
     setFloatingImage('/static/--.png');
 </script>
 </body>
