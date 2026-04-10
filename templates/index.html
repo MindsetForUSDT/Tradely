@@ -50,7 +50,7 @@
             top: 0;
             width: 450px;
             height: 100vh;
-            z-index: 0;  /* ФОТО НА НУЛЕВОМ СЛОЕ */
+            z-index: 0;
             pointer-events: none;
             transition: transform 0.15s ease-out;
             will-change: transform;
@@ -578,9 +578,9 @@
     // ========== ПРОСТАЯ ЛОГИКА ДЛЯ ПЛАВАЮЩЕГО ИЗОБРАЖЕНИЯ ==========
     const floatingImage = document.getElementById('floatingImage');
 
-    // Устанавливаем начальное положение после загрузки страницы
+    // Начальное положение: выезжает всего на 15px (едва заметно)
     setTimeout(() => {
-        floatingImage.style.transform = `translateX(200px)`;
+        floatingImage.style.transform = `translateX(-15px)`;
     }, 200);
 
     function updateFloatingImagePosition() {
@@ -590,7 +590,9 @@
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        const newOffset = 50 + (scrollProgress * 80);
+        // От 15px до 45px максимум (выезжает совсем немного)
+        const newOffset = 15 + (scrollProgress * 30);
+
         floatingImage.style.transform = `translateX(-${newOffset}px)`;
     }
 
