@@ -19,10 +19,6 @@
             margin: 0 auto;
             padding: 0 24px;
             position: relative;
-            z-index: 1;
-            background: rgba(10, 12, 16, 0.85); /* Полупрозрачный фон для читаемости */
-            border-radius: 0;
-            min-height: 100vh;
         }
 
         /* ========== АНИМАЦИИ ========== */
@@ -47,19 +43,18 @@
         .animate-right { animation: fadeRight 0.6s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
 
-        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ЗА КОНТЕНТОМ) ========== */
+        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ЗА ВСЕМ КОНТЕНТОМ) ========== */
         .floating-image-container {
             position: fixed;
             right: 0;
             top: 0;
             width: 450px;
             height: 100vh;
-            z-index: -1;  /* ФОТО ЗА ВСЕМ КОНТЕНТОМ */
+            z-index: 0;  /* ФОТО НА НУЛЕВОМ СЛОЕ */
             pointer-events: none;
             transition: transform 0.15s ease-out;
             will-change: transform;
             transform: translateX(0);
-            opacity: 0.6; /* Немного прозрачности, чтобы текст читался лучше */
         }
 
         .floating-image {
@@ -68,6 +63,19 @@
             object-fit: cover;
             object-position: left center;
             display: block;
+        }
+
+        /* ВЕСЬ КОНТЕНТ ВЫШЕ ФОТО */
+        .container,
+        .header,
+        .hero,
+        .image-row,
+        .features-grid,
+        .duel-banner,
+        .about-section,
+        .footer {
+            position: relative;
+            z-index: 1;
         }
 
         /* Адаптив */
@@ -101,8 +109,6 @@
             gap: 20px;
             opacity: 0;
             animation: fadeUp 0.6s ease 0.1s forwards;
-            position: relative;
-            z-index: 2;
         }
         .logo {
             font-size: 26px;
@@ -130,8 +136,6 @@
             gap: 60px;
             margin-bottom: 100px;
             flex-wrap: wrap;
-            position: relative;
-            z-index: 2;
         }
         .hero-content {
             flex: 1;
@@ -226,8 +230,6 @@
             gap: 24px;
             margin: 60px 0;
             flex-wrap: wrap;
-            position: relative;
-            z-index: 2;
         }
         .image-card {
             flex: 1;
@@ -266,8 +268,6 @@
             margin-bottom: 48px;
             opacity: 0;
             animation: fadeUp 0.6s ease forwards;
-            position: relative;
-            z-index: 2;
         }
         .section-title {
             font-size: 32px;
@@ -284,8 +284,6 @@
             grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
             gap: 24px;
             margin-bottom: 80px;
-            position: relative;
-            z-index: 2;
         }
         .feature-card {
             background: #12161E;
@@ -318,8 +316,6 @@
             opacity: 0;
             transform: translateY(20px);
             transition: all 0.6s ease;
-            position: relative;
-            z-index: 2;
         }
         .duel-banner.visible {
             opacity: 1;
@@ -348,8 +344,6 @@
             opacity: 0;
             transform: translateY(20px);
             transition: all 0.6s ease;
-            position: relative;
-            z-index: 2;
         }
         .about-section.visible {
             opacity: 1;
@@ -372,8 +366,6 @@
             border-top: 1px solid #1F232C;
             padding: 48px 0 32px;
             margin-top: 20px;
-            position: relative;
-            z-index: 2;
         }
         .footer-content {
             display: flex;
@@ -422,7 +414,7 @@
     </style>
 </head>
 <body>
-<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ТЕПЕРЬ ЗА КОНТЕНТОМ) -->
+<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ЗА ВСЕМ КОНТЕНТОМ) -->
 <div class="floating-image-container" id="floatingImage">
     <img class="floating-image" id="floatingImg" src="" alt="Trading visualization">
 </div>
@@ -586,7 +578,7 @@
     // ========== ПРОСТАЯ ЛОГИКА ДЛЯ ПЛАВАЮЩЕГО ИЗОБРАЖЕНИЯ ==========
     const floatingImage = document.getElementById('floatingImage');
 
-    // Устанавливаем начальное положение после загрузки страницы (выезжает на 50px)
+    // Устанавливаем начальное положение после загрузки страницы
     setTimeout(() => {
         floatingImage.style.transform = `translateX(-50px)`;
     }, 200);
@@ -594,19 +586,14 @@
     function updateFloatingImagePosition() {
         if (window.innerWidth <= 900) return;
 
-        // Прогресс скролла (0 в начале, 1 в конце)
         const scrollTop = window.scrollY;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // От 50px до 130px в зависимости от скролла
         const newOffset = 50 + (scrollProgress * 80);
-
-        // Применяем новое положение
         floatingImage.style.transform = `translateX(-${newOffset}px)`;
     }
 
-    // Слушаем скролл
     window.addEventListener('scroll', () => {
         requestAnimationFrame(updateFloatingImagePosition);
     });
