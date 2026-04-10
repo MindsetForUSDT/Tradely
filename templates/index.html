@@ -25,12 +25,10 @@
             scroll-behavior: smooth;
         }
 
-        /* Скрываем ползунок */
         ::-webkit-scrollbar {
             width: 0px;
             background: transparent;
         }
-
         * {
             scrollbar-width: none;
         }
@@ -69,13 +67,8 @@
             border-color: #5EEAD4;
         }
 
-        .scroll-top {
-            top: 100px;
-        }
-
-        .scroll-bottom {
-            bottom: 100px;
-        }
+        .scroll-top { top: 100px; }
+        .scroll-bottom { bottom: 100px; }
 
         /* ========== ОСНОВНОЙ КОНТЕЙНЕР ========== */
         .container {
@@ -86,37 +79,17 @@
         }
 
         @media (min-width: 1400px) {
-            .container {
-                margin-left: 100px;
-                max-width: 900px;
-            }
+            .container { margin-left: 100px; max-width: 900px; }
         }
-
         @media (max-width: 1200px) {
-            .container {
-                margin-left: 30px;
-                max-width: 850px;
-            }
+            .container { margin-left: 30px; max-width: 850px; }
         }
-
         @media (max-width: 1000px) {
-            .container {
-                margin-left: 20px;
-                margin-right: 20px;
-                max-width: 800px;
-            }
+            .container { margin-left: 20px; margin-right: 20px; max-width: 800px; }
         }
-
         @media (max-width: 900px) {
-            .floating-image-container {
-                display: none;
-            }
-            .container {
-                margin-left: auto;
-                margin-right: auto;
-                max-width: 100%;
-                padding: 0 24px;
-            }
+            .floating-image-container { display: none; }
+            .container { margin-left: auto; margin-right: auto; max-width: 100%; padding: 0 24px; }
         }
 
         /* ========== АНИМАЦИИ ========== */
@@ -124,27 +97,22 @@
             from { opacity: 0; transform: translateY(24px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
         @keyframes fadeLeft {
             from { opacity: 0; transform: translateX(-24px); }
             to { opacity: 1; transform: translateX(0); }
         }
-
         @keyframes fadeRight {
             from { opacity: 0; transform: translateX(24px); }
             to { opacity: 1; transform: translateX(0); }
         }
-
         @keyframes scaleIn {
             from { opacity: 0; transform: scale(0.96); }
             to { opacity: 1; transform: scale(1); }
         }
-
         @keyframes slideImage {
             0% { transform: translateX(100%); opacity: 0; }
             100% { transform: translateX(80px); opacity: 1; }
         }
-
         @keyframes slideFromLeft {
             from { opacity: 0; transform: translateX(-60px); }
             to { opacity: 1; transform: translateX(0); }
@@ -164,11 +132,10 @@
             height: 100vh;
             z-index: 0;
             pointer-events: none;
-            transition: transform 0.15s cubic-bezier(0.2, 0.9, 0.4, 1);
+            transition: transform 0.08s linear;
             will-change: transform;
-            transform: translateX(100%);
-            opacity: 0;
-            animation: slideImage 0.8s cubic-bezier(0.2, 0.8, 0.4, 1) 0.2s forwards;
+            transform: translateX(80px);
+            opacity: 1;
             overflow: visible;
         }
 
@@ -182,21 +149,11 @@
         }
 
         @media (max-width: 1400px) {
-            .floating-image-container { width: 480px; }
-            @keyframes slideImage {
-                0% { transform: translateX(100%); opacity: 0; }
-                100% { transform: translateX(60px); opacity: 1; }
-            }
+            .floating-image-container { width: 480px; transform: translateX(60px); }
         }
-
         @media (max-width: 1200px) {
-            .floating-image-container { width: 420px; }
-            @keyframes slideImage {
-                0% { transform: translateX(100%); opacity: 0; }
-                100% { transform: translateX(40px); opacity: 1; }
-            }
+            .floating-image-container { width: 420px; transform: translateX(40px); }
         }
-
         @media (max-width: 900px) {
             .floating-image-container { display: none; }
         }
@@ -243,10 +200,6 @@
 
         .nav a:hover {
             color: #5EEAD4;
-        }
-
-        .header {
-            position: relative;
         }
 
         .header::after {
@@ -374,22 +327,9 @@
             padding: 14px 0;
             border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
-
-        .stat-item:last-child {
-            border-bottom: none;
-        }
-
-        .stat-label {
-            color: #8E97A6;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .stat-value {
-            font-size: 22px;
-            font-weight: 700;
-            color: #5EEAD4;
-        }
+        .stat-item:last-child { border-bottom: none; }
+        .stat-label { color: #8E97A6; font-size: 13px; font-weight: 500; }
+        .stat-value { font-size: 22px; font-weight: 700; color: #5EEAD4; }
 
         /* ========== КАРТОЧКИ ИЗОБРАЖЕНИЙ ========== */
         .image-row {
@@ -411,14 +351,9 @@
             opacity: 0;
             animation: scaleIn 0.5s ease forwards;
         }
-
         .image-card:nth-child(1) { animation-delay: 0.1s; }
         .image-card:nth-child(2) { animation-delay: 0.2s; }
-
-        .image-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(94, 234, 212, 0.4);
-        }
+        .image-card:hover { transform: translateY(-4px); border-color: rgba(94, 234, 212, 0.4); }
 
         .image-placeholder {
             background: linear-gradient(135deg, #1A1F2E, #12161E);
@@ -431,13 +366,7 @@
             color: #5B687C;
             font-size: 14px;
         }
-
-        .image-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            display: block;
-        }
+        .image-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
         /* ========== СЕКЦИЯ ПРЕИМУЩЕСТВ ========== */
         .section-header {
@@ -448,20 +377,8 @@
             position: relative;
             z-index: 2;
         }
-
-        .section-title {
-            font-size: 32px;
-            font-weight: 700;
-            letter-spacing: -0.02em;
-            margin-bottom: 12px;
-            color: #FFFFFF;
-        }
-
-        .section-subtitle {
-            color: #8E97A6;
-            font-size: 15px;
-            font-weight: 400;
-        }
+        .section-title { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; color: #FFFFFF; }
+        .section-subtitle { color: #8E97A6; font-size: 15px; font-weight: 400; }
 
         .features-grid {
             display: grid;
@@ -482,39 +399,12 @@
             transform: translateY(20px);
             will-change: transform, opacity;
         }
-
-        .feature-card.visible {
-            animation: fadeUp 0.5s ease forwards;
-        }
-
-        .feature-card.hidden {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        .feature-card:hover {
-            transform: translateY(-4px);
-            border-color: rgba(94, 234, 212, 0.5);
-            background: #141924;
-        }
-
-        .feature-icon {
-            font-size: 36px;
-            margin-bottom: 20px;
-        }
-
-        .feature-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #FFFFFF;
-        }
-
-        .feature-desc {
-            color: #8E97A6;
-            font-size: 14px;
-            line-height: 1.55;
-        }
+        .feature-card.visible { animation: fadeUp 0.5s ease forwards; }
+        .feature-card.hidden { opacity: 0; transform: translateY(20px); }
+        .feature-card:hover { transform: translateY(-4px); border-color: rgba(94, 234, 212, 0.5); background: #141924; }
+        .feature-icon { font-size: 36px; margin-bottom: 20px; }
+        .feature-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #FFFFFF; }
+        .feature-desc { color: #8E97A6; font-size: 14px; line-height: 1.55; }
 
         /* ========== БАННЕР ДУЭЛИ ========== */
         .duel-banner {
@@ -530,42 +420,11 @@
             position: relative;
             z-index: 2;
         }
-
-        .duel-banner.visible {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        .duel-banner-icon {
-            font-size: 48px;
-            margin-bottom: 20px;
-        }
-
-        .duel-banner-title {
-            font-size: 24px;
-            font-weight: 700;
-            margin-bottom: 14px;
-            color: #FFFFFF;
-        }
-
-        .duel-banner-text {
-            color: #8E97A6;
-            max-width: 560px;
-            margin: 0 auto;
-            font-size: 14px;
-            line-height: 1.6;
-        }
-
-        .duel-badge {
-            display: inline-block;
-            background: rgba(94, 234, 212, 0.08);
-            padding: 6px 16px;
-            border-radius: 100px;
-            font-size: 12px;
-            color: #5EEAD4;
-            margin-top: 20px;
-            font-weight: 500;
-        }
+        .duel-banner.visible { opacity: 1; transform: translateX(0); }
+        .duel-banner-icon { font-size: 48px; margin-bottom: 20px; }
+        .duel-banner-title { font-size: 24px; font-weight: 700; margin-bottom: 14px; color: #FFFFFF; }
+        .duel-banner-text { color: #8E97A6; max-width: 560px; margin: 0 auto; font-size: 14px; line-height: 1.6; }
+        .duel-badge { display: inline-block; background: rgba(94, 234, 212, 0.08); padding: 6px 16px; border-radius: 100px; font-size: 12px; color: #5EEAD4; margin-top: 20px; font-weight: 500; }
 
         /* ========== О ПРОЕКТЕ ========== */
         .about-section {
@@ -581,46 +440,12 @@
             position: relative;
             z-index: 2;
         }
-
-        .about-section.visible {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        .about-title {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 18px;
-            color: #FFFFFF;
-        }
-
-        .about-text {
-            color: #8E97A6;
-            max-width: 720px;
-            margin: 0 auto;
-            font-size: 14px;
-            line-height: 1.7;
-        }
-
-        .about-stats {
-            display: flex;
-            justify-content: center;
-            gap: 56px;
-            margin-top: 36px;
-            flex-wrap: wrap;
-        }
-
-        .about-stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: #5EEAD4;
-        }
-
-        .about-stat-label {
-            font-size: 13px;
-            color: #8E97A6;
-            margin-top: 6px;
-        }
+        .about-section.visible { opacity: 1; transform: translateX(0); }
+        .about-title { font-size: 22px; font-weight: 700; margin-bottom: 18px; color: #FFFFFF; }
+        .about-text { color: #8E97A6; max-width: 720px; margin: 0 auto; font-size: 14px; line-height: 1.7; }
+        .about-stats { display: flex; justify-content: center; gap: 56px; margin-top: 36px; flex-wrap: wrap; }
+        .about-stat-value { font-size: 28px; font-weight: 700; color: #5EEAD4; }
+        .about-stat-label { font-size: 13px; color: #8E97A6; margin-top: 6px; }
 
         /* ========== ФУТЕР ========== */
         .footer {
@@ -630,7 +455,6 @@
             position: relative;
             z-index: 2;
         }
-
         .footer-content {
             display: flex;
             justify-content: space-between;
@@ -638,12 +462,7 @@
             gap: 48px;
             margin-bottom: 48px;
         }
-
-        .footer-brand {
-            flex: 1;
-            min-width: 240px;
-        }
-
+        .footer-brand { flex: 1; min-width: 240px; }
         .footer-logo {
             font-size: 20px;
             font-weight: 700;
@@ -653,28 +472,14 @@
             align-items: center;
             gap: 8px;
         }
-
-        .logo-mark {
-            font-size: 18px;
-            color: #5EEAD4;
-            font-weight: 400;
-        }
-
+        .logo-mark { font-size: 18px; color: #5EEAD4; font-weight: 400; }
         .footer-logo span:not(.logo-mark) {
             background: linear-gradient(135deg, #FFFFFF, #5EEAD4);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
         }
-
-        .footer-desc {
-            color: #8E97A6;
-            font-size: 13px;
-            line-height: 1.6;
-            max-width: 280px;
-            margin-bottom: 20px;
-        }
-
+        .footer-desc { color: #8E97A6; font-size: 13px; line-height: 1.6; max-width: 280px; margin-bottom: 20px; }
         .contact-btn {
             background: rgba(94, 234, 212, 0.1);
             border: 1px solid rgba(94, 234, 212, 0.3);
@@ -689,80 +494,18 @@
             align-items: center;
             gap: 8px;
         }
-
-        .contact-btn:hover {
-            background: #5EEAD4;
-            color: #0A0C10;
-            transform: translateY(-2px);
-        }
-
-        .footer-section {
-            min-width: 140px;
-        }
-
-        .footer-title {
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #FFFFFF;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            opacity: 0.6;
-        }
-
-        .footer-links {
-            list-style: none;
-        }
-
-        .footer-links li {
-            margin-bottom: 12px;
-        }
-
-        .footer-links a {
-            color: #8E97A6;
-            text-decoration: none;
-            font-size: 13px;
-            transition: all 0.2s ease;
-            display: inline-block;
-            cursor: pointer;
-        }
-
-        .footer-links a:hover {
-            color: #5EEAD4;
-            transform: translateX(4px);
-        }
-
-        .footer-bottom {
-            text-align: center;
-            padding-top: 32px;
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .footer-bottom-links {
-            display: flex;
-            justify-content: center;
-            gap: 28px;
-            margin: 14px 0 18px;
-            flex-wrap: wrap;
-        }
-
-        .footer-bottom-links a {
-            color: #6B7588;
-            text-decoration: none;
-            font-size: 11px;
-            transition: color 0.2s ease;
-            cursor: pointer;
-        }
-
-        .footer-bottom-links a:hover {
-            color: #5EEAD4;
-        }
-
-        .footer-disclaimer {
-            color: #5B687C;
-            font-size: 10px;
-            letter-spacing: 0.2px;
-        }
+        .contact-btn:hover { background: #5EEAD4; color: #0A0C10; transform: translateY(-2px); }
+        .footer-section { min-width: 140px; }
+        .footer-title { font-size: 12px; font-weight: 600; margin-bottom: 20px; color: #FFFFFF; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.6; }
+        .footer-links { list-style: none; }
+        .footer-links li { margin-bottom: 12px; }
+        .footer-links a { color: #8E97A6; text-decoration: none; font-size: 13px; transition: all 0.2s ease; display: inline-block; cursor: pointer; }
+        .footer-links a:hover { color: #5EEAD4; transform: translateX(4px); }
+        .footer-bottom { text-align: center; padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
+        .footer-bottom-links { display: flex; justify-content: center; gap: 28px; margin: 14px 0 18px; flex-wrap: wrap; }
+        .footer-bottom-links a { color: #6B7588; text-decoration: none; font-size: 11px; transition: color 0.2s ease; cursor: pointer; }
+        .footer-bottom-links a:hover { color: #5EEAD4; }
+        .footer-disclaimer { color: #5B687C; font-size: 10px; letter-spacing: 0.2px; }
 
         /* ========== МОДАЛЬНЫЕ ОКНА ========== */
         .modal {
@@ -780,12 +523,7 @@
             opacity: 0;
             transition: opacity 0.3s ease;
         }
-
-        .modal.active {
-            display: flex;
-            opacity: 1;
-        }
-
+        .modal.active { display: flex; opacity: 1; }
         .modal-content {
             background: linear-gradient(135deg, #12161E 0%, #0D1018 100%);
             border-radius: 28px;
@@ -799,19 +537,9 @@
             overflow-y: auto;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-
-        .modal-content::-webkit-scrollbar {
-            width: 0px;
-            background: transparent;
-        }
-        .modal-content {
-            scrollbar-width: none;
-        }
-
-        .modal.active .modal-content {
-            transform: scale(1);
-        }
-
+        .modal-content::-webkit-scrollbar { width: 0px; background: transparent; }
+        .modal-content { scrollbar-width: none; }
+        .modal.active .modal-content { transform: scale(1); }
         .modal-header {
             display: flex;
             justify-content: space-between;
@@ -820,15 +548,7 @@
             padding-bottom: 16px;
             border-bottom: 1px solid rgba(94, 234, 212, 0.2);
         }
-
-        .modal-header h3 {
-            font-size: 24px;
-            background: linear-gradient(135deg, #FFFFFF, #5EEAD4);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-
+        .modal-header h3 { font-size: 24px; background: linear-gradient(135deg, #FFFFFF, #5EEAD4); -webkit-background-clip: text; background-clip: text; color: transparent; }
         .modal-close {
             background: none;
             border: none;
@@ -843,27 +563,10 @@
             justify-content: center;
             border-radius: 50%;
         }
-
-        .modal-close:hover {
-            color: #5EEAD4;
-            background: rgba(94, 234, 212, 0.1);
-            transform: rotate(90deg);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #A3ABB8;
-            font-size: 13px;
-            font-weight: 500;
-        }
-
-        .form-group input,
-        .form-group textarea {
+        .modal-close:hover { color: #5EEAD4; background: rgba(94, 234, 212, 0.1); transform: rotate(90deg); }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #A3ABB8; font-size: 13px; font-weight: 500; }
+        .form-group input, .form-group textarea {
             width: 100%;
             padding: 14px 18px;
             background: #1A1F2E;
@@ -874,19 +577,8 @@
             font-size: 14px;
             transition: all 0.2s;
         }
-
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #5EEAD4;
-            background: #1E2436;
-        }
-
-        .form-group textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #5EEAD4; background: #1E2436; }
+        .form-group textarea { resize: vertical; min-height: 100px; }
         .submit-btn {
             background: #5EEAD4;
             color: #0A0C10;
@@ -899,85 +591,18 @@
             transition: all 0.25s ease;
             width: 100%;
         }
-
-        .submit-btn:hover {
-            background: #4bd5bf;
-            transform: translateY(-2px);
-        }
-
-        .legal-content {
-            font-size: 14px;
-            line-height: 1.7;
-            color: #A3ABB8;
-        }
-
-        .legal-content h4 {
-            color: #5EEAD4;
-            margin: 24px 0 12px;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .legal-content h4:first-of-type {
-            margin-top: 0;
-        }
-
-        .legal-content p {
-            margin-bottom: 14px;
-            color: #8E97A6;
-        }
-
-        .legal-content strong {
-            color: #FFFFFF;
-        }
-
-        .legal-content .highlight {
-            background: rgba(94, 234, 212, 0.1);
-            padding: 4px 8px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 12px;
-            color: #5EEAD4;
-        }
-
-        .legal-date {
-            margin-top: 28px;
-            padding-top: 20px;
-            border-top: 1px solid rgba(94, 234, 212, 0.15);
-            text-align: center;
-            font-size: 12px;
-            color: #6B7588;
-        }
-
-        .faq-item {
-            margin-bottom: 24px;
-            padding: 16px;
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 20px;
-            border-left: 3px solid #5EEAD4;
-        }
-
-        .faq-question {
-            font-size: 16px;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .faq-question .q-mark {
-            color: #5EEAD4;
-            font-size: 18px;
-        }
-
-        .faq-answer {
-            font-size: 13px;
-            color: #8E97A6;
-            line-height: 1.6;
-            padding-left: 28px;
-        }
+        .submit-btn:hover { background: #4bd5bf; transform: translateY(-2px); }
+        .legal-content { font-size: 14px; line-height: 1.7; color: #A3ABB8; }
+        .legal-content h4 { color: #5EEAD4; margin: 24px 0 12px; font-size: 18px; font-weight: 600; }
+        .legal-content h4:first-of-type { margin-top: 0; }
+        .legal-content p { margin-bottom: 14px; color: #8E97A6; }
+        .legal-content strong { color: #FFFFFF; }
+        .legal-content .highlight { background: rgba(94, 234, 212, 0.1); padding: 4px 8px; border-radius: 8px; font-family: monospace; font-size: 12px; color: #5EEAD4; }
+        .legal-date { margin-top: 28px; padding-top: 20px; border-top: 1px solid rgba(94, 234, 212, 0.15); text-align: center; font-size: 12px; color: #6B7588; }
+        .faq-item { margin-bottom: 24px; padding: 16px; background: rgba(255, 255, 255, 0.02); border-radius: 20px; border-left: 3px solid #5EEAD4; }
+        .faq-question { font-size: 16px; font-weight: 600; color: #FFFFFF; margin-bottom: 8px; display: flex; align-items: center; gap: 10px; }
+        .faq-question .q-mark { color: #5EEAD4; font-size: 18px; }
+        .faq-answer { font-size: 13px; color: #8E97A6; line-height: 1.6; padding-left: 28px; }
 
         @media (max-width: 768px) {
             .container { padding: 0 20px; }
@@ -1001,7 +626,6 @@
             .scroll-bottom { bottom: 80px; }
             .modal-content { padding: 28px; max-height: 90vh; }
         }
-
         @media (max-width: 480px) {
             .btn-group { flex-direction: column; align-items: stretch; }
             .btn-primary, .btn-secondary { text-align: center; }
@@ -1048,17 +672,11 @@
 
     <div class="image-row">
         <div class="image-card" id="imageCard1">
-            <div class="image-placeholder" id="placeholder1">
-                <span>📈</span>
-                <span>График технического анализа</span>
-            </div>
+            <div class="image-placeholder" id="placeholder1"><span>📈</span><span>График технического анализа</span></div>
             <img id="img1" src="" alt="график" style="display: none;">
         </div>
         <div class="image-card" id="imageCard2">
-            <div class="image-placeholder" id="placeholder2">
-                <span>⚡</span>
-                <span>Дуэль трейдеров</span>
-            </div>
+            <div class="image-placeholder" id="placeholder2"><span>⚡</span><span>Дуэль трейдеров</span></div>
             <img id="img2" src="" alt="дуэль" style="display: none;">
         </div>
     </div>
@@ -1097,128 +715,32 @@
     <div class="footer">
         <div class="footer-content">
             <div class="footer-brand">
-                <div class="footer-logo">
-                    <span class="logo-mark">◈</span>
-                    <span>Tradeum Academy</span>
-                </div>
-                <div class="footer-desc">
-                    Образовательная платформа для трейдеров.<br>
-                    Обучайся, практикуйся, побеждай.
-                </div>
+                <div class="footer-logo"><span class="logo-mark">◈</span><span>Tradeum Academy</span></div>
+                <div class="footer-desc">Образовательная платформа для трейдеров.<br>Обучайся, практикуйся, побеждай.</div>
                 <button class="contact-btn" id="contactBtn">✉️ Написать нам</button>
             </div>
-
             <div class="footer-section">
                 <div class="footer-title">Навигация</div>
-                <ul class="footer-links">
-                    <li><a href="#">Обучение</a></li>
-                    <li><a href="#">Дуэли</a></li>
-                    <li><a href="#">Библиотека</a></li>
-                    <li><a href="#">Симулятор</a></li>
-                    <li><a href="#">Рейтинг</a></li>
-                </ul>
+                <ul class="footer-links"><li><a href="#">Обучение</a></li><li><a href="#">Дуэли</a></li><li><a href="#">Библиотека</a></li><li><a href="#">Симулятор</a></li><li><a href="#">Рейтинг</a></li></ul>
             </div>
-
             <div class="footer-section">
                 <div class="footer-title">О проекте</div>
-                <ul class="footer-links">
-                    <li><a id="faqLink">FAQ</a></li>
-                </ul>
+                <ul class="footer-links"><li><a id="faqLink">FAQ</a></li></ul>
             </div>
         </div>
-
         <div class="footer-bottom">
             <div>© 2026 Tradeum Academy</div>
-            <div class="footer-bottom-links">
-                <a id="privacyLink">Политика конфиденциальности</a>
-                <a id="termsLink">Условия использования</a>
-            </div>
-            <div class="footer-disclaimer">
-                Tradeum Academy не предоставляет инвестиционных консультаций. Все материалы носят образовательный характер.
-            </div>
+            <div class="footer-bottom-links"><a id="privacyLink">Политика конфиденциальности</a><a id="termsLink">Условия использования</a></div>
+            <div class="footer-disclaimer">Tradeum Academy не предоставляет инвестиционных консультаций. Все материалы носят образовательный характер.</div>
         </div>
     </div>
 </div>
 
 <!-- Модальные окна -->
-<div class="modal" id="contactModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>✉️ Связаться с нами</h3>
-            <button class="modal-close" onclick="closeModal('contactModal')">×</button>
-        </div>
-        <form id="contactForm">
-            <div class="form-group">
-                <label>Ваше имя</label>
-                <input type="text" id="userName" required placeholder="Иван Иванов">
-            </div>
-            <div class="form-group">
-                <label>Ваш email</label>
-                <input type="email" id="userEmail" required placeholder="ivan@example.com">
-            </div>
-            <div class="form-group">
-                <label>Сообщение</label>
-                <textarea id="userMessage" required placeholder="Опишите ваш вопрос..."></textarea>
-            </div>
-            <button type="submit" class="submit-btn">Отправить письмо</button>
-        </form>
-    </div>
-</div>
-
-<div class="modal" id="privacyModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>🔒 Политика конфиденциальности</h3>
-            <button class="modal-close" onclick="closeModal('privacyModal')">×</button>
-        </div>
-        <div class="legal-content">
-            <p>Настоящая Политика конфиденциальности описывает, как <strong class="highlight">Tradeum Academy</strong> собирает, использует и защищает информацию.</p>
-            <h4>📋 1. Собираемая информация</h4>
-            <p>Мы собираем <strong>имя</strong>, <strong>email</strong> и <strong>сообщения</strong> из формы обратной связи.</p>
-            <h4>🛡️ 2. Защита данных</h4>
-            <p>Мы используем современные методы шифрования. Доступ имеют только авторизованные сотрудники.</p>
-            <h4>🤝 3. Передача данных</h4>
-            <p>Мы <strong>не передаем</strong> ваши данные третьим лицам.</p>
-            <div class="legal-date">📅 Дата обновления: 10 апреля 2026 г.</div>
-        </div>
-    </div>
-</div>
-
-<div class="modal" id="termsModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>📜 Условия использования</h3>
-            <button class="modal-close" onclick="closeModal('termsModal')">×</button>
-        </div>
-        <div class="legal-content">
-            <p>Добро пожаловать в <strong class="highlight">Tradeum Academy</strong>!</p>
-            <h4>📚 1. Образовательный характер</h4>
-            <p>Все материалы носят образовательный характер. Мы не даем инвестиционных консультаций.</p>
-            <h4>👤 2. Регистрация</h4>
-            <p>Вы несете ответственность за сохранность ваших учетных данных.</p>
-            <h4>©️ 3. Права на контент</h4>
-            <p>Все материалы являются интеллектуальной собственностью Tradeum Academy.</p>
-            <div class="legal-date">📅 Последнее обновление: 10 апреля 2026 г.</div>
-        </div>
-    </div>
-</div>
-
-<div class="modal" id="faqModal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3>❓ Часто задаваемые вопросы</h3>
-            <button class="modal-close" onclick="closeModal('faqModal')">×</button>
-        </div>
-        <div class="legal-content">
-            <div class="faq-item"><div class="faq-question"><span class="q-mark">❓</span> Что такое Tradeum Academy?</div><div class="faq-answer">Образовательная платформа для обучения техническому анализу и трейдингу через интерактивные карточки и дуэли.</div></div>
-            <div class="faq-item"><div class="faq-question"><span class="q-mark">💰</span> Платформа бесплатная?</div><div class="faq-answer">Да, базовый доступ полностью бесплатный.</div></div>
-            <div class="faq-item"><div class="faq-question"><span class="q-mark">🎮</span> Как работают дуэли?</div><div class="faq-answer">Сражайтесь с 5 ИИ-ботами или реальными игроками, получайте XP и повышайте рейтинг.</div></div>
-            <div class="faq-item"><div class="faq-question"><span class="q-mark">📊</span> Какие паттерны доступны?</div><div class="faq-answer">12+ паттернов: Голова и плечи, Треугольники, Флаг, Двойная вершина и другие.</div></div>
-            <div class="faq-item"><div class="faq-question"><span class="q-mark">📧</span> Как связаться с поддержкой?</div><div class="faq-answer">Используйте кнопку «Написать нам» или отправьте письмо на support@tradeum.com</div></div>
-            <div class="legal-date">📅 Последнее обновление: 10 апреля 2026 г.</div>
-        </div>
-    </div>
-</div>
+<div class="modal" id="contactModal"><div class="modal-content"><div class="modal-header"><h3>✉️ Связаться с нами</h3><button class="modal-close" onclick="closeModal('contactModal')">×</button></div><form id="contactForm"><div class="form-group"><label>Ваше имя</label><input type="text" id="userName" required placeholder="Иван Иванов"></div><div class="form-group"><label>Ваш email</label><input type="email" id="userEmail" required placeholder="ivan@example.com"></div><div class="form-group"><label>Сообщение</label><textarea id="userMessage" required placeholder="Опишите ваш вопрос..."></textarea></div><button type="submit" class="submit-btn">Отправить письмо</button></form></div></div>
+<div class="modal" id="privacyModal"><div class="modal-content"><div class="modal-header"><h3>🔒 Политика конфиденциальности</h3><button class="modal-close" onclick="closeModal('privacyModal')">×</button></div><div class="legal-content"><p>Настоящая Политика описывает, как <strong class="highlight">Tradeum Academy</strong> собирает и защищает информацию.</p><h4>📋 1. Собираемая информация</h4><p>Мы собираем <strong>имя</strong>, <strong>email</strong> и <strong>сообщения</strong> из формы обратной связи.</p><h4>🛡️ 2. Защита данных</h4><p>Используем современное шифрование. Доступ только у авторизованных сотрудников.</p><h4>🤝 3. Передача данных</h4><p>Мы <strong>не передаем</strong> ваши данные третьим лицам.</p><div class="legal-date">📅 Дата: 10 апреля 2026 г.</div></div></div></div>
+<div class="modal" id="termsModal"><div class="modal-content"><div class="modal-header"><h3>📜 Условия использования</h3><button class="modal-close" onclick="closeModal('termsModal')">×</button></div><div class="legal-content"><p>Добро пожаловать в <strong class="highlight">Tradeum Academy</strong>!</p><h4>📚 1. Образовательный характер</h4><p>Все материалы носят образовательный характер. Мы не даем инвестиционных консультаций.</p><h4>👤 2. Регистрация</h4><p>Вы несете ответственность за сохранность ваших учетных данных.</p><h4>©️ 3. Права на контент</h4><p>Все материалы являются интеллектуальной собственностью Tradeum Academy.</p><div class="legal-date">📅 Последнее обновление: 10 апреля 2026 г.</div></div></div></div>
+<div class="modal" id="faqModal"><div class="modal-content"><div class="modal-header"><h3>❓ Часто задаваемые вопросы</h3><button class="modal-close" onclick="closeModal('faqModal')">×</button></div><div class="legal-content"><div class="faq-item"><div class="faq-question"><span class="q-mark">❓</span> Что такое Tradeum Academy?</div><div class="faq-answer">Образовательная платформа для обучения техническому анализу и трейдингу.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">💰</span> Платформа бесплатная?</div><div class="faq-answer">Да, базовый доступ полностью бесплатный.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">🎮</span> Как работают дуэли?</div><div class="faq-answer">Сражайтесь с 5 ИИ-ботами или реальными игроками, получайте XP.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📊</span> Какие паттерны доступны?</div><div class="faq-answer">12+ паттернов: Голова и плечи, Треугольники, Флаг и другие.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📧</span> Как связаться с поддержкой?</div><div class="faq-answer">Используйте кнопку «Написать нам» или отправьте письмо на support@tradeum.com</div></div><div class="legal-date">📅 Последнее обновление: 10 апреля 2026 г.</div></div></div></div>
 
 <script>
     // Анимация карточек
@@ -1236,7 +758,6 @@
             }
         });
     }, { threshold: 0.1 });
-
     document.querySelectorAll('.feature-card').forEach(card => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
@@ -1252,64 +773,83 @@
             }
         });
     }, { threshold: 0.1 });
-
     slideObserver.observe(document.getElementById('duelBanner'));
     slideObserver.observe(document.getElementById('aboutSection'));
 
-    // Фото: сначала влево, потом вправо
+    // ========== ДВИЖЕНИЕ ФОТО (СНАЧАЛА ВЛЕВО, ПОТОМ ВПРАВО) ==========
     const floatingImage = document.getElementById('floatingImage');
-    let startOffset = 80;
 
-    function updateFloatingImagePosition() {
+    // Получаем начальное смещение в зависимости от ширины экрана
+    function getBaseOffset() {
+        if (window.innerWidth <= 1200) return 40;
+        if (window.innerWidth <= 1400) return 60;
+        return 80;
+    }
+
+    let baseOffset = getBaseOffset();
+    let ticking = false;
+
+    function updateFloatingImage() {
         if (window.innerWidth <= 900) return;
-
-        if (window.innerWidth <= 1400) startOffset = 60;
-        else if (window.innerWidth <= 1200) startOffset = 40;
-        else startOffset = 80;
 
         const scrollTop = window.scrollY;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // Параболическое движение: сначала влево (уменьшаем offset), потом вправо (увеличиваем)
-        // Максимальное смещение влево на 30% скролла, потом возврат
-        let offset;
+        // Движение: от 0% до 30% скролла - уходим влево (уменьшаем offset)
+        // от 30% до 100% - возвращаемся вправо (увеличиваем offset)
+        let newOffset;
+        const minOffset = baseOffset - 35; // минимум (влево)
+        const maxOffset = baseOffset + 25; // максимум (вправо)
+
         if (progress <= 0.3) {
-            // Первые 30% скролла: уходим влево (от startOffset до startOffset - 40)
-            const t = progress / 0.3;
-            offset = startOffset - (t * 40);
+            // Первые 30%: плавно уходим влево
+            const t = progress / 0.3; // 0 → 1
+            newOffset = baseOffset - (t * 35);
         } else {
-            // Оставшиеся 70%: возвращаемся вправо (до startOffset + 20)
-            const t = (progress - 0.3) / 0.7;
-            offset = (startOffset - 40) + (t * 60);
+            // Оставшиеся 70%: возвращаемся вправо и чуть дальше
+            const t = (progress - 0.3) / 0.7; // 0 → 1
+            newOffset = (baseOffset - 35) + (t * 60);
         }
 
         // Ограничиваем
-        offset = Math.max(20, Math.min(startOffset + 20, offset));
+        newOffset = Math.max(20, Math.min(maxOffset, newOffset));
 
-        floatingImage.style.transform = `translateX(${offset}px)`;
+        floatingImage.style.transform = `translateX(${newOffset}px)`;
+        ticking = false;
     }
 
-    window.addEventListener('scroll', () => {
-        requestAnimationFrame(updateFloatingImagePosition);
-    });
-    window.addEventListener('resize', updateFloatingImagePosition);
+    function onScroll() {
+        if (!ticking) {
+            requestAnimationFrame(updateFloatingImage);
+            ticking = true;
+        }
+    }
+
+    function onResize() {
+        baseOffset = getBaseOffset();
+        updateFloatingImage();
+    }
+
+    window.addEventListener('scroll', onScroll);
+    window.addEventListener('resize', onResize);
+
+    // Устанавливаем начальное положение
+    setTimeout(() => {
+        updateFloatingImage();
+    }, 100);
 
     // Кнопки скролла
     const scrollTopBtn = document.getElementById('scrollTopBtn');
     const scrollBottomBtn = document.getElementById('scrollBottomBtn');
-
     function checkScrollButtons() {
         const scrollTop = window.scrollY;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-
         scrollTopBtn.classList.toggle('visible', scrollTop > 200);
         scrollBottomBtn.classList.toggle('visible', scrollTop < maxScroll - 200);
     }
-
     scrollTopBtn.addEventListener('click', () => window.scrollTo({ top: 0, behavior: 'smooth' }));
     scrollBottomBtn.addEventListener('click', () => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }));
-
     window.addEventListener('scroll', checkScrollButtons);
     window.addEventListener('resize', checkScrollButtons);
     checkScrollButtons();
@@ -1323,19 +863,16 @@
         document.getElementById(id).classList.remove('active');
         document.body.style.overflow = '';
     }
-
     document.getElementById('contactBtn').addEventListener('click', () => openModal('contactModal'));
     document.getElementById('privacyLink').addEventListener('click', () => openModal('privacyModal'));
     document.getElementById('termsLink').addEventListener('click', () => openModal('termsModal'));
     document.getElementById('faqLink').addEventListener('click', () => openModal('faqModal'));
-
     document.getElementById('contactForm').addEventListener('submit', (e) => {
         e.preventDefault();
         alert('✅ Письмо отправлено! Наш менеджер свяжется с вами.');
         closeModal('contactModal');
         document.getElementById('contactForm').reset();
     });
-
     window.addEventListener('click', (e) => {
         if (e.target.classList.contains('modal')) {
             e.target.classList.remove('active');
