@@ -25,6 +25,25 @@
             scroll-behavior: smooth;
         }
 
+        /* Скрываем ползунок везде, но оставляем возможность скролла */
+        ::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: transparent;
+        }
+
+        /* Для Firefox */
+        * {
+            scrollbar-width: none;
+        }
+
         /* ========== КНОПКИ СКРОЛЛА ========== */
         .scroll-btn {
             position: fixed;
@@ -160,11 +179,12 @@
             height: 100vh;
             z-index: 0;
             pointer-events: none;
-            transition: transform 0.2s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+            transition: transform 0.1s cubic-bezier(0.2, 0.9, 0.4, 1);
             will-change: transform;
             transform: translateX(100%);
             opacity: 0;
-            animation: slideImage 0.8s cubic-bezier(0.2, 0.8, 0.4, 1) 0.2s forwards, float 6s ease-in-out 1s infinite;
+            animation: slideImage 0.8s cubic-bezier(0.2, 0.8, 0.4, 1) 0.2s forwards;
+            overflow: hidden;
         }
 
         .floating-image {
@@ -182,10 +202,6 @@
                 0% { transform: translateX(100%); opacity: 0; }
                 100% { transform: translateX(100px); opacity: 1; }
             }
-            @keyframes float {
-                0%, 100% { transform: translateY(0px) translateX(100px); }
-                50% { transform: translateY(-8px) translateX(100px); }
-            }
         }
 
         @media (max-width: 1200px) {
@@ -193,10 +209,6 @@
             @keyframes slideImage {
                 0% { transform: translateX(100%); opacity: 0; }
                 100% { transform: translateX(80px); opacity: 1; }
-            }
-            @keyframes float {
-                0%, 100% { transform: translateY(0px) translateX(80px); }
-                50% { transform: translateY(-8px) translateX(80px); }
             }
         }
 
@@ -767,7 +779,7 @@
             letter-spacing: 0.2px;
         }
 
-        /* ========== МОДАЛЬНЫЕ ОКНА ========== */
+        /* ========== МОДАЛЬНЫЕ ОКНА (БЕЗ ПОЛЗУНКА) ========== */
         .modal {
             display: none;
             position: fixed;
@@ -775,8 +787,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(12px);
             z-index: 2000;
             align-items: center;
             justify-content: center;
@@ -801,6 +813,15 @@
             max-height: 85vh;
             overflow-y: auto;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Скрываем ползунок в модальных окнах */
+        .modal-content::-webkit-scrollbar {
+            width: 0px;
+            background: transparent;
+        }
+        .modal-content {
+            scrollbar-width: none;
         }
 
         .modal.active .modal-content {
@@ -901,7 +922,7 @@
             transform: translateY(-2px);
         }
 
-        /* Стили для политики и условий */
+        /* Стили для политики, условий и FAQ */
         .legal-content {
             font-size: 14px;
             line-height: 1.7;
@@ -946,19 +967,35 @@
             color: #6B7588;
         }
 
-        /* Стилизация скроллбара в модальных окнах */
-        .modal-content::-webkit-scrollbar {
-            width: 6px;
+        /* Стили для FAQ */
+        .faq-item {
+            margin-bottom: 24px;
+            padding: 16px;
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 20px;
+            border-left: 3px solid #5EEAD4;
         }
 
-        .modal-content::-webkit-scrollbar-track {
-            background: #1A1F2E;
-            border-radius: 10px;
+        .faq-question {
+            font-size: 16px;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
 
-        .modal-content::-webkit-scrollbar-thumb {
-            background: #5EEAD4;
-            border-radius: 10px;
+        .faq-question .q-mark {
+            color: #5EEAD4;
+            font-size: 18px;
+        }
+
+        .faq-answer {
+            font-size: 13px;
+            color: #8E97A6;
+            line-height: 1.6;
+            padding-left: 28px;
         }
 
         /* ========== АДАПТИВ ========== */
@@ -1160,7 +1197,7 @@
             <div class="footer-section">
                 <div class="footer-title">О проекте</div>
                 <ul class="footer-links">
-                    <li><a href="#">FAQ</a></li>
+                    <li><a id="faqLink">FAQ</a></li>
                 </ul>
             </div>
         </div>
@@ -1277,6 +1314,56 @@
     </div>
 </div>
 
+<!-- Модальное окно FAQ -->
+<div class="modal" id="faqModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>❓ Часто задаваемые вопросы</h3>
+            <button class="modal-close" onclick="closeModal('faqModal')">×</button>
+        </div>
+        <div class="legal-content">
+            <div class="faq-item">
+                <div class="faq-question"><span class="q-mark">❓</span> Что такое Tradeum Academy?</div>
+                <div class="faq-answer">Tradeum Academy — это образовательная платформа для обучения техническому анализу и трейдингу через интерактивные карточки, практические задания и дуэли с ИИ и реальными игроками.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><span class="q-mark">💰</span> Платформа бесплатная?</div>
+                <div class="faq-answer">Да, базовый доступ к обучающим карточкам и дуэлям с ИИ полностью бесплатный. В будущем могут появиться премиум-функции, но основы всегда будут доступны.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><span class="q-mark">🎮</span> Как работают дуэли?</div>
+                <div class="faq-answer">Вы можете сразиться с 5 уникальными ИИ-ботами разного уровня сложности или найти соперника среди реальных трейдеров. Победа приносит XP и повышает ваш рейтинг.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><span class="q-mark">📊</span> Какие паттерны доступны для изучения?</div>
+                <div class="faq-answer">Библиотека включает 12+ паттернов: Голова и плечи, Двойная вершина/дно, Треугольники (восходящий/нисходящий/симметричный), Флаг, Вымпел, Клин, Прямоугольник и другие.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><span class="q-mark">🏆</span> Как работает система рейтинга?</div>
+                <div class="faq-answer">Вы зарабатываете XP за правильные ответы на карточках и победы в дуэлях. Повышайте уровень от Новичка до Мастера и попадайте в таблицу лидеров.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><span class="q-mark">📧</span> Как связаться с поддержкой?</div>
+                <div class="faq-answer">Используйте кнопку «Написать нам» в футере или отправьте письмо на support@tradeum.com. Мы отвечаем в течение 24 часов.</div>
+            </div>
+
+            <div class="faq-item">
+                <div class="faq-question"><span class="q-mark">🔒</span> Безопасны ли мои данные?</div>
+                <div class="faq-answer">Да, мы используем современные методы шифрования и не передаём ваши данные третьим лицам. Подробнее в Политике конфиденциальности.</div>
+            </div>
+
+            <div class="legal-date">
+                <span>📅 Последнее обновление: 10 апреля 2026 г.</span>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     // Анимация при скролле с появлением/исчезновением плашек
     const observerOptions = { threshold: 0.1, rootMargin: "0px 0px -20px 0px" };
@@ -1335,6 +1422,7 @@
 
     // Плавающее изображение (динамичное при скролле)
     const floatingImage = document.getElementById('floatingImage');
+    let baseOffset = 130;
 
     function updateFloatingImagePosition() {
         if (window.innerWidth <= 900) return;
@@ -1343,12 +1431,12 @@
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        let baseOffset = 130;
         if (window.innerWidth <= 1400) baseOffset = 100;
-        if (window.innerWidth <= 1200) baseOffset = 80;
+        else if (window.innerWidth <= 1200) baseOffset = 80;
+        else baseOffset = 130;
 
         const newOffset = baseOffset - (scrollProgress * (baseOffset - 20));
-        floatingImage.style.transform = `translateX(${Math.max(20, newOffset)}px) translateY(${Math.sin(scrollProgress * Math.PI * 2) * 5}px)`;
+        floatingImage.style.transform = `translateX(${Math.max(20, newOffset)}px)`;
     }
 
     window.addEventListener('scroll', () => {
@@ -1395,7 +1483,7 @@
         document.body.style.overflow = 'hidden';
     }
 
-    function closeModal(modalId) {
+    window.closeModal = function(modalId) {
         const modal = document.getElementById(modalId);
         modal.classList.remove('active');
         document.body.style.overflow = '';
@@ -1417,13 +1505,17 @@
         document.getElementById('contactForm').reset();
     });
 
-    // Политика и условия
+    // Политика, условия и FAQ
     document.getElementById('privacyLink').addEventListener('click', () => {
         openModal('privacyModal');
     });
 
     document.getElementById('termsLink').addEventListener('click', () => {
         openModal('termsModal');
+    });
+
+    document.getElementById('faqLink').addEventListener('click', () => {
+        openModal('faqModal');
     });
 
     // Закрытие модальных окон при клике вне контента
