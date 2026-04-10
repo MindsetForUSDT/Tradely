@@ -15,11 +15,19 @@
             overflow-x: hidden;
         }
         .container {
-            max-width: 1000px;  /* Уменьшил с 1200px до 1000px */
+            max-width: 1100px;  /* Увеличил с 1000px до 1100px */
             margin: 0 auto;
             padding: 0 24px;
             position: relative;
-            margin-left: 40px;  /* Сдвиг всего контента влево */
+            margin-left: 80px;  /* Уменьшил сдвиг с 40px до 80px? Нет, было 40, стало 80 - контент правее */
+            /* Для смещения ближе к середине используем margin-left: auto и max-width */
+        }
+
+        /* Более точная настройка: контент ближе к центру */
+        @media (min-width: 1400px) {
+            .container {
+                margin-left: 120px;  /* На больших экранах контент правее */
+            }
         }
 
         /* ========== АНИМАЦИИ ========== */
@@ -44,12 +52,12 @@
         .animate-right { animation: fadeRight 0.6s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
 
-        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ ========== */
+        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (УВЕЛИЧЕНО) ========== */
         .floating-image-container {
             position: fixed;
             right: 0;
             top: 0;
-            width: 450px;
+            width: 550px;  /* Увеличено с 450px до 550px */
             height: 100vh;
             z-index: 0;
             pointer-events: none;
@@ -67,7 +75,7 @@
             display: block;
         }
 
-        /* ВЕСЬ КОНТЕНТ ВЫШЕ ФОТО И СДВИНУТ ВЛЕВО */
+        /* ВЕСЬ КОНТЕНТ ВЫШЕ ФОТО */
         .container,
         .header,
         .hero,
@@ -83,17 +91,24 @@
         /* Адаптив */
         @media (max-width: 1400px) {
             .floating-image-container {
-                width: 380px;
+                width: 480px;  /* Увеличено с 380px до 480px */
             }
         }
 
         @media (max-width: 1200px) {
             .floating-image-container {
-                width: 320px;
+                width: 400px;  /* Увеличено с 320px до 400px */
             }
             .container {
-                margin-left: 20px;
+                margin-left: 40px;
                 max-width: 900px;
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .container {
+                margin-left: 20px;
+                margin-right: 20px;
             }
         }
 
@@ -103,7 +118,8 @@
             }
             .container {
                 margin-left: auto;
-                max-width: 1200px;
+                margin-right: auto;
+                max-width: 100%;
             }
         }
 
@@ -417,6 +433,7 @@
             .container {
                 padding: 0 20px;
                 margin-left: auto;
+                margin-right: auto;
                 max-width: 100%;
             }
             h1 { font-size: 36px; }
@@ -428,7 +445,7 @@
     </style>
 </head>
 <body>
-<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ -->
+<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (УВЕЛИЧЕНО) -->
 <div class="floating-image-container" id="floatingImage">
     <img class="floating-image" id="floatingImg" src="" alt="Trading visualization">
 </div>
