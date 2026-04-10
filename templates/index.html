@@ -580,7 +580,7 @@
 
     // Начальное положение: выезжает всего на 15px (едва заметно)
     setTimeout(() => {
-        floatingImage.style.transform = `translateX(100 px)`;
+        floatingImage.style.transform = `translateX(45 px)`;
     }, 200);
 
     function updateFloatingImagePosition() {
@@ -591,7 +591,7 @@
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
         // От 15px до 45px максимум (выезжает совсем немного)
-        const newOffset = 15 + (scrollProgress * 30);
+        const newOffset = 45 + (scrollProgress * 30);
 
         floatingImage.style.transform = `translateX(-${newOffset}px)`;
     }
