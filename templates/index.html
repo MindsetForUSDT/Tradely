@@ -15,10 +15,11 @@
             overflow-x: hidden;
         }
         .container {
-            max-width: 1200px;
+            max-width: 1000px;  /* Уменьшил с 1200px до 1000px */
             margin: 0 auto;
             padding: 0 24px;
             position: relative;
+            margin-left: 40px;  /* Сдвиг всего контента влево */
         }
 
         /* ========== АНИМАЦИИ ========== */
@@ -43,7 +44,7 @@
         .animate-right { animation: fadeRight 0.6s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
 
-        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ЗА ВСЕМ КОНТЕНТОМ) ========== */
+        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ ========== */
         .floating-image-container {
             position: fixed;
             right: 0;
@@ -66,7 +67,7 @@
             display: block;
         }
 
-        /* ВЕСЬ КОНТЕНТ ВЫШЕ ФОТО */
+        /* ВЕСЬ КОНТЕНТ ВЫШЕ ФОТО И СДВИНУТ ВЛЕВО */
         .container,
         .header,
         .hero,
@@ -90,11 +91,19 @@
             .floating-image-container {
                 width: 320px;
             }
+            .container {
+                margin-left: 20px;
+                max-width: 900px;
+            }
         }
 
         @media (max-width: 900px) {
             .floating-image-container {
                 display: none;
+            }
+            .container {
+                margin-left: auto;
+                max-width: 1200px;
             }
         }
 
@@ -405,7 +414,11 @@
         }
 
         @media (max-width: 768px) {
-            .container { padding: 0 20px; }
+            .container {
+                padding: 0 20px;
+                margin-left: auto;
+                max-width: 100%;
+            }
             h1 { font-size: 36px; }
             .hero { flex-direction: column; gap: 40px; }
             .nav { gap: 20px; }
@@ -415,7 +428,7 @@
     </style>
 </head>
 <body>
-<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ЗА ВСЕМ КОНТЕНТОМ) -->
+<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ -->
 <div class="floating-image-container" id="floatingImage">
     <img class="floating-image" id="floatingImg" src="" alt="Trading visualization">
 </div>
@@ -579,8 +592,7 @@
     // ========== ЛОГИКА ДЛЯ ПЛАВАЮЩЕГО ИЗОБРАЖЕНИЯ ==========
     const floatingImage = document.getElementById('floatingImage');
 
-    // Начальное положение: фото сдвинуто ВПРАВО на 130px (видно только 70% фото)
-    // При ширине фото 450px, сдвиг на 130px скрывает 130px правой части = видно ~70%
+    // Начальное положение: фото сдвинуто ВПРАВО (видно ~70%)
     setTimeout(() => {
         floatingImage.style.transform = `translateX(130px)`;
     }, 200);
@@ -592,8 +604,7 @@
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let scrollProgress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // При скролле: от 130px (видно 70%) до 30px (видно ~93%)
-        // Отрицательные значения не используем, фото не уходит влево за край
+        // При скролле фото уходит влево
         const newOffset = 130 - (scrollProgress * 100);
 
         floatingImage.style.transform = `translateX(${newOffset}px)`;
