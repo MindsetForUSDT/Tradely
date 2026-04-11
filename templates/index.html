@@ -215,7 +215,7 @@
             animation: fadeUp 0.5s ease forwards;
         }
 
-        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (УЛУЧШЕНО) ========== */
+        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ (ИСПРАВЛЕНО - ТЕПЕРЬ СМЕЩАЕТСЯ ВПРАВО) ========== */
         .floating-image-container {
             position: fixed;
             right: 0;
@@ -239,8 +239,8 @@
             object-position: 20% center;
             display: block;
             filter: brightness(0.85) contrast(1.05);
-            transition: transform 0.05s ease-out;
             will-change: transform;
+            /* Убираем масштабирование, оставляем только смещение */
         }
 
         .floating-image-container::after {
@@ -381,13 +381,33 @@
             color: #FFFFFF;
         }
 
+        /* ========== ИСПРАВЛЕНИЕ ГРАДИЕНТНОГО ТЕКСТА - ТЕПЕРЬ ЯРКИЙ И ЧЁТКИЙ ========== */
         .gradient-text {
-            background: linear-gradient(135deg, #FFFFFF 0%, #5EEAD4 50%, #F4B740 100%);
+            background: linear-gradient(135deg, #FFFFFF 0%, #5EEAD4 40%, #F4B740 100%);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             display: inline-block;
-            text-shadow: 0 0 40px rgba(94, 234, 212, 0.4);
+            text-shadow:
+                0 0 30px rgba(94, 234, 212, 0.5),
+                0 0 60px rgba(244, 183, 64, 0.3);
+            font-weight: 800;
+            position: relative;
+        }
+
+        /* Добавляем светлую подложку для лучшей читаемости */
+        .gradient-text::before {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: -10px;
+            right: -10px;
+            bottom: -5px;
+            background: rgba(10, 12, 16, 0.3);
+            backdrop-filter: blur(2px);
+            border-radius: 8px;
+            z-index: -1;
+            opacity: 0.5;
         }
 
         .hero-desc {
@@ -522,12 +542,6 @@
             color: #6B7588;
             margin-top: 8px;
         }
-        @media (max-width: 768px) {
-            .stats-showcase {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 16px;
-            }
-        }
 
         /* ========== ПОШАГОВОЕ ОБУЧЕНИЕ ========== */
         .steps-section {
@@ -584,12 +598,6 @@
             position: relative;
             z-index: 2;
         }
-        @media (max-width: 768px) {
-            .steps-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-        }
 
         /* ========== ОТЗЫВЫ ========== */
         .reviews-section {
@@ -644,11 +652,6 @@
         .review-role {
             font-size: 11px;
             color: #6B7588;
-        }
-        @media (max-width: 768px) {
-            .reviews-grid {
-                grid-template-columns: 1fr;
-            }
         }
 
         /* ========== ОСТАЛЬНЫЕ СЕКЦИИ ========== */
@@ -960,6 +963,7 @@
         .faq-question .q-mark { color: #5EEAD4; font-size: 18px; }
         .faq-answer { font-size: 13px; color: #8E97A6; line-height: 1.6; padding-left: 28px; }
 
+        /* Адаптивность */
         @media (max-width: 768px) {
             .container { padding: 0 20px; }
             h1 { font-size: 38px; }
@@ -973,10 +977,14 @@
             .scroll-top { top: 80px; }
             .scroll-bottom { bottom: 80px; }
             .modal-content { padding: 28px; }
-        }
-        @media (max-width: 480px) {
-            .btn-group { flex-direction: column; align-items: stretch; }
-            .btn-primary, .btn-secondary { text-align: center; }
+            .stats-showcase { grid-template-columns: repeat(2, 1fr); }
+            .steps-grid { grid-template-columns: 1fr; }
+            .reviews-grid { grid-template-columns: 1fr; }
+
+            /* Убираем подложку на мобильных */
+            .gradient-text::before {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -988,8 +996,9 @@
 <button class="scroll-btn scroll-top" id="scrollTopBtn" aria-label="Наверх">↑</button>
 <button class="scroll-btn scroll-bottom" id="scrollBottomBtn" aria-label="Вниз">↓</button>
 
+<!-- ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ -->
 <div class="floating-image-container" id="floatingImage">
-    <img class="floating-image" id="floatingImg" src="static/--.png" alt="Trading visualization">
+    <img class="floating-image" id="floatingImg" src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop" alt="Trading visualization">
 </div>
 
 <div class="container">
@@ -1210,9 +1219,8 @@
     slideObserver.observe(document.getElementById('duelBanner'));
     slideObserver.observe(document.getElementById('aboutSection'));
 
-    // ========== ДИНАМИЧЕСКОЕ ДВИЖЕНИЕ ФОТО (УЛУЧШЕНО) ==========
+    // ========== ДИНАМИЧЕСКОЕ ДВИЖЕНИЕ ФОТО (ИСПРАВЛЕНО - ТОЛЬКО СМЕЩЕНИЕ ВПРАВО) ==========
     const floatingImage = document.getElementById('floatingImage');
-    const floatingImg = document.getElementById('floatingImg');
 
     let basePosition = 80;
     let ticking = false;
@@ -1234,16 +1242,12 @@
         maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         const progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
 
-        // Плавное смещение вправо при скролле (максимум +120px)
+        // Только смещение вправо (без масштабирования)
         const maxShift = 120;
         const shift = progress * maxShift;
         const newOffset = basePosition + shift;
 
         floatingImage.style.transform = `translateX(${newOffset}px)`;
-
-        // Лёгкий параллакс (масштабирование)
-        const scale = 1 + (progress * 0.05);
-        floatingImg.style.transform = `scale(${scale})`;
 
         // Плавное изменение прозрачности
         const opacity = Math.max(0.7, 1 - progress * 0.15);
