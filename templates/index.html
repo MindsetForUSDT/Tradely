@@ -6,7 +6,6 @@
     <title>Tradeum Academy | Интерактивное обучение трейдингу</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <style>
-        /* ========== БАЗОВЫЕ СТИЛИ ========== */
         * {
             margin: 0;
             padding: 0;
@@ -23,7 +22,7 @@
             position: relative;
         }
 
-        /* ========== ПЛАВАЮЩИЕ ЧАСТИЦЫ НА ФОНЕ (фишка с pinacolada) ========== */
+        /* ========== ПЛАВАЮЩИЕ ЧАСТИЦЫ ========== */
         .background-particles {
             position: fixed;
             top: 0;
@@ -61,11 +60,6 @@
         }
         * {
             scrollbar-width: none;
-        }
-
-        /* ========== МАГНИТНЫЙ ЭФФЕКТ (фишка с pinacolada) ========== */
-        .magnetic {
-            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1);
         }
 
         /* ========== КНОПКИ СКРОЛЛА ========== */
@@ -107,25 +101,23 @@
 
         /* ========== ОСНОВНОЙ КОНТЕЙНЕР ========== */
         .container {
-            max-width: 1000px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 0 32px;
             position: relative;
             z-index: 2;
+            transition: transform 0.1s ease-out;
         }
 
-        @media (min-width: 1400px) {
-            .container { margin-left: 100px; max-width: 900px; }
+        /* Контент смещается вправо при скролле */
+        .container.shifted {
+            transform: translateX(80px);
         }
-        @media (max-width: 1200px) {
-            .container { margin-left: 30px; max-width: 850px; }
-        }
-        @media (max-width: 1000px) {
-            .container { margin-left: 20px; margin-right: 20px; max-width: 800px; }
-        }
+
         @media (max-width: 900px) {
-            .floating-image-container { display: none; }
-            .container { margin-left: auto; margin-right: auto; max-width: 100%; padding: 0 24px; }
+            .container.shifted {
+                transform: translateX(0);
+            }
         }
 
         /* ========== АНИМАЦИИ ========== */
@@ -145,16 +137,19 @@
             from { opacity: 0; transform: scale(0.96); }
             to { opacity: 1; transform: scale(1); }
         }
-        @keyframes flyIn {
-            0% { transform: translateX(100%); opacity: 0; }
-            100% { transform: translateX(0); opacity: 1; }
-        }
 
-        /* ========== ЭФФЕКТ РАЗБИТОГО ТЕКСТА (фишка с pinacolada) ========== */
+        /* ========== ЭФФЕКТ РАЗБИТОГО ТЕКСТА ========== */
         @keyframes glitchText {
-            0%, 100% { opacity: 0; transform: translateY(10px); filter: blur(4px); }
-            50% { opacity: 0.5; transform: translateY(-5px); filter: blur(0); }
-            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+            0% {
+                opacity: 0;
+                transform: translateY(15px);
+                filter: blur(2px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+                filter: blur(0);
+            }
         }
 
         .split-text {
@@ -163,7 +158,7 @@
             animation: glitchText 0.6s cubic-bezier(0.2, 0.9, 0.4, 1) forwards;
         }
 
-        /* ========== ГРАДИЕНТНАЯ ВРАЩАЮЩАЯСЯ РАМКА (фишка с pinacolada) ========== */
+        /* ========== ГРАДИЕНТНАЯ ВРАЩАЮЩАЯСЯ РАМКА ========== */
         @keyframes rotateGradient {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -197,69 +192,60 @@
             opacity: 1;
         }
 
-        /* ========== ЭФФЕКТ ПЕЧАТНОЙ МАШИНКИ (фишка с pinacolada) ========== */
-        .typewriter {
-            overflow: hidden;
-            border-right: 2px solid #5EEAD4;
-            white-space: nowrap;
-            animation: typing 1.5s steps(40, end), blink-caret 0.75s step-end infinite;
-        }
-
-        @keyframes typing {
-            from { width: 0; }
-            to { width: 100%; }
-        }
-
-        @keyframes blink-caret {
-            from, to { border-color: transparent; }
-            50% { border-color: #5EEAD4; }
-        }
-
         .animate-up { animation: fadeUp 0.5s ease forwards; }
         .animate-left { animation: fadeLeft 0.5s ease forwards; }
         .animate-right { animation: fadeRight 0.5s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
 
-        /* ========== КАСКАДНОЕ ПОЯВЛЕНИЕ (фишка с pinacolada) ========== */
+        /* ========== КАСКАДНОЕ ПОЯВЛЕНИЕ ========== */
         .cascade-item {
             opacity: 0;
             animation: fadeUp 0.5s ease forwards;
         }
 
-        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ ========== */
-        .floating-image-container {
+        /* ========== ДВЕ ФОТОГРАФИИ С ПАРАЛЛАКСОМ ========== */
+        .parallax-images {
             position: fixed;
-            right: 0;
             top: 0;
-            width: 550px;
+            right: 0;
+            width: 50%;
             height: 100vh;
             z-index: 1;
             pointer-events: none;
-            transition: transform 0.05s linear;
-            will-change: transform;
-            transform: translateX(100%);
-            opacity: 0;
-            animation: flyIn 0.8s cubic-bezier(0.2, 0.8, 0.4, 1) 0.2s forwards;
-            overflow: visible;
         }
 
-        .floating-image {
+        .parallax-image {
+            position: absolute;
+            top: 0;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            object-position: 20% center;
-            display: block;
-            filter: brightness(0.85) contrast(1.05);
+            transition: transform 0.1s cubic-bezier(0.2, 0.8, 0.4, 1), opacity 0.1s ease;
+            will-change: transform, opacity;
         }
 
-        @media (max-width: 1400px) {
-            .floating-image-container { width: 480px; }
+        /* Первое фото - изначально видно, улетает вправо */
+        .image-primary {
+            right: 0;
+            transform: translateX(0);
+            opacity: 1;
+            z-index: 2;
+            box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
         }
-        @media (max-width: 1200px) {
-            .floating-image-container { width: 420px; }
+
+        /* Второе фото - спрятано слева, вылетает */
+        .image-secondary {
+            right: -100%;
+            transform: translateX(0);
+            opacity: 0;
+            z-index: 1;
+            box-shadow: -20px 0 60px rgba(0, 0, 0, 0.5);
         }
+
         @media (max-width: 900px) {
-            .floating-image-container { display: none; }
+            .parallax-images {
+                display: none;
+            }
         }
 
         /* ========== ШАПКА ========== */
@@ -304,7 +290,6 @@
             padding-bottom: 4px;
         }
 
-        /* Подчёркивание с градиентом (фишка) */
         .nav a::after {
             content: '';
             position: absolute;
@@ -374,17 +359,19 @@
         h1 {
             font-size: 54px;
             font-weight: 800;
-            line-height: 1.08;
+            line-height: 1.2;
             letter-spacing: -0.03em;
             margin-bottom: 24px;
             color: #FFFFFF;
         }
 
         .gradient-text {
-            background: linear-gradient(135deg, #5EEAD4 0%, #F4B740 100%);
+            background: linear-gradient(135deg, #FFFFFF 0%, #5EEAD4 50%, #F4B740 100%);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            display: inline-block;
+            text-shadow: 0 0 40px rgba(94, 234, 212, 0.4);
         }
 
         .hero-desc {
@@ -416,7 +403,6 @@
             overflow: hidden;
         }
 
-        /* Эффект блика на кнопке */
         .btn-primary::before {
             content: '';
             position: absolute;
@@ -480,7 +466,7 @@
         .stat-label { color: #8E97A6; font-size: 13px; font-weight: 500; }
         .stat-value { font-size: 22px; font-weight: 700; color: #5EEAD4; }
 
-        /* ========== НОВЫЙ БЛОК С ЦИФРАМИ (инфографика) ========== */
+        /* ========== НОВЫЙ БЛОК С ЦИФРАМИ ========== */
         .stats-showcase {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -519,12 +505,6 @@
             font-size: 12px;
             color: #6B7588;
             margin-top: 8px;
-        }
-        @media (max-width: 768px) {
-            .stats-showcase {
-                grid-template-columns: repeat(2, 1fr);
-                gap: 16px;
-            }
         }
 
         /* ========== ПОШАГОВОЕ ОБУЧЕНИЕ ========== */
@@ -582,12 +562,6 @@
             position: relative;
             z-index: 2;
         }
-        @media (max-width: 768px) {
-            .steps-grid {
-                grid-template-columns: 1fr;
-                gap: 20px;
-            }
-        }
 
         /* ========== ОТЗЫВЫ ========== */
         .reviews-section {
@@ -643,47 +617,8 @@
             font-size: 11px;
             color: #6B7588;
         }
-        @media (max-width: 768px) {
-            .reviews-grid {
-                grid-template-columns: 1fr;
-            }
-        }
 
         /* ========== ОСТАЛЬНЫЕ СЕКЦИИ ========== */
-        .image-row {
-            display: flex;
-            gap: 24px;
-            margin: 64px 0;
-            flex-wrap: wrap;
-            position: relative;
-            z-index: 2;
-        }
-        .image-card {
-            flex: 1;
-            background: #12161E;
-            border-radius: 24px;
-            overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            transition: all 0.3s ease;
-            opacity: 0;
-            animation: scaleIn 0.5s ease forwards;
-        }
-        .image-card:nth-child(1) { animation-delay: 0.1s; }
-        .image-card:nth-child(2) { animation-delay: 0.2s; }
-        .image-card:hover { transform: translateY(-4px); border-color: rgba(94, 234, 212, 0.4); }
-        .image-placeholder {
-            background: linear-gradient(135deg, #1A1F2E, #12161E);
-            aspect-ratio: 16/9;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            color: #5B687C;
-            font-size: 14px;
-        }
-        .image-card img { width: 100%; height: 100%; object-fit: cover; display: block; }
-
         .section-header {
             text-align: left;
             margin-bottom: 52px;
@@ -692,8 +627,18 @@
             position: relative;
             z-index: 2;
         }
-        .section-title { font-size: 32px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 12px; color: #FFFFFF; }
-        .section-subtitle { color: #8E97A6; font-size: 15px; font-weight: 400; }
+        .section-title {
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 12px;
+            color: #FFFFFF;
+        }
+        .section-subtitle {
+            color: #8E97A6;
+            font-size: 15px;
+            font-weight: 400;
+        }
 
         .features-grid {
             display: grid;
@@ -716,7 +661,6 @@
             overflow: hidden;
         }
 
-        /* Эффект размытого свечения при наведении */
         .feature-card::after {
             content: '';
             position: absolute;
@@ -959,6 +903,7 @@
         .faq-question .q-mark { color: #5EEAD4; font-size: 18px; }
         .faq-answer { font-size: 13px; color: #8E97A6; line-height: 1.6; padding-left: 28px; }
 
+        /* Адаптивность */
         @media (max-width: 768px) {
             .container { padding: 0 20px; }
             h1 { font-size: 38px; }
@@ -972,26 +917,27 @@
             .scroll-top { top: 80px; }
             .scroll-bottom { bottom: 80px; }
             .modal-content { padding: 28px; }
-        }
-        @media (max-width: 480px) {
-            .btn-group { flex-direction: column; align-items: stretch; }
-            .btn-primary, .btn-secondary { text-align: center; }
+            .stats-showcase { grid-template-columns: repeat(2, 1fr); }
+            .steps-grid { grid-template-columns: 1fr; }
+            .reviews-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
 
-<!-- ПЛАВАЮЩИЕ ЧАСТИЦЫ (фишка с pinacolada) -->
+<!-- ПЛАВАЮЩИЕ ЧАСТИЦЫ -->
 <div class="background-particles" id="particles"></div>
 
 <button class="scroll-btn scroll-top" id="scrollTopBtn" aria-label="Наверх">↑</button>
 <button class="scroll-btn scroll-bottom" id="scrollBottomBtn" aria-label="Вниз">↓</button>
 
-<div class="floating-image-container" id="floatingImage">
-    <img class="floating-image" id="floatingImg" src="" alt="Trading visualization">
+<!-- ДВЕ ФОТОГРАФИИ С ПАРАЛЛАКС-ЭФФЕКТОМ -->
+<div class="parallax-images">
+    <img class="parallax-image image-primary" id="primaryImage" src="https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=2070&auto=format&fit=crop" alt="Trading chart">
+    <img class="parallax-image image-secondary" id="secondaryImage" src="https://images.unsplash.com/photo-1590283603385-17ffb3a7f801?q=80&w=2070&auto=format&fit=crop" alt="Trading analysis">
 </div>
 
-<div class="container">
+<div class="container" id="mainContainer">
     <div class="header">
         <div class="logo">Trade<span style="color: #5EEAD4;">um</span></div>
         <div class="nav">
@@ -1010,7 +956,7 @@
                 <span class="split-text" style="animation-delay: 0.2s;">мастером</span><br>
                 <span class="gradient-text">
                     <span class="split-text" style="animation-delay: 0.3s;">технического</span>
-                    <span class="split-text" style="animation-delay: 0.4s;">анализа</span>
+                    <span class="split-text" style="animation-delay: 0.4s; margin-left: 8px;">анализа</span>
                 </span>
             </h1>
             <div class="hero-desc">Изучай торговые паттерны, анализируй графики, соревнуйся с другими трейдерами.</div>
@@ -1027,7 +973,7 @@
         </div>
     </div>
 
-    <!-- НОВЫЙ БЛОК С ЦИФРАМИ (инфографика) -->
+    <!-- БЛОК С ЦИФРАМИ -->
     <div class="stats-showcase">
         <div class="stat-showcard cascade-item" style="animation-delay: 0.1s;"><div class="number">45%</div><div class="label">Предметная экспертиза</div><div class="desc">Критическое мышление</div></div>
         <div class="stat-showcard cascade-item" style="animation-delay: 0.2s;"><div class="number">30%</div><div class="label">Управление контекстом</div><div class="desc">Входные данные</div></div>
@@ -1060,17 +1006,6 @@
             <div class="review-card cascade-item" style="animation-delay: 0.2s;"><div class="review-text">"Дуэли с ИИ — это гениально! Быстро прокачал навыки и начал увереннее торговать."</div><div class="review-author"><div class="review-avatar">ЕС</div><div class="review-name">Екатерина С.</div><div class="review-role">Начинающий трейдер</div></div></div>
             <div class="review-card cascade-item" style="animation-delay: 0.3s;"><div class="review-text">"Огромная библиотека паттернов и подробные объяснения. Рекомендую всем!"</div><div class="review-author"><div class="review-avatar">ДМ</div><div class="review-name">Дмитрий М.</div><div class="review-role">Инвестор</div></div></div>
             <div class="review-card cascade-item" style="animation-delay: 0.4s;"><div class="review-text">"Удобный интерфейс, понятные уроки. За месяц поднял свой уровень с нуля до уверенного среднего."</div><div class="review-author"><div class="review-avatar">ОП</div><div class="review-name">Олег П.</div><div class="review-role">Студент академии</div></div></div>
-        </div>
-    </div>
-
-    <div class="image-row">
-        <div class="image-card" id="imageCard1">
-            <div class="image-placeholder" id="placeholder1"><span>📈</span><span>График технического анализа</span></div>
-            <img id="img1" src="" alt="график" style="display: none;">
-        </div>
-        <div class="image-card" id="imageCard2">
-            <div class="image-placeholder" id="placeholder2"><span>⚡</span><span>Дуэль трейдеров</span></div>
-            <img id="img2" src="" alt="дуэль" style="display: none;">
         </div>
     </div>
 
@@ -1138,14 +1073,14 @@
     </div>
 </div>
 
-<!-- Модальные окна -->
+<!-- МОДАЛЬНЫЕ ОКНА (без изменений) -->
 <div class="modal" id="contactModal"><div class="modal-content"><div class="modal-header"><h3>✉️ Связаться с нами</h3><button class="modal-close" onclick="closeModal('contactModal')">×</button></div><form id="contactForm"><div class="form-group"><label>Ваше имя</label><input type="text" id="userName" required placeholder="Иван Иванов"></div><div class="form-group"><label>Ваш email</label><input type="email" id="userEmail" required placeholder="ivan@example.com"></div><div class="form-group"><label>Сообщение</label><textarea id="userMessage" required placeholder="Опишите ваш вопрос..."></textarea></div><button type="submit" class="submit-btn">Отправить письмо</button></form></div></div>
-<div class="modal" id="privacyModal"><div class="modal-content"><div class="modal-header"><h3>🔒 Политика конфиденциальности</h3><button class="modal-close" onclick="closeModal('privacyModal')">×</button></div><div class="legal-content"><p>Настоящая Политика описывает, как <strong class="highlight">Tradeum Academy</strong> собирает и защищает информацию.</p><h4>📋 1. Собираемая информация</h4><p>Мы собираем <strong>имя</strong>, <strong>email</strong> и <strong>сообщения</strong> из формы обратной связи.</p><h4>🛡️ 2. Защита данных</h4><p>Используем современное шифрование. Доступ только у авторизованных сотрудников.</p><h4>🤝 3. Передача данных</h4><p>Мы <strong>не передаем</strong> ваши данные третьим лицам.</p><div class="legal-date">📅 Дата: 10 апреля 2026 г.</div></div></div></div>
-<div class="modal" id="termsModal"><div class="modal-content"><div class="modal-header"><h3>📜 Условия использования</h3><button class="modal-close" onclick="closeModal('termsModal')">×</button></div><div class="legal-content"><p>Добро пожаловать в <strong class="highlight">Tradeum Academy</strong>!</p><h4>📚 1. Образовательный характер</h4><p>Все материалы носят образовательный характер. Мы не даем инвестиционных консультаций.</p><h4>👤 2. Регистрация</h4><p>Вы несете ответственность за сохранность ваших учетных данных.</p><h4>©️ 3. Права на контент</h4><p>Все материалы являются интеллектуальной собственностью Tradeum Academy.</p><div class="legal-date">📅 Последнее обновление: 10 апреля 2026 г.</div></div></div></div>
-<div class="modal" id="faqModal"><div class="modal-content"><div class="modal-header"><h3>❓ Часто задаваемые вопросы</h3><button class="modal-close" onclick="closeModal('faqModal')">×</button></div><div class="legal-content"><div class="faq-item"><div class="faq-question"><span class="q-mark">❓</span> Что такое Tradeum Academy?</div><div class="faq-answer">Образовательная платформа для обучения техническому анализу и трейдингу.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">💰</span> Платформа бесплатная?</div><div class="faq-answer">Да, базовый доступ полностью бесплатный.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">🎮</span> Как работают дуэли?</div><div class="faq-answer">Сражайтесь с 5 ИИ-ботами или реальными игроками, получайте XP.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📊</span> Какие паттерны доступны?</div><div class="faq-answer">12+ паттернов: Голова и плечи, Треугольники, Флаг и другие.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📧</span> Как связаться с поддержкой?</div><div class="faq-answer">Используйте кнопку «Написать нам» или отправьте письмо на support@tradeum.com</div></div><div class="legal-date">📅 Последнее обновление: 10 апреля 2026 г.</div></div></div></div>
+<div class="modal" id="privacyModal"><div class="modal-content"><div class="modal-header"><h3>🔒 Политика конфиденциальности</h3><button class="modal-close" onclick="closeModal('privacyModal')">×</button></div><div class="legal-content"><p>Настоящая Политика описывает, как <strong class="highlight">Tradeum Academy</strong> собирает и защищает информацию.</p><h4>📋 1. Собираемая информация</h4><p>Мы собираем <strong>имя</strong>, <strong>email</strong> и <strong>сообщения</strong> из формы обратной связи.</p><h4>🛡️ 2. Защита данных</h4><p>Используем современное шифрование. Доступ только у авторизованных сотрудников.</p><h4>🤝 3. Передача данных</h4><p>Мы <strong>не передаем</strong> ваши данные третьим лицам.</p><div class="legal-date">📅 Дата: 12 апреля 2026 г.</div></div></div></div>
+<div class="modal" id="termsModal"><div class="modal-content"><div class="modal-header"><h3>📜 Условия использования</h3><button class="modal-close" onclick="closeModal('termsModal')">×</button></div><div class="legal-content"><p>Добро пожаловать в <strong class="highlight">Tradeum Academy</strong>!</p><h4>📚 1. Образовательный характер</h4><p>Все материалы носят образовательный характер. Мы не даем инвестиционных консультаций.</p><h4>👤 2. Регистрация</h4><p>Вы несете ответственность за сохранность ваших учетных данных.</p><h4>©️ 3. Права на контент</h4><p>Все материалы являются интеллектуальной собственностью Tradeum Academy.</p><div class="legal-date">📅 Последнее обновление: 12 апреля 2026 г.</div></div></div></div>
+<div class="modal" id="faqModal"><div class="modal-content"><div class="modal-header"><h3>❓ Часто задаваемые вопросы</h3><button class="modal-close" onclick="closeModal('faqModal')">×</button></div><div class="legal-content"><div class="faq-item"><div class="faq-question"><span class="q-mark">❓</span> Что такое Tradeum Academy?</div><div class="faq-answer">Образовательная платформа для обучения техническому анализу и трейдингу.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">💰</span> Платформа бесплатная?</div><div class="faq-answer">Да, базовый доступ полностью бесплатный.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">🎮</span> Как работают дуэли?</div><div class="faq-answer">Сражайтесь с 5 ИИ-ботами или реальными игроками, получайте XP.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📊</span> Какие паттерны доступны?</div><div class="faq-answer">12+ паттернов: Голова и плечи, Треугольники, Флаг и другие.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📧</span> Как связаться с поддержкой?</div><div class="faq-answer">Используйте кнопку «Написать нам» или отправьте письмо на support@tradeum.com</div></div><div class="legal-date">📅 Последнее обновление: 12 апреля 2026 г.</div></div></div></div>
 
 <script>
-    // ========== ГЕНЕРАЦИЯ ЧАСТИЦ (фишка с pinacolada) ==========
+    // ========== ГЕНЕРАЦИЯ ЧАСТИЦ ==========
     function generateParticles() {
         const container = document.getElementById('particles');
         for (let i = 0; i < 30; i++) {
@@ -1162,7 +1097,7 @@
     }
     generateParticles();
 
-    // ========== МАГНИТНЫЙ ЭФФЕКТ (фишка с pinacolada) ==========
+    // ========== МАГНИТНЫЙ ЭФФЕКТ ==========
     document.querySelectorAll('.magnetic').forEach(el => {
         el.addEventListener('mousemove', (e) => {
             const rect = el.getBoundingClientRect();
@@ -1174,6 +1109,57 @@
             el.style.transform = 'translate(0, 0)';
         });
     });
+
+    // ========== ПАРАЛЛАКС-ЭФФЕКТ ДВУХ ФОТОГРАФИЙ ==========
+    const primaryImage = document.getElementById('primaryImage');
+    const secondaryImage = document.getElementById('secondaryImage');
+    const mainContainer = document.getElementById('mainContainer');
+
+    let ticking = false;
+    const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+
+    function updateParallax() {
+        const scrollTop = window.scrollY;
+        const progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
+
+        // Первое фото улетает вправо (до 150% ширины)
+        const primaryOffset = progress * 150;
+        primaryImage.style.transform = `translateX(${primaryOffset}%)`;
+        primaryImage.style.opacity = Math.max(0, 1 - progress * 1.5);
+
+        // Второе фото вылетает слева (от -100% до 0%)
+        const secondaryOffset = -100 + (progress * 100);
+        secondaryImage.style.transform = `translateX(${secondaryOffset}%)`;
+        secondaryImage.style.opacity = Math.min(1, progress * 2);
+
+        // Контент смещается вправо при появлении второго фото
+        if (progress > 0.3) {
+            const shift = Math.min(80, (progress - 0.3) * 200);
+            mainContainer.style.transform = `translateX(${shift}px)`;
+            mainContainer.classList.add('shifted');
+        } else {
+            mainContainer.style.transform = 'translateX(0)';
+            mainContainer.classList.remove('shifted');
+        }
+
+        ticking = false;
+    }
+
+    function onScroll() {
+        if (!ticking) {
+            requestAnimationFrame(updateParallax);
+            ticking = true;
+        }
+    }
+
+    window.addEventListener('scroll', onScroll);
+    window.addEventListener('resize', () => {
+        maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        updateParallax();
+    });
+
+    // Запускаем один раз для начальной позиции
+    setTimeout(updateParallax, 100);
 
     // ========== АНИМАЦИЯ КАРТОЧЕК ==========
     const featureObserver = new IntersectionObserver((entries) => {
@@ -1208,46 +1194,6 @@
     }, { threshold: 0.1 });
     slideObserver.observe(document.getElementById('duelBanner'));
     slideObserver.observe(document.getElementById('aboutSection'));
-
-    // ========== ДВИЖЕНИЕ ФОТО ==========
-    const floatingImage = document.getElementById('floatingImage');
-    let startPosition = 80;
-    let ticking = false;
-
-    setTimeout(() => {
-        if (window.innerWidth <= 1200) startPosition = 40;
-        else if (window.innerWidth <= 1400) startPosition = 60;
-        else startPosition = 80;
-        floatingImage.style.transform = `translateX(${startPosition}px)`;
-    }, 900);
-
-    function updateFloatingImage() {
-        if (window.innerWidth <= 900) return;
-        const scrollTop = window.scrollY;
-        const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
-        let progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
-        const maxShift = 35;
-        const shift = progress * maxShift;
-        let newOffset = startPosition - shift;
-        newOffset = Math.max(20, newOffset);
-        floatingImage.style.transform = `translateX(${newOffset}px)`;
-        ticking = false;
-    }
-
-    function onScroll() {
-        if (!ticking) {
-            requestAnimationFrame(updateFloatingImage);
-            ticking = true;
-        }
-    }
-
-    window.addEventListener('scroll', onScroll);
-    window.addEventListener('resize', () => {
-        if (window.innerWidth <= 1200) startPosition = 40;
-        else if (window.innerWidth <= 1400) startPosition = 60;
-        else startPosition = 80;
-        updateFloatingImage();
-    });
 
     // ========== КНОПКИ СКРОЛЛА ==========
     const scrollTopBtn = document.getElementById('scrollTopBtn');
@@ -1294,13 +1240,6 @@
             document.body.style.overflow = '';
         }
     });
-
-    // ========== УСТАНОВКА ИЗОБРАЖЕНИЯ ==========
-    function setFloatingImage(url) {
-        const img = document.getElementById('floatingImg');
-        if (url && url !== '') img.src = url;
-    }
-    setFloatingImage('/static/--.png');
 </script>
 </body>
 </html>
