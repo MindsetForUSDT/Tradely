@@ -6,6 +6,7 @@
     <title>Tradeum Academy | Интерактивное обучение трейдингу</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
     <style>
+        /* ========== БАЗОВЫЕ СТИЛИ ========== */
         * {
             margin: 0;
             padding: 0;
@@ -19,6 +20,35 @@
             line-height: 1.5;
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
+            position: relative;
+        }
+
+        /* ========== ПЛАВАЮЩИЕ ЧАСТИЦЫ НА ФОНЕ (фишка с pinacolada) ========== */
+        .background-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: rgba(94, 234, 212, 0.15);
+            border-radius: 50%;
+            animation: floatParticle 20s infinite ease-in-out;
+        }
+
+        @keyframes floatParticle {
+            0%, 100% { transform: translateY(0) translateX(0); opacity: 0; }
+            10% { opacity: 0.5; }
+            90% { opacity: 0.5; }
+            50% { transform: translateY(-100px) translateX(50px); }
         }
 
         html {
@@ -31,6 +61,11 @@
         }
         * {
             scrollbar-width: none;
+        }
+
+        /* ========== МАГНИТНЫЙ ЭФФЕКТ (фишка с pinacolada) ========== */
+        .magnetic {
+            transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1);
         }
 
         /* ========== КНОПКИ СКРОЛЛА ========== */
@@ -76,6 +111,7 @@
             margin: 0 auto;
             padding: 0 32px;
             position: relative;
+            z-index: 2;
         }
 
         @media (min-width: 1400px) {
@@ -114,10 +150,81 @@
             100% { transform: translateX(0); opacity: 1; }
         }
 
+        /* ========== ЭФФЕКТ РАЗБИТОГО ТЕКСТА (фишка с pinacolada) ========== */
+        @keyframes glitchText {
+            0%, 100% { opacity: 0; transform: translateY(10px); filter: blur(4px); }
+            50% { opacity: 0.5; transform: translateY(-5px); filter: blur(0); }
+            100% { opacity: 1; transform: translateY(0); filter: blur(0); }
+        }
+
+        .split-text {
+            display: inline-block;
+            opacity: 0;
+            animation: glitchText 0.6s cubic-bezier(0.2, 0.9, 0.4, 1) forwards;
+        }
+
+        /* ========== ГРАДИЕНТНАЯ ВРАЩАЮЩАЯСЯ РАМКА (фишка с pinacolada) ========== */
+        @keyframes rotateGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-border-card {
+            position: relative;
+            background: #12161E;
+            border-radius: 24px;
+            z-index: 1;
+        }
+
+        .gradient-border-card::before {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: linear-gradient(45deg, #5EEAD4, #F4B740, #5EEAD4);
+            background-size: 200% 200%;
+            border-radius: 26px;
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            animation: rotateGradient 3s ease infinite;
+        }
+
+        .gradient-border-card:hover::before {
+            opacity: 1;
+        }
+
+        /* ========== ЭФФЕКТ ПЕЧАТНОЙ МАШИНКИ (фишка с pinacolada) ========== */
+        .typewriter {
+            overflow: hidden;
+            border-right: 2px solid #5EEAD4;
+            white-space: nowrap;
+            animation: typing 1.5s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0; }
+            to { width: 100%; }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent; }
+            50% { border-color: #5EEAD4; }
+        }
+
         .animate-up { animation: fadeUp 0.5s ease forwards; }
         .animate-left { animation: fadeLeft 0.5s ease forwards; }
         .animate-right { animation: fadeRight 0.5s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
+
+        /* ========== КАСКАДНОЕ ПОЯВЛЕНИЕ (фишка с pinacolada) ========== */
+        .cascade-item {
+            opacity: 0;
+            animation: fadeUp 0.5s ease forwards;
+        }
 
         /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ ========== */
         .floating-image-container {
@@ -126,7 +233,7 @@
             top: 0;
             width: 550px;
             height: 100vh;
-            z-index: 0;
+            z-index: 1;
             pointer-events: none;
             transition: transform 0.05s linear;
             will-change: transform;
@@ -193,10 +300,28 @@
             font-weight: 500;
             transition: color 0.2s ease;
             letter-spacing: -0.2px;
+            position: relative;
+            padding-bottom: 4px;
+        }
+
+        /* Подчёркивание с градиентом (фишка) */
+        .nav a::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: linear-gradient(90deg, #5EEAD4, #F4B740);
+            transition: width 0.4s cubic-bezier(0.2, 0.9, 0.4, 1);
+        }
+
+        .nav a:hover::after {
+            width: 100%;
         }
 
         .nav a:hover {
-            color: #5EEAD4;
+            color: #FFFFFF;
         }
 
         .header::after {
@@ -238,6 +363,12 @@
             margin-bottom: 28px;
             letter-spacing: 0.3px;
             backdrop-filter: blur(4px);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; box-shadow: 0 0 15px rgba(94, 234, 212, 0.3); }
         }
 
         h1 {
@@ -281,6 +412,27 @@
             display: inline-block;
             cursor: pointer;
             border: none;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Эффект блика на кнопке */
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.6s, height 0.6s;
+        }
+
+        .btn-primary:hover::before {
+            width: 300px;
+            height: 300px;
         }
 
         .btn-primary:hover {
@@ -383,7 +535,7 @@
         }
         .steps-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 24px;
             margin-top: 40px;
         }
@@ -394,10 +546,11 @@
             text-align: center;
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
         .step-card:hover {
             transform: translateY(-4px);
-            border-color: #5EEAD4;
         }
         .step-number {
             width: 48px;
@@ -411,17 +564,23 @@
             font-size: 24px;
             font-weight: 700;
             color: #5EEAD4;
+            position: relative;
+            z-index: 2;
         }
         .step-title {
             font-size: 18px;
             font-weight: 600;
             margin-bottom: 12px;
             color: #FFFFFF;
+            position: relative;
+            z-index: 2;
         }
         .step-desc {
             font-size: 13px;
             color: #8E97A6;
             line-height: 1.5;
+            position: relative;
+            z-index: 2;
         }
         @media (max-width: 768px) {
             .steps-grid {
@@ -553,13 +712,57 @@
             opacity: 0;
             transform: translateY(20px);
             will-change: transform, opacity;
+            position: relative;
+            overflow: hidden;
         }
+
+        /* Эффект размытого свечения при наведении */
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 50% 0%, rgba(94, 234, 212, 0.15), transparent 70%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .feature-card:hover::after {
+            opacity: 1;
+        }
+
         .feature-card.visible { animation: fadeUp 0.5s ease forwards; }
         .feature-card.hidden { opacity: 0; transform: translateY(20px); }
-        .feature-card:hover { transform: translateY(-4px); border-color: rgba(94, 234, 212, 0.5); background: #141924; }
-        .feature-icon { font-size: 36px; margin-bottom: 20px; }
-        .feature-title { font-size: 18px; font-weight: 600; margin-bottom: 10px; color: #FFFFFF; }
-        .feature-desc { color: #8E97A6; font-size: 14px; line-height: 1.55; }
+        .feature-card:hover { transform: translateY(-4px); background: #141924; }
+        .feature-icon {
+            font-size: 36px;
+            margin-bottom: 20px;
+            position: relative;
+            z-index: 2;
+            transition: transform 0.3s ease;
+        }
+        .feature-card:hover .feature-icon {
+            transform: scale(1.1);
+        }
+        .feature-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            color: #FFFFFF;
+            position: relative;
+            z-index: 2;
+        }
+        .feature-desc {
+            color: #8E97A6;
+            font-size: 14px;
+            line-height: 1.55;
+            position: relative;
+            z-index: 2;
+        }
 
         .duel-banner {
             background: linear-gradient(135deg, #12161E 0%, #0D1018 100%);
@@ -778,6 +981,9 @@
 </head>
 <body>
 
+<!-- ПЛАВАЮЩИЕ ЧАСТИЦЫ (фишка с pinacolada) -->
+<div class="background-particles" id="particles"></div>
+
 <button class="scroll-btn scroll-top" id="scrollTopBtn" aria-label="Наверх">↑</button>
 <button class="scroll-btn scroll-bottom" id="scrollBottomBtn" aria-label="Вниз">↓</button>
 
@@ -799,11 +1005,18 @@
     <div class="hero">
         <div class="hero-content">
             <div class="badge">ОБУЧАЮЩАЯ ПЛАТФОРМА</div>
-            <h1>Стань мастером<br><span class="gradient-text">технического анализа</span></h1>
+            <h1>
+                <span class="split-text" style="animation-delay: 0.1s;">Стань</span>
+                <span class="split-text" style="animation-delay: 0.2s;">мастером</span><br>
+                <span class="gradient-text">
+                    <span class="split-text" style="animation-delay: 0.3s;">технического</span>
+                    <span class="split-text" style="animation-delay: 0.4s;">анализа</span>
+                </span>
+            </h1>
             <div class="hero-desc">Изучай торговые паттерны, анализируй графики, соревнуйся с другими трейдерами.</div>
             <div class="btn-group">
-                <a href="/learn" class="btn-primary">Начать обучение</a>
-                <a href="/login" class="btn-secondary">Войти</a>
+                <a href="/learn" class="btn-primary magnetic">Начать обучение</a>
+                <a href="/login" class="btn-secondary magnetic">Войти</a>
             </div>
         </div>
         <div class="hero-stats">
@@ -816,10 +1029,10 @@
 
     <!-- НОВЫЙ БЛОК С ЦИФРАМИ (инфографика) -->
     <div class="stats-showcase">
-        <div class="stat-showcard"><div class="number">45%</div><div class="label">Предметная экспертиза</div><div class="desc">Критическое мышление</div></div>
-        <div class="stat-showcard"><div class="number">30%</div><div class="label">Управление контекстом</div><div class="desc">Входные данные</div></div>
-        <div class="stat-showcard"><div class="number">15%</div><div class="label">Формулировка промптов</div><div class="desc">Точность запросов</div></div>
-        <div class="stat-showcard"><div class="number">10%</div><div class="label">Знание инструментов</div><div class="desc">Модели AI</div></div>
+        <div class="stat-showcard cascade-item" style="animation-delay: 0.1s;"><div class="number">45%</div><div class="label">Предметная экспертиза</div><div class="desc">Критическое мышление</div></div>
+        <div class="stat-showcard cascade-item" style="animation-delay: 0.2s;"><div class="number">30%</div><div class="label">Управление контекстом</div><div class="desc">Входные данные</div></div>
+        <div class="stat-showcard cascade-item" style="animation-delay: 0.3s;"><div class="number">15%</div><div class="label">Формулировка промптов</div><div class="desc">Точность запросов</div></div>
+        <div class="stat-showcard cascade-item" style="animation-delay: 0.4s;"><div class="number">10%</div><div class="label">Знание инструментов</div><div class="desc">Модели AI</div></div>
     </div>
 
     <!-- ПОШАГОВОЕ ОБУЧЕНИЕ -->
@@ -829,10 +1042,10 @@
             <div class="section-subtitle">4 простых шага к мастерству</div>
         </div>
         <div class="steps-grid">
-            <div class="step-card"><div class="step-number">1</div><div class="step-title">Изучай паттерны</div><div class="step-desc">Интерактивные карточки с реальными примерами из рынка</div></div>
-            <div class="step-card"><div class="step-number">2</div><div class="step-title">Проверяй знания</div><div class="step-desc">Тесты и задания для закрепления материала</div></div>
-            <div class="step-card"><div class="step-number">3</div><div class="step-title">Соревнуйся</div><div class="step-desc">Дуэли с ИИ и реальными трейдерами</div></div>
-            <div class="step-card"><div class="step-number">4</div><div class="step-title">Повышай рейтинг</div><div class="step-desc">Зарабатывай XP и становись лучшим</div></div>
+            <div class="step-card gradient-border-card cascade-item" style="animation-delay: 0.1s;"><div class="step-number">1</div><div class="step-title">Изучай паттерны</div><div class="step-desc">Интерактивные карточки с реальными примерами из рынка</div></div>
+            <div class="step-card gradient-border-card cascade-item" style="animation-delay: 0.2s;"><div class="step-number">2</div><div class="step-title">Проверяй знания</div><div class="step-desc">Тесты и задания для закрепления материала</div></div>
+            <div class="step-card gradient-border-card cascade-item" style="animation-delay: 0.3s;"><div class="step-number">3</div><div class="step-title">Соревнуйся</div><div class="step-desc">Дуэли с ИИ и реальными трейдерами</div></div>
+            <div class="step-card gradient-border-card cascade-item" style="animation-delay: 0.4s;"><div class="step-number">4</div><div class="step-title">Повышай рейтинг</div><div class="step-desc">Зарабатывай XP и становись лучшим</div></div>
         </div>
     </div>
 
@@ -843,10 +1056,10 @@
             <div class="section-subtitle">Уже 1 200+ трейдеров выбрали нас</div>
         </div>
         <div class="reviews-grid">
-            <div class="review-card"><div class="review-text">“Лучшая платформа для изучения технического анализа! Интерактивные карточки и дуэли сделали обучение увлекательным.”</div><div class="review-author"><div class="review-avatar">АК</div><div class="review-name">Алексей К.</div><div class="review-role">Трейдер с 3-летним стажем</div></div></div>
-            <div class="review-card"><div class="review-text">“Дуэли с ИИ — это гениально! Быстро прокачал навыки и начал увереннее торговать.”</div><div class="review-author"><div class="review-avatar">ЕС</div><div class="review-name">Екатерина С.</div><div class="review-role">Начинающий трейдер</div></div></div>
-            <div class="review-card"><div class="review-text">“Огромная библиотека паттернов и подробные объяснения. Рекомендую всем!”</div><div class="review-author"><div class="review-avatar">ДМ</div><div class="review-name">Дмитрий М.</div><div class="review-role">Инвестор</div></div></div>
-            <div class="review-card"><div class="review-text">“Удобный интерфейс, понятные уроки. За месяц поднял свой уровень с нуля до уверенного среднего.”</div><div class="review-author"><div class="review-avatar">ОП</div><div class="review-name">Олег П.</div><div class="review-role">Студент академии</div></div></div>
+            <div class="review-card cascade-item" style="animation-delay: 0.1s;"><div class="review-text">"Лучшая платформа для изучения технического анализа! Интерактивные карточки и дуэли сделали обучение увлекательным."</div><div class="review-author"><div class="review-avatar">АК</div><div class="review-name">Алексей К.</div><div class="review-role">Трейдер с 3-летним стажем</div></div></div>
+            <div class="review-card cascade-item" style="animation-delay: 0.2s;"><div class="review-text">"Дуэли с ИИ — это гениально! Быстро прокачал навыки и начал увереннее торговать."</div><div class="review-author"><div class="review-avatar">ЕС</div><div class="review-name">Екатерина С.</div><div class="review-role">Начинающий трейдер</div></div></div>
+            <div class="review-card cascade-item" style="animation-delay: 0.3s;"><div class="review-text">"Огромная библиотека паттернов и подробные объяснения. Рекомендую всем!"</div><div class="review-author"><div class="review-avatar">ДМ</div><div class="review-name">Дмитрий М.</div><div class="review-role">Инвестор</div></div></div>
+            <div class="review-card cascade-item" style="animation-delay: 0.4s;"><div class="review-text">"Удобный интерфейс, понятные уроки. За месяц поднял свой уровень с нуля до уверенного среднего."</div><div class="review-author"><div class="review-avatar">ОП</div><div class="review-name">Олег П.</div><div class="review-role">Студент академии</div></div></div>
         </div>
     </div>
 
@@ -867,12 +1080,12 @@
     </div>
 
     <div class="features-grid" id="featuresGrid">
-        <div class="feature-card" data-delay="0"><div class="feature-icon">📚</div><div class="feature-title">Интерактивное обучение</div><div class="feature-desc">Изучай рыночные паттерны на реальных примерах с интерактивными графиками.</div></div>
-        <div class="feature-card" data-delay="0.1"><div class="feature-icon">⚔️</div><div class="feature-title">Дуэли с ИИ и игроками</div><div class="feature-desc">Соревнуйся с 5 ИИ-ботами или реальными трейдерами.</div></div>
-        <div class="feature-card" data-delay="0.2"><div class="feature-icon">🏆</div><div class="feature-title">Система рейтинга</div><div class="feature-desc">Зарабатывай XP, повышай уровень и становись лучшим.</div></div>
-        <div class="feature-card" data-delay="0.3"><div class="feature-icon">📖</div><div class="feature-title">Библиотека паттернов</div><div class="feature-desc">Коллекция торговых паттернов с описаниями и примерами.</div></div>
-        <div class="feature-card" data-delay="0.4"><div class="feature-icon">🎮</div><div class="feature-title">Торговый симулятор</div><div class="feature-desc">Тренируйся на исторических данных без финансового риска.</div></div>
-        <div class="feature-card" data-delay="0.5"><div class="feature-icon">💡</div><div class="feature-title">Обратная связь</div><div class="feature-desc">Подробные объяснения каждого ответа и ошибок.</div></div>
+        <div class="feature-card magnetic" data-delay="0"><div class="feature-icon">📚</div><div class="feature-title">Интерактивное обучение</div><div class="feature-desc">Изучай рыночные паттерны на реальных примерах с интерактивными графиками.</div></div>
+        <div class="feature-card magnetic" data-delay="0.1"><div class="feature-icon">⚔️</div><div class="feature-title">Дуэли с ИИ и игроками</div><div class="feature-desc">Соревнуйся с 5 ИИ-ботами или реальными трейдерами.</div></div>
+        <div class="feature-card magnetic" data-delay="0.2"><div class="feature-icon">🏆</div><div class="feature-title">Система рейтинга</div><div class="feature-desc">Зарабатывай XP, повышай уровень и становись лучшим.</div></div>
+        <div class="feature-card magnetic" data-delay="0.3"><div class="feature-icon">📖</div><div class="feature-title">Библиотека паттернов</div><div class="feature-desc">Коллекция торговых паттернов с описаниями и примерами.</div></div>
+        <div class="feature-card magnetic" data-delay="0.4"><div class="feature-icon">🎮</div><div class="feature-title">Торговый симулятор</div><div class="feature-desc">Тренируйся на исторических данных без финансового риска.</div></div>
+        <div class="feature-card magnetic" data-delay="0.5"><div class="feature-icon">💡</div><div class="feature-title">Обратная связь</div><div class="feature-desc">Подробные объяснения каждого ответа и ошибок.</div></div>
     </div>
 
     <div class="duel-banner" id="duelBanner">
@@ -897,7 +1110,7 @@
             <div class="footer-brand">
                 <div class="footer-logo"><span class="logo-mark">◈</span><span>Tradeum Academy</span></div>
                 <div class="footer-desc">Образовательная платформа для трейдеров.<br>Обучайся, практикуйся, побеждай.</div>
-                <button class="contact-btn" id="contactBtn">✉️ Написать нам</button>
+                <button class="contact-btn magnetic" id="contactBtn">✉️ Написать нам</button>
             </div>
             <div class="footer-section">
                 <div class="footer-title">Навигация</div>
@@ -932,7 +1145,37 @@
 <div class="modal" id="faqModal"><div class="modal-content"><div class="modal-header"><h3>❓ Часто задаваемые вопросы</h3><button class="modal-close" onclick="closeModal('faqModal')">×</button></div><div class="legal-content"><div class="faq-item"><div class="faq-question"><span class="q-mark">❓</span> Что такое Tradeum Academy?</div><div class="faq-answer">Образовательная платформа для обучения техническому анализу и трейдингу.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">💰</span> Платформа бесплатная?</div><div class="faq-answer">Да, базовый доступ полностью бесплатный.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">🎮</span> Как работают дуэли?</div><div class="faq-answer">Сражайтесь с 5 ИИ-ботами или реальными игроками, получайте XP.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📊</span> Какие паттерны доступны?</div><div class="faq-answer">12+ паттернов: Голова и плечи, Треугольники, Флаг и другие.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📧</span> Как связаться с поддержкой?</div><div class="faq-answer">Используйте кнопку «Написать нам» или отправьте письмо на support@tradeum.com</div></div><div class="legal-date">📅 Последнее обновление: 10 апреля 2026 г.</div></div></div></div>
 
 <script>
-    // Анимация карточек
+    // ========== ГЕНЕРАЦИЯ ЧАСТИЦ (фишка с pinacolada) ==========
+    function generateParticles() {
+        const container = document.getElementById('particles');
+        for (let i = 0; i < 30; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.top = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 20 + 's';
+            particle.style.animationDuration = (15 + Math.random() * 20) + 's';
+            particle.style.width = (1 + Math.random() * 3) + 'px';
+            particle.style.height = particle.style.width;
+            container.appendChild(particle);
+        }
+    }
+    generateParticles();
+
+    // ========== МАГНИТНЫЙ ЭФФЕКТ (фишка с pinacolada) ==========
+    document.querySelectorAll('.magnetic').forEach(el => {
+        el.addEventListener('mousemove', (e) => {
+            const rect = el.getBoundingClientRect();
+            const x = e.clientX - rect.left - rect.width / 2;
+            const y = e.clientY - rect.top - rect.height / 2;
+            el.style.transform = `translate(${x * 0.1}px, ${y * 0.1}px)`;
+        });
+        el.addEventListener('mouseleave', () => {
+            el.style.transform = 'translate(0, 0)';
+        });
+    });
+
+    // ========== АНИМАЦИЯ КАРТОЧЕК ==========
     const featureObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -947,13 +1190,14 @@
             }
         });
     }, { threshold: 0.1 });
+
     document.querySelectorAll('.feature-card').forEach(card => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
         featureObserver.observe(card);
     });
 
-    // Баннеры
+    // ========== БАННЕРЫ ==========
     const slideObserver = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -965,12 +1209,11 @@
     slideObserver.observe(document.getElementById('duelBanner'));
     slideObserver.observe(document.getElementById('aboutSection'));
 
-    // ========== ДВИЖЕНИЕ ФОТО (ИСПРАВЛЕНО) ==========
+    // ========== ДВИЖЕНИЕ ФОТО ==========
     const floatingImage = document.getElementById('floatingImage');
     let startPosition = 80;
     let ticking = false;
 
-    // Определяем начальную позицию после анимации
     setTimeout(() => {
         if (window.innerWidth <= 1200) startPosition = 40;
         else if (window.innerWidth <= 1400) startPosition = 60;
@@ -980,19 +1223,13 @@
 
     function updateFloatingImage() {
         if (window.innerWidth <= 900) return;
-
         const scrollTop = window.scrollY;
         const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
         let progress = maxScroll > 0 ? scrollTop / maxScroll : 0;
-
-        // Плавное смещение влево при скролле (максимум 35px)
         const maxShift = 35;
         const shift = progress * maxShift;
         let newOffset = startPosition - shift;
-
-        // Ограничиваем минимальное смещение
         newOffset = Math.max(20, newOffset);
-
         floatingImage.style.transform = `translateX(${newOffset}px)`;
         ticking = false;
     }
@@ -1012,7 +1249,7 @@
         updateFloatingImage();
     });
 
-    // Кнопки скролла
+    // ========== КНОПКИ СКРОЛЛА ==========
     const scrollTopBtn = document.getElementById('scrollTopBtn');
     const scrollBottomBtn = document.getElementById('scrollBottomBtn');
 
@@ -1029,7 +1266,7 @@
     window.addEventListener('resize', checkScrollButtons);
     checkScrollButtons();
 
-    // Модальные окна
+    // ========== МОДАЛЬНЫЕ ОКНА ==========
     function openModal(id) {
         document.getElementById(id).classList.add('active');
         document.body.style.overflow = 'hidden';
@@ -1058,7 +1295,7 @@
         }
     });
 
-    // Функция для установки изображения (опционально)
+    // ========== УСТАНОВКА ИЗОБРАЖЕНИЯ ==========
     function setFloatingImage(url) {
         const img = document.getElementById('floatingImg');
         if (url && url !== '') img.src = url;
