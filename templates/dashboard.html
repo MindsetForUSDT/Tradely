@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Inter', sans-serif; background: #0A0C10; color: #E6E8EC; height: 100vh; overflow: hidden; }
@@ -681,75 +682,152 @@
         alert(`${name}\n\n${desc}\n\n🎯 ${signal}`);
     }
 
-    // Загрузка карточки обучения
-    async function loadLearnCard() {
-        try {
-            const res = await fetch(`/api/cards/random?user_id=${userId}`);
-            const card = await res.json();
-            if (card.completed_all) {
-                document.getElementById('cardTitle').innerText = 'Поздравляем!';
-                document.getElementById('description').innerHTML = 'Вы прошли все карточки!';
-                return;
+// Замените функцию loadLearnCard в dashboard.html на эту версию:
+async function loadLearnCard() {
+    try {
+        const res = await fetch(`/api/cards/random?user_id=${userId}`);
+        const card = await res.json();
+        if (card.completed_all) {
+            document.getElementById('cardTitle').innerText = 'Поздравляем!';
+            document.getElementById('description').innerHTML = 'Вы прошли все карточки!';
+            return;
+        }
+        currentCard = card;
+        document.getElementById('cardTitle').innerText = card.title;
+        document.getElementById('description').innerHTML = card.description;
+        document.getElementById('difficulty').innerText = card.difficulty === 'easy' ? 'ЛЕГКИЙ' : (card.difficulty === 'medium' ? 'СРЕДНИЙ' : 'СЛОЖНЫЙ');
+        document.getElementById('difficulty').className = `difficulty ${card.difficulty}`;
+        document.getElementById('newsList').innerHTML = card.news.map(n => `<li>${n}</li>`).join('');
+
+        // Создаем контейнер для свечного графика если его нет
+        let chartContainer = document.getElementById('chartContainer');
+        if (!chartContainer) {
+            const oldCanvas = document.getElementById('priceChart');
+            if (oldCanvas) {
+                const parent = oldCanvas.parentNode;
+                oldCanvas.remove();
+                chartContainer = document.createElement('div');
+                chartContainer.id = 'chartContainer';
+                chartContainer.style.width = '100%';
+                chartContainer.style.height = '350px';
+                parent.appendChild(chartContainer);
             }
-            currentCard = card;
-            document.getElementById('cardTitle').innerText = card.title;
-            document.getElementById('description').innerHTML = card.description;
-            document.getElementById('difficulty').innerText = card.difficulty === 'easy' ? 'ЛЕГКИЙ' : (card.difficulty === 'medium' ? 'СРЕДНИЙ' : 'СЛОЖНЫЙ');
-            document.getElementById('difficulty').className = `difficulty ${card.difficulty}`;
-            document.getElementById('newsList').innerHTML = card.news.map(n => `<li>${n}</li>`).join('');
+        }
 
-            const ctx = document.getElementById('priceChart').getContext('2d');
-            if (chart) chart.destroy();
-            const points = card.chart_points || [];
-            chart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: points.map((_, i) => i + 1), datasets: [{ label: 'Цена (USDT)', data: points.map(p => p.y), borderColor: '#5EEAD4', backgroundColor: 'rgba(94,234,212,0.1)', fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#5EEAD4' }] },
-                options: { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#A1A6B0' } }, tooltip: { callbacks: { label: (ctx) => `Цена: $${ctx.raw.toFixed(2)}` } } }, scales: { y: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0', callback: (v) => `$${v.toFixed(0)}` } }, x: { grid: { color: '#1F232C' }, ticks: { color: '#A1A6B0' } } } }
-            });
+        // Генерируем и отображаем свечной график
+        const candles = generateCandleData(card.current_price || 50000, card.trend, 50);
+        initCandleChart('chartContainer', candles);
 
-            document.getElementById('resultBox').style.display = 'none';
-            document.getElementById('nextBtn').style.display = 'none';
-            document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = false; btn.style.opacity = '1'; });
-            canAnswer = true;
+        document.getElementById('resultBox').style.display = 'none';
+        document.getElementById('nextBtn').style.display = 'none';
+        document.querySelectorAll('.pred-btn').forEach(btn => { btn.disabled = false; btn.style.opacity = '1'; });
+        canAnswer = true;
 
-            document.querySelectorAll('.pred-btn').forEach(btn => {
-                btn.onclick = async () => {
-                    if (!canAnswer) return;
-                    const direction = btn.dataset.dir;
-                    canAnswer = false;
-                    document.querySelectorAll('.pred-btn').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
-                    try {
-                        const res = await fetch('/api/cards/submit', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ user_id: userId, card_id: currentCard.id, answer: direction })
-                        });
-                        const data = await res.json();
-                        const resultBox = document.getElementById('resultBox');
-                        if (data.is_correct) {
-                            resultBox.className = 'result-box correct';
-                            document.getElementById('resultTitle').innerHTML = '✅ ПРАВИЛЬНО!';
-                            document.getElementById('resultText').innerHTML = data.explanation;
-                            document.getElementById('xpGain').innerHTML = `+${data.xp_earned} XP`;
-                            showNotification(`+${data.xp_earned} XP!`, 'success');
-                        } else {
-                            resultBox.className = 'result-box wrong';
-                            document.getElementById('resultTitle').innerHTML = '❌ НЕПРАВИЛЬНО';
-                            const correctText = data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК');
-                            document.getElementById('resultText').innerHTML = `${data.explanation}<br><br>Правильный ответ: ${correctText}`;
-                            document.getElementById('xpGain').innerHTML = `+0 XP`;
-                            showNotification('Неправильно!', 'error');
-                        }
-                        resultBox.style.display = 'block';
-                        document.getElementById('nextBtn').style.display = 'block';
-                        await loadStats();
-                    } catch(e) { console.error(e); }
-                };
-            });
-            document.getElementById('nextBtn').onclick = () => loadLearnCard();
-        } catch(e) { console.error('Load card error:', e); }
+        document.querySelectorAll('.pred-btn').forEach(btn => {
+            btn.onclick = async () => {
+                if (!canAnswer) return;
+                const direction = btn.dataset.dir;
+                canAnswer = false;
+                document.querySelectorAll('.pred-btn').forEach(b => { b.disabled = true; b.style.opacity = '0.5'; });
+                try {
+                    const res = await fetch('/api/cards/submit', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ user_id: userId, card_id: currentCard.id, answer: direction })
+                    });
+                    const data = await res.json();
+                    const resultBox = document.getElementById('resultBox');
+                    if (data.is_correct) {
+                        resultBox.className = 'result-box correct';
+                        document.getElementById('resultTitle').innerHTML = '✅ ПРАВИЛЬНО!';
+                        document.getElementById('resultText').innerHTML = data.explanation;
+                        document.getElementById('xpGain').innerHTML = `+${data.xp_earned} XP`;
+                        showNotification(`+${data.xp_earned} XP!`, 'success');
+                    } else {
+                        resultBox.className = 'result-box wrong';
+                        document.getElementById('resultTitle').innerHTML = '❌ НЕПРАВИЛЬНО';
+                        const correctText = data.correct_answer === 'up' ? 'ВВЕРХ' : (data.correct_answer === 'down' ? 'ВНИЗ' : 'БОКОВИК');
+                        document.getElementById('resultText').innerHTML = `${data.explanation}<br><br>Правильный ответ: ${correctText}`;
+                        document.getElementById('xpGain').innerHTML = `+0 XP`;
+                        showNotification('Неправильно!', 'error');
+                    }
+                    resultBox.style.display = 'block';
+                    document.getElementById('nextBtn').style.display = 'block';
+                    await loadStats();
+                } catch(e) { console.error(e); }
+            };
+        });
+        document.getElementById('nextBtn').onclick = () => loadLearnCard();
+    } catch(e) { console.error('Load card error:', e); }
+}
+
+// Добавьте эти вспомогательные функции в начало dashboard.html (перед loadPage):
+
+// Генерация свечных данных
+function generateCandleData(basePrice, trend, bars = 50) {
+    const candles = [];
+    let price = basePrice;
+    let time = Math.floor(Date.now() / 1000) - bars * 3600;
+    const trendDirection = trend === 'bullish' ? 1 : (trend === 'bearish' ? -1 : 0);
+
+    for (let i = 0; i < bars; i++) {
+        const trendMove = trendDirection * (0.0005 + Math.random() * 0.002);
+        const noise = (Math.random() - 0.5) * 0.012;
+        const open = price;
+        const change = trendMove + noise;
+        let close = open * (1 + change);
+        const volatility = 0.006;
+        const high = Math.max(open, close) * (1 + Math.random() * volatility);
+        const low = Math.min(open, close) * (1 - Math.random() * volatility);
+
+        candles.push({ time, open, high, low, close });
+        price = close;
+        time += 3600;
+    }
+    return candles;
+}
+
+// Инициализация свечного графика
+let candleChart = null;
+let candleSeries = null;
+
+function initCandleChart(containerId, candles) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    if (candleChart) {
+        candleChart.remove();
+        candleChart = null;
     }
 
+    candleChart = LightweightCharts.createChart(container, {
+        width: container.clientWidth,
+        height: 350,
+        layout: { background: { color: '#0A0C10' }, textColor: '#A1A6B0' },
+        grid: { vertLines: { color: '#1F232C' }, horzLines: { color: '#1F232C' } },
+        crosshair: { mode: LightweightCharts.CrosshairMode.Normal },
+        rightPriceScale: { borderColor: '#1F232C' },
+        timeScale: { borderColor: '#1F232C' }
+    });
+
+    candleSeries = candleChart.addCandlestickSeries({
+        upColor: '#5EEAD4',
+        downColor: '#F87171',
+        borderDownColor: '#F87171',
+        borderUpColor: '#5EEAD4',
+        wickDownColor: '#F87171',
+        wickUpColor: '#5EEAD4',
+    });
+
+    candleSeries.setData(candles);
+    candleChart.timeScale().fitContent();
+
+    window.addEventListener('resize', () => {
+        if (candleChart) {
+            candleChart.applyOptions({ width: container.clientWidth, height: 350 });
+        }
+    });
+}
     // Переменные для дуэлей
     let currentDuelMode = 'pvp';
     let selectedBot = null;
