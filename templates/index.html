@@ -23,7 +23,7 @@
             position: relative;
         }
 
-        /* ========== ПЛАВАЮЩИЕ ЧАСТИЦЫ НА ФОНЕ (фишка с pinacolada) ========== */
+        /* ========== ПЛАВАЮЩИЕ ЧАСТИЦЫ НА ФОНЕ ========== */
         .background-particles {
             position: fixed;
             top: 0;
@@ -63,7 +63,7 @@
             scrollbar-width: none;
         }
 
-        /* ========== МАГНИТНЫЙ ЭФФЕКТ (фишка с pinacolada) ========== */
+        /* ========== МАГНИТНЫЙ ЭФФЕКТ ========== */
         .magnetic {
             transition: transform 0.3s cubic-bezier(0.2, 0.9, 0.4, 1);
         }
@@ -150,7 +150,7 @@
             100% { transform: translateX(0); opacity: 1; }
         }
 
-        /* ========== ЭФФЕКТ РАЗБИТОГО ТЕКСТА (фишка с pinacolada) ========== */
+        /* ========== ЭФФЕКТ РАЗБИТОГО ТЕКСТА ========== */
         @keyframes glitchText {
             0%, 100% { opacity: 0; transform: translateY(10px); filter: blur(4px); }
             50% { opacity: 0.5; transform: translateY(-5px); filter: blur(0); }
@@ -163,7 +163,7 @@
             animation: glitchText 0.6s cubic-bezier(0.2, 0.9, 0.4, 1) forwards;
         }
 
-        /* ========== ГРАДИЕНТНАЯ ВРАЩАЮЩАЯСЯ РАМКА (фишка с pinacolada) ========== */
+        /* ========== ГРАДИЕНТНАЯ ВРАЩАЮЩАЯСЯ РАМКА ========== */
         @keyframes rotateGradient {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
@@ -197,30 +197,12 @@
             opacity: 1;
         }
 
-        /* ========== ЭФФЕКТ ПЕЧАТНОЙ МАШИНКИ (фишка с pinacolada) ========== */
-        .typewriter {
-            overflow: hidden;
-            border-right: 2px solid #5EEAD4;
-            white-space: nowrap;
-            animation: typing 1.5s steps(40, end), blink-caret 0.75s step-end infinite;
-        }
-
-        @keyframes typing {
-            from { width: 0; }
-            to { width: 100%; }
-        }
-
-        @keyframes blink-caret {
-            from, to { border-color: transparent; }
-            50% { border-color: #5EEAD4; }
-        }
-
         .animate-up { animation: fadeUp 0.5s ease forwards; }
         .animate-left { animation: fadeLeft 0.5s ease forwards; }
         .animate-right { animation: fadeRight 0.5s ease forwards; }
         .animate-scale { animation: scaleIn 0.5s ease forwards; }
 
-        /* ========== КАСКАДНОЕ ПОЯВЛЕНИЕ (фишка с pinacolada) ========== */
+        /* ========== КАСКАДНОЕ ПОЯВЛЕНИЕ ========== */
         .cascade-item {
             opacity: 0;
             animation: fadeUp 0.5s ease forwards;
@@ -293,35 +275,14 @@
             gap: 36px;
         }
 
-        .nav a {
+        .nav span {
             color: #A3ABB8;
             text-decoration: none;
             font-size: 14px;
-            font-weight: 500;
+            font-weight:500;
             transition: color 0.2s ease;
             letter-spacing: -0.2px;
-            position: relative;
-            padding-bottom: 4px;
-        }
-
-        /* Подчёркивание с градиентом (фишка) */
-        .nav a::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 0;
-            height: 2px;
-            background: linear-gradient(90deg, #5EEAD4, #F4B740);
-            transition: width 0.4s cubic-bezier(0.2, 0.9, 0.4, 1);
-        }
-
-        .nav a:hover::after {
-            width: 100%;
-        }
-
-        .nav a:hover {
-            color: #FFFFFF;
+            cursor: default;
         }
 
         .header::after {
@@ -374,7 +335,7 @@
         h1 {
             font-size: 54px;
             font-weight: 800;
-            line-height: 1.08;
+            line-height: 1.2;
             letter-spacing: -0.03em;
             margin-bottom: 24px;
             color: #FFFFFF;
@@ -385,6 +346,7 @@
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
+            white-space: nowrap;
         }
 
         .hero-desc {
@@ -416,7 +378,6 @@
             overflow: hidden;
         }
 
-        /* Эффект блика на кнопке */
         .btn-primary::before {
             content: '';
             position: absolute;
@@ -480,7 +441,7 @@
         .stat-label { color: #8E97A6; font-size: 13px; font-weight: 500; }
         .stat-value { font-size: 22px; font-weight: 700; color: #5EEAD4; }
 
-        /* ========== НОВЫЙ БЛОК С ЦИФРАМИ (инфографика) ========== */
+        /* ========== НОВЫЙ БЛОК С ЦИФРАМИ ========== */
         .stats-showcase {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
@@ -525,6 +486,12 @@
                 grid-template-columns: repeat(2, 1fr);
                 gap: 16px;
             }
+            h1 {
+                font-size: 42px;
+            }
+            .gradient-text {
+                white-space: normal;
+            }
         }
 
         /* ========== ПОШАГОВОЕ ОБУЧЕНИЕ ========== */
@@ -551,6 +518,8 @@
         }
         .step-card:hover {
             transform: translateY(-4px);
+            border-color: rgba(94, 234, 212, 0.4);
+            background: #141924;
         }
         .step-number {
             width: 48px;
@@ -716,7 +685,6 @@
             overflow: hidden;
         }
 
-        /* Эффект размытого свечения при наведении */
         .feature-card::after {
             content: '';
             position: absolute;
@@ -781,7 +749,6 @@
         .duel-banner-icon { font-size: 48px; margin-bottom: 20px; }
         .duel-banner-title { font-size: 24px; font-weight: 700; margin-bottom: 14px; color: #FFFFFF; }
         .duel-banner-text { color: #8E97A6; max-width: 560px; margin: 0 auto; font-size: 14px; line-height: 1.6; }
-        .duel-badge { display: inline-block; background: rgba(94, 234, 212, 0.08); padding: 6px 16px; border-radius: 100px; font-size: 12px; color: #5EEAD4; margin-top: 20px; font-weight: 500; }
 
         .about-section {
             background: #12161E;
@@ -855,6 +822,7 @@
         .footer-title { font-size: 12px; font-weight: 600; margin-bottom: 20px; color: #FFFFFF; letter-spacing: 0.5px; text-transform: uppercase; opacity: 0.6; }
         .footer-links { list-style: none; }
         .footer-links li { margin-bottom: 12px; }
+        .footer-links span { color: #8E97A6; font-size: 13px; display: inline-block; }
         .footer-links a { color: #8E97A6; text-decoration: none; font-size: 13px; transition: all 0.2s ease; display: inline-block; cursor: pointer; }
         .footer-links a:hover { color: #5EEAD4; transform: translateX(4px); }
         .footer-bottom { text-align: center; padding-top: 32px; border-top: 1px solid rgba(255, 255, 255, 0.05); }
@@ -961,7 +929,6 @@
 
         @media (max-width: 768px) {
             .container { padding: 0 20px; }
-            h1 { font-size: 38px; }
             .hero { flex-direction: column; gap: 40px; }
             .nav { gap: 20px; }
             .footer-content { flex-direction: column; gap: 36px; }
@@ -981,7 +948,7 @@
 </head>
 <body>
 
-<!-- ПЛАВАЮЩИЕ ЧАСТИЦЫ (фишка с pinacolada) -->
+<!-- ПЛАВАЮЩИЕ ЧАСТИЦЫ -->
 <div class="background-particles" id="particles"></div>
 
 <button class="scroll-btn scroll-top" id="scrollTopBtn" aria-label="Наверх">↑</button>
@@ -995,10 +962,9 @@
     <div class="header">
         <div class="logo">Trade<span style="color: #5EEAD4;">um</span></div>
         <div class="nav">
-            <a href="/">Главная</a>
-            <a href="/learn">Обучение</a>
-            <a href="/duel">Дуэли</a>
-            <a href="/dashboard">Профиль</a>
+            <span>Главная</span>
+            <span>Возможности</span>
+            <span>О платформе</span>
         </div>
     </div>
 
@@ -1010,12 +976,12 @@
                 <span class="split-text" style="animation-delay: 0.2s;">мастером</span><br>
                 <span class="gradient-text">
                     <span class="split-text" style="animation-delay: 0.3s;">технического</span>
-                    <span class="split-text" style="animation-delay: 0.4s;">анализа</span>
                 </span>
+                <span class="split-text" style="animation-delay: 0.4s;">анализа</span>
             </h1>
             <div class="hero-desc">Изучай торговые паттерны, анализируй графики, соревнуйся с другими трейдерами.</div>
             <div class="btn-group">
-                <a href="/learn" class="btn-primary magnetic">Начать обучение</a>
+                <a href="/register" class="btn-primary magnetic">Начать обучение</a>
                 <a href="/login" class="btn-secondary magnetic">Войти</a>
             </div>
         </div>
@@ -1027,7 +993,7 @@
         </div>
     </div>
 
-    <!-- НОВЫЙ БЛОК С ЦИФРАМИ (инфографика) -->
+    <!-- НОВЫЙ БЛОК С ЦИФРАМИ -->
     <div class="stats-showcase">
         <div class="stat-showcard cascade-item" style="animation-delay: 0.1s;"><div class="number">45%</div><div class="label">Предметная экспертиза</div><div class="desc">Критическое мышление</div></div>
         <div class="stat-showcard cascade-item" style="animation-delay: 0.2s;"><div class="number">30%</div><div class="label">Управление контекстом</div><div class="desc">Входные данные</div></div>
@@ -1042,10 +1008,10 @@
             <div class="section-subtitle">4 простых шага к мастерству</div>
         </div>
         <div class="steps-grid">
-            <div class="step-card gradient-border-card cascade-item" style="animation-delay: 0.1s;"><div class="step-number">1</div><div class="step-title">Изучай паттерны</div><div class="step-desc">Интерактивные карточки с реальными примерами из рынка</div></div>
-            <div class="step-card gradient-border-card cascade-item" style="animation-delay: 0.2s;"><div class="step-number">2</div><div class="step-title">Проверяй знания</div><div class="step-desc">Тесты и задания для закрепления материала</div></div>
-            <div class="step-card gradient-border-card cascade-item" style="animation-delay: 0.3s;"><div class="step-number">3</div><div class="step-title">Соревнуйся</div><div class="step-desc">Дуэли с ИИ и реальными трейдерами</div></div>
-            <div class="step-card gradient-border-card cascade-item" style="animation-delay: 0.4s;"><div class="step-number">4</div><div class="step-title">Повышай рейтинг</div><div class="step-desc">Зарабатывай XP и становись лучшим</div></div>
+            <div class="step-card cascade-item" style="animation-delay: 0.1s;"><div class="step-number">1</div><div class="step-title">Изучай паттерны</div><div class="step-desc">Интерактивные карточки с реальными примерами из рынка</div></div>
+            <div class="step-card cascade-item" style="animation-delay: 0.2s;"><div class="step-number">2</div><div class="step-title">Проверяй знания</div><div class="step-desc">Тесты и задания для закрепления материала</div></div>
+            <div class="step-card cascade-item" style="animation-delay: 0.3s;"><div class="step-number">3</div><div class="step-title">Соревнуйся</div><div class="step-desc">Дуэли с ИИ и реальными трейдерами</div></div>
+            <div class="step-card cascade-item" style="animation-delay: 0.4s;"><div class="step-number">4</div><div class="step-title">Повышай рейтинг</div><div class="step-desc">Зарабатывай XP и становись лучшим</div></div>
         </div>
     </div>
 
@@ -1091,13 +1057,12 @@
     <div class="duel-banner" id="duelBanner">
         <div class="duel-banner-icon">⚔️</div>
         <div class="duel-banner-title">Дуэли с ИИ и реальными игроками</div>
-        <div class="duel-banner-text">Соревнуйся с 5 уникальными ИИ-ботами или найди соперника среди реальных трейдеров. Повышай рейтинг и докажи своё мастерство.</div>
-        <div class="duel-badge">5 ИИ-противников | Реальные игроки | Рейтинговая система</div>
+        <div class="duel-banner-text">Соревнуйся с 5 уникальными ИИ-ботами или найди соперника среди реальных трейдеров. Зарабатывай очки рейтинга и поднимайся в таблице лидеров!</div>
     </div>
 
     <div class="about-section" id="aboutSection">
         <div class="about-title">📈 О проекте Tradeum Academy</div>
-        <div class="about-text">Tradeum Academy — образовательная платформа для обучения трейдингу через практику. Наши карточки охватывают ключевые паттерны технического анализа: от пробоев уровней до сложных фигур разворота. Соревнуйся с ИИ-ботами, повышай свой рейтинг и становись настоящим мастером рынка.</div>
+        <div class="about-text">Tradeum Academy — образовательная платформа для обучения трейдингу через практику. Наши карточки охватывают ключевые паттерны технического анализа: от пробоев уровней до сложных фигур разворота. Присоединяйся к сообществу трейдеров и развивай свои навыки!</div>
         <div class="about-stats">
             <div class="about-stat"><div class="about-stat-value">24/7</div><div class="about-stat-label">Доступ к платформе</div></div>
             <div class="about-stat"><div class="about-stat-value">8+</div><div class="about-stat-label">Обучающих карточек</div></div>
@@ -1113,20 +1078,18 @@
                 <button class="contact-btn magnetic" id="contactBtn">✉️ Написать нам</button>
             </div>
             <div class="footer-section">
-                <div class="footer-title">Навигация</div>
+                <div class="footer-title">Информация</div>
                 <ul class="footer-links">
-                    <li><a href="/learn">Обучение</a></li>
-                    <li><a href="/duel">Дуэли</a></li>
-                    <li><a href="/library">Библиотека</a></li>
-                    <li><a href="/simulator">Симулятор</a></li>
-                    <li><a href="/leaderboard">Рейтинг</a></li>
+                    <li><a href="/features">Возможности</a></li>
+                    <li><a href="/faq">FAQ</a></li>
+                    <li><span>О платформе</span></li>
                 </ul>
             </div>
             <div class="footer-section">
-                <div class="footer-title">О проекте</div>
+                <div class="footer-title">Контакты</div>
                 <ul class="footer-links">
-                    <li><a href="/features">Возможности</a></li>
-                    <li><a id="faqLink">FAQ</a></li>
+                    <li><span>Telegram: @tradeum</span></li>
+                    <li><span>Email: support@tradeum.ru</span></li>
                 </ul>
             </div>
         </div>
@@ -1145,7 +1108,7 @@
 <div class="modal" id="faqModal"><div class="modal-content"><div class="modal-header"><h3>❓ Часто задаваемые вопросы</h3><button class="modal-close" onclick="closeModal('faqModal')">×</button></div><div class="legal-content"><div class="faq-item"><div class="faq-question"><span class="q-mark">❓</span> Что такое Tradeum Academy?</div><div class="faq-answer">Образовательная платформа для обучения техническому анализу и трейдингу.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">💰</span> Платформа бесплатная?</div><div class="faq-answer">Да, базовый доступ полностью бесплатный.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">🎮</span> Как работают дуэли?</div><div class="faq-answer">Сражайтесь с 5 ИИ-ботами или реальными игроками, получайте XP.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📊</span> Какие паттерны доступны?</div><div class="faq-answer">12+ паттернов: Голова и плечи, Треугольники, Флаг и другие.</div></div><div class="faq-item"><div class="faq-question"><span class="q-mark">📧</span> Как связаться с поддержкой?</div><div class="faq-answer">Используйте кнопку «Написать нам» или отправьте письмо на support@tradeum.com</div></div><div class="legal-date">📅 Последнее обновление: 10 апреля 2026 г.</div></div></div></div>
 
 <script>
-    // ========== ГЕНЕРАЦИЯ ЧАСТИЦ (фишка с pinacolada) ==========
+    // ========== ГЕНЕРАЦИЯ ЧАСТИЦ ==========
     function generateParticles() {
         const container = document.getElementById('particles');
         for (let i = 0; i < 30; i++) {
@@ -1162,7 +1125,7 @@
     }
     generateParticles();
 
-    // ========== МАГНИТНЫЙ ЭФФЕКТ (фишка с pinacolada) ==========
+    // ========== МАГНИТНЫЙ ЭФФЕКТ ==========
     document.querySelectorAll('.magnetic').forEach(el => {
         el.addEventListener('mousemove', (e) => {
             const rect = el.getBoundingClientRect();
@@ -1279,7 +1242,6 @@
     document.getElementById('contactBtn').addEventListener('click', () => openModal('contactModal'));
     document.getElementById('privacyLink').addEventListener('click', () => openModal('privacyModal'));
     document.getElementById('termsLink').addEventListener('click', () => openModal('termsModal'));
-    document.getElementById('faqLink').addEventListener('click', () => openModal('faqModal'));
 
     document.getElementById('contactForm').addEventListener('submit', (e) => {
         e.preventDefault();
