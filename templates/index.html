@@ -163,6 +163,14 @@
             animation: glitchText 0.6s cubic-bezier(0.2, 0.9, 0.4, 1) forwards;
         }
 
+        /* Убираем display: inline-block у gradient-text, чтобы текст "технического анализа" был виден */
+        .gradient-text {
+            background: linear-gradient(135deg, #5EEAD4 0%, #F4B740 100%);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+
         /* ========== ГРАДИЕНТНАЯ ВРАЩАЮЩАЯСЯ РАМКА ========== */
         @keyframes rotateGradient {
             0% { background-position: 0% 50%; }
@@ -208,7 +216,7 @@
             animation: fadeUp 0.5s ease forwards;
         }
 
-        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ ========== */
+        /* ========== ПЛАВАЮЩЕЕ ИЗОБРАЖЕНИЕ С ПАРАЛЛАКС-ЭФФЕКТОМ ========== */
         .floating-image-container {
             position: fixed;
             right: 0;
@@ -217,9 +225,9 @@
             height: 100vh;
             z-index: 1;
             pointer-events: none;
-            transition: transform 0.05s linear;
+            transition: transform 0.08s linear; /* Плавное обновление позиции */
             will-change: transform;
-            transform: translateX(100%);
+            transform: translateX(0);
             opacity: 0;
             animation: flyIn 0.8s cubic-bezier(0.2, 0.8, 0.4, 1) 0.2s forwards;
             overflow: visible;
@@ -343,19 +351,6 @@
             letter-spacing: -0.03em;
             margin-bottom: 24px;
             color: #FFFFFF;
-        }
-
-        h1, h1 span, .gradient-text, .split-text {
-            opacity: 1 !important;
-            visibility: visible !important;
-        }
-
-        .gradient-text {
-            background: linear-gradient(135deg, #5EEAD4 0%, #F4B740 100%);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            display: inline-block;
         }
 
         .hero-desc {
@@ -961,7 +956,7 @@
 <button class="scroll-btn scroll-bottom" id="scrollBottomBtn" aria-label="Вниз">↓</button>
 
 <div class="floating-image-container" id="floatingImage">
-    <img class="floating-image" id="floatingImg" src="" alt="Trading visualization">
+    <img class="floating-image" id="floatingImg" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 800 1200'%3E%3Crect width='800' height='1200' fill='%23121A2E'/%3E%3Cpath d='M200,400 L600,400 L500,600 L300,600 Z' fill='%235EEAD4' opacity='0.3'/%3E%3Ccircle cx='400' cy='600' r='100' fill='%235EEAD4' opacity='0.2'/%3E%3Cpath d='M150,800 L650,800 L500,1000 L300,1000 Z' fill='%23F4B740' opacity='0.25'/%3E%3C/svg%3E" alt="Trading visualization">
 </div>
 
 <div class="container">
@@ -980,10 +975,7 @@
             <h1>
                 <span class="split-text" style="animation-delay: 0.1s;">Стань</span>
                 <span class="split-text" style="animation-delay: 0.2s;">мастером</span><br>
-                <span class="gradient-text" style="display: inline-block;">
-                    <span class="split-text" style="animation-delay: 0.3s;">технического</span>
-                    <span class="split-text" style="animation-delay: 0.4s;">анализа</span>
-                </span>
+                <span class="gradient-text split-text" style="animation-delay: 0.3s;">технического анализа</span>
             </h1>
             <div class="hero-desc">Изучай торговые паттерны, анализируй графики, соревнуйся с другими трейдерами.</div>
             <div class="btn-group">
@@ -1160,22 +1152,44 @@
         slideObs.observe(document.getElementById('duelBanner'));
         slideObs.observe(document.getElementById('aboutSection'));
 
-        // ========== ДВИЖЕНИЕ ФОТО (ПАРАЛЛАКС-ЭФФЕКТ) ==========
-        const floatImg = document.getElementById('floatingImage');
-        let startPos = window.innerWidth <= 1200 ? 40 : (window.innerWidth <= 1400 ? 60 : 80);
+        // ========== ПАРАЛЛАКС-ЭФФЕКТ ДЛЯ КАРТИНКИ (медленное смещение вправо) ==========
+        const floatImgContainer = document.getElementById('floatingImage');
         let ticking = false;
-        setTimeout(() => floatImg.style.transform = `translateX(${startPos}px)`, 900);
-        function updateFloat() {
+
+        // Начальное положение - полностью справа
+        floatImgContainer.style.transform = 'translateX(0)';
+
+        function updateFloatPosition() {
             if (window.innerWidth <= 900) return;
-            const progress = window.scrollY / (document.documentElement.scrollHeight - window.innerHeight);
-            let offset = startPos + (progress * 60);
-            offset = Math.min(150, Math.max(20, offset));
-            floatImg.style.transform = `translateX(${offset}px)`;
+
+            // Получаем прогресс скролла (от 0 до 1)
+            const scrollTop = window.scrollY;
+            const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+            const scrollProgress = Math.min(1, Math.max(0, scrollTop / maxScroll));
+
+            // Картинка смещается от 0 до 150px вправо при скролле
+            // При скролле вниз - смещается вправо, при скролле вверх - возвращается
+            const offset = scrollProgress * 150;
+
+            floatImgContainer.style.transform = `translateX(${offset}px)`;
             ticking = false;
         }
-        window.addEventListener('scroll', () => { if (!ticking) { requestAnimationFrame(updateFloat); ticking = true; } });
-        window.addEventListener('resize', () => { startPos = window.innerWidth <= 1200 ? 40 : (window.innerWidth <= 1400 ? 60 : 80); updateFloat(); });
-        updateFloat();
+
+        // Используем requestAnimationFrame для плавности
+        window.addEventListener('scroll', () => {
+            if (!ticking) {
+                requestAnimationFrame(updateFloatPosition);
+                ticking = true;
+            }
+        });
+
+        // Также обновляем при ресайзе
+        window.addEventListener('resize', () => {
+            updateFloatPosition();
+        });
+
+        // Первоначальное обновление
+        updateFloatPosition();
 
         // ========== КНОПКИ СКРОЛЛА ==========
         const topBtn = document.getElementById('scrollTopBtn'), bottomBtn = document.getElementById('scrollBottomBtn');
@@ -1203,10 +1217,6 @@
             e.target.reset();
         });
         window.addEventListener('click', e => { if (e.target.classList.contains('modal')) { e.target.classList.remove('active'); document.body.style.overflow = ''; } });
-
-        // ========== УСТАНОВКА ИЗОБРАЖЕНИЯ ==========
-        const img = document.getElementById('floatingImg');
-        img.src = '/static/--.png';
     })();
 </script>
 </body>
