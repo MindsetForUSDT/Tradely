@@ -1325,3 +1325,155 @@ input:checked + .toggle-slider::before {
         width: 100%;
     }
 }
+/* Стили для кошелька */
+.wallet-options {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.wallet-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 16px 24px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.wallet-option:hover {
+    border-color: var(--accent-profit);
+    transform: translateY(-2px);
+}
+
+.wallet-option img {
+    width: 48px;
+    height: 48px;
+}
+
+.wallet-form {
+    margin-top: 20px;
+    padding: 20px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-lg);
+}
+
+.wallet-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.wallet-status {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid var(--accent-profit);
+    border-radius: var(--radius-lg);
+}
+
+.wallet-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-profit);
+    border-radius: 50%;
+    color: white;
+    font-size: 24px;
+}
+
+.wallet-details h4 {
+    margin-bottom: 4px;
+}
+
+.wallet-details p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.wallet-note {
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--text-tertiary);
+}
+
+.wallet-info {
+    margin-top: 20px;
+    padding: 16px;
+    background: var(--bg-elevated);
+    border-radius: var(--radius-md);
+}
+
+.wallet-info p {
+    margin-bottom: 8px;
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.wallet-badge {
+    display: inline-block;
+    margin-left: 8px;
+    padding: 2px 6px;
+    background: var(--bg-elevated);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--accent-profit);
+}
+
+.account-status {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+}
+
+.status-indicator-large {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+}
+
+.status-indicator-large.pro {
+    background: var(--accent-profit);
+    box-shadow: 0 0 16px var(--accent-profit);
+}
+
+.status-info h4 {
+    margin-bottom: 4px;
+    font-size: 18px;
+}
+
+.status-info p {
+    color: var(--text-secondary);
+    font-size: 14px;
+}
+
+.actions-cell {
+    display: flex;
+    gap: 8px;
+}
+
+.edit-button {
+    padding: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
+}
+
+.edit-button:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--accent-neutral);
+}

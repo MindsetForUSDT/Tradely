@@ -6,6 +6,12 @@ let currentView = 'journal';
 let currentFilter = 'all';
 let plChart = null;
 let ratioChart = null;
+let userStatus = {
+    wallet_connected: false,
+    wallet_address: null,
+    is_public: false
+};
+let selectedWalletType = null;
 
 const API_BASE = '';
 
@@ -21,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
 });
 
-// Анимация прелоадера
 window.addEventListener('load', () => {
     setTimeout(() => {
         if (preloader) preloader.classList.add('fade-out');
@@ -46,6 +51,11 @@ async function fetchUserProfile() {
 
         if (response.ok) {
             currentUser = await response.json();
+            userStatus = {
+                wallet_connected: currentUser.wallet_connected,
+                wallet_address: currentUser.wallet_address,
+                is_public: currentUser.is_public
+            };
             await loadTrades();
             showAppScreen();
         } else {
@@ -54,6 +64,70 @@ async function fetchUserProfile() {
         }
     } catch (error) {
         showAuthScreen();
+    }
+}
+
+async function fetchUserStatus() {
+    try {
+        const response = await fetch(`${API_BASE}/api/user/status`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+
+        if (response.ok) {
+            userStatus = await response.json();
+            updateUIForUserStatus();
+        }
+    } catch (error) {
+        console.error('Ошибка получения статуса:', error);
+    }
+}
+
+function updateUIForUserStatus() {
+    const accountTypeEl = document.getElementById('accountType');
+    const accountDescriptionEl = document.getElementById('accountDescription');
+    const privacyToggle = document.getElementById('publicProfileToggle');
+    const privacyDesc = document.getElementById('privacyDescription');
+    const dataNote = document.getElementById('dataManagementNote');
+    const walletNotConnected = document.getElementById('walletNotConnected');
+    const walletConnected = document.getElementById('walletConnected');
+    const connectedWalletAddress = document.getElementById('connectedWalletAddress');
+
+    if (userStatus.wallet_connected) {
+        if (accountTypeEl) accountTypeEl.textContent = 'Pro Trader';
+        if (accountDescriptionEl) accountDescriptionEl.textContent = 'Кошелек подключен, автоимпорт активен';
+        if (privacyToggle) {
+            privacyToggle.disabled = false;
+            privacyToggle.checked = userStatus.is_public;
+        }
+        if (privacyDesc) privacyDesc.textContent = 'Ваш профиль отображается в таблице лидеров';
+        if (dataNote) dataNote.textContent = 'Pro режим: сделки импортируются автоматически, редактирование недоступно';
+
+        if (walletNotConnected) walletNotConnected.classList.add('hidden');
+        if (walletConnected) {
+            walletConnected.classList.remove('hidden');
+            if (connectedWalletAddress) {
+                connectedWalletAddress.textContent = userStatus.wallet_address?.slice(0, 6) + '...' + userStatus.wallet_address?.slice(-4);
+            }
+        }
+
+        // Скрываем кнопки добавления/редактирования
+        const addTradeBtn = document.getElementById('addTradeBtn');
+        if (addTradeBtn) addTradeBtn.style.display = 'none';
+    } else {
+        if (accountTypeEl) accountTypeEl.textContent = 'Manual Trader';
+        if (accountDescriptionEl) accountDescriptionEl.textContent = 'Ручной ввод сделок, редактирование доступно';
+        if (privacyToggle) {
+            privacyToggle.disabled = true;
+            privacyToggle.checked = false;
+        }
+        if (privacyDesc) privacyDesc.textContent = 'Подключите кошелек для доступа к таблице лидеров';
+        if (dataNote) dataNote.textContent = 'Manual режим: редактирование и удаление сделок доступно';
+
+        if (walletNotConnected) walletNotConnected.classList.remove('hidden');
+        if (walletConnected) walletConnected.classList.add('hidden');
+
+        const addTradeBtn = document.getElementById('addTradeBtn');
+        if (addTradeBtn) addTradeBtn.style.display = 'flex';
     }
 }
 
@@ -72,6 +146,7 @@ function showAppScreen() {
 
     updateDate();
     updateProfileDisplay();
+    updateUIForUserStatus();
     renderJournal();
     switchView('journal');
 }
@@ -79,28 +154,37 @@ function showAppScreen() {
 function switchView(viewName) {
     currentView = viewName;
 
-    // Скрываем все view
     document.querySelectorAll('.view-container').forEach(v => v.classList.add('hidden'));
     document.getElementById(`${viewName}View`)?.classList.remove('hidden');
 
-    // Обновляем активную ссылку в сайдбаре
     document.querySelectorAll('.nav-link').forEach(link => {
         link.classList.remove('active');
         if (link.dataset.view === viewName) link.classList.add('active');
     });
 
-    // Обновляем заголовок
     const titles = {
         journal: 'Терминал',
         analytics: 'Аналитика',
         leaderboard: 'Рейтинг',
         settings: 'Настройки'
     };
-    document.getElementById('pageTitle').textContent = titles[viewName] || 'Терминал';
+    const pageTitle = document.getElementById('pageTitle');
+    if (pageTitle) pageTitle.textContent = titles[viewName] || 'Терминал';
 
-    // Загружаем данные для view
-    if (viewName === 'leaderboard') loadLeaderboard();
-    if (viewName === 'analytics') setTimeout(updateCharts, 100);
+    if (viewName === 'leaderboard') {
+        if (!userStatus.wallet_connected) {
+            alert('Только Pro трейдеры имеют доступ к таблице лидеров. Подключите кошелек в настройках.');
+            switchView('settings');
+            return;
+        }
+        loadLeaderboard();
+    }
+    if (viewName === 'analytics') {
+        setTimeout(updateCharts, 100);
+    }
+    if (viewName === 'settings') {
+        fetchUserStatus();
+    }
 }
 
 // ========== Настройка слушателей ==========
@@ -137,6 +221,11 @@ function setupEventListeners() {
             if (response.ok) {
                 authToken = data.token;
                 currentUser = data.user;
+                userStatus = {
+                    wallet_connected: data.user.wallet_connected,
+                    wallet_address: data.user.wallet_address,
+                    is_public: data.user.is_public
+                };
                 localStorage.setItem('authToken', authToken);
                 await loadTrades();
                 showAppScreen();
@@ -173,6 +262,7 @@ function setupEventListeners() {
             if (response.ok) {
                 authToken = data.token;
                 currentUser = data.user;
+                userStatus = { wallet_connected: false, is_public: false };
                 localStorage.setItem('authToken', authToken);
                 await loadTrades();
                 showAppScreen();
@@ -192,13 +282,23 @@ function setupEventListeners() {
     });
 
     // Добавление сделки
-    document.getElementById('addTradeBtn').addEventListener('click', addTrade);
-    document.getElementById('pairInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') document.getElementById('volumeInput').focus();
-    });
-    document.getElementById('volumeInput').addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addTrade();
-    });
+    const addTradeBtn = document.getElementById('addTradeBtn');
+    if (addTradeBtn) {
+        addTradeBtn.addEventListener('click', addTrade);
+    }
+
+    const pairInput = document.getElementById('pairInput');
+    const volumeInput = document.getElementById('volumeInput');
+    if (pairInput) {
+        pairInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') volumeInput?.focus();
+        });
+    }
+    if (volumeInput) {
+        volumeInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTrade();
+        });
+    }
 
     // Переключатель LONG/SHORT
     document.querySelectorAll('.result-btn').forEach(btn => {
@@ -209,43 +309,130 @@ function setupEventListeners() {
     });
 
     // Выход
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-        localStorage.removeItem('authToken');
-        authToken = null;
-        currentUser = null;
-        trades = [];
-        showAuthScreen();
-    });
-
-    document.getElementById('sidebarLogoutBtn')?.addEventListener('click', () => {
-        localStorage.removeItem('authToken');
-        authToken = null;
-        currentUser = null;
-        trades = [];
-        showAuthScreen();
-    });
+    const logoutBtn = document.getElementById('logoutBtn');
+    const sidebarLogoutBtn = document.getElementById('sidebarLogoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', logout);
+    }
+    if (sidebarLogoutBtn) {
+        sidebarLogoutBtn.addEventListener('click', logout);
+    }
 
     // Настройки
-    document.getElementById('publicProfileToggle').addEventListener('change', async (e) => {
-        const isPublic = e.target.checked;
+    const publicToggle = document.getElementById('publicProfileToggle');
+    if (publicToggle) {
+        publicToggle.addEventListener('change', async (e) => {
+            const isPublic = e.target.checked;
 
-        try {
-            const response = await fetch(`${API_BASE}/api/user/public`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
-                body: JSON.stringify({ is_public: isPublic })
-            });
+            try {
+                const response = await fetch(`${API_BASE}/api/user/public`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ is_public: isPublic })
+                });
 
-            if (response.ok) {
-                currentUser.is_public = isPublic;
+                if (response.ok) {
+                    userStatus.is_public = isPublic;
+                }
+            } catch (error) {
+                console.error('Ошибка обновления настроек:', error);
             }
-        } catch (error) {
-            console.error('Ошибка обновления настроек:', error);
-        }
+        });
+    }
+
+    // Выбор кошелька
+    document.querySelectorAll('.wallet-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            selectedWalletType = btn.dataset.wallet;
+            document.getElementById('walletForm').classList.remove('hidden');
+        });
     });
+
+    // Отмена выбора кошелька
+    const cancelBtn = document.getElementById('cancelWalletBtn');
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            document.getElementById('walletForm').classList.add('hidden');
+            selectedWalletType = null;
+        });
+    }
+
+    // Подключение кошелька
+    const connectBtn = document.getElementById('connectWalletBtn');
+    if (connectBtn) {
+        connectBtn.addEventListener('click', async () => {
+            const address = document.getElementById('walletAddress').value.trim();
+
+            if (!address) {
+                alert('Введите адрес кошелька');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/user/wallet`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        wallet_address: address,
+                        wallet_type: selectedWalletType
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    userStatus.wallet_connected = true;
+                    userStatus.wallet_address = address;
+                    userStatus.is_public = true;
+
+                    await loadTrades();
+                    updateUIForUserStatus();
+                    renderJournal();
+
+                    alert(`Кошелек подключен! Импортировано ${data.trades_imported} сделок.`);
+                } else {
+                    alert(data.error);
+                }
+            } catch (error) {
+                alert('Ошибка подключения кошелька');
+            }
+        });
+    }
+
+    // Отключение кошелька
+    const disconnectBtn = document.getElementById('disconnectWalletBtn');
+    if (disconnectBtn) {
+        disconnectBtn.addEventListener('click', async () => {
+            if (!confirm('Отключить кошелек? Все сделки будут удалены.')) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/api/user/wallet/disconnect`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+
+                if (response.ok) {
+                    userStatus.wallet_connected = false;
+                    userStatus.wallet_address = null;
+                    userStatus.is_public = false;
+                    trades = [];
+
+                    updateUIForUserStatus();
+                    renderJournal();
+
+                    alert('Кошелек отключен');
+                }
+            } catch (error) {
+                alert('Ошибка отключения кошелька');
+            }
+        });
+    }
 
     // Фильтры
     document.querySelectorAll('.filter-tab').forEach(tab => {
@@ -258,22 +445,40 @@ function setupEventListeners() {
     });
 
     // Лидерборд
-    document.getElementById('refreshLeaderboard')?.addEventListener('click', loadLeaderboard);
-    document.getElementById('leaderboardLimit')?.addEventListener('change', loadLeaderboard);
-    document.getElementById('refreshData')?.addEventListener('click', async () => {
-        await loadTrades();
-        renderJournal();
-        if (currentView === 'leaderboard') loadLeaderboard();
-        if (currentView === 'analytics') updateCharts();
-    });
+    const refreshLeaderboard = document.getElementById('refreshLeaderboard');
+    const leaderboardLimit = document.getElementById('leaderboardLimit');
+    if (refreshLeaderboard) refreshLeaderboard.addEventListener('click', loadLeaderboard);
+    if (leaderboardLimit) leaderboardLimit.addEventListener('change', loadLeaderboard);
+
+    const refreshData = document.getElementById('refreshData');
+    if (refreshData) {
+        refreshData.addEventListener('click', async () => {
+            await loadTrades();
+            renderJournal();
+            if (currentView === 'leaderboard') loadLeaderboard();
+            if (currentView === 'analytics') updateCharts();
+        });
+    }
 
     // Экспорт/импорт
-    document.getElementById('exportDataBtn')?.addEventListener('click', exportData);
-    document.getElementById('importDataBtn')?.addEventListener('click', () => {
-        document.getElementById('importFileInput').click();
-    });
-    document.getElementById('importFileInput')?.addEventListener('change', importData);
-    document.getElementById('clearDataBtn')?.addEventListener('click', clearAllData);
+    const exportBtn = document.getElementById('exportDataBtn');
+    const importBtn = document.getElementById('importDataBtn');
+    const importFile = document.getElementById('importFileInput');
+    const clearBtn = document.getElementById('clearDataBtn');
+
+    if (exportBtn) exportBtn.addEventListener('click', exportData);
+    if (importBtn) importBtn.addEventListener('click', () => importFile?.click());
+    if (importFile) importFile.addEventListener('change', importData);
+    if (clearBtn) clearBtn.addEventListener('click', clearAllData);
+}
+
+function logout() {
+    localStorage.removeItem('authToken');
+    authToken = null;
+    currentUser = null;
+    userStatus = { wallet_connected: false, is_public: false };
+    trades = [];
+    showAuthScreen();
 }
 
 // ========== Работа со сделками ==========
@@ -293,10 +498,15 @@ async function loadTrades() {
 }
 
 async function addTrade() {
+    if (userStatus.wallet_connected) {
+        alert('Ручное добавление недоступно для Pro трейдеров');
+        return;
+    }
+
     const pairInput = document.getElementById('pairInput');
     const volumeInput = document.getElementById('volumeInput');
     const profitBtn = document.querySelector('[data-type="profit"]');
-    const isProfit = profitBtn.classList.contains('active');
+    const isProfit = profitBtn?.classList.contains('active');
 
     const pair = pairInput.value.trim();
     const volume = parseFloat(volumeInput.value.trim().replace(',', '.'));
@@ -336,6 +546,9 @@ async function addTrade() {
             pairInput.focus();
 
             if (currentView === 'analytics') updateCharts();
+        } else {
+            const data = await response.json();
+            alert(data.error);
         }
     } catch (error) {
         console.error('Ошибка добавления сделки:', error);
@@ -343,6 +556,11 @@ async function addTrade() {
 }
 
 async function deleteTrade(tradeId) {
+    if (userStatus.wallet_connected) {
+        alert('Удаление недоступно для Pro трейдеров');
+        return;
+    }
+
     try {
         const response = await fetch(`${API_BASE}/api/trades/${tradeId}`, {
             method: 'DELETE',
@@ -361,6 +579,55 @@ async function deleteTrade(tradeId) {
 
 window.deleteTrade = deleteTrade;
 
+async function editTrade(tradeId) {
+    if (userStatus.wallet_connected) {
+        alert('Редактирование недоступно для Pro трейдеров');
+        return;
+    }
+
+    const trade = trades.find(t => t.id === tradeId);
+    if (!trade) return;
+
+    const newPair = prompt('Введите новую пару:', trade.pair);
+    if (!newPair) return;
+
+    const newVolume = prompt('Введите новый объем:', trade.volume);
+    if (!newVolume || isNaN(parseFloat(newVolume))) return;
+
+    const newType = confirm('Нажмите OK для LONG, Отмена для SHORT') ? 'profit' : 'loss';
+
+    try {
+        const response = await fetch(`${API_BASE}/api/trades/${tradeId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                pair: newPair,
+                volume: parseFloat(newVolume),
+                type: newType
+            })
+        });
+
+        if (response.ok) {
+            const index = trades.findIndex(t => t.id === tradeId);
+            trades[index] = {
+                ...trades[index],
+                pair: newPair.toUpperCase(),
+                volume: parseFloat(newVolume),
+                type: newType
+            };
+            renderJournal();
+            if (currentView === 'analytics') updateCharts();
+        }
+    } catch (error) {
+        console.error('Ошибка редактирования:', error);
+    }
+}
+
+window.editTrade = editTrade;
+
 function renderJournal() {
     const tradesList = document.getElementById('tradesList');
     const filteredTrades = currentFilter === 'all'
@@ -373,6 +640,20 @@ function renderJournal() {
         tradesList.innerHTML = filteredTrades.map(trade => {
             const time = new Date(trade.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
             const isProfit = trade.type === 'profit';
+
+            const actions = userStatus.wallet_connected ? '' : `
+                <button class="edit-button" onclick="editTrade('${trade.id}')">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M11.3333 2.00004L14 4.66671M12.6667 1.33337L4.66667 9.33337L4 12L6.66667 11.3334L14.6667 3.33337L12.6667 1.33337Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button class="delete-button" onclick="deleteTrade('${trade.id}')">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M3 4H13M6 4V3C6 2.44772 6.44772 2 7 2H9C9.55228 2 10 2.44772 10 3V4M12 4V13C12 13.5523 11.5523 14 11 14H5C4.44772 14 4 13.5523 4 13V4H12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            `;
+
             return `
                 <tr>
                     <td>${time}</td>
@@ -381,12 +662,8 @@ function renderJournal() {
                     <td class="${isProfit ? 'profit-text' : 'loss-text'}">
                         ${isProfit ? '+' : '−'} $${trade.volume.toFixed(2)}
                     </td>
-                    <td>
-                        <button class="delete-button" onclick="deleteTrade('${trade.id}')">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                                <path d="M3 4H13M6 4V3C6 2.44772 6.44772 2 7 2H9C9.55228 2 10 2.44772 10 3V4M12 4V13C12 13.5523 11.5523 14 11 14H5C4.44772 14 4 13.5523 4 13V4H12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-                            </svg>
-                        </button>
+                    <td class="actions-cell">
+                        ${actions}
                     </td>
                 </tr>
             `;
@@ -420,8 +697,8 @@ function updateStats() {
     const winRate = trades.length > 0 ? (wins / trades.length) * 100 : 0;
     const avgProfit = wins > 0 ? profitSum / wins : 0;
     const avgLoss = (trades.length - wins) > 0 ? lossSum / (trades.length - wins) : 0;
+    const profitFactor = avgLoss > 0 ? (avgProfit / avgLoss) : 0;
 
-    // Основные показатели
     const totalPLEl = document.getElementById('totalPL');
     if (totalPLEl) {
         totalPLEl.textContent = totalPL.toFixed(2);
@@ -443,7 +720,6 @@ function updateStats() {
     const lossCountEl = document.getElementById('lossCount');
     if (lossCountEl) lossCountEl.textContent = (trades.length - wins) + ' SHORT';
 
-    // Аналитика
     const avgProfitEl = document.getElementById('avgProfit');
     if (avgProfitEl) avgProfitEl.textContent = '$' + avgProfit.toFixed(2);
 
@@ -456,7 +732,9 @@ function updateStats() {
     const worstTradeEl = document.getElementById('worstTrade');
     if (worstTradeEl) worstTradeEl.textContent = '$' + maxLoss.toFixed(2);
 
-    // Изменение за последнюю сделку
+    const profitFactorEl = document.getElementById('profitFactor');
+    if (profitFactorEl) profitFactorEl.textContent = profitFactor.toFixed(2);
+
     const plChangeEl = document.getElementById('plChange');
     if (plChangeEl && trades.length > 0) {
         const lastTrade = trades[0];
@@ -471,19 +749,28 @@ function updateCharts() {
         if (plChart) plChart.destroy();
 
         const dailyData = {};
-        [...trades].reverse().forEach(t => {
+        const sortedTrades = [...trades].sort((a, b) => a.timestamp - b.timestamp);
+        let cumulativePL = 0;
+        const cumulativeData = [];
+        const labels = [];
+
+        sortedTrades.forEach(t => {
             const date = new Date(t.timestamp).toLocaleDateString('ru-RU');
             if (!dailyData[date]) dailyData[date] = 0;
             dailyData[date] += t.type === 'profit' ? t.volume : -t.volume;
+
+            cumulativePL += t.type === 'profit' ? t.volume : -t.volume;
+            cumulativeData.push(cumulativePL);
+            labels.push(new Date(t.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
         });
 
         plChart = new Chart(ctx1, {
             type: 'line',
             data: {
-                labels: Object.keys(dailyData),
+                labels: labels.slice(-50),
                 datasets: [{
-                    label: 'P/L',
-                    data: Object.values(dailyData),
+                    label: 'Кумулятивный P/L',
+                    data: cumulativeData.slice(-50),
                     borderColor: '#10B981',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     tension: 0.4,
@@ -493,7 +780,24 @@ function updateCharts() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => `P/L: $${context.raw.toFixed(2)}`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: '#A1A1AA' }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: '#A1A1AA', maxRotation: 45 }
+                    }
+                }
             }
         });
     }
@@ -518,7 +822,19 @@ function updateCharts() {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (context) => {
+                                const value = context.raw;
+                                const total = wins + losses;
+                                const percent = ((value / total) * 100).toFixed(1);
+                                return `${context.label}: ${value} (${percent}%)`;
+                            }
+                        }
+                    }
+                }
             }
         });
     }
@@ -563,7 +879,10 @@ async function loadLeaderboard() {
         tbody.innerHTML = data.map(row => `
             <tr>
                 <td>${row.rank}</td>
-                <td>${row.username}</td>
+                <td>
+                    ${row.username}
+                    <span class="wallet-badge">${row.wallet_type || ''}</span>
+                </td>
                 <td class="${row.totalPL >= 0 ? 'profit-text' : 'loss-text'}">
                     ${row.totalPL >= 0 ? '+' : ''}$${row.totalPL.toFixed(2)}
                 </td>
@@ -581,9 +900,6 @@ function updateProfileDisplay() {
     if (currentUser) {
         const usernameEls = document.querySelectorAll('#profileUsername, #sidebarUsername');
         usernameEls.forEach(el => { if (el) el.textContent = currentUser.username; });
-
-        const toggleEl = document.getElementById('publicProfileToggle');
-        if (toggleEl) toggleEl.checked = currentUser.is_public;
     }
 }
 
@@ -633,6 +949,11 @@ function importData(event) {
 }
 
 async function clearAllData() {
+    if (userStatus.wallet_connected) {
+        alert('Очистка данных недоступна для Pro трейдеров');
+        return;
+    }
+
     if (confirm('Удалить ВСЕ сделки безвозвратно?')) {
         try {
             await fetch(`${API_BASE}/api/trades/sync`, {
