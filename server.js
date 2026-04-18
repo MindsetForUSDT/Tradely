@@ -65,9 +65,6 @@ db.serialize(() => {
     db.run(`CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_users_public ON users(is_public)`);
-// Вместо прямых ALTER TABLE используем проверку
-db.serialize(() => {
-    // ... создание таблиц ...
 
     // Проверяем и добавляем колонки, только если их нет
     db.all("PRAGMA table_info(users)", (err, rows) => {
@@ -232,7 +229,6 @@ app.get('/api/user/profile', authenticateToken, (req, res) => {
 app.post('/api/user/public', authenticateToken, (req, res) => {
     const { is_public } = req.body;
 
-    // Проверяем, подключен ли кошелек
     db.get('SELECT wallet_connected FROM users WHERE id = ?', [req.user.id], (err, user) => {
         if (err || !user) {
             return res.status(404).json({ error: 'Пользователь не найден' });
@@ -271,7 +267,6 @@ app.post('/api/user/wallet', authenticateToken, (req, res) => {
                 return res.status(500).json({ error: 'Ошибка подключения кошелька' });
             }
 
-            // Генерируем демо-сделки для кошелька
             const demoTrades = generateWalletTrades(wallet_address);
             await importTradesToDB(req.user.id, demoTrades);
 
@@ -294,7 +289,6 @@ app.post('/api/user/wallet/disconnect', authenticateToken, (req, res) => {
                 return res.status(500).json({ error: 'Ошибка отключения кошелька' });
             }
 
-            // Удаляем все сделки пользователя
             db.run('DELETE FROM trades WHERE user_id = ?', [req.user.id]);
 
             res.json({ success: true, wallet_connected: false });
@@ -324,7 +318,6 @@ app.post('/api/trades', authenticateToken, (req, res) => {
         return res.status(400).json({ error: 'Все поля обязательны' });
     }
 
-    // Проверяем режим пользователя
     db.get('SELECT wallet_connected FROM users WHERE id = ?', [req.user.id], (err, user) => {
         if (err || !user) {
             return res.status(404).json({ error: 'Пользователь не найден' });
@@ -557,7 +550,7 @@ function generateWalletTrades(address) {
 }
 
 async function importTradesToDB(userId, trades) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
         const stmt = db.prepare(
             'INSERT OR IGNORE INTO trades (id, user_id, pair, volume, type, timestamp) VALUES (?, ?, ?, ?, ?, ?)'
         );
