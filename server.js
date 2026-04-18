@@ -65,11 +65,26 @@ db.serialize(() => {
     db.run(`CREATE INDEX IF NOT EXISTS idx_trades_user_id ON trades(user_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_trades_timestamp ON trades(timestamp)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_users_public ON users(is_public)`);
+// Вместо прямых ALTER TABLE используем проверку
+db.serialize(() => {
+    // ... создание таблиц ...
 
-    // Добавляем колонки если их нет (для существующих баз)
-    db.run(`ALTER TABLE users ADD COLUMN wallet_connected BOOLEAN DEFAULT 0`);
-    db.run(`ALTER TABLE users ADD COLUMN wallet_address TEXT`);
-    db.run(`ALTER TABLE users ADD COLUMN wallet_type TEXT`);
+    // Проверяем и добавляем колонки, только если их нет
+    db.all("PRAGMA table_info(users)", (err, rows) => {
+        if (err) return;
+
+        const columns = rows.map(r => r.name);
+
+        if (!columns.includes('wallet_connected')) {
+            db.run(`ALTER TABLE users ADD COLUMN wallet_connected BOOLEAN DEFAULT 0`);
+        }
+        if (!columns.includes('wallet_address')) {
+            db.run(`ALTER TABLE users ADD COLUMN wallet_address TEXT`);
+        }
+        if (!columns.includes('wallet_type')) {
+            db.run(`ALTER TABLE users ADD COLUMN wallet_type TEXT`);
+        }
+    });
 });
 
 // ========== Middleware для JWT ==========
