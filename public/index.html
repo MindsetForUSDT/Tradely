@@ -6,7 +6,6 @@
     <title>JOURNAL · PRO</title>
     <meta name="theme-color" content="#09090B">
 
-    <!-- Современные шрифты -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -45,7 +44,6 @@
                     <button class="auth-tab active" data-tab="login">Вход</button>
                     <button class="auth-tab" data-tab="register">Регистрация</button>
                 </div>
-                <div class="auth-tab-indicator"></div>
             </div>
 
             <form id="loginForm" class="auth-form">
@@ -89,7 +87,6 @@
             <div id="authError" class="auth-error"></div>
         </div>
 
-        <!-- Декоративный фон -->
         <div class="auth-background">
             <div class="auth-grid"></div>
             <div class="auth-glow auth-glow-1"></div>
@@ -97,9 +94,73 @@
         </div>
     </div>
 
+    <!-- Онбординг (выбор режима) -->
+    <div id="onboardingScreen" class="onboarding-wrapper hidden">
+        <div class="onboarding-card">
+            <div class="onboarding-header">
+                <h2>Добро пожаловать, <span id="onboardingUsername">Trader</span>!</h2>
+                <p>Выберите режим работы</p>
+            </div>
+
+            <div class="onboarding-options">
+                <div class="onboarding-option" id="choosePro">
+                    <div class="option-icon pro">⭐</div>
+                    <h3>Pro Trader</h3>
+                    <p>Подключите криптокошелёк для автоматического импорта сделок</p>
+                    <ul>
+                        <li>Автоимпорт сделок</li>
+                        <li>Доступ к Premium аналитике</li>
+                        <li>Участие в таблице лидеров</li>
+                    </ul>
+                    <button class="onboarding-btn pro-btn">Выбрать Pro</button>
+                </div>
+
+                <div class="onboarding-option" id="chooseManual">
+                    <div class="option-icon manual">📝</div>
+                    <h3>Manual Trader</h3>
+                    <p>Ручной ввод и полный контроль над сделками</p>
+                    <ul>
+                        <li>Добавление сделок вручную</li>
+                        <li>Редактирование и удаление</li>
+                        <li>Локальная статистика</li>
+                    </ul>
+                    <button class="onboarding-btn manual-btn">Выбрать Manual</button>
+                </div>
+            </div>
+
+            <p class="onboarding-note">Вы сможете изменить режим позже в настройках</p>
+
+            <!-- Форма кошелька (скрыта изначально) -->
+            <div id="walletForm" class="wallet-form hidden">
+                <h3 style="margin-bottom: 16px; text-align: center;">Подключение кошелька</h3>
+                <div class="wallet-options">
+                    <div class="wallet-option" data-wallet="MetaMask">
+                        <img src="https://cryptologos.cc/logos/metamask-mask-logo.svg" alt="MetaMask">
+                        <span>MetaMask</span>
+                    </div>
+                    <div class="wallet-option" data-wallet="Phantom">
+                        <img src="https://cryptologos.cc/logos/phantom-logo.svg" alt="Phantom">
+                        <span>Phantom</span>
+                    </div>
+                    <div class="wallet-option" data-wallet="Trust Wallet">
+                        <img src="https://cryptologos.cc/logos/trustwallet-twt-logo.svg" alt="Trust">
+                        <span>Trust Wallet</span>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Адрес кошелька</label>
+                    <input type="text" id="walletAddress" class="form-input" placeholder="0x...">
+                </div>
+                <div class="wallet-actions">
+                    <button class="action-button" id="connectWalletBtn">Подключить</button>
+                    <button class="action-button secondary" id="cancelWalletBtn">Назад</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Основное приложение -->
     <div id="appScreen" class="app-layout hidden">
-        <!-- Боковая панель -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
@@ -109,14 +170,14 @@
                     </svg>
                     <span>JOURNAL</span>
                 </div>
-                <div class="user-badge" id="sidebarUserBadge">
+                <div class="user-badge">
                     <div class="user-avatar"></div>
                     <span id="sidebarUsername">Trader</span>
                 </div>
             </div>
 
             <nav class="sidebar-nav">
-                <button class="nav-link active" data-view="journal">
+                <button class="nav-link" data-view="journal">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                         <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
                         <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
@@ -132,6 +193,12 @@
                     </svg>
                     <span>Аналитика</span>
                 </button>
+                <button class="nav-link" data-view="premium">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 2L12 7H17L13 10L15 15L10 12L5 15L7 10L3 7H8L10 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Premium</span>
+                </button>
                 <button class="nav-link" data-view="leaderboard">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                         <path d="M6 12L10 8L14 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -139,6 +206,12 @@
                         <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
                     </svg>
                     <span>Рейтинг</span>
+                </button>
+                <button class="nav-link" data-view="admin">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M10 2L12 5H16L13 7.5L14 11L10 9L6 11L7 7.5L4 5H8L10 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Админ</span>
                 </button>
                 <button class="nav-link" data-view="settings">
                     <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
@@ -150,7 +223,7 @@
             </nav>
 
             <div class="sidebar-footer">
-                <button id="logoutBtn" class="logout-button">
+                <button id="sidebarLogoutBtn" class="logout-button">
                     <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                         <path d="M6 3H4C3.44772 3 3 3.44772 3 4V14C3 14.5523 3.44772 15 4 15H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                         <path d="M11 12L15 9L11 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -161,16 +234,14 @@
             </div>
         </aside>
 
-        <!-- Основной контент -->
         <main class="main-content">
-            <!-- Верхняя панель -->
             <header class="top-header">
                 <div class="page-info">
                     <h1 class="page-title" id="pageTitle">Терминал</h1>
                     <div class="page-breadcrumb">
                         <span id="currentDate">15 января 2024</span>
                         <span class="separator">•</span>
-                        <span id="marketStatus" class="market-status">Market Open</span>
+                        <span class="market-status">Market Open</span>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -183,9 +254,8 @@
                 </div>
             </header>
 
-            <!-- Вью: Терминал (Дневник) -->
+            <!-- Вью: Терминал -->
             <div id="journalView" class="view-container">
-                <!-- Карточки статистики с анимацией -->
                 <div class="stats-cards">
                     <div class="stat-card slide-in" style="--delay: 0">
                         <div class="stat-header">
@@ -227,13 +297,12 @@
                             <span class="stat-value" id="totalTradesCount">0</span>
                         </div>
                         <div class="stat-footer">
-                            <span class="stat-badge profit" id="winCount">0 побед</span>
-                            <span class="stat-badge loss" id="lossCount">0 потерь</span>
+                            <span class="stat-badge profit" id="winCount">0 LONG</span>
+                            <span class="stat-badge loss" id="lossCount">0 SHORT</span>
                         </div>
                     </div>
                 </div>
 
-                <!-- Быстрое добавление -->
                 <div class="trade-panel fade-in">
                     <div class="panel-header">
                         <h3>Новая позиция</h3>
@@ -266,7 +335,6 @@
                     </div>
                 </div>
 
-                <!-- Таблица сделок -->
                 <div class="trades-section fade-in" style="--delay: 0.1s">
                     <div class="section-header">
                         <h3>История операций</h3>
@@ -301,7 +369,7 @@
                     <div class="analytics-card slide-in">
                         <div class="card-header">
                             <h3>Распределение P/L</h3>
-                            <span class="card-hint">по дням</span>
+                            <span class="card-hint">кумулятивно</span>
                         </div>
                         <div class="chart-container">
                             <canvas id="plChart" width="400" height="200"></canvas>
@@ -336,14 +404,6 @@
                                 <span class="loss-text" id="avgLoss">$0.00</span>
                             </div>
                             <div class="stat-row">
-                                <span>Фактор восстановления</span>
-                                <span id="recoveryFactor">0.00</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>Максимальная просадка</span>
-                                <span class="loss-text" id="maxDrawdown">$0.00</span>
-                            </div>
-                            <div class="stat-row">
                                 <span>Лучшая сделка</span>
                                 <span class="profit-text" id="bestTrade">$0.00</span>
                             </div>
@@ -351,6 +411,63 @@
                                 <span>Худшая сделка</span>
                                 <span class="loss-text" id="worstTrade">$0.00</span>
                             </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вью: Premium -->
+            <div id="premiumView" class="view-container hidden">
+                <div class="premium-header">
+                    <h2>Premium Analytics</h2>
+                    <span class="premium-badge">PRO</span>
+                </div>
+
+                <div class="premium-grid">
+                    <div class="premium-card">
+                        <h3>Продвинутые метрики</h3>
+                        <div class="metric-row">
+                            <span>Profit Factor</span>
+                            <span id="profitFactor">—</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Sharpe Ratio</span>
+                            <span id="sharpeRatio">—</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Макс. просадка</span>
+                            <span id="maxDrawdown">—</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Прогноз на месяц</span>
+                            <span id="monthlyProjection">—</span>
+                        </div>
+                    </div>
+
+                    <div class="premium-card">
+                        <h3>Лучшие результаты</h3>
+                        <div class="metric-row">
+                            <span>Лучшая пара</span>
+                            <span id="bestPair">—</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Худшая пара</span>
+                            <span id="worstPair">—</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Лучший день</span>
+                            <span id="bestDay">—</span>
+                        </div>
+                        <div class="metric-row">
+                            <span>Худший день</span>
+                            <span id="worstDay">—</span>
+                        </div>
+                    </div>
+
+                    <div class="premium-card full-width">
+                        <h3>Рекомендации</h3>
+                        <div id="premiumRecommendations" class="recommendations">
+                            <p>Загрузка рекомендаций...</p>
                         </div>
                     </div>
                 </div>
@@ -397,26 +514,95 @@
                 </div>
             </div>
 
+            <!-- Вью: Админ-панель -->
+            <div id="adminView" class="view-container hidden">
+                <h2 style="margin-bottom: 20px;">Админ-панель</h2>
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Пользователь</th>
+                                <th>Pro</th>
+                                <th>Сделок</th>
+                                <th>P/L</th>
+                                <th>Действия</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminUsersList">
+                            <tr><td colspan="6" class="empty-row">Загрузка...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Вью: Настройки -->
             <div id="settingsView" class="view-container hidden">
                 <div class="settings-container">
                     <div class="settings-section slide-in">
-                        <h3>Профиль</h3>
+                        <h3>Статус аккаунта</h3>
                         <div class="settings-card">
-                            <div class="setting-row">
-                                <span class="setting-label">Идентификатор</span>
-                                <span class="setting-value" id="profileUsername">—</span>
-                            </div>
-                            <div class="setting-row">
-                                <span class="setting-label">Статус</span>
-                                <span class="setting-value">
-                                    <span class="status-badge" id="profileStatus">Активен</span>
-                                </span>
+                            <div class="account-status">
+                                <div class="status-indicator-large" id="accountStatusIndicator"></div>
+                                <div class="status-info">
+                                    <h4 id="accountType">Manual Trader</h4>
+                                    <p id="accountDescription">Ручной ввод сделок, редактирование доступно</p>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     <div class="settings-section slide-in" style="--delay: 0.1s">
+                        <h3>Подключение кошелька</h3>
+                        <div class="settings-card">
+                            <div id="walletNotConnected">
+                                <div class="wallet-options">
+                                    <div class="wallet-option" data-wallet="MetaMask">
+                                        <img src="https://cryptologos.cc/logos/metamask-mask-logo.svg" alt="MetaMask">
+                                        <span>MetaMask</span>
+                                    </div>
+                                    <div class="wallet-option" data-wallet="Phantom">
+                                        <img src="https://cryptologos.cc/logos/phantom-logo.svg" alt="Phantom">
+                                        <span>Phantom</span>
+                                    </div>
+                                    <div class="wallet-option" data-wallet="Trust Wallet">
+                                        <img src="https://cryptologos.cc/logos/trustwallet-twt-logo.svg" alt="Trust">
+                                        <span>Trust Wallet</span>
+                                    </div>
+                                </div>
+
+                                <div id="walletFormSettings" class="wallet-form hidden">
+                                    <div class="form-group">
+                                        <label class="form-label">Адрес кошелька</label>
+                                        <input type="text" id="walletAddressSettings" class="form-input" placeholder="0x...">
+                                    </div>
+                                    <div class="wallet-actions">
+                                        <button class="action-button" id="connectWalletBtnSettings">Подключить</button>
+                                        <button class="action-button secondary" id="cancelWalletBtnSettings">Отмена</button>
+                                    </div>
+                                </div>
+
+                                <div class="wallet-info">
+                                    <p>🔒 Подключите кошелек для автоматического импорта сделок</p>
+                                    <p>🏆 Только Pro трейдеры попадают в таблицу лидеров</p>
+                                </div>
+                            </div>
+
+                            <div id="walletConnected" class="hidden">
+                                <div class="wallet-status">
+                                    <div class="wallet-icon">✓</div>
+                                    <div class="wallet-details">
+                                        <h4>Кошелек подключен</h4>
+                                        <p id="connectedWalletAddress">0x...</p>
+                                        <p class="wallet-note">Сделки импортируются автоматически</p>
+                                    </div>
+                                </div>
+                                <button id="disconnectWalletBtn" class="danger-button" style="margin-top: 16px; width: 100%;">Отключить кошелек</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section slide-in" style="--delay: 0.2s">
                         <h3>Приватность</h3>
                         <div class="settings-card">
                             <div class="setting-row">
@@ -427,12 +613,14 @@
                                         <span class="toggle-slider"></span>
                                     </span>
                                 </label>
-                                <p class="setting-description">Отображать статистику в глобальном рейтинге</p>
                             </div>
+                            <p class="setting-description" id="privacyDescription" style="padding: 0 20px 16px;">
+                                Доступно только после подключения кошелька
+                            </p>
                         </div>
                     </div>
 
-                    <div class="settings-section slide-in" style="--delay: 0.2s">
+                    <div class="settings-section slide-in" style="--delay: 0.3s">
                         <h3>Управление данными</h3>
                         <div class="settings-card">
                             <div class="button-group">
@@ -458,17 +646,28 @@
                                 </svg>
                                 Очистить все данные
                             </button>
+                            <p class="setting-description" id="dataManagementNote" style="padding: 16px 20px;">
+                                Manual режим: редактирование и удаление сделок доступно
+                            </p>
                         </div>
                     </div>
+
+                    <button id="logoutBtn" class="logout-button" style="margin-top: 20px; width: 100%; justify-content: center;">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M6 3H4C3.44772 3 3 3.44772 3 4V14C3 14.5523 3.44772 15 4 15H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <path d="M11 12L15 9L11 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M15 9H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        <span>Выйти из аккаунта</span>
+                    </button>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Статус-бар -->
     <div id="statusBar" class="status-bar hidden">
         <span id="connectionStatus">Подключено</span>
-        <span>JOURNAL PRO v2.0</span>
+        <span>JOURNAL PRO v3.0</span>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
