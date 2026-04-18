@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>JOURNAL · PRO</title>
+    <meta name="theme-color" content="#09090B">
+
+    <!-- Современные шрифты -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- Прелоадер -->
+    <div id="preloader" class="preloader">
+        <div class="preloader-content">
+            <div class="preloader-logo">JOURNAL<span class="preloader-dot">.</span></div>
+            <div class="preloader-bar">
+                <div class="preloader-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Авторизация -->
+    <div id="authScreen" class="auth-wrapper">
+        <div class="auth-card">
+            <div class="auth-brand">
+                <div class="brand-icon">
+                    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                        <path d="M8 24L16 8L24 24H8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M12 18H20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <span class="brand-name">JOURNAL</span>
+                    <span class="brand-version">PRO</span>
+                </div>
+            </div>
+
+            <div class="auth-tabs-container">
+                <div class="auth-tabs">
+                    <button class="auth-tab active" data-tab="login">Вход</button>
+                    <button class="auth-tab" data-tab="register">Регистрация</button>
+                </div>
+                <div class="auth-tab-indicator"></div>
+            </div>
+
+            <form id="loginForm" class="auth-form">
+                <div class="form-group">
+                    <label class="form-label">Пользователь</label>
+                    <input type="text" name="username" class="form-input" placeholder="trader_ivan" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Пароль</label>
+                    <input type="password" name="password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="auth-submit">
+                    <span>Войти в терминал</span>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10H16M16 10L12 6M16 10L12 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </form>
+
+            <form id="registerForm" class="auth-form hidden">
+                <div class="form-group">
+                    <label class="form-label">Пользователь</label>
+                    <input type="text" name="username" class="form-input" placeholder="trader_ivan" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Пароль</label>
+                    <input type="password" name="password" class="form-input" placeholder="••••••••" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Подтверждение</label>
+                    <input type="password" name="confirmPassword" class="form-input" placeholder="••••••••" required>
+                </div>
+                <button type="submit" class="auth-submit">
+                    <span>Создать аккаунт</span>
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M4 10H16M16 10L12 6M16 10L12 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+            </form>
+
+            <div id="authError" class="auth-error"></div>
+        </div>
+
+        <!-- Декоративный фон -->
+        <div class="auth-background">
+            <div class="auth-grid"></div>
+            <div class="auth-glow auth-glow-1"></div>
+            <div class="auth-glow auth-glow-2"></div>
+        </div>
+    </div>
+
+    <!-- Основное приложение -->
+    <div id="appScreen" class="app-layout hidden">
+        <!-- Боковая панель -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                        <path d="M7 21L14 7L21 21H7Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                        <path d="M10.5 15.75H17.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>JOURNAL</span>
+                </div>
+                <div class="user-badge" id="sidebarUserBadge">
+                    <div class="user-avatar"></div>
+                    <span id="sidebarUsername">Trader</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <button class="nav-link active" data-view="journal">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                        <rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    <span>Терминал</span>
+                </button>
+                <button class="nav-link" data-view="analytics">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M2 18H18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M4 14L7 10L10 12L16 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>Аналитика</span>
+                </button>
+                <button class="nav-link" data-view="leaderboard">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M6 12L10 8L14 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M10 16V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <rect x="3" y="3" width="14" height="14" rx="2" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
+                    <span>Рейтинг</span>
+                </button>
+                <button class="nav-link" data-view="settings">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <circle cx="10" cy="10" r="3" stroke="currentColor" stroke-width="1.5"/>
+                        <path d="M10 2V4M10 16V18M18 10H16M4 10H2M15.66 4.34L14.24 5.76M5.76 14.24L4.34 15.66M15.66 15.66L14.24 14.24M5.76 5.76L4.34 4.34" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <span>Настройки</span>
+                </button>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="logoutBtn" class="logout-button">
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                        <path d="M6 3H4C3.44772 3 3 3.44772 3 4V14C3 14.5523 3.44772 15 4 15H6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        <path d="M11 12L15 9L11 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M15 9H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    <span>Выход</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <!-- Верхняя панель -->
+            <header class="top-header">
+                <div class="page-info">
+                    <h1 class="page-title" id="pageTitle">Терминал</h1>
+                    <div class="page-breadcrumb">
+                        <span id="currentDate">15 января 2024</span>
+                        <span class="separator">•</span>
+                        <span id="marketStatus" class="market-status">Market Open</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="icon-button" id="refreshData" title="Обновить данные">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <path d="M15 9C15 12.3137 12.3137 15 9 15C5.68629 15 3 12.3137 3 9C3 5.68629 5.68629 3 9 3C11.0711 3 12.9158 4.02494 14.1213 5.63604" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                            <path d="M12 2L15 5L12 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Вью: Терминал (Дневник) -->
+            <div id="journalView" class="view-container">
+                <!-- Карточки статистики с анимацией -->
+                <div class="stats-cards">
+                    <div class="stat-card slide-in" style="--delay: 0">
+                        <div class="stat-header">
+                            <span class="stat-title">Баланс дня</span>
+                            <span class="stat-icon">$</span>
+                        </div>
+                        <div class="stat-body">
+                            <span class="stat-value" id="totalPL">0.00</span>
+                            <span class="stat-currency">USD</span>
+                        </div>
+                        <div class="stat-footer">
+                            <span class="stat-change" id="plChange">+0.00</span>
+                            <span>за сессию</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card slide-in" style="--delay: 0.1s">
+                        <div class="stat-header">
+                            <span class="stat-title">Винрейт</span>
+                            <span class="stat-icon">%</span>
+                        </div>
+                        <div class="stat-body">
+                            <span class="stat-value" id="winRate">0</span>
+                            <span class="stat-unit">%</span>
+                        </div>
+                        <div class="stat-footer">
+                            <div class="progress-bar">
+                                <div class="progress-fill" id="winRateProgress" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="stat-card slide-in" style="--delay: 0.2s">
+                        <div class="stat-header">
+                            <span class="stat-title">Всего сделок</span>
+                            <span class="stat-icon">#</span>
+                        </div>
+                        <div class="stat-body">
+                            <span class="stat-value" id="totalTradesCount">0</span>
+                        </div>
+                        <div class="stat-footer">
+                            <span class="stat-badge profit" id="winCount">0 побед</span>
+                            <span class="stat-badge loss" id="lossCount">0 потерь</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Быстрое добавление -->
+                <div class="trade-panel fade-in">
+                    <div class="panel-header">
+                        <h3>Новая позиция</h3>
+                        <span class="panel-hint">Enter — добавить</span>
+                    </div>
+                    <div class="trade-form">
+                        <div class="form-row">
+                            <div class="input-field">
+                                <label>Инструмент</label>
+                                <input type="text" id="pairInput" placeholder="EUR/USD" value="BTC/USD" maxlength="12">
+                            </div>
+                            <div class="input-field">
+                                <label>Объем</label>
+                                <input type="text" id="volumeInput" placeholder="0.00" value="1.0" inputmode="decimal">
+                            </div>
+                            <div class="input-field">
+                                <label>Результат</label>
+                                <div class="result-switch">
+                                    <button class="result-btn profit active" data-type="profit">LONG</button>
+                                    <button class="result-btn loss" data-type="loss">SHORT</button>
+                                </div>
+                            </div>
+                            <button id="addTradeBtn" class="add-button">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                <span>Добавить</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Таблица сделок -->
+                <div class="trades-section fade-in" style="--delay: 0.1s">
+                    <div class="section-header">
+                        <h3>История операций</h3>
+                        <div class="filter-tabs">
+                            <button class="filter-tab active" data-filter="all">Все</button>
+                            <button class="filter-tab" data-filter="profit">LONG</button>
+                            <button class="filter-tab" data-filter="loss">SHORT</button>
+                        </div>
+                    </div>
+                    <div class="table-container">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Время</th>
+                                    <th>Инструмент</th>
+                                    <th>Объем</th>
+                                    <th>Результат</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tradesList">
+                                <tr class="empty-row"><td colspan="5">Нет активных позиций</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вью: Аналитика -->
+            <div id="analyticsView" class="view-container hidden">
+                <div class="analytics-grid">
+                    <div class="analytics-card slide-in">
+                        <div class="card-header">
+                            <h3>Распределение P/L</h3>
+                            <span class="card-hint">по дням</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="plChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="analytics-card slide-in" style="--delay: 0.1s">
+                        <div class="card-header">
+                            <h3>Соотношение сделок</h3>
+                            <span class="card-hint">LONG/SHORT</span>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="ratioChart" width="200" height="200"></canvas>
+                        </div>
+                        <div class="chart-legend">
+                            <div class="legend-item"><span class="legend-dot profit"></span>LONG <span id="profitPercent">0%</span></div>
+                            <div class="legend-item"><span class="legend-dot loss"></span>SHORT <span id="lossPercent">0%</span></div>
+                        </div>
+                    </div>
+
+                    <div class="analytics-card full-width slide-in" style="--delay: 0.2s">
+                        <div class="card-header">
+                            <h3>Детальная статистика</h3>
+                        </div>
+                        <div class="stats-table">
+                            <div class="stat-row">
+                                <span>Средний профит</span>
+                                <span class="profit-text" id="avgProfit">$0.00</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Средний убыток</span>
+                                <span class="loss-text" id="avgLoss">$0.00</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Фактор восстановления</span>
+                                <span id="recoveryFactor">0.00</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Максимальная просадка</span>
+                                <span class="loss-text" id="maxDrawdown">$0.00</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Лучшая сделка</span>
+                                <span class="profit-text" id="bestTrade">$0.00</span>
+                            </div>
+                            <div class="stat-row">
+                                <span>Худшая сделка</span>
+                                <span class="loss-text" id="worstTrade">$0.00</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вью: Рейтинг -->
+            <div id="leaderboardView" class="view-container hidden">
+                <div class="leaderboard-header">
+                    <div>
+                        <h2>Глобальный рейтинг</h2>
+                        <p class="leaderboard-subtitle">Трейдеры с публичным профилем</p>
+                    </div>
+                    <div class="leaderboard-actions">
+                        <select id="leaderboardLimit" class="select-input">
+                            <option value="10">Топ 10</option>
+                            <option value="25" selected>Топ 25</option>
+                            <option value="50">Топ 50</option>
+                        </select>
+                        <button id="refreshLeaderboard" class="secondary-button">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                <path d="M13 8C13 10.7614 10.7614 13 8 13C5.23858 13 3 10.7614 3 8C3 5.23858 5.23858 3 8 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                <path d="M11 2L13 4L11 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            Обновить
+                        </button>
+                    </div>
+                </div>
+
+                <div class="leaderboard-table-wrapper">
+                    <table class="leaderboard-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Трейдер</th>
+                                <th>P/L</th>
+                                <th>Винрейт</th>
+                                <th>Сделок</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leaderboardBody">
+                            <tr><td colspan="5" class="empty-row">Загрузка данных...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Вью: Настройки -->
+            <div id="settingsView" class="view-container hidden">
+                <div class="settings-container">
+                    <div class="settings-section slide-in">
+                        <h3>Профиль</h3>
+                        <div class="settings-card">
+                            <div class="setting-row">
+                                <span class="setting-label">Идентификатор</span>
+                                <span class="setting-value" id="profileUsername">—</span>
+                            </div>
+                            <div class="setting-row">
+                                <span class="setting-label">Статус</span>
+                                <span class="setting-value">
+                                    <span class="status-badge" id="profileStatus">Активен</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section slide-in" style="--delay: 0.1s">
+                        <h3>Приватность</h3>
+                        <div class="settings-card">
+                            <div class="setting-row">
+                                <label class="toggle-label">
+                                    <span>Публичный профиль</span>
+                                    <span class="toggle-switch">
+                                        <input type="checkbox" id="publicProfileToggle">
+                                        <span class="toggle-slider"></span>
+                                    </span>
+                                </label>
+                                <p class="setting-description">Отображать статистику в глобальном рейтинге</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="settings-section slide-in" style="--delay: 0.2s">
+                        <h3>Управление данными</h3>
+                        <div class="settings-card">
+                            <div class="button-group">
+                                <button id="exportDataBtn" class="action-button">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M8 2V10M8 10L5 7M8 10L11 7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M2 11V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V11" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                    Экспорт JSON
+                                </button>
+                                <button id="importDataBtn" class="action-button">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                        <path d="M8 14V6M8 6L5 9M8 6L11 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                        <path d="M2 5V3C2 2.44772 2.44772 2 3 2H13C13.5523 2 14 2.44772 14 3V5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                    Импорт JSON
+                                </button>
+                                <input type="file" id="importFileInput" accept=".json" style="display:none;">
+                            </div>
+                            <button id="clearDataBtn" class="danger-button">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <path d="M3 4H13M6 4V3C6 2.44772 6.44772 2 7 2H9C9.55228 2 10 2.44772 10 3V4M12 4V13C12 13.5523 11.5523 14 11 14H5C4.44772 14 4 13.5523 4 13V4H12Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                </svg>
+                                Очистить все данные
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Статус-бар -->
+    <div id="statusBar" class="status-bar hidden">
+        <span id="connectionStatus">Подключено</span>
+        <span>JOURNAL PRO v2.0</span>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="/app.js"></script>
+</body>
+</html>
