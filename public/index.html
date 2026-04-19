@@ -111,15 +111,15 @@
         <div class="mouse-glow" id="onboardingMouseGlow"></div>
 
         <div class="onboarding-container">
-            <div class="onboarding-modal slide-up">
+            <div class="onboarding-modal">
                 <div class="onboarding-step" id="modeStep">
-                    <div class="step-indicator fade-in">Шаг 1 из 2</div>
-                    <h2 class="slide-up-delay">Выберите тариф</h2>
-                    <p class="onboarding-desc slide-up-delay">Как вы хотите вести дневник?</p>
+                    <div class="step-indicator">Шаг 1 из 2</div>
+                    <h2>Выберите тариф</h2>
+                    <p class="onboarding-desc">Как вы хотите вести дневник?</p>
 
                     <div class="mode-selector">
                         <!-- Pro тариф (платный) -->
-                        <div class="mode-card slide-in-left" data-mode="pro" style="--delay: 0.1s">
+                        <div class="mode-card" data-mode="pro">
                             <div class="mode-badge">PRO</div>
                             <div class="mode-icon">
                                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -134,16 +134,16 @@
                             </div>
                             <p>Подключите кошелёк для автоматического трекинга сделок</p>
                             <ul>
-                                <li>✅ Автоимпорт сделок</li>
-                                <li>✅ Premium аналитика</li>
-                                <li>✅ Рейтинг трейдеров</li>
-                                <li>✅ Приоритетная поддержка</li>
+                                <li>Автоимпорт сделок</li>
+                                <li>Premium аналитика</li>
+                                <li>Рейтинг трейдеров</li>
+                                <li>Приоритетная поддержка</li>
                             </ul>
                             <button class="mode-select-btn">Выбрать Pro</button>
                         </div>
 
                         <!-- Manual тариф (бесплатный) -->
-                        <div class="mode-card slide-in-right" data-mode="manual" style="--delay: 0.2s">
+                        <div class="mode-card" data-mode="manual">
                             <div class="mode-badge free">FREE</div>
                             <div class="mode-icon">
                                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
@@ -157,16 +157,16 @@
                             </div>
                             <p>Ручной ввод и полный контроль над сделками</p>
                             <ul>
-                                <li>✅ Добавление вручную</li>
-                                <li>✅ Редактирование сделок</li>
-                                <li>✅ Базовая статистика</li>
-                                <li>✅ Локальное хранение</li>
+                                <li>Добавление вручную</li>
+                                <li>Редактирование сделок</li>
+                                <li>Базовая статистика</li>
+                                <li>Локальное хранение</li>
                             </ul>
                             <button class="mode-select-btn free-btn">Начать бесплатно</button>
                         </div>
                     </div>
 
-                    <p class="onboarding-note fade-in-delay">
+                    <p class="onboarding-note">
                         Вы сможете изменить тариф позже в настройках
                     </p>
                 </div>
@@ -177,7 +177,7 @@
                     <h2>Активация Pro</h2>
                     <p class="onboarding-desc">Подключите кошелёк для оплаты и активации</p>
 
-                    <div class="payment-summary slide-up">
+                    <div class="payment-summary">
                         <div class="summary-row">
                             <span>Тариф Pro</span>
                             <span>$29/мес</span>
@@ -188,7 +188,7 @@
                         </div>
                     </div>
 
-                    <div class="wallet-selector slide-up-delay">
+                    <div class="wallet-selector">
                         <div class="wallet-option-new" data-wallet="MetaMask">
                             <img src="https://cryptologos.cc/logos/metamask-mask-logo.svg" alt="MetaMask">
                             <span>MetaMask</span>
@@ -203,17 +203,17 @@
                         </div>
                     </div>
 
-                    <div class="input-group-new slide-up-delay">
+                    <div class="input-group-new">
                         <label>Адрес кошелька</label>
                         <input type="text" id="walletAddressInput" placeholder="0x..." class="wallet-input">
                     </div>
 
                     <div class="payment-note">
-                        <p>🔒 Оплата производится в USDT (эмуляция)</p>
-                        <p>💳 После оплаты тариф активируется автоматически</p>
+                        <p>Оплата производится в USDT (эмуляция)</p>
+                        <p>После оплаты тариф активируется автоматически</p>
                     </div>
 
-                    <div class="onboarding-actions slide-up-delay">
+                    <div class="onboarding-actions">
                         <button id="backToMode" class="onboarding-btn secondary">← Назад</button>
                         <button id="finishOnboarding" class="onboarding-btn" disabled>Оплатить и активировать</button>
                     </div>
@@ -224,7 +224,7 @@
 
     <!-- Основное приложение -->
     <div id="appScreen" class="app-wrapper hidden">
-        <header class="app-header slide-down">
+        <header class="app-header">
             <div class="header-left">
                 <span class="menu-toggle" id="menuToggle">☰</span>
                 <span class="app-logo">TRADEUM</span>
@@ -265,7 +265,7 @@
         <main class="app-main">
             <!-- Терминал -->
             <div id="journalView" class="view-container">
-                <div class="page-header slide-down">
+                <div class="page-header">
                     <h2>Терминал</h2>
                     <div class="page-actions">
                         <span class="date-badge-new" id="currentDate">15.01.2024</span>
@@ -274,19 +274,19 @@
                 </div>
 
                 <div class="stats-row">
-                    <div class="stat-item slide-in-left" style="--delay: 0s">
+                    <div class="stat-item">
                         <span class="stat-label-new">Баланс</span>
                         <span class="stat-value-new" id="totalPL">$0.00</span>
                         <span class="stat-change-new" id="plChange">+0.00</span>
                     </div>
-                    <div class="stat-item slide-in-left" style="--delay: 0.1s">
+                    <div class="stat-item">
                         <span class="stat-label-new">Винрейт</span>
                         <span class="stat-value-new" id="winRate">0%</span>
                         <div class="progress-bar-new">
                             <div class="progress-fill-new" id="winRateProgress" style="width: 0%"></div>
                         </div>
                     </div>
-                    <div class="stat-item slide-in-left" style="--delay: 0.2s">
+                    <div class="stat-item">
                         <span class="stat-label-new">Сделки</span>
                         <span class="stat-value-new" id="totalTradesCount">0</span>
                         <div class="stat-badges">
@@ -296,7 +296,7 @@
                     </div>
                 </div>
 
-                <div class="quick-add slide-up">
+                <div class="quick-add">
                     <input type="text" id="pairInput" placeholder="Пара (BTC/USD)" value="BTC/USD">
                     <input type="text" id="volumeInput" placeholder="Объём" value="1.0">
                     <div class="type-toggle">
@@ -306,7 +306,7 @@
                     <button id="addTradeBtn" class="btn-primary">+ Добавить</button>
                 </div>
 
-                <div class="trades-container slide-up-delay">
+                <div class="trades-container">
                     <div class="trades-filters">
                         <button class="filter-btn active" data-filter="all">Все</button>
                         <button class="filter-btn" data-filter="profit">LONG</button>
@@ -314,13 +314,7 @@
                     </div>
                     <table class="trades-table-new">
                         <thead>
-                            <tr>
-                                <th>Время</th>
-                                <th>Пара</th>
-                                <th>Объём</th>
-                                <th>P/L</th>
-                                <th></th>
-                            </tr>
+                            <tr><th>Время</th><th>Пара</th><th>Объём</th><th>P/L</th><th></th></tr>
                         </thead>
                         <tbody id="tradesList">
                             <tr><td colspan="5" class="empty-message">Нет сделок</td></tr>
@@ -329,15 +323,15 @@
                 </div>
             </div>
 
-            <!-- Остальные view (без изменений) -->
+            <!-- Аналитика -->
             <div id="analyticsView" class="view-container hidden">
                 <div class="page-header"><h2>Аналитика</h2></div>
                 <div class="charts-grid">
-                    <div class="chart-card slide-in-left"><h3>P/L динамика</h3><canvas id="plChart"></canvas></div>
-                    <div class="chart-card slide-in-right"><h3>Соотношение</h3><canvas id="ratioChart"></canvas>
+                    <div class="chart-card"><h3>P/L динамика</h3><canvas id="plChart"></canvas></div>
+                    <div class="chart-card"><h3>Соотношение</h3><canvas id="ratioChart"></canvas>
                         <div class="chart-legend-new"><span><span class="dot profit"></span> LONG <span id="profitPercent">0%</span></span><span><span class="dot loss"></span> SHORT <span id="lossPercent">0%</span></span></div>
                     </div>
-                    <div class="chart-card full-width slide-up"><h3>Статистика</h3>
+                    <div class="chart-card full-width"><h3>Статистика</h3>
                         <div class="stats-details">
                             <div class="detail-row"><span>Средний LONG</span> <span class="profit-text" id="avgProfit">$0</span></div>
                             <div class="detail-row"><span>Средний SHORT</span> <span class="loss-text" id="avgLoss">$0</span></div>
@@ -348,10 +342,11 @@
                 </div>
             </div>
 
+            <!-- Premium -->
             <div id="premiumView" class="view-container hidden">
                 <div class="page-header"><h2>Premium</h2><span class="premium-tag">PRO</span></div>
                 <div class="premium-grid-new">
-                    <div class="premium-card-new slide-in-left"><h3>Метрики</h3>
+                    <div class="premium-card-new"><h3>Метрики</h3>
                         <div class="metric-list">
                             <div class="metric"><span>Profit Factor</span> <strong id="profitFactor">—</strong></div>
                             <div class="metric"><span>Sharpe Ratio</span> <strong id="sharpeRatio">—</strong></div>
@@ -359,7 +354,7 @@
                             <div class="metric"><span>Прогноз</span> <strong id="monthlyProjection">—</strong></div>
                         </div>
                     </div>
-                    <div class="premium-card-new slide-in-right"><h3>Топы</h3>
+                    <div class="premium-card-new"><h3>Топы</h3>
                         <div class="metric-list">
                             <div class="metric"><span>Лучшая пара</span> <strong id="bestPair">—</strong></div>
                             <div class="metric"><span>Худшая пара</span> <strong id="worstPair">—</strong></div>
@@ -367,28 +362,31 @@
                             <div class="metric"><span>Худший день</span> <strong id="worstDay">—</strong></div>
                         </div>
                     </div>
-                    <div class="premium-card-new full-width slide-up"><h3>Рекомендации</h3><div id="premiumRecommendations" class="recommendations-new"></div></div>
+                    <div class="premium-card-new full-width"><h3>Рекомендации</h3><div id="premiumRecommendations" class="recommendations-new"></div></div>
                 </div>
             </div>
 
+            <!-- Рейтинг -->
             <div id="leaderboardView" class="view-container hidden">
                 <div class="page-header"><h2>Рейтинг трейдеров</h2><select id="leaderboardLimit" class="simple-select"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div>
-                <table class="leaderboard-table-new slide-up"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделки</th></tr></thead><tbody id="leaderboardBody"><tr><td colspan="5" class="empty-message">Загрузка...</td></tr></tbody></table>
+                <table class="leaderboard-table-new"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделки</th></tr></thead><tbody id="leaderboardBody"><tr><td colspan="5" class="empty-message">Загрузка...</td></tr></tbody></table>
             </div>
 
+            <!-- Админ -->
             <div id="adminView" class="view-container hidden">
                 <div class="page-header"><h2>Администрирование</h2></div>
-                <table class="admin-table-new slide-up"><thead><tr><th>ID</th><th>Пользователь</th><th>Pro</th><th>Сделки</th><th>P/L</th><th></th></tr></thead><tbody id="adminUsersList"><tr><td colspan="6" class="empty-message">Загрузка...</td></tr></tbody></table>
+                <table class="admin-table-new"><thead><tr><th>ID</th><th>Пользователь</th><th>Pro</th><th>Сделки</th><th>P/L</th><th></th></tr></thead><tbody id="adminUsersList"><tr><td colspan="6" class="empty-message">Загрузка...</td></tr></tbody></table>
             </div>
 
+            <!-- Настройки -->
             <div id="settingsView" class="view-container hidden">
                 <div class="page-header"><h2>Настройки</h2></div>
                 <div class="settings-sections">
-                    <div class="settings-block slide-in-left"><h3>Профиль</h3>
+                    <div class="settings-block"><h3>Профиль</h3>
                         <div class="settings-row"><span>Username</span><span id="profileUsername">—</span></div>
                         <div class="settings-row"><span>Статус</span><span id="accountTypeDisplay">Manual</span></div>
                     </div>
-                    <div class="settings-block slide-in-right"><h3>Тариф</h3>
+                    <div class="settings-block"><h3>Тариф</h3>
                         <div id="tariffDisplay">
                             <div class="current-tariff">
                                 <span class="tariff-name" id="tariffName">Manual</span>
@@ -397,11 +395,11 @@
                             <button id="upgradeToProBtn" class="btn-primary" style="width: 100%; margin-top: 16px;">Обновить до Pro</button>
                         </div>
                     </div>
-                    <div class="settings-block slide-up"><h3>Приватность</h3>
+                    <div class="settings-block"><h3>Приватность</h3>
                         <label class="toggle-label-new"><span>Публичный профиль</span><input type="checkbox" id="publicProfileToggle"><span class="toggle-slider-new"></span></label>
                         <p class="setting-hint" id="privacyDescription">Доступно после подключения Pro</p>
                     </div>
-                    <div class="settings-block slide-up-delay"><h3>Данные</h3>
+                    <div class="settings-block"><h3>Данные</h3>
                         <button id="exportDataBtn" class="btn-secondary">📤 Экспорт</button>
                         <button id="importDataBtn" class="btn-secondary">📥 Импорт</button>
                         <input type="file" id="importFileInput" accept=".json" hidden>

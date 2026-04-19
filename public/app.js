@@ -886,3 +886,115 @@ async function clearAllData() {
     init();
     animate();
 })();
+// ========== ФОН ДЛЯ ОНБОРДИНГА ==========
+(function() {
+    const canvas = document.getElementById('onboardingParticleCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let mouseX = width / 2;
+    let mouseY = height / 2;
+
+    const particles = [];
+    const particleCount = 80;
+
+    class Particle {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.vx = (Math.random() - 0.5) * 0.1;
+            this.vy = (Math.random() - 0.5) * 0.1;
+            this.size = Math.random() * 2 + 1;
+        }
+
+        update() {
+            const dx = mouseX - this.x;
+            const dy = mouseY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 200) {
+                const force = (200 - dist) / 200;
+                this.vx += dx * force * 0.003;
+                this.vy += dy * force * 0.003;
+            }
+
+            this.vx *= 0.995;
+            this.vy *= 0.995;
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            if (this.x < 0) this.x = width;
+            if (this.x > width) this.x = 0;
+            if (this.y < 0) this.y = height;
+            if (this.y > height) this.y = 0;
+        }
+
+        draw() {
+            const dx = mouseX - this.x;
+            const dy = mouseY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const opacity = Math.max(0.1, 1 - dist / 300);
+
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = `rgba(16, 185, 129, ${opacity * 0.4})`;
+            ctx.fill();
+        }
+    }
+
+    function init() {
+        particles.length = 0;
+        for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+    }
+
+    function drawConnections() {
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                if (dist < 120) {
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.strokeStyle = `rgba(16, 185, 129, ${0.08 * (1 - dist / 120)})`;
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        particles.forEach(p => p.update());
+        drawConnections();
+        particles.forEach(p => p.draw());
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        init();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        const glow = document.getElementById('onboardingMouseGlow');
+        if (glow) {
+            glow.style.left = (mouseX - 200) + 'px';
+            glow.style.top = (mouseY - 200) + 'px';
+        }
+    });
+
+    canvas.width = width;
+    canvas.height = height;
+    init();
+    animate();
+})();
