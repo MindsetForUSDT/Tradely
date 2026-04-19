@@ -21,6 +21,10 @@
 
     <!-- Главный экран (Welcome + Auth) -->
     <div id="welcomeScreen" class="welcome-screen">
+        <!-- Динамичный фон с частицами -->
+        <canvas id="particleCanvas" class="particle-canvas"></canvas>
+        <div class="mouse-glow" id="mouseGlow"></div>
+
         <div class="welcome-container">
             <div class="welcome-left">
                 <div class="welcome-logo">
@@ -77,11 +81,11 @@
                 <form id="registerForm" class="auth-form-new hidden">
                     <div class="input-group-new">
                         <label>Username</label>
-                        <input type="text" name="username" placeholder="trader_ivan" required>
+                        <input type="text" name="username" placeholder="trader_ivan" required minlength="3">
                     </div>
                     <div class="input-group-new">
                         <label>Password</label>
-                        <input type="password" name="password" placeholder="••••••••" required>
+                        <input type="password" name="password" placeholder="••••••••" required minlength="6">
                     </div>
                     <div class="input-group-new">
                         <label>Confirm password</label>
@@ -102,19 +106,12 @@
                 </div>
             </div>
         </div>
-
-        <!-- Фоновые элементы -->
-        <div class="welcome-bg">
-            <div class="bg-grid"></div>
-            <div class="bg-gradient bg-gradient-1"></div>
-            <div class="bg-gradient bg-gradient-2"></div>
-        </div>
     </div>
 
     <!-- Онбординг (выбор режима после регистрации) -->
     <div id="onboardingScreen" class="onboarding-overlay hidden">
         <div class="onboarding-modal">
-            <div class="onboarding-step">
+            <div class="onboarding-step" id="modeStep">
                 <div class="step-indicator">Шаг 1 из 2</div>
                 <h2>Выберите режим</h2>
                 <p class="onboarding-desc">Как вы хотите вести дневник?</p>
@@ -183,7 +180,7 @@
 
                 <div class="onboarding-actions">
                     <button id="backToMode" class="onboarding-btn secondary">Назад</button>
-                    <button id="finishOnboarding" class="onboarding-btn">Завершить</button>
+                    <button id="finishOnboarding" class="onboarding-btn" disabled>Завершить</button>
                 </div>
             </div>
         </div>
@@ -248,14 +245,22 @@
                     <div class="stat-item">
                         <span class="stat-label-new">Баланс</span>
                         <span class="stat-value-new" id="totalPL">$0.00</span>
+                        <span class="stat-change-new" id="plChange">+0.00</span>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label-new">Винрейт</span>
                         <span class="stat-value-new" id="winRate">0%</span>
+                        <div class="progress-bar-new">
+                            <div class="progress-fill-new" id="winRateProgress" style="width: 0%"></div>
+                        </div>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label-new">Сделки</span>
                         <span class="stat-value-new" id="totalTradesCount">0</span>
+                        <div class="stat-badges">
+                            <span class="badge-profit" id="winCount">0 LONG</span>
+                            <span class="badge-loss" id="lossCount">0 SHORT</span>
+                        </div>
                     </div>
                 </div>
 
@@ -430,12 +435,24 @@
                     </div>
 
                     <div class="settings-block">
-                        <h3>Данные</h3>
-                        <button id="exportDataBtn" class="btn-secondary">Экспорт</button>
-                        <button id="importDataBtn" class="btn-secondary">Импорт</button>
-                        <input type="file" id="importFileInput" accept=".json" hidden>
-                        <button id="clearDataBtn" class="btn-danger">Очистить всё</button>
+                        <h3>Приватность</h3>
+                        <label class="toggle-label-new">
+                            <span>Публичный профиль</span>
+                            <input type="checkbox" id="publicProfileToggle">
+                            <span class="toggle-slider-new"></span>
+                        </label>
+                        <p class="setting-hint" id="privacyDescription">Доступно после подключения кошелька</p>
                     </div>
+
+                    <div class="settings-block">
+                        <h3>Данные</h3>
+                        <button id="exportDataBtn" class="btn-secondary">📤 Экспорт</button>
+                        <button id="importDataBtn" class="btn-secondary">📥 Импорт</button>
+                        <input type="file" id="importFileInput" accept=".json" hidden>
+                        <button id="clearDataBtn" class="btn-danger">🗑️ Очистить всё</button>
+                    </div>
+
+                    <button id="logoutBtn" class="btn-secondary" style="margin-top: 16px;">↪ Выйти</button>
                 </div>
             </div>
         </main>
