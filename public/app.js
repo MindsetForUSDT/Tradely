@@ -89,6 +89,11 @@ function showAuthPage() {
     hideAll();
     var el = document.getElementById('authPage');
     if (el) el.classList.remove('hidden');
+    // Сбрасываем на вкладку входа
+    document.querySelectorAll('.auth-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelector('.auth-tab[data-tab="login"]').classList.add('active');
+    document.getElementById('loginForm').classList.remove('hidden');
+    document.getElementById('registerForm').classList.add('hidden');
 }
 
 function showTariffPage() {
@@ -97,6 +102,13 @@ function showTariffPage() {
     if (el) el.classList.remove('hidden');
     selectedMode = null;
     selectedWalletType = null;
+    // Сбрасываем выбор карточек
+    document.querySelectorAll('.tariff-card').forEach(function(c) { c.classList.remove('selected'); });
+    // Показываем шаг 1, скрываем шаг 2
+    document.querySelector('.tariff-cards').classList.remove('hidden');
+    document.querySelector('.tariff-header').classList.remove('hidden');
+    document.querySelector('.tariff-note').classList.remove('hidden');
+    document.getElementById('walletStepContainer').classList.add('hidden');
 }
 
 function showAppPage() {
@@ -130,12 +142,12 @@ function switchView(v) {
     document.querySelectorAll('.view-container').forEach(function(c) { c.classList.add('hidden'); });
     var viewEl = document.getElementById(v + 'View');
     if (viewEl) viewEl.classList.remove('hidden');
-    
+
     document.querySelectorAll('.nav-link').forEach(function(l) {
         l.classList.remove('active');
         if (l.dataset.view === v) l.classList.add('active');
     });
-    
+
     if (v === 'leaderboard') {
         if (!userStatus.wallet_connected && !isAdmin) {
             switchView('settings');
@@ -150,7 +162,7 @@ function switchView(v) {
 
 // ========== НАСТРОЙКА СЛУШАТЕЛЕЙ ==========
 function setupListeners() {
-    // Табы
+    // Табы авторизации
     document.querySelectorAll('.auth-tab').forEach(function(t) {
         t.onclick = function() {
             document.querySelectorAll('.auth-tab').forEach(function(x) { x.classList.remove('active'); });
@@ -158,6 +170,8 @@ function setupListeners() {
             var isL = this.dataset.tab === 'login';
             document.getElementById('loginForm').classList.toggle('hidden', !isL);
             document.getElementById('registerForm').classList.toggle('hidden', isL);
+            var errEl = document.getElementById('authError');
+            if (errEl) errEl.textContent = '';
         };
     });
 
@@ -251,16 +265,26 @@ function setupListeners() {
         forgotLink.onclick = function(e) {
             e.preventDefault();
             document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('registerForm').classList.add('hidden');
             document.getElementById('forgotPasswordForm').classList.remove('hidden');
         };
     }
-    
+
     var backLink = document.getElementById('backToLoginLink');
     if (backLink) {
         backLink.onclick = function(e) {
             e.preventDefault();
             document.getElementById('loginForm').classList.remove('hidden');
             document.getElementById('forgotPasswordForm').classList.add('hidden');
+        };
+    }
+
+    var backFromReset = document.getElementById('backToLoginFromReset');
+    if (backFromReset) {
+        backFromReset.onclick = function(e) {
+            e.preventDefault();
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('resetPasswordForm').classList.add('hidden');
         };
     }
 
@@ -327,6 +351,7 @@ function setupListeners() {
         };
     });
 
+    // Кнопки выбора тарифа
     document.querySelectorAll('.tariff-select-btn').forEach(function(b) {
         b.onclick = function(e) {
             e.stopPropagation();
@@ -391,16 +416,20 @@ function setupListeners() {
                     })
                 });
                 userStatus.wallet_connected = true;
+                toast('Pro активирован', 'success');
             } else {
                 await fetch(API + '/api/user/skip-wallet', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + authToken }
                 });
+                toast('Базовый тариф активирован', 'success');
             }
             userStatus.first_login = false;
             await loadTrades();
             showAppPage();
-        } catch (e) {}
+        } catch (e) {
+            toast('Ошибка активации', 'error');
+        }
     }
 
     // Навигация
@@ -470,6 +499,8 @@ function setupListeners() {
     if (importFile) importFile.onchange = importData;
     var clearBtn = document.getElementById('clearDataBtn');
     if (clearBtn) clearBtn.onclick = clearAllData;
+    var upgradeBtn = document.getElementById('upgradeToProBtn');
+    if (upgradeBtn) upgradeBtn.onclick = function() { showTariffPage(); };
 
     var changeBtn = document.getElementById('changePasswordBtn');
     if (changeBtn) changeBtn.onclick = function() { document.getElementById('changePasswordModal').classList.remove('hidden'); };
@@ -555,6 +586,7 @@ window.deleteTrade = deleteTrade;
 
 function renderJournal() {
     var tb = document.getElementById('tradesList');
+    if (!tb) return;
     var f = currentFilter === 'all' ? trades : trades.filter(function(t) { return t.type === currentFilter; });
     if (!f.length) {
         tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;">Нет сделок</td></tr>';
@@ -575,20 +607,31 @@ function updateStats() {
         else { pl -= t.volume; lS += t.volume; maxL = Math.max(maxL, t.volume); }
     });
     var wr = trades.length ? (w / trades.length) * 100 : 0;
-    document.getElementById('totalPL').textContent = (pl >= 0 ? '+' : '−') + '$' + Math.abs(pl).toFixed(2);
-    document.getElementById('winRate').textContent = wr.toFixed(1) + '%';
-    document.getElementById('winRateProgress').style.width = wr + '%';
-    document.getElementById('totalTradesCount').textContent = trades.length;
-    document.getElementById('winCount').textContent = w + ' LONG';
-    document.getElementById('lossCount').textContent = (trades.length - w) + ' SHORT';
+    var totalPL = document.getElementById('totalPL');
+    if (totalPL) totalPL.textContent = (pl >= 0 ? '+' : '−') + '$' + Math.abs(pl).toFixed(2);
+    var winRate = document.getElementById('winRate');
+    if (winRate) winRate.textContent = wr.toFixed(1) + '%';
+    var progress = document.getElementById('winRateProgress');
+    if (progress) progress.style.width = wr + '%';
+    var totalTrades = document.getElementById('totalTradesCount');
+    if (totalTrades) totalTrades.textContent = trades.length;
+    var winCount = document.getElementById('winCount');
+    if (winCount) winCount.textContent = w + ' LONG';
+    var lossCount = document.getElementById('lossCount');
+    if (lossCount) lossCount.textContent = (trades.length - w) + ' SHORT';
     if (trades.length) {
         var lst = trades[0];
-        document.getElementById('plChange').textContent = (lst.type === 'profit' ? '+' : '-') + '$' + lst.volume.toFixed(2);
+        var plChange = document.getElementById('plChange');
+        if (plChange) plChange.textContent = (lst.type === 'profit' ? '+' : '-') + '$' + lst.volume.toFixed(2);
     }
-    document.getElementById('avgProfit').textContent = '$' + (w ? pS / w : 0).toFixed(2);
-    document.getElementById('avgLoss').textContent = '$' + ((trades.length - w) ? lS / (trades.length - w) : 0).toFixed(2);
-    document.getElementById('bestTrade').textContent = '$' + maxP.toFixed(2);
-    document.getElementById('worstTrade').textContent = '$' + maxL.toFixed(2);
+    var avgProfit = document.getElementById('avgProfit');
+    if (avgProfit) avgProfit.textContent = '$' + (w ? pS / w : 0).toFixed(2);
+    var avgLoss = document.getElementById('avgLoss');
+    if (avgLoss) avgLoss.textContent = '$' + ((trades.length - w) ? lS / (trades.length - w) : 0).toFixed(2);
+    var bestTrade = document.getElementById('bestTrade');
+    if (bestTrade) bestTrade.textContent = '$' + maxP.toFixed(2);
+    var worstTrade = document.getElementById('worstTrade');
+    if (worstTrade) worstTrade.textContent = '$' + maxL.toFixed(2);
 }
 
 function updateCharts() {
@@ -619,23 +662,32 @@ function updateCharts() {
             data: { labels: ['LONG', 'SHORT'], datasets: [{ data: [w, l], backgroundColor: ['#10b981', '#ef4444'] }] },
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
-        document.getElementById('profitPercent').textContent = trades.length ? ((w / trades.length) * 100).toFixed(1) + '%' : '0%';
-        document.getElementById('lossPercent').textContent = trades.length ? ((l / trades.length) * 100).toFixed(1) + '%' : '0%';
+        var profitPercent = document.getElementById('profitPercent');
+        if (profitPercent) profitPercent.textContent = trades.length ? ((w / trades.length) * 100).toFixed(1) + '%' : '0%';
+        var lossPercent = document.getElementById('lossPercent');
+        if (lossPercent) lossPercent.textContent = trades.length ? ((l / trades.length) * 100).toFixed(1) + '%' : '0%';
     }
 }
 
 function updateDate() {
-    document.getElementById('currentDate').textContent = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    var el = document.getElementById('currentDate');
+    if (el) el.textContent = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function updateProfile() {
     if (!currentUser) return;
-    document.getElementById('headerUsername').textContent = currentUser.username;
-    document.getElementById('profileUsername').textContent = currentUser.username;
-    document.getElementById('tariffName').textContent = userStatus.wallet_connected ? 'Pro' : 'Базовый';
-    document.getElementById('tariffPrice').textContent = userStatus.wallet_connected ? '500₽/мес' : 'Бесплатно';
-    document.getElementById('accountTypeDisplay').textContent = userStatus.wallet_connected ? 'Pro' : 'Базовый';
-    document.getElementById('publicProfileToggle').checked = userStatus.is_public;
+    var headerUser = document.getElementById('headerUsername');
+    if (headerUser) headerUser.textContent = currentUser.username;
+    var profileUser = document.getElementById('profileUsername');
+    if (profileUser) profileUser.textContent = currentUser.username;
+    var tariffName = document.getElementById('tariffName');
+    if (tariffName) tariffName.textContent = userStatus.wallet_connected ? 'Pro' : 'Базовый';
+    var tariffPrice = document.getElementById('tariffPrice');
+    if (tariffPrice) tariffPrice.textContent = userStatus.wallet_connected ? '500₽/мес' : 'Бесплатно';
+    var accountType = document.getElementById('accountTypeDisplay');
+    if (accountType) accountType.textContent = userStatus.wallet_connected ? 'Pro' : 'Базовый';
+    var toggle = document.getElementById('publicProfileToggle');
+    if (toggle) toggle.checked = userStatus.is_public;
 }
 
 async function loadPremium() {
@@ -654,7 +706,8 @@ async function loadPremium() {
             var recs = [];
             if (d.winRate > 60) recs.push('Отличный винрейт!');
             if (d.profitFactor > 2) recs.push('Profit Factor > 2 — отлично!');
-            document.getElementById('premiumRecommendations').innerHTML = recs.length ? recs.map(function(r) { return '<p>• ' + r + '</p>'; }).join('') : '<p>Недостаточно данных</p>';
+            var recEl = document.getElementById('premiumRecommendations');
+            if (recEl) recEl.innerHTML = recs.length ? recs.map(function(r) { return '<p>• ' + r + '</p>'; }).join('') : '<p>Недостаточно данных</p>';
         }
     } catch (e) {}
 }
@@ -665,9 +718,11 @@ async function loadAdmin() {
         if (r.ok) {
             var u = await r.json();
             var tb = document.getElementById('adminUsersList');
-            tb.innerHTML = u.map(function(u) {
-                return '<tr><td>' + u.id + '</td><td>' + u.username + '</td><td>' + (u.wallet_connected ? '✅' : '❌') + '</td><td>' + (u.trades_count || 0) + '</td><td class="' + (u.total_pl >= 0 ? 'profit-text' : 'loss-text') + '">$' + (u.total_pl ? u.total_pl.toFixed(2) : '0.00') + '</td><td><button class="icon-btn" onclick="deleteAdminUser(' + u.id + ')" style="color:#ef4444;">🗑️</button></td></tr>';
-            }).join('');
+            if (tb) {
+                tb.innerHTML = u.map(function(u) {
+                    return '<tr><td>' + u.id + '</td><td>' + u.username + '</td><td>' + (u.wallet_connected ? '✅' : '❌') + '</td><td>' + (u.trades_count || 0) + '</td><td class="' + (u.total_pl >= 0 ? 'profit-text' : 'loss-text') + '">$' + (u.total_pl ? u.total_pl.toFixed(2) : '0.00') + '</td><td><button class="icon-btn" onclick="deleteAdminUser(' + u.id + ')" style="color:#ef4444;">🗑️</button></td></tr>';
+                }).join('');
+            }
         }
     } catch (e) {}
 }
@@ -680,6 +735,7 @@ window.deleteAdminUser = async function(id) {
 async function loadLeaderboard() {
     var l = document.getElementById('leaderboardLimit')?.value || 25;
     var tb = document.getElementById('leaderboardBody');
+    if (!tb) return;
     try {
         var r = await fetch(API + '/api/leaderboard?limit=' + l);
         var d = await r.json();
@@ -741,7 +797,8 @@ setTimeout(function() {
     var p = document.getElementById('preloader');
     if (p && p.style.display !== 'none') {
         p.style.display = 'none';
-        document.getElementById('authPage')?.classList.remove('hidden');
+        var authPage = document.getElementById('authPage');
+        if (authPage) authPage.classList.remove('hidden');
         console.log('Прелоадер принудительно скрыт');
     }
 }, 5000);
