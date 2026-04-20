@@ -74,15 +74,26 @@ const createTables = async () => {
 };
 createTables();
 
-// Безопасность
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"],
+            // Разрешаем скрипты с нашего сайта и с CDN
+            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://unpkg.com"],
+            // Разрешаем стили с нашего сайта, инлайн и Google Fonts
             styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            // Разрешаем шрифты
             fontSrc: ["'self'", "https://fonts.gstatic.com", "https://cryptologos.cc"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+            // Разрешаем изображения
             imgSrc: ["'self'", "data:", "https://cryptologos.cc"],
+            // РАЗРЕШАЕМ ПОДКЛЮЧЕНИЯ К API (РЕШАЕТ ПРОБЛЕМУ С .MAP)
+            connectSrc: ["'self'", "https://cdn.jsdelivr.net"],
+            // Разрешаем iframe (если будут)
+            frameSrc: ["'self'"],
+            // Запрещаем плагины
+            objectSrc: ["'none'"],
+            // Базовый URI
+            baseUri: ["'self'"],
         },
     },
 }));

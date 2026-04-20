@@ -28,7 +28,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('load', () => {
     setTimeout(() => {
-        document.getElementById('preloader')?.classList.add('fade-out');
+        const preloader = document.getElementById('preloader');
+        if (preloader) preloader.classList.add('fade-out');
     }, 500);
 });
 
@@ -85,15 +86,20 @@ function showOnboardingScreen() {
     document.getElementById('welcomeScreen')?.classList.add('hidden');
     document.getElementById('onboardingScreen')?.classList.remove('hidden');
     document.getElementById('appScreen')?.classList.add('hidden');
-    document.getElementById('onboardingUsername').textContent = currentUser?.username || 'Trader';
 
-    // Сброс выбора
+    const usernameEl = document.getElementById('onboardingUsername');
+    if (usernameEl) usernameEl.textContent = currentUser?.username || 'Trader';
+
     selectedMode = null;
     selectedWalletType = null;
     document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
     document.querySelectorAll('.wallet-option-new').forEach(w => w.classList.remove('selected'));
-    document.getElementById('continueOnboarding').disabled = true;
-    document.getElementById('finishOnboarding').disabled = true;
+
+    const continueBtn = document.getElementById('continueOnboarding');
+    if (continueBtn) continueBtn.disabled = true;
+
+    const finishBtn = document.getElementById('finishOnboarding');
+    if (finishBtn) finishBtn.disabled = true;
 }
 
 function showAppScreen() {
@@ -121,7 +127,8 @@ function switchView(viewName) {
     currentView = viewName;
 
     document.querySelectorAll('.view-container').forEach(v => v.classList.add('hidden'));
-    document.getElementById(`${viewName}View`)?.classList.remove('hidden');
+    const viewEl = document.getElementById(`${viewName}View`);
+    if (viewEl) viewEl.classList.remove('hidden');
 
     document.querySelectorAll('.nav-link-header, .mobile-nav-link').forEach(link => {
         link.classList.remove('active');
@@ -129,18 +136,16 @@ function switchView(viewName) {
     });
 
     const titles = {
-        journal: 'Терминал',
+        journal: 'Журнал',
         analytics: 'Аналитика',
         premium: 'Premium',
         leaderboard: 'Рейтинг',
         admin: 'Админ-панель',
         settings: 'Настройки'
     };
-    const pageTitle = document.querySelector('.page-title');
-    if (!pageTitle) {
-        const h2 = document.querySelector('.page-header h2');
-        if (h2) h2.textContent = titles[viewName] || 'Терминал';
-    }
+
+    const h2 = document.querySelector('.page-header h2');
+    if (h2) h2.textContent = titles[viewName] || 'Журнал';
 
     if (viewName === 'leaderboard') {
         if (!userStatus.wallet_connected && !isAdmin) {
@@ -164,111 +169,121 @@ function setupEventListeners() {
             tab.classList.add('active');
 
             const isLogin = tab.dataset.auth === 'login';
-            document.getElementById('loginForm').classList.toggle('hidden', !isLogin);
-            document.getElementById('registerForm').classList.toggle('hidden', isLogin);
-            document.getElementById('authError').textContent = '';
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const authError = document.getElementById('authError');
+
+            if (loginForm) loginForm.classList.toggle('hidden', !isLogin);
+            if (registerForm) registerForm.classList.toggle('hidden', isLogin);
+            if (authError) authError.textContent = '';
         });
     });
 
     // Форма входа
-    document.getElementById('loginForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const authError = document.getElementById('authError');
+    const loginForm = document.getElementById('loginForm');
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const authError = document.getElementById('authError');
 
-        try {
-            const response = await fetch(`${API_BASE}/api/auth/login`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    username: formData.get('username'),
-                    password: formData.get('password')
-                })
-            });
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: formData.get('username'),
+                        password: formData.get('password')
+                    })
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            if (response.ok) {
-                authToken = data.token;
-                currentUser = data.user;
-                userStatus = {
-                    wallet_connected: data.user.wallet_connected,
-                    wallet_address: data.user.wallet_address,
-                    is_public: data.user.is_public,
-                    first_login: data.user.first_login,
-                    is_admin: data.user.is_admin
-                };
-                isAdmin = data.user.is_admin;
-                localStorage.setItem('authToken', authToken);
+                if (response.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    userStatus = {
+                        wallet_connected: data.user.wallet_connected,
+                        wallet_address: data.user.wallet_address,
+                        is_public: data.user.is_public,
+                        first_login: data.user.first_login,
+                        is_admin: data.user.is_admin
+                    };
+                    isAdmin = data.user.is_admin;
+                    localStorage.setItem('authToken', authToken);
 
-                if (userStatus.first_login) {
-                    showOnboardingScreen();
+                    if (userStatus.first_login) {
+                        showOnboardingScreen();
+                    } else {
+                        await loadTrades();
+                        showAppScreen();
+                    }
                 } else {
-                    await loadTrades();
-                    showAppScreen();
+                    if (authError) authError.textContent = data.error || 'Ошибка входа';
                 }
-            } else {
-                authError.textContent = data.error || 'Ошибка входа';
+            } catch (error) {
+                if (authError) authError.textContent = 'Ошибка соединения';
             }
-        } catch (error) {
-            authError.textContent = 'Ошибка соединения';
-        }
-    });
+        });
+    }
 
     // Форма регистрации
-    document.getElementById('registerForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const authError = document.getElementById('authError');
+    const registerForm = document.getElementById('registerForm');
+    if (registerForm) {
+        registerForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const authError = document.getElementById('authError');
 
-        const username = formData.get('username');
-        const password = formData.get('password');
-        const confirmPassword = formData.get('confirmPassword');
+            const username = formData.get('username');
+            const password = formData.get('password');
+            const confirmPassword = formData.get('confirmPassword');
 
-        if (!username || !password || !confirmPassword) {
-            authError.textContent = 'Все поля обязательны';
-            return;
-        }
-        if (username.length < 3) {
-            authError.textContent = 'Имя должно быть не менее 3 символов';
-            return;
-        }
-        if (password.length < 6) {
-            authError.textContent = 'Пароль должен быть не менее 6 символов';
-            return;
-        }
-        if (password !== confirmPassword) {
-            authError.textContent = 'Пароли не совпадают';
-            return;
-        }
-
-        try {
-            const response = await fetch(`${API_BASE}/api/auth/register`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await response.json();
-
-            if (response.ok) {
-                authToken = data.token;
-                currentUser = data.user;
-                userStatus = {
-                    wallet_connected: false,
-                    is_public: false,
-                    first_login: true,
-                    is_admin: false
-                };
-                localStorage.setItem('authToken', authToken);
-                showOnboardingScreen();
-            } else {
-                authError.textContent = data.error || 'Ошибка регистрации';
+            if (!username || !password || !confirmPassword) {
+                if (authError) authError.textContent = 'Все поля обязательны';
+                return;
             }
-        } catch (error) {
-            authError.textContent = 'Ошибка соединения';
-        }
-    });
+            if (username.length < 3) {
+                if (authError) authError.textContent = 'Логин: минимум 3 символа';
+                return;
+            }
+            if (password.length < 6) {
+                if (authError) authError.textContent = 'Пароль: минимум 6 символов';
+                return;
+            }
+            if (password !== confirmPassword) {
+                if (authError) authError.textContent = 'Пароли не совпадают';
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    authToken = data.token;
+                    currentUser = data.user;
+                    userStatus = {
+                        wallet_connected: false,
+                        is_public: false,
+                        first_login: true,
+                        is_admin: false
+                    };
+                    localStorage.setItem('authToken', authToken);
+                    showOnboardingScreen();
+                } else {
+                    if (authError) authError.textContent = data.error || 'Ошибка регистрации';
+                }
+            } catch (error) {
+                if (authError) authError.textContent = 'Ошибка соединения';
+            }
+        });
+    }
 
     // Онбординг: выбор режима
     document.querySelectorAll('.mode-card').forEach(card => {
@@ -276,19 +291,23 @@ function setupEventListeners() {
             document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
             card.classList.add('selected');
             selectedMode = card.dataset.mode;
-            document.getElementById('continueOnboarding').disabled = false;
+            const continueBtn = document.getElementById('continueOnboarding');
+            if (continueBtn) continueBtn.disabled = false;
         });
     });
 
     // Онбординг: продолжить
-    document.getElementById('continueOnboarding').addEventListener('click', () => {
-        if (selectedMode === 'pro') {
-            document.getElementById('modeStep').classList.add('hidden');
-            document.getElementById('walletStep').classList.remove('hidden');
-        } else {
-            finishOnboarding(false);
-        }
-    });
+    const continueBtn = document.getElementById('continueOnboarding');
+    if (continueBtn) {
+        continueBtn.addEventListener('click', () => {
+            if (selectedMode === 'pro') {
+                document.getElementById('modeStep')?.classList.add('hidden');
+                document.getElementById('walletStep')?.classList.remove('hidden');
+            } else {
+                finishOnboarding(false);
+            }
+        });
+    }
 
     // Онбординг: выбор кошелька
     document.querySelectorAll('.wallet-option-new').forEach(opt => {
@@ -301,28 +320,36 @@ function setupEventListeners() {
     });
 
     // Онбординг: ввод адреса
-    document.getElementById('walletAddressInput').addEventListener('input', checkWalletForm);
+    const walletInput = document.getElementById('walletAddressInput');
+    if (walletInput) {
+        walletInput.addEventListener('input', checkWalletForm);
+    }
 
     function checkWalletForm() {
-        const address = document.getElementById('walletAddressInput').value.trim();
-        document.getElementById('finishOnboarding').disabled = !selectedWalletType || !address;
+        const address = document.getElementById('walletAddressInput')?.value.trim();
+        const finishBtn = document.getElementById('finishOnboarding');
+        if (finishBtn) finishBtn.disabled = !selectedWalletType || !address;
     }
 
     // Онбординг: назад
-    document.getElementById('backToMode').addEventListener('click', () => {
-        document.getElementById('walletStep').classList.add('hidden');
-        document.getElementById('modeStep').classList.remove('hidden');
-    });
+    const backBtn = document.getElementById('backToMode');
+    if (backBtn) {
+        backBtn.addEventListener('click', () => {
+            document.getElementById('walletStep')?.classList.add('hidden');
+            document.getElementById('modeStep')?.classList.remove('hidden');
+        });
+    }
 
     // Онбординг: завершить
-    document.getElementById('finishOnboarding').addEventListener('click', () => {
-        finishOnboarding(true);
-    });
+    const finishBtn = document.getElementById('finishOnboarding');
+    if (finishBtn) {
+        finishBtn.addEventListener('click', () => finishOnboarding(true));
+    }
 
     async function finishOnboarding(isPro) {
         try {
             if (isPro) {
-                const address = document.getElementById('walletAddressInput').value.trim();
+                const address = document.getElementById('walletAddressInput')?.value.trim();
                 await fetch(`${API_BASE}/api/user/wallet`, {
                     method: 'POST',
                     headers: {
@@ -357,12 +384,11 @@ function setupEventListeners() {
     });
 
     // Мобильное меню
-    document.getElementById('menuToggle')?.addEventListener('click', () => {
-        document.getElementById('mobileMenu').classList.remove('hidden');
-    });
-    document.getElementById('closeMenu')?.addEventListener('click', () => {
-        document.getElementById('mobileMenu').classList.add('hidden');
-    });
+    const menuToggle = document.getElementById('menuToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    const closeMenu = document.getElementById('closeMenu');
+    if (menuToggle) menuToggle.addEventListener('click', () => mobileMenu?.classList.remove('hidden'));
+    if (closeMenu) closeMenu.addEventListener('click', () => mobileMenu?.classList.add('hidden'));
 
     // Выход
     const logout = () => {
@@ -428,10 +454,15 @@ function setupEventListeners() {
     // Экспорт/импорт
     document.getElementById('exportDataBtn')?.addEventListener('click', exportData);
     document.getElementById('importDataBtn')?.addEventListener('click', () => {
-        document.getElementById('importFileInput').click();
+        document.getElementById('importFileInput')?.click();
     });
     document.getElementById('importFileInput')?.addEventListener('change', importData);
     document.getElementById('clearDataBtn')?.addEventListener('click', clearAllData);
+
+    // Upgrade to Pro
+    document.getElementById('upgradeToProBtn')?.addEventListener('click', () => {
+        switchView('settings');
+    });
 }
 
 // ========== Работа со сделками ==========
@@ -455,9 +486,13 @@ async function addTrade() {
         return;
     }
 
-    const pair = document.getElementById('pairInput').value.trim();
-    const volume = parseFloat(document.getElementById('volumeInput').value.trim().replace(',', '.'));
-    const isProfit = document.querySelector('.type-option.profit').classList.contains('active');
+    const pairInput = document.getElementById('pairInput');
+    const volumeInput = document.getElementById('volumeInput');
+    const profitBtn = document.querySelector('.type-option.profit');
+
+    const pair = pairInput?.value.trim();
+    const volume = parseFloat(volumeInput?.value.trim().replace(',', '.'));
+    const isProfit = profitBtn?.classList.contains('active');
 
     if (!pair) { alert('Введите пару'); return; }
     if (isNaN(volume) || volume <= 0) { alert('Введите объём'); return; }
@@ -483,7 +518,7 @@ async function addTrade() {
         if (response.ok) {
             trades.unshift(newTrade);
             renderJournal();
-            document.getElementById('volumeInput').value = '';
+            if (volumeInput) volumeInput.value = '';
         } else {
             const data = await response.json();
             alert(data.error);
@@ -517,6 +552,8 @@ window.deleteTrade = deleteTrade;
 
 function renderJournal() {
     const tbody = document.getElementById('tradesList');
+    if (!tbody) return;
+
     const filtered = currentFilter === 'all' ? trades : trades.filter(t => t.type === currentFilter);
 
     if (filtered.length === 0) {
@@ -560,30 +597,49 @@ function updateStats() {
     const avgProfit = wins ? profitSum / wins : 0;
     const avgLoss = (trades.length - wins) ? lossSum / (trades.length - wins) : 0;
 
-    document.getElementById('totalPL').textContent = (totalPL >= 0 ? '+' : '−') + '$' + Math.abs(totalPL).toFixed(2);
-    document.getElementById('totalPL').className = `stat-value-new ${totalPL >= 0 ? 'profit-text' : 'loss-text'}`;
-    document.getElementById('winRate').textContent = winRate.toFixed(1) + '%';
-    document.getElementById('winRateProgress').style.width = winRate + '%';
-    document.getElementById('totalTradesCount').textContent = trades.length;
-    document.getElementById('winCount').textContent = wins + ' LONG';
-    document.getElementById('lossCount').textContent = (trades.length - wins) + ' SHORT';
+    const totalPLEl = document.getElementById('totalPL');
+    if (totalPLEl) {
+        totalPLEl.textContent = (totalPL >= 0 ? '+' : '−') + '$' + Math.abs(totalPL).toFixed(2);
+        totalPLEl.className = `stat-value-new ${totalPL >= 0 ? 'profit-text' : 'loss-text'}`;
+    }
+
+    const winRateEl = document.getElementById('winRate');
+    if (winRateEl) winRateEl.textContent = winRate.toFixed(1) + '%';
+
+    const progressEl = document.getElementById('winRateProgress');
+    if (progressEl) progressEl.style.width = winRate + '%';
+
+    const totalTradesEl = document.getElementById('totalTradesCount');
+    if (totalTradesEl) totalTradesEl.textContent = trades.length;
+
+    const winCountEl = document.getElementById('winCount');
+    if (winCountEl) winCountEl.textContent = wins + ' LONG';
+
+    const lossCountEl = document.getElementById('lossCount');
+    if (lossCountEl) lossCountEl.textContent = (trades.length - wins) + ' SHORT';
 
     const plChange = document.getElementById('plChange');
-    if (trades.length) {
+    if (plChange && trades.length) {
         const last = trades[0];
         plChange.textContent = (last.type === 'profit' ? '+' : '-') + '$' + last.volume.toFixed(2);
         plChange.className = 'stat-change-new ' + (last.type === 'profit' ? 'positive' : 'negative');
     }
 
     // Аналитика
-    document.getElementById('avgProfit').textContent = '$' + avgProfit.toFixed(2);
-    document.getElementById('avgLoss').textContent = '$' + avgLoss.toFixed(2);
-    document.getElementById('bestTrade').textContent = '$' + maxProfit.toFixed(2);
-    document.getElementById('worstTrade').textContent = '$' + maxLoss.toFixed(2);
+    const avgProfitEl = document.getElementById('avgProfit');
+    if (avgProfitEl) avgProfitEl.textContent = '$' + avgProfit.toFixed(2);
+
+    const avgLossEl = document.getElementById('avgLoss');
+    if (avgLossEl) avgLossEl.textContent = '$' + avgLoss.toFixed(2);
+
+    const bestTradeEl = document.getElementById('bestTrade');
+    if (bestTradeEl) bestTradeEl.textContent = '$' + maxProfit.toFixed(2);
+
+    const worstTradeEl = document.getElementById('worstTrade');
+    if (worstTradeEl) worstTradeEl.textContent = '$' + maxLoss.toFixed(2);
 }
 
 function updateCharts() {
-    // График P/L
     const ctx1 = document.getElementById('plChart')?.getContext('2d');
     if (ctx1) {
         if (plChart) plChart.destroy();
@@ -611,7 +667,6 @@ function updateCharts() {
         });
     }
 
-    // Круговая диаграмма
     const ctx2 = document.getElementById('ratioChart')?.getContext('2d');
     if (ctx2) {
         if (ratioChart) ratioChart.destroy();
@@ -629,8 +684,10 @@ function updateCharts() {
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
-        document.getElementById('profitPercent').textContent = trades.length ? ((wins / trades.length) * 100).toFixed(1) + '%' : '0%';
-        document.getElementById('lossPercent').textContent = trades.length ? ((losses / trades.length) * 100).toFixed(1) + '%' : '0%';
+        const profitPercent = document.getElementById('profitPercent');
+        const lossPercent = document.getElementById('lossPercent');
+        if (profitPercent) profitPercent.textContent = trades.length ? ((wins / trades.length) * 100).toFixed(1) + '%' : '0%';
+        if (lossPercent) lossPercent.textContent = trades.length ? ((losses / trades.length) * 100).toFixed(1) + '%' : '0%';
     }
 }
 
@@ -645,8 +702,22 @@ function updateProfileDisplay() {
         document.querySelectorAll('#headerUsername, #profileUsername').forEach(el => {
             if (el) el.textContent = currentUser.username;
         });
-        document.getElementById('accountTypeDisplay').textContent = userStatus.wallet_connected ? 'Pro' : 'Manual';
-        document.getElementById('publicProfileToggle').checked = userStatus.is_public;
+        const tariffName = document.getElementById('tariffName');
+        const tariffPrice = document.getElementById('tariffPrice');
+        const accountType = document.getElementById('accountTypeDisplay');
+
+        if (userStatus.wallet_connected) {
+            if (tariffName) tariffName.textContent = 'Pro Аналитика';
+            if (tariffPrice) tariffPrice.textContent = '500 ₽/мес';
+            if (accountType) accountType.textContent = 'Pro';
+        } else {
+            if (tariffName) tariffName.textContent = 'Базовый';
+            if (tariffPrice) tariffPrice.textContent = 'Бесплатно';
+            if (accountType) accountType.textContent = 'Базовый';
+        }
+
+        const toggle = document.getElementById('publicProfileToggle');
+        if (toggle) toggle.checked = userStatus.is_public;
     }
 }
 
@@ -658,19 +729,20 @@ async function loadPremiumAnalytics() {
         });
         if (res.ok) {
             const d = await res.json();
-            document.getElementById('profitFactor').textContent = d.profitFactor;
-            document.getElementById('sharpeRatio').textContent = d.sharpeRatio;
-            document.getElementById('maxDrawdown').textContent = '$' + d.maxDrawdown;
-            document.getElementById('monthlyProjection').textContent = '$' + d.monthlyProjection;
-            document.getElementById('bestPair').textContent = d.bestPair;
-            document.getElementById('worstPair').textContent = d.worstPair;
-            document.getElementById('bestDay').textContent = d.bestDay ? `${d.bestDay.date} (+$${d.bestDay.pl})` : '—';
-            document.getElementById('worstDay').textContent = d.worstDay ? `${d.worstDay.date} (-$${Math.abs(d.worstDay.pl)})` : '—';
+            document.getElementById('profitFactor')?.textContent = d.profitFactor;
+            document.getElementById('sharpeRatio')?.textContent = d.sharpeRatio;
+            document.getElementById('maxDrawdown')?.textContent = '$' + d.maxDrawdown;
+            document.getElementById('monthlyProjection')?.textContent = '$' + d.monthlyProjection;
+            document.getElementById('bestPair')?.textContent = d.bestPair;
+            document.getElementById('worstPair')?.textContent = d.worstPair;
+            document.getElementById('bestDay')?.textContent = d.bestDay ? `${d.bestDay.date} (+$${d.bestDay.pl})` : '—';
+            document.getElementById('worstDay')?.textContent = d.worstDay ? `${d.worstDay.date} (-$${Math.abs(d.worstDay.pl)})` : '—';
 
             const recs = [];
             if (d.winRate > 60) recs.push('Отличный винрейт!');
             if (d.profitFactor > 2) recs.push('Profit Factor > 2 — отлично!');
-            document.getElementById('premiumRecommendations').innerHTML = recs.length ? recs.map(r => `<p>• ${r}</p>`).join('') : '<p>Недостаточно данных</p>';
+            const recEl = document.getElementById('premiumRecommendations');
+            if (recEl) recEl.innerHTML = recs.length ? recs.map(r => `<p>• ${r}</p>`).join('') : '<p>Недостаточно данных</p>';
         }
     } catch (e) {}
 }
@@ -684,16 +756,18 @@ async function loadAdminUsers() {
         if (res.ok) {
             const users = await res.json();
             const tbody = document.getElementById('adminUsersList');
-            tbody.innerHTML = users.map(u => `
-                <tr>
-                    <td>${u.id}</td>
-                    <td>${u.username}</td>
-                    <td>${u.wallet_connected ? '✅' : '❌'}</td>
-                    <td>${u.trades_count || 0}</td>
-                    <td class="${u.total_pl >= 0 ? 'profit-text' : 'loss-text'}">$${u.total_pl?.toFixed(2) || '0'}</td>
-                    <td><button class="icon-btn" onclick="deleteAdminUser(${u.id})" style="color: #EF4444;">🗑️</button></td>
-                </tr>
-            `).join('');
+            if (tbody) {
+                tbody.innerHTML = users.map(u => `
+                    <tr>
+                        <td>${u.id}</td>
+                        <td>${u.username}</td>
+                        <td>${u.wallet_connected ? '✅' : '❌'}</td>
+                        <td>${u.trades_count || 0}</td>
+                        <td class="${u.total_pl >= 0 ? 'profit-text' : 'loss-text'}">$${u.total_pl?.toFixed(2) || '0'}</td>
+                        <td><button class="icon-btn" onclick="deleteAdminUser(${u.id})" style="color: #EF4444;">🗑️</button></td>
+                    </tr>
+                `).join('');
+            }
         }
     } catch (e) {}
 }
@@ -711,6 +785,8 @@ window.deleteAdminUser = async (id) => {
 async function loadLeaderboard() {
     const limit = document.getElementById('leaderboardLimit')?.value || 25;
     const tbody = document.getElementById('leaderboardBody');
+    if (!tbody) return;
+
     try {
         const res = await fetch(`${API_BASE}/api/leaderboard?limit=${limit}`);
         const data = await res.json();
@@ -775,7 +851,7 @@ async function clearAllData() {
     renderJournal();
 }
 
-// ========== ДИНАМИЧНЫЙ ФОН (МЕДЛЕННЫЙ + 120 ЧАСТИЦ) ==========
+// ========== ДИНАМИЧНЫЙ ФОН ==========
 (function() {
     const canvas = document.getElementById('particleCanvas');
     if (!canvas) return;
@@ -787,15 +863,19 @@ async function clearAllData() {
     let mouseY = height / 2;
 
     const particles = [];
-    const particleCount = 120;
+    const particleCount = 100;
+    const connectionDistance = 150;
+    const mouseInfluenceDistance = 250;
 
     class Particle {
         constructor() {
             this.x = Math.random() * width;
             this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 0.1;
-            this.vy = (Math.random() - 0.5) * 0.1;
-            this.size = Math.random() * 2 + 1;
+            this.vx = (Math.random() - 0.5) * 0.2;
+            this.vy = (Math.random() - 0.5) * 0.2;
+            this.size = Math.random() * 2.5 + 1.5;
+            this.baseX = this.x;
+            this.baseY = this.y;
         }
 
         update() {
@@ -803,144 +883,49 @@ async function clearAllData() {
             const dy = mouseY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (dist < 200) {
-                const force = (200 - dist) / 200;
-                this.vx += dx * force * 0.003;
-                this.vy += dy * force * 0.003;
+            if (dist < mouseInfluenceDistance) {
+                const force = (1 - dist / mouseInfluenceDistance) * 0.15;
+                this.vx += dx * force;
+                this.vy += dy * force;
             }
 
-            this.vx *= 0.995;
-            this.vy *= 0.995;
+            const homeDx = this.baseX - this.x;
+            const homeDy = this.baseY - this.y;
+            this.vx += homeDx * 0.005;
+            this.vy += homeDy * 0.005;
+
+            this.vx *= 0.95;
+            this.vy *= 0.95;
 
             this.x += this.vx;
             this.y += this.vy;
 
-            if (this.x < 0) this.x = width;
-            if (this.x > width) this.x = 0;
-            if (this.y < 0) this.y = height;
-            if (this.y > height) this.y = 0;
+            if (this.x < 0) { this.x = 0; this.vx *= -0.5; }
+            if (this.x > width) { this.x = width; this.vx *= -0.5; }
+            if (this.y < 0) { this.y = 0; this.vy *= -0.5; }
+            if (this.y > height) { this.y = height; this.vy *= -0.5; }
         }
 
         draw() {
             const dx = mouseX - this.x;
             const dy = mouseY - this.y;
             const dist = Math.sqrt(dx * dx + dy * dy);
-            const opacity = Math.max(0.1, 1 - dist / 300);
 
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(16, 185, 129, ${opacity * 0.4})`;
-            ctx.fill();
-        }
-    }
+            let opacity = 0.4;
+            let size = this.size;
 
-    function init() {
-        particles.length = 0;
-        for (let i = 0; i < particleCount; i++) particles.push(new Particle());
-    }
-
-    function animate() {
-        ctx.clearRect(0, 0, width, height);
-
-        ctx.strokeStyle = 'rgba(16, 185, 129, 0.05)';
-        ctx.lineWidth = 0.5;
-        for (let i = 0; i < particles.length; i++) {
-            for (let j = i + 1; j < particles.length; j++) {
-                const dx = particles[i].x - particles[j].x;
-                const dy = particles[i].y - particles[j].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < 120) {
-                    ctx.beginPath();
-                    ctx.moveTo(particles[i].x, particles[i].y);
-                    ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.strokeStyle = `rgba(16, 185, 129, ${0.08 * (1 - dist / 120)})`;
-                    ctx.stroke();
-                }
-            }
-        }
-
-        particles.forEach(p => { p.update(); p.draw(); });
-        requestAnimationFrame(animate);
-    }
-
-    window.addEventListener('resize', () => {
-        width = window.innerWidth;
-        height = window.innerHeight;
-        canvas.width = width;
-        canvas.height = height;
-        init();
-    });
-
-    window.addEventListener('mousemove', (e) => {
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-        const glow = document.getElementById('mouseGlow');
-        if (glow) {
-            glow.style.left = (mouseX - 200) + 'px';
-            glow.style.top = (mouseY - 200) + 'px';
-        }
-    });
-
-    canvas.width = width;
-    canvas.height = height;
-    init();
-    animate();
-})();
-// ========== ФОН ДЛЯ ОНБОРДИНГА ==========
-(function() {
-    const canvas = document.getElementById('onboardingParticleCanvas');
-    if (!canvas) return;
-
-    const ctx = canvas.getContext('2d');
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    let mouseX = width / 2;
-    let mouseY = height / 2;
-
-    const particles = [];
-    const particleCount = 80;
-
-    class Particle {
-        constructor() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 0.1;
-            this.vy = (Math.random() - 0.5) * 0.1;
-            this.size = Math.random() * 2 + 1;
-        }
-
-        update() {
-            const dx = mouseX - this.x;
-            const dy = mouseY - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < 200) {
-                const force = (200 - dist) / 200;
-                this.vx += dx * force * 0.003;
-                this.vy += dy * force * 0.003;
+            if (dist < mouseInfluenceDistance) {
+                opacity = 0.8;
+                size = this.size * 1.5;
             }
 
-            this.vx *= 0.995;
-            this.vy *= 0.995;
-
-            this.x += this.vx;
-            this.y += this.vy;
-
-            if (this.x < 0) this.x = width;
-            if (this.x > width) this.x = 0;
-            if (this.y < 0) this.y = height;
-            if (this.y > height) this.y = 0;
-        }
-
-        draw() {
-            const dx = mouseX - this.x;
-            const dy = mouseY - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const opacity = Math.max(0.1, 1 - dist / 300);
+            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 2);
+            gradient.addColorStop(0, `rgba(16, 185, 129, ${opacity})`);
+            gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity * 0.5})`);
 
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(16, 185, 129, ${opacity * 0.4})`;
+            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
             ctx.fill();
         }
     }
@@ -956,11 +941,22 @@ async function clearAllData() {
                 const dx = particles[i].x - particles[j].x;
                 const dy = particles[i].y - particles[j].y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
-                if (dist < 120) {
+
+                if (dist < connectionDistance) {
+                    const opacity = 0.15 * (1 - dist / connectionDistance);
+
+                    const gradient = ctx.createLinearGradient(
+                        particles[i].x, particles[i].y,
+                        particles[j].x, particles[j].y
+                    );
+                    gradient.addColorStop(0, `rgba(16, 185, 129, ${opacity})`);
+                    gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity})`);
+
                     ctx.beginPath();
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[j].x, particles[j].y);
-                    ctx.strokeStyle = `rgba(16, 185, 129, ${0.08 * (1 - dist / 120)})`;
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 0.5;
                     ctx.stroke();
                 }
             }
@@ -986,11 +982,145 @@ async function clearAllData() {
     window.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-        const glow = document.getElementById('onboardingMouseGlow');
-        if (glow) {
-            glow.style.left = (mouseX - 200) + 'px';
-            glow.style.top = (mouseY - 200) + 'px';
+    });
+
+    canvas.width = width;
+    canvas.height = height;
+    init();
+    animate();
+})();
+
+// ========== ФОН ДЛЯ ОНБОРДИНГА ==========
+(function() {
+    const canvas = document.getElementById('onboardingParticleCanvas');
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let mouseX = width / 2;
+    let mouseY = height / 2;
+
+    const particles = [];
+    const particleCount = 80;
+    const connectionDistance = 150;
+    const mouseInfluenceDistance = 250;
+
+    class Particle {
+        constructor() {
+            this.x = Math.random() * width;
+            this.y = Math.random() * height;
+            this.vx = (Math.random() - 0.5) * 0.2;
+            this.vy = (Math.random() - 0.5) * 0.2;
+            this.size = Math.random() * 2.5 + 1.5;
+            this.baseX = this.x;
+            this.baseY = this.y;
         }
+
+        update() {
+            const dx = mouseX - this.x;
+            const dy = mouseY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < mouseInfluenceDistance) {
+                const force = (1 - dist / mouseInfluenceDistance) * 0.15;
+                this.vx += dx * force;
+                this.vy += dy * force;
+            }
+
+            const homeDx = this.baseX - this.x;
+            const homeDy = this.baseY - this.y;
+            this.vx += homeDx * 0.005;
+            this.vy += homeDy * 0.005;
+
+            this.vx *= 0.95;
+            this.vy *= 0.95;
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            if (this.x < 0) { this.x = 0; this.vx *= -0.5; }
+            if (this.x > width) { this.x = width; this.vx *= -0.5; }
+            if (this.y < 0) { this.y = 0; this.vy *= -0.5; }
+            if (this.y > height) { this.y = height; this.vy *= -0.5; }
+        }
+
+        draw() {
+            const dx = mouseX - this.x;
+            const dy = mouseY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            let opacity = 0.4;
+            let size = this.size;
+
+            if (dist < mouseInfluenceDistance) {
+                opacity = 0.8;
+                size = this.size * 1.5;
+            }
+
+            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 2);
+            gradient.addColorStop(0, `rgba(16, 185, 129, ${opacity})`);
+            gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity * 0.5})`);
+
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+        }
+    }
+
+    function init() {
+        particles.length = 0;
+        for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+    }
+
+    function drawConnections() {
+        for (let i = 0; i < particles.length; i++) {
+            for (let j = i + 1; j < particles.length; j++) {
+                const dx = particles[i].x - particles[j].x;
+                const dy = particles[i].y - particles[j].y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < connectionDistance) {
+                    const opacity = 0.15 * (1 - dist / connectionDistance);
+
+                    const gradient = ctx.createLinearGradient(
+                        particles[i].x, particles[i].y,
+                        particles[j].x, particles[j].y
+                    );
+                    gradient.addColorStop(0, `rgba(16, 185, 129, ${opacity})`);
+                    gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity})`);
+
+                    ctx.beginPath();
+                    ctx.moveTo(particles[i].x, particles[i].y);
+                    ctx.lineTo(particles[j].x, particles[j].y);
+                    ctx.strokeStyle = gradient;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            }
+        }
+    }
+
+    function animate() {
+        ctx.clearRect(0, 0, width, height);
+        particles.forEach(p => p.update());
+        drawConnections();
+        particles.forEach(p => p.draw());
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+        init();
+    });
+
+    window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
     });
 
     canvas.width = width;
