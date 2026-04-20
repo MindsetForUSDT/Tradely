@@ -140,6 +140,7 @@
             </div>
         </header>
         <main class="app-main">
+            <!-- ЖУРНАЛ -->
             <div id="journalView" class="view-container">
                 <div class="page-header"><h2>Журнал сделок</h2><span class="date-badge" id="currentDate"></span></div>
                 <div class="stats-grid">
@@ -158,14 +159,33 @@
                     <table class="trades-table"><thead><tr><th>Время</th><th>Пара</th><th>Объём</th><th>P/L</th><th></th></tr></thead><tbody id="tradesList"></tbody></table>
                 </div>
             </div>
+
+            <!-- АНАЛИТИКА (исправлены контейнеры) -->
             <div id="analyticsView" class="view-container hidden">
                 <div class="page-header"><h2>Аналитика</h2></div>
                 <div class="charts-grid">
-                    <div class="chart-card"><h3>P/L</h3><canvas id="plChart"></canvas></div>
-                    <div class="chart-card"><h3>Соотношение</h3><canvas id="ratioChart"></canvas><div class="chart-legend"><span><span class="dot profit"></span>LONG <span id="profitPercent">0%</span></span><span><span class="dot loss"></span>SHORT <span id="lossPercent">0%</span></span></div></div>
-                    <div class="chart-card full"><h3>Детали</h3><div class="stats-details"><div class="detail"><span>Средний LONG</span><span class="profit-text" id="avgProfit">$0</span></div><div class="detail"><span>Средний SHORT</span><span class="loss-text" id="avgLoss">$0</span></div><div class="detail"><span>Лучшая</span><span class="profit-text" id="bestTrade">$0</span></div><div class="detail"><span>Худшая</span><span class="loss-text" id="worstTrade">$0</span></div></div></div>
+                    <div class="chart-card">
+                        <h3>P/L динамика</h3>
+                        <div class="chart-container"><canvas id="plChart"></canvas></div>
+                    </div>
+                    <div class="chart-card">
+                        <h3>Соотношение</h3>
+                        <div class="chart-container"><canvas id="ratioChart"></canvas></div>
+                        <div class="chart-legend"><span><span class="dot profit"></span>LONG <span id="profitPercent">0%</span></span><span><span class="dot loss"></span>SHORT <span id="lossPercent">0%</span></span></div>
+                    </div>
+                    <div class="chart-card full">
+                        <h3>Детали</h3>
+                        <div class="stats-details">
+                            <div class="detail"><span>Средний LONG</span><span class="profit-text" id="avgProfit">$0</span></div>
+                            <div class="detail"><span>Средний SHORT</span><span class="loss-text" id="avgLoss">$0</span></div>
+                            <div class="detail"><span>Лучшая</span><span class="profit-text" id="bestTrade">$0</span></div>
+                            <div class="detail"><span>Худшая</span><span class="loss-text" id="worstTrade">$0</span></div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- PREMIUM, LEADERBOARD, ADMIN, SETTINGS (без изменений) -->
             <div id="premiumView" class="view-container hidden">
                 <div class="page-header"><h2>Premium</h2><span class="premium-badge">PRO</span></div>
                 <div class="premium-grid">

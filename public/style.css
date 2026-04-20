@@ -161,3 +161,29 @@ body { background: #0a0a0c; color: #ededef; font-family: 'Inter', sans-serif; li
 .leaderboard-table th, .admin-table th { text-align: left; padding: 16px; color: #71717a; font-size: 11px; text-transform: uppercase; }
 .leaderboard-table td, .admin-table td { padding: 14px 16px; border-bottom: 1px solid #1e1e24; }
 .select-sm { padding: 10px 16px; background: #111115; border: 1px solid #2a2a30; border-radius: 10px; color: #fff; }
+/* Добавить в конец файла */
+
+/* Фиксированные контейнеры для графиков */
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 200px;
+    min-height: 200px;
+}
+
+.chart-container canvas {
+    display: block;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* Исправление для скрытых контейнеров */
+.view-container.hidden {
+    display: none !important;
+}
+
+.view-container {
+    display: block;
+}
+
+/* Остальные стили остаются без изменений */
