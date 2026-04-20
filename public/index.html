@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Tradeum · Terminal</title>
+    <title>Tradeum · Аналитика сделок</title>
     <meta name="theme-color" content="#000000">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -19,10 +19,9 @@
         <div class="preloader-line"></div>
     </div>
 
-    <!-- Главный экран (Welcome + Auth) -->
+    <!-- Главный экран -->
     <div id="welcomeScreen" class="welcome-screen">
         <canvas id="particleCanvas" class="particle-canvas"></canvas>
-        <div class="mouse-glow" id="mouseGlow"></div>
 
         <div class="welcome-container">
             <div class="welcome-left slide-in-left">
@@ -31,25 +30,25 @@
                     <span class="logo-text">TRADEUM</span>
                 </div>
                 <h1 class="welcome-title">
-                    Трейдинг<br>
-                    <span class="gradient-text">без границ</span>
+                    Анализируй<br>
+                    <span class="gradient-text">и зарабатывай</span>
                 </h1>
                 <p class="welcome-desc">
-                    Подключай кошелёк и отслеживай сделки автоматически,<br>
-                    либо веди дневник вручную. Выбор за тобой.
+                    Ваш персональный ассистент для разбора торговых операций.<br>
+                    Детальная статистика, графики и умные рекомендации.
                 </p>
                 <div class="welcome-stats">
                     <div class="welcome-stat">
-                        <span class="stat-num">10K+</span>
-                        <span class="stat-label">трейдеров</span>
+                        <span class="stat-num">15+</span>
+                        <span class="stat-label">метрик анализа</span>
                     </div>
                     <div class="welcome-stat">
-                        <span class="stat-num">$2.5M</span>
-                        <span class="stat-label">объём сделок</span>
+                        <span class="stat-num">100%</span>
+                        <span class="stat-label">конфиденциально</span>
                     </div>
                     <div class="welcome-stat">
-                        <span class="stat-num">24/7</span>
-                        <span class="stat-label">поддержка</span>
+                        <span class="stat-num">∞</span>
+                        <span class="stat-label">без лимитов</span>
                     </div>
                 </div>
             </div>
@@ -62,30 +61,30 @@
 
                 <form id="loginForm" class="auth-form-new">
                     <div class="input-group-new">
-                        <label>Username</label>
-                        <input type="text" name="username" placeholder="trader_ivan" required>
+                        <label>Логин</label>
+                        <input type="text" name="username" placeholder="ivan_trader" required>
                     </div>
                     <div class="input-group-new">
-                        <label>Password</label>
+                        <label>Пароль</label>
                         <input type="password" name="password" placeholder="••••••••" required>
                     </div>
                     <button type="submit" class="auth-submit-new">
-                        <span>Войти в терминал</span>
+                        <span>Войти в аккаунт</span>
                         <span class="arrow">→</span>
                     </button>
                 </form>
 
                 <form id="registerForm" class="auth-form-new hidden">
                     <div class="input-group-new">
-                        <label>Username</label>
-                        <input type="text" name="username" placeholder="trader_ivan" required minlength="3">
+                        <label>Логин</label>
+                        <input type="text" name="username" placeholder="ivan_trader" required minlength="3">
                     </div>
                     <div class="input-group-new">
-                        <label>Password</label>
+                        <label>Пароль</label>
                         <input type="password" name="password" placeholder="••••••••" required minlength="6">
                     </div>
                     <div class="input-group-new">
-                        <label>Confirm password</label>
+                        <label>Подтверждение пароля</label>
                         <input type="password" name="confirmPassword" placeholder="••••••••" required>
                     </div>
                     <button type="submit" class="auth-submit-new">
@@ -97,7 +96,7 @@
                 <div id="authError" class="auth-error-new"></div>
 
                 <div class="auth-footer-new">
-                    <span>Secure connection</span>
+                    <span>Защищённое соединение</span>
                     <span>·</span>
                     <span>v3.0.0</span>
                 </div>
@@ -105,20 +104,19 @@
         </div>
     </div>
 
-    <!-- Онбординг (выбор режима) -->
+    <!-- Онбординг -->
     <div id="onboardingScreen" class="onboarding-screen hidden">
         <canvas id="onboardingParticleCanvas" class="particle-canvas"></canvas>
-        <div class="mouse-glow" id="onboardingMouseGlow"></div>
 
         <div class="onboarding-container">
             <div class="onboarding-modal">
                 <div class="onboarding-step" id="modeStep">
                     <div class="step-indicator">Шаг 1 из 2</div>
                     <h2>Выберите тариф</h2>
-                    <p class="onboarding-desc">Как вы хотите вести дневник?</p>
+                    <p class="onboarding-desc">Как вы хотите работать с аналитикой?</p>
 
                     <div class="mode-selector">
-                        <!-- Pro тариф (платный) -->
+                        <!-- Pro тариф -->
                         <div class="mode-card" data-mode="pro">
                             <div class="mode-badge">PRO</div>
                             <div class="mode-icon">
@@ -127,22 +125,22 @@
                                     <circle cx="16" cy="16" r="3" fill="currentColor"/>
                                 </svg>
                             </div>
-                            <h3>Pro Trader</h3>
+                            <h3>Pro Аналитика</h3>
                             <div class="mode-price">
-                                <span class="price">$29</span>
+                                <span class="price">500 ₽</span>
                                 <span class="period">/месяц</span>
                             </div>
-                            <p>Подключите кошелёк для автоматического трекинга сделок</p>
+                            <p>Подключите кошелёк для автоматического импорта сделок</p>
                             <ul>
-                                <li>Автоимпорт сделок</li>
-                                <li>Premium аналитика</li>
+                                <li>Автоматический импорт</li>
+                                <li>Расширенная статистика</li>
                                 <li>Рейтинг трейдеров</li>
-                                <li>Приоритетная поддержка</li>
+                                <li>Экспорт отчётов</li>
                             </ul>
                             <button class="mode-select-btn">Выбрать Pro</button>
                         </div>
 
-                        <!-- Manual тариф (бесплатный) -->
+                        <!-- Manual тариф -->
                         <div class="mode-card" data-mode="manual">
                             <div class="mode-badge free">FREE</div>
                             <div class="mode-icon">
@@ -150,15 +148,15 @@
                                     <path d="M6 10H26M6 16H26M6 22H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 </svg>
                             </div>
-                            <h3>Manual</h3>
+                            <h3>Базовый</h3>
                             <div class="mode-price">
-                                <span class="price">$0</span>
+                                <span class="price">0 ₽</span>
                                 <span class="period">навсегда</span>
                             </div>
-                            <p>Ручной ввод и полный контроль над сделками</p>
+                            <p>Ручной ввод и полный контроль над данными</p>
                             <ul>
-                                <li>Добавление вручную</li>
-                                <li>Редактирование сделок</li>
+                                <li>Ручное добавление</li>
+                                <li>Редактирование записей</li>
                                 <li>Базовая статистика</li>
                                 <li>Локальное хранение</li>
                             </ul>
@@ -167,24 +165,24 @@
                     </div>
 
                     <p class="onboarding-note">
-                        Вы сможете изменить тариф позже в настройках
+                        Тариф можно изменить в любое время в настройках
                     </p>
                 </div>
 
-                <!-- Шаг 2: Оплата и подключение кошелька (для Pro) -->
+                <!-- Шаг 2: Pro -->
                 <div class="onboarding-step hidden" id="walletStep">
                     <div class="step-indicator">Шаг 2 из 2</div>
                     <h2>Активация Pro</h2>
-                    <p class="onboarding-desc">Подключите кошелёк для оплаты и активации</p>
+                    <p class="onboarding-desc">Подключите кошелёк для оплаты</p>
 
                     <div class="payment-summary">
                         <div class="summary-row">
-                            <span>Тариф Pro</span>
-                            <span>$29/мес</span>
+                            <span>Тариф Pro Аналитика</span>
+                            <span>500 ₽/мес</span>
                         </div>
                         <div class="summary-row total">
                             <span>К оплате</span>
-                            <span>$29</span>
+                            <span>500 ₽</span>
                         </div>
                     </div>
 
@@ -209,8 +207,8 @@
                     </div>
 
                     <div class="payment-note">
-                        <p>Оплата производится в USDT (эмуляция)</p>
-                        <p>После оплаты тариф активируется автоматически</p>
+                        <p>Оплата в USDT (тестовый режим)</p>
+                        <p>После активации сделки начнут импортироваться автоматически</p>
                     </div>
 
                     <div class="onboarding-actions">
@@ -231,7 +229,7 @@
             </div>
             <div class="header-center">
                 <nav class="header-nav">
-                    <a href="#" class="nav-link-header active" data-view="journal">Терминал</a>
+                    <a href="#" class="nav-link-header active" data-view="journal">Журнал</a>
                     <a href="#" class="nav-link-header" data-view="analytics">Аналитика</a>
                     <a href="#" class="nav-link-header" data-view="premium">Premium</a>
                     <a href="#" class="nav-link-header" data-view="leaderboard">Рейтинг</a>
@@ -253,7 +251,7 @@
                 <button id="closeMenu">✕</button>
             </div>
             <nav class="mobile-nav">
-                <a href="#" class="mobile-nav-link active" data-view="journal">Терминал</a>
+                <a href="#" class="mobile-nav-link active" data-view="journal">Журнал</a>
                 <a href="#" class="mobile-nav-link" data-view="analytics">Аналитика</a>
                 <a href="#" class="mobile-nav-link" data-view="premium">Premium</a>
                 <a href="#" class="mobile-nav-link" data-view="leaderboard">Рейтинг</a>
@@ -263,12 +261,12 @@
         </aside>
 
         <main class="app-main">
-            <!-- Терминал -->
+            <!-- Журнал -->
             <div id="journalView" class="view-container">
                 <div class="page-header">
-                    <h2>Терминал</h2>
+                    <h2>Журнал сделок</h2>
                     <div class="page-actions">
-                        <span class="date-badge-new" id="currentDate">15.01.2024</span>
+                        <span class="date-badge-new" id="currentDate">20.04.2024</span>
                         <button class="icon-btn" id="refreshData" title="Обновить">↻</button>
                     </div>
                 </div>
@@ -287,7 +285,7 @@
                         </div>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-label-new">Сделки</span>
+                        <span class="stat-label-new">Сделок</span>
                         <span class="stat-value-new" id="totalTradesCount">0</span>
                         <div class="stat-badges">
                             <span class="badge-profit" id="winCount">0 LONG</span>
@@ -327,11 +325,11 @@
             <div id="analyticsView" class="view-container hidden">
                 <div class="page-header"><h2>Аналитика</h2></div>
                 <div class="charts-grid">
-                    <div class="chart-card"><h3>P/L динамика</h3><canvas id="plChart"></canvas></div>
+                    <div class="chart-card"><h3>Динамика P/L</h3><canvas id="plChart"></canvas></div>
                     <div class="chart-card"><h3>Соотношение</h3><canvas id="ratioChart"></canvas>
                         <div class="chart-legend-new"><span><span class="dot profit"></span> LONG <span id="profitPercent">0%</span></span><span><span class="dot loss"></span> SHORT <span id="lossPercent">0%</span></span></div>
                     </div>
-                    <div class="chart-card full-width"><h3>Статистика</h3>
+                    <div class="chart-card full-width"><h3>Детали</h3>
                         <div class="stats-details">
                             <div class="detail-row"><span>Средний LONG</span> <span class="profit-text" id="avgProfit">$0</span></div>
                             <div class="detail-row"><span>Средний SHORT</span> <span class="loss-text" id="avgLoss">$0</span></div>
@@ -350,11 +348,11 @@
                         <div class="metric-list">
                             <div class="metric"><span>Profit Factor</span> <strong id="profitFactor">—</strong></div>
                             <div class="metric"><span>Sharpe Ratio</span> <strong id="sharpeRatio">—</strong></div>
-                            <div class="metric"><span>Max Drawdown</span> <strong id="maxDrawdown">—</strong></div>
-                            <div class="metric"><span>Прогноз</span> <strong id="monthlyProjection">—</strong></div>
+                            <div class="metric"><span>Макс. просадка</span> <strong id="maxDrawdown">—</strong></div>
+                            <div class="metric"><span>Прогноз на месяц</span> <strong id="monthlyProjection">—</strong></div>
                         </div>
                     </div>
-                    <div class="premium-card-new"><h3>Топы</h3>
+                    <div class="premium-card-new"><h3>Лучшее/худшее</h3>
                         <div class="metric-list">
                             <div class="metric"><span>Лучшая пара</span> <strong id="bestPair">—</strong></div>
                             <div class="metric"><span>Худшая пара</span> <strong id="worstPair">—</strong></div>
@@ -369,13 +367,13 @@
             <!-- Рейтинг -->
             <div id="leaderboardView" class="view-container hidden">
                 <div class="page-header"><h2>Рейтинг трейдеров</h2><select id="leaderboardLimit" class="simple-select"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div>
-                <table class="leaderboard-table-new"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделки</th></tr></thead><tbody id="leaderboardBody"><tr><td colspan="5" class="empty-message">Загрузка...</td></tr></tbody></table>
+                <table class="leaderboard-table-new"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделок</th></tr></thead><tbody id="leaderboardBody"><tr><td colspan="5" class="empty-message">Загрузка...</td></tr></tbody></table>
             </div>
 
             <!-- Админ -->
             <div id="adminView" class="view-container hidden">
                 <div class="page-header"><h2>Администрирование</h2></div>
-                <table class="admin-table-new"><thead><tr><th>ID</th><th>Пользователь</th><th>Pro</th><th>Сделки</th><th>P/L</th><th></th></tr></thead><tbody id="adminUsersList"><tr><td colspan="6" class="empty-message">Загрузка...</td></tr></tbody></table>
+                <table class="admin-table-new"><thead><tr><th>ID</th><th>Пользователь</th><th>Pro</th><th>Сделок</th><th>P/L</th><th></th></tr></thead><tbody id="adminUsersList"><tr><td colspan="6" class="empty-message">Загрузка...</td></tr></tbody></table>
             </div>
 
             <!-- Настройки -->
@@ -383,13 +381,13 @@
                 <div class="page-header"><h2>Настройки</h2></div>
                 <div class="settings-sections">
                     <div class="settings-block"><h3>Профиль</h3>
-                        <div class="settings-row"><span>Username</span><span id="profileUsername">—</span></div>
-                        <div class="settings-row"><span>Статус</span><span id="accountTypeDisplay">Manual</span></div>
+                        <div class="settings-row"><span>Логин</span><span id="profileUsername">—</span></div>
+                        <div class="settings-row"><span>Статус</span><span id="accountTypeDisplay">Базовый</span></div>
                     </div>
                     <div class="settings-block"><h3>Тариф</h3>
                         <div id="tariffDisplay">
                             <div class="current-tariff">
-                                <span class="tariff-name" id="tariffName">Manual</span>
+                                <span class="tariff-name" id="tariffName">Базовый</span>
                                 <span class="tariff-price" id="tariffPrice">Бесплатно</span>
                             </div>
                             <button id="upgradeToProBtn" class="btn-primary" style="width: 100%; margin-top: 16px;">Обновить до Pro</button>
@@ -397,7 +395,7 @@
                     </div>
                     <div class="settings-block"><h3>Приватность</h3>
                         <label class="toggle-label-new"><span>Публичный профиль</span><input type="checkbox" id="publicProfileToggle"><span class="toggle-slider-new"></span></label>
-                        <p class="setting-hint" id="privacyDescription">Доступно после подключения Pro</p>
+                        <p class="setting-hint" id="privacyDescription">Доступно с Pro тарифом</p>
                     </div>
                     <div class="settings-block"><h3>Данные</h3>
                         <button id="exportDataBtn" class="btn-secondary">📤 Экспорт</button>
