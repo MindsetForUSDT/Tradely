@@ -1,7 +1,7 @@
 {
   "name": "tradeum-diary",
-  "version": "2.0.0",
-  "description": "Трейдинг-дневник с аналитикой на Supabase",
+  "version": "3.0.0",
+  "description": "Дневник трейдера с аналитикой",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
