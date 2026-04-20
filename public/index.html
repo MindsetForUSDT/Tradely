@@ -188,15 +188,15 @@
 
                     <div class="wallet-selector">
                         <div class="wallet-option-new" data-wallet="MetaMask">
-                            <img src="https://cryptologos.cc/logos/metamask-mask-logo.svg" alt="MetaMask">
+                            <div class="wallet-icon-circle" style="background: #F6851B;">M</div>
                             <span>MetaMask</span>
                         </div>
                         <div class="wallet-option-new" data-wallet="Phantom">
-                            <img src="https://cryptologos.cc/logos/phantom-logo.svg" alt="Phantom">
+                            <div class="wallet-icon-circle" style="background: #AB9FF2;">P</div>
                             <span>Phantom</span>
                         </div>
                         <div class="wallet-option-new" data-wallet="TrustWallet">
-                            <img src="https://cryptologos.cc/logos/trustwallet-twt-logo.svg" alt="Trust">
+                            <div class="wallet-icon-circle" style="background: #3375BB;">T</div>
                             <span>Trust Wallet</span>
                         </div>
                     </div>
@@ -396,6 +396,41 @@
                     <div class="settings-block"><h3>Приватность</h3>
                         <label class="toggle-label-new"><span>Публичный профиль</span><input type="checkbox" id="publicProfileToggle"><span class="toggle-slider-new"></span></label>
                         <p class="setting-hint" id="privacyDescription">Доступно с Pro тарифом</p>
+                    </div>
+                    <div class="settings-block"><h3>Кошелёк</h3>
+                        <div id="walletSettingsArea">
+                            <div id="walletNotConnectedSettings">
+                                <div class="wallet-selector">
+                                    <div class="wallet-option-new" data-wallet="MetaMask">
+                                        <div class="wallet-icon-circle" style="background: #F6851B;">M</div>
+                                        <span>MetaMask</span>
+                                    </div>
+                                    <div class="wallet-option-new" data-wallet="Phantom">
+                                        <div class="wallet-icon-circle" style="background: #AB9FF2;">P</div>
+                                        <span>Phantom</span>
+                                    </div>
+                                    <div class="wallet-option-new" data-wallet="TrustWallet">
+                                        <div class="wallet-icon-circle" style="background: #3375BB;">T</div>
+                                        <span>Trust Wallet</span>
+                                    </div>
+                                </div>
+                                <div class="input-group-new" style="margin-top: 20px;">
+                                    <label>Адрес кошелька</label>
+                                    <input type="text" id="walletAddressSettings" placeholder="0x..." class="wallet-input">
+                                </div>
+                                <button id="connectWalletBtnSettings" class="btn-primary" style="width: 100%; margin-top: 16px;">Подключить кошелёк</button>
+                            </div>
+                            <div id="walletConnectedSettings" class="hidden">
+                                <div class="wallet-status">
+                                    <div class="wallet-icon">✓</div>
+                                    <div class="wallet-details">
+                                        <h4>Кошелёк подключен</h4>
+                                        <p id="connectedWalletAddressSettings">0x...</p>
+                                    </div>
+                                </div>
+                                <button id="disconnectWalletBtnSettings" class="btn-danger" style="width: 100%; margin-top: 16px;">Отключить кошелёк</button>
+                            </div>
+                        </div>
                     </div>
                     <div class="settings-block"><h3>Данные</h3>
                         <button id="exportDataBtn" class="btn-secondary">📤 Экспорт</button>

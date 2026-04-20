@@ -21,20 +21,20 @@ let userStatus = {
 const API_BASE = '';
 
 // ========== Инициализация ==========
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', function() {
     checkAuth();
     setupEventListeners();
 });
 
-window.addEventListener('load', () => {
-    setTimeout(() => {
-        const preloader = document.getElementById('preloader');
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        var preloader = document.getElementById('preloader');
         if (preloader) preloader.classList.add('fade-out');
     }, 500);
 });
 
 function checkAuth() {
-    const token = localStorage.getItem('authToken');
+    var token = localStorage.getItem('authToken');
     if (token) {
         authToken = token;
         fetchUserProfile();
@@ -45,8 +45,8 @@ function checkAuth() {
 
 async function fetchUserProfile() {
     try {
-        const response = await fetch(`${API_BASE}/api/user/profile`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
+        var response = await fetch(API_BASE + '/api/user/profile', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
         });
         if (response.ok) {
             currentUser = await response.json();
@@ -75,38 +75,61 @@ async function fetchUserProfile() {
 }
 
 function showWelcomeScreen() {
-    document.getElementById('preloader')?.classList.add('hidden');
-    document.getElementById('welcomeScreen')?.classList.remove('hidden');
-    document.getElementById('onboardingScreen')?.classList.add('hidden');
-    document.getElementById('appScreen')?.classList.add('hidden');
+    var preloader = document.getElementById('preloader');
+    var welcomeScreen = document.getElementById('welcomeScreen');
+    var onboardingScreen = document.getElementById('onboardingScreen');
+    var appScreen = document.getElementById('appScreen');
+
+    if (preloader) preloader.classList.add('hidden');
+    if (welcomeScreen) welcomeScreen.classList.remove('hidden');
+    if (onboardingScreen) onboardingScreen.classList.add('hidden');
+    if (appScreen) appScreen.classList.add('hidden');
 }
 
 function showOnboardingScreen() {
-    document.getElementById('preloader')?.classList.add('hidden');
-    document.getElementById('welcomeScreen')?.classList.add('hidden');
-    document.getElementById('onboardingScreen')?.classList.remove('hidden');
-    document.getElementById('appScreen')?.classList.add('hidden');
+    var preloader = document.getElementById('preloader');
+    var welcomeScreen = document.getElementById('welcomeScreen');
+    var onboardingScreen = document.getElementById('onboardingScreen');
+    var appScreen = document.getElementById('appScreen');
 
-    const usernameEl = document.getElementById('onboardingUsername');
-    if (usernameEl) usernameEl.textContent = currentUser?.username || 'Trader';
+    if (preloader) preloader.classList.add('hidden');
+    if (welcomeScreen) welcomeScreen.classList.add('hidden');
+    if (onboardingScreen) onboardingScreen.classList.remove('hidden');
+    if (appScreen) appScreen.classList.add('hidden');
+
+    var usernameEl = document.getElementById('onboardingUsername');
+    if (usernameEl) usernameEl.textContent = (currentUser && currentUser.username) || 'Trader';
 
     selectedMode = null;
     selectedWalletType = null;
-    document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
-    document.querySelectorAll('.wallet-option-new').forEach(w => w.classList.remove('selected'));
 
-    const continueBtn = document.getElementById('continueOnboarding');
+    var modeCards = document.querySelectorAll('.mode-card');
+    for (var i = 0; i < modeCards.length; i++) {
+        modeCards[i].classList.remove('selected');
+    }
+
+    var walletOptions = document.querySelectorAll('.wallet-option-new');
+    for (var i = 0; i < walletOptions.length; i++) {
+        walletOptions[i].classList.remove('selected');
+    }
+
+    var continueBtn = document.getElementById('continueOnboarding');
     if (continueBtn) continueBtn.disabled = true;
 
-    const finishBtn = document.getElementById('finishOnboarding');
+    var finishBtn = document.getElementById('finishOnboarding');
     if (finishBtn) finishBtn.disabled = true;
 }
 
 function showAppScreen() {
-    document.getElementById('preloader')?.classList.add('hidden');
-    document.getElementById('welcomeScreen')?.classList.add('hidden');
-    document.getElementById('onboardingScreen')?.classList.add('hidden');
-    document.getElementById('appScreen')?.classList.remove('hidden');
+    var preloader = document.getElementById('preloader');
+    var welcomeScreen = document.getElementById('welcomeScreen');
+    var onboardingScreen = document.getElementById('onboardingScreen');
+    var appScreen = document.getElementById('appScreen');
+
+    if (preloader) preloader.classList.add('hidden');
+    if (welcomeScreen) welcomeScreen.classList.add('hidden');
+    if (onboardingScreen) onboardingScreen.classList.add('hidden');
+    if (appScreen) appScreen.classList.remove('hidden');
 
     updateDate();
     updateProfileDisplay();
@@ -126,16 +149,23 @@ function switchView(viewName) {
 
     currentView = viewName;
 
-    document.querySelectorAll('.view-container').forEach(v => v.classList.add('hidden'));
-    const viewEl = document.getElementById(`${viewName}View`);
+    var views = document.querySelectorAll('.view-container');
+    for (var i = 0; i < views.length; i++) {
+        views[i].classList.add('hidden');
+    }
+
+    var viewEl = document.getElementById(viewName + 'View');
     if (viewEl) viewEl.classList.remove('hidden');
 
-    document.querySelectorAll('.nav-link-header, .mobile-nav-link').forEach(link => {
-        link.classList.remove('active');
-        if (link.dataset.view === viewName) link.classList.add('active');
-    });
+    var navLinks = document.querySelectorAll('.nav-link-header, .mobile-nav-link');
+    for (var i = 0; i < navLinks.length; i++) {
+        navLinks[i].classList.remove('active');
+        if (navLinks[i].dataset.view === viewName) {
+            navLinks[i].classList.add('active');
+        }
+    }
 
-    const titles = {
+    var titles = {
         journal: 'Журнал',
         analytics: 'Аналитика',
         premium: 'Premium',
@@ -144,7 +174,7 @@ function switchView(viewName) {
         settings: 'Настройки'
     };
 
-    const h2 = document.querySelector('.page-header h2');
+    var h2 = document.querySelector('.page-header h2');
     if (h2) h2.textContent = titles[viewName] || 'Журнал';
 
     if (viewName === 'leaderboard') {
@@ -163,32 +193,36 @@ function switchView(viewName) {
 // ========== Настройка слушателей ==========
 function setupEventListeners() {
     // Табы авторизации
-    document.querySelectorAll('.auth-switch').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.auth-switch').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
+    var authSwitches = document.querySelectorAll('.auth-switch');
+    for (var i = 0; i < authSwitches.length; i++) {
+        authSwitches[i].addEventListener('click', function() {
+            var switches = document.querySelectorAll('.auth-switch');
+            for (var j = 0; j < switches.length; j++) {
+                switches[j].classList.remove('active');
+            }
+            this.classList.add('active');
 
-            const isLogin = tab.dataset.auth === 'login';
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            const authError = document.getElementById('authError');
+            var isLogin = this.dataset.auth === 'login';
+            var loginForm = document.getElementById('loginForm');
+            var registerForm = document.getElementById('registerForm');
+            var authError = document.getElementById('authError');
 
             if (loginForm) loginForm.classList.toggle('hidden', !isLogin);
             if (registerForm) registerForm.classList.toggle('hidden', isLogin);
             if (authError) authError.textContent = '';
         });
-    });
+    }
 
     // Форма входа
-    const loginForm = document.getElementById('loginForm');
+    var loginForm = document.getElementById('loginForm');
     if (loginForm) {
-        loginForm.addEventListener('submit', async (e) => {
+        loginForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            const authError = document.getElementById('authError');
+            var formData = new FormData(e.target);
+            var authError = document.getElementById('authError');
 
             try {
-                const response = await fetch(`${API_BASE}/api/auth/login`, {
+                var response = await fetch(API_BASE + '/api/auth/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -197,7 +231,7 @@ function setupEventListeners() {
                     })
                 });
 
-                const data = await response.json();
+                var data = await response.json();
 
                 if (response.ok) {
                     authToken = data.token;
@@ -228,16 +262,16 @@ function setupEventListeners() {
     }
 
     // Форма регистрации
-    const registerForm = document.getElementById('registerForm');
+    var registerForm = document.getElementById('registerForm');
     if (registerForm) {
-        registerForm.addEventListener('submit', async (e) => {
+        registerForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            const formData = new FormData(e.target);
-            const authError = document.getElementById('authError');
+            var formData = new FormData(e.target);
+            var authError = document.getElementById('authError');
 
-            const username = formData.get('username');
-            const password = formData.get('password');
-            const confirmPassword = formData.get('confirmPassword');
+            var username = formData.get('username');
+            var password = formData.get('password');
+            var confirmPassword = formData.get('confirmPassword');
 
             if (!username || !password || !confirmPassword) {
                 if (authError) authError.textContent = 'Все поля обязательны';
@@ -257,13 +291,13 @@ function setupEventListeners() {
             }
 
             try {
-                const response = await fetch(`${API_BASE}/api/auth/register`, {
+                var response = await fetch(API_BASE + '/api/auth/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username, password })
+                    body: JSON.stringify({ username: username, password: password })
                 });
 
-                const data = await response.json();
+                var data = await response.json();
 
                 if (response.ok) {
                     authToken = data.token;
@@ -286,23 +320,29 @@ function setupEventListeners() {
     }
 
     // Онбординг: выбор режима
-    document.querySelectorAll('.mode-card').forEach(card => {
-        card.addEventListener('click', () => {
-            document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
-            card.classList.add('selected');
-            selectedMode = card.dataset.mode;
-            const continueBtn = document.getElementById('continueOnboarding');
+    var modeCards = document.querySelectorAll('.mode-card');
+    for (var i = 0; i < modeCards.length; i++) {
+        modeCards[i].addEventListener('click', function() {
+            var cards = document.querySelectorAll('.mode-card');
+            for (var j = 0; j < cards.length; j++) {
+                cards[j].classList.remove('selected');
+            }
+            this.classList.add('selected');
+            selectedMode = this.dataset.mode;
+            var continueBtn = document.getElementById('continueOnboarding');
             if (continueBtn) continueBtn.disabled = false;
         });
-    });
+    }
 
     // Онбординг: продолжить
-    const continueBtn = document.getElementById('continueOnboarding');
+    var continueBtn = document.getElementById('continueOnboarding');
     if (continueBtn) {
-        continueBtn.addEventListener('click', () => {
+        continueBtn.addEventListener('click', function() {
             if (selectedMode === 'pro') {
-                document.getElementById('modeStep')?.classList.add('hidden');
-                document.getElementById('walletStep')?.classList.remove('hidden');
+                var modeStep = document.getElementById('modeStep');
+                var walletStep = document.getElementById('walletStep');
+                if (modeStep) modeStep.classList.add('hidden');
+                if (walletStep) walletStep.classList.remove('hidden');
             } else {
                 finishOnboarding(false);
             }
@@ -310,59 +350,69 @@ function setupEventListeners() {
     }
 
     // Онбординг: выбор кошелька
-    document.querySelectorAll('.wallet-option-new').forEach(opt => {
-        opt.addEventListener('click', () => {
-            document.querySelectorAll('.wallet-option-new').forEach(o => o.classList.remove('selected'));
-            opt.classList.add('selected');
-            selectedWalletType = opt.dataset.wallet;
+    var walletOptions = document.querySelectorAll('.wallet-option-new');
+    for (var i = 0; i < walletOptions.length; i++) {
+        walletOptions[i].addEventListener('click', function() {
+            var options = document.querySelectorAll('.wallet-option-new');
+            for (var j = 0; j < options.length; j++) {
+                options[j].classList.remove('selected');
+            }
+            this.classList.add('selected');
+            selectedWalletType = this.dataset.wallet;
             checkWalletForm();
         });
-    });
+    }
 
     // Онбординг: ввод адреса
-    const walletInput = document.getElementById('walletAddressInput');
+    var walletInput = document.getElementById('walletAddressInput');
     if (walletInput) {
         walletInput.addEventListener('input', checkWalletForm);
     }
 
     function checkWalletForm() {
-        const address = document.getElementById('walletAddressInput')?.value.trim();
-        const finishBtn = document.getElementById('finishOnboarding');
+        var addressInput = document.getElementById('walletAddressInput');
+        var address = addressInput ? addressInput.value.trim() : '';
+        var finishBtn = document.getElementById('finishOnboarding');
         if (finishBtn) finishBtn.disabled = !selectedWalletType || !address;
     }
 
     // Онбординг: назад
-    const backBtn = document.getElementById('backToMode');
+    var backBtn = document.getElementById('backToMode');
     if (backBtn) {
-        backBtn.addEventListener('click', () => {
-            document.getElementById('walletStep')?.classList.add('hidden');
-            document.getElementById('modeStep')?.classList.remove('hidden');
+        backBtn.addEventListener('click', function() {
+            var walletStep = document.getElementById('walletStep');
+            var modeStep = document.getElementById('modeStep');
+            if (walletStep) walletStep.classList.add('hidden');
+            if (modeStep) modeStep.classList.remove('hidden');
         });
     }
 
     // Онбординг: завершить
-    const finishBtn = document.getElementById('finishOnboarding');
+    var finishBtn = document.getElementById('finishOnboarding');
     if (finishBtn) {
-        finishBtn.addEventListener('click', () => finishOnboarding(true));
+        finishBtn.addEventListener('click', function() {
+            finishOnboarding(true);
+        });
     }
 
     async function finishOnboarding(isPro) {
         try {
             if (isPro) {
-                const address = document.getElementById('walletAddressInput')?.value.trim();
-                await fetch(`${API_BASE}/api/user/wallet`, {
+                var addressInput = document.getElementById('walletAddressInput');
+                var address = addressInput ? addressInput.value.trim() : '';
+                await fetch(API_BASE + '/api/user/wallet', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': 'Bearer ' + authToken
                     },
                     body: JSON.stringify({ wallet_address: address, wallet_type: selectedWalletType })
                 });
                 userStatus.wallet_connected = true;
             } else {
-                await fetch(`${API_BASE}/api/user/skip-wallet`, {
+                await fetch(API_BASE + '/api/user/skip-wallet', {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${authToken}` }
+                    headers: { 'Authorization': 'Bearer ' + authToken }
                 });
                 userStatus.wallet_connected = false;
             }
@@ -376,104 +426,143 @@ function setupEventListeners() {
     }
 
     // Навигация
-    document.querySelectorAll('[data-view]').forEach(el => {
-        el.addEventListener('click', (e) => {
+    var navElements = document.querySelectorAll('[data-view]');
+    for (var i = 0; i < navElements.length; i++) {
+        navElements[i].addEventListener('click', function(e) {
             e.preventDefault();
-            switchView(el.dataset.view);
+            switchView(this.dataset.view);
         });
-    });
+    }
 
     // Мобильное меню
-    const menuToggle = document.getElementById('menuToggle');
-    const mobileMenu = document.getElementById('mobileMenu');
-    const closeMenu = document.getElementById('closeMenu');
-    if (menuToggle) menuToggle.addEventListener('click', () => mobileMenu?.classList.remove('hidden'));
-    if (closeMenu) closeMenu.addEventListener('click', () => mobileMenu?.classList.add('hidden'));
+    var menuToggle = document.getElementById('menuToggle');
+    var mobileMenu = document.getElementById('mobileMenu');
+    var closeMenu = document.getElementById('closeMenu');
+    if (menuToggle) {
+        menuToggle.addEventListener('click', function() {
+            if (mobileMenu) mobileMenu.classList.remove('hidden');
+        });
+    }
+    if (closeMenu) {
+        closeMenu.addEventListener('click', function() {
+            if (mobileMenu) mobileMenu.classList.add('hidden');
+        });
+    }
 
     // Выход
-    const logout = () => {
+    function logout() {
         localStorage.removeItem('authToken');
         authToken = null;
         currentUser = null;
         trades = [];
         showWelcomeScreen();
-    };
-    document.getElementById('headerLogout')?.addEventListener('click', logout);
-    document.getElementById('logoutBtn')?.addEventListener('click', logout);
+    }
+
+    var headerLogout = document.getElementById('headerLogout');
+    var logoutBtn = document.getElementById('logoutBtn');
+    if (headerLogout) headerLogout.addEventListener('click', logout);
+    if (logoutBtn) logoutBtn.addEventListener('click', logout);
 
     // Терминал
-    document.getElementById('addTradeBtn')?.addEventListener('click', addTrade);
-    document.getElementById('refreshData')?.addEventListener('click', async () => {
-        await loadTrades();
-        renderJournal();
-    });
+    var addTradeBtn = document.getElementById('addTradeBtn');
+    if (addTradeBtn) addTradeBtn.addEventListener('click', addTrade);
+
+    var refreshData = document.getElementById('refreshData');
+    if (refreshData) {
+        refreshData.addEventListener('click', async function() {
+            await loadTrades();
+            renderJournal();
+        });
+    }
 
     // Переключатель LONG/SHORT
-    document.querySelectorAll('.type-option').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.type-option').forEach(b => b.classList.remove('active'));
+    var typeOptions = document.querySelectorAll('.type-option');
+    for (var i = 0; i < typeOptions.length; i++) {
+        typeOptions[i].addEventListener('click', function() {
+            var options = document.querySelectorAll('.type-option');
+            for (var j = 0; j < options.length; j++) {
+                options[j].classList.remove('active');
+            }
             this.classList.add('active');
         });
-    });
+    }
 
     // Фильтры
-    document.querySelectorAll('.filter-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    var filterBtns = document.querySelectorAll('.filter-btn');
+    for (var i = 0; i < filterBtns.length; i++) {
+        filterBtns[i].addEventListener('click', function() {
+            var btns = document.querySelectorAll('.filter-btn');
+            for (var j = 0; j < btns.length; j++) {
+                btns[j].classList.remove('active');
+            }
             this.classList.add('active');
             currentFilter = this.dataset.filter;
             renderJournal();
         });
-    });
+    }
 
     // Лидерборд
-    document.getElementById('leaderboardLimit')?.addEventListener('change', loadLeaderboard);
+    var leaderboardLimit = document.getElementById('leaderboardLimit');
+    if (leaderboardLimit) leaderboardLimit.addEventListener('change', loadLeaderboard);
 
     // Настройки
-    document.getElementById('publicProfileToggle')?.addEventListener('change', async (e) => {
-        if (!userStatus.wallet_connected) {
-            e.target.checked = false;
-            alert('Требуется Pro статус');
-            return;
-        }
-        try {
-            await fetch(`${API_BASE}/api/user/public`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${authToken}`
-                },
-                body: JSON.stringify({ is_public: e.target.checked })
-            });
-            userStatus.is_public = e.target.checked;
-        } catch (error) {
-            e.target.checked = !e.target.checked;
-        }
-    });
+    var publicToggle = document.getElementById('publicProfileToggle');
+    if (publicToggle) {
+        publicToggle.addEventListener('change', async function(e) {
+            if (!userStatus.wallet_connected) {
+                e.target.checked = false;
+                alert('Требуется Pro статус');
+                return;
+            }
+            try {
+                await fetch(API_BASE + '/api/user/public', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ is_public: e.target.checked })
+                });
+                userStatus.is_public = e.target.checked;
+            } catch (error) {
+                e.target.checked = !e.target.checked;
+            }
+        });
+    }
 
     // Экспорт/импорт
-    document.getElementById('exportDataBtn')?.addEventListener('click', exportData);
-    document.getElementById('importDataBtn')?.addEventListener('click', () => {
-        document.getElementById('importFileInput')?.click();
-    });
-    document.getElementById('importFileInput')?.addEventListener('change', importData);
-    document.getElementById('clearDataBtn')?.addEventListener('click', clearAllData);
+    var exportBtn = document.getElementById('exportDataBtn');
+    if (exportBtn) exportBtn.addEventListener('click', exportData);
 
-    // Upgrade to Pro
-    document.getElementById('upgradeToProBtn')?.addEventListener('click', () => {
-        switchView('settings');
-    });
+    var importBtn = document.getElementById('importDataBtn');
+    var importFile = document.getElementById('importFileInput');
+    if (importBtn && importFile) {
+        importBtn.addEventListener('click', function() {
+            importFile.click();
+        });
+    }
+    if (importFile) importFile.addEventListener('change', importData);
+
+    var clearBtn = document.getElementById('clearDataBtn');
+    if (clearBtn) clearBtn.addEventListener('click', clearAllData);
+
+    var upgradeBtn = document.getElementById('upgradeToProBtn');
+    if (upgradeBtn) {
+        upgradeBtn.addEventListener('click', function() {
+            switchView('settings');
+        });
+    }
 }
 
 // ========== Работа со сделками ==========
 async function loadTrades() {
     try {
-        const response = await fetch(`${API_BASE}/api/trades`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
+        var response = await fetch(API_BASE + '/api/trades', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
         });
         if (response.ok) {
             trades = await response.json();
-            trades.sort((a, b) => b.timestamp - a.timestamp);
+            trades.sort(function(a, b) { return b.timestamp - a.timestamp; });
         }
     } catch (error) {
         console.error('Ошибка загрузки:', error);
@@ -486,18 +575,18 @@ async function addTrade() {
         return;
     }
 
-    const pairInput = document.getElementById('pairInput');
-    const volumeInput = document.getElementById('volumeInput');
-    const profitBtn = document.querySelector('.type-option.profit');
+    var pairInput = document.getElementById('pairInput');
+    var volumeInput = document.getElementById('volumeInput');
+    var profitBtn = document.querySelector('.type-option.profit');
 
-    const pair = pairInput?.value.trim();
-    const volume = parseFloat(volumeInput?.value.trim().replace(',', '.'));
-    const isProfit = profitBtn?.classList.contains('active');
+    var pair = pairInput ? pairInput.value.trim() : '';
+    var volume = volumeInput ? parseFloat(volumeInput.value.trim().replace(',', '.')) : NaN;
+    var isProfit = profitBtn ? profitBtn.classList.contains('active') : true;
 
     if (!pair) { alert('Введите пару'); return; }
     if (isNaN(volume) || volume <= 0) { alert('Введите объём'); return; }
 
-    const newTrade = {
+    var newTrade = {
         id: Date.now() + '-' + Math.random().toString(36).substr(2, 5),
         pair: pair.toUpperCase(),
         volume: volume,
@@ -506,11 +595,11 @@ async function addTrade() {
     };
 
     try {
-        const response = await fetch(`${API_BASE}/api/trades`, {
+        var response = await fetch(API_BASE + '/api/trades', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${authToken}`
+                'Authorization': 'Bearer ' + authToken
             },
             body: JSON.stringify(newTrade)
         });
@@ -520,7 +609,7 @@ async function addTrade() {
             renderJournal();
             if (volumeInput) volumeInput.value = '';
         } else {
-            const data = await response.json();
+            var data = await response.json();
             alert(data.error);
         }
     } catch (error) {
@@ -535,12 +624,12 @@ async function deleteTrade(tradeId) {
     }
 
     try {
-        const response = await fetch(`${API_BASE}/api/trades/${tradeId}`, {
+        var response = await fetch(API_BASE + '/api/trades/' + tradeId, {
             method: 'DELETE',
-            headers: { 'Authorization': `Bearer ${authToken}` }
+            headers: { 'Authorization': 'Bearer ' + authToken }
         });
         if (response.ok) {
-            trades = trades.filter(t => t.id !== tradeId);
+            trades = trades.filter(function(t) { return t.id !== tradeId; });
             renderJournal();
         }
     } catch (error) {
@@ -551,39 +640,40 @@ async function deleteTrade(tradeId) {
 window.deleteTrade = deleteTrade;
 
 function renderJournal() {
-    const tbody = document.getElementById('tradesList');
+    var tbody = document.getElementById('tradesList');
     if (!tbody) return;
 
-    const filtered = currentFilter === 'all' ? trades : trades.filter(t => t.type === currentFilter);
+    var filtered = currentFilter === 'all' ? trades : trades.filter(function(t) { return t.type === currentFilter; });
 
     if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="5" class="empty-message">Нет сделок</td></tr>';
     } else {
-        tbody.innerHTML = filtered.map(t => {
-            const time = new Date(t.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            const isProfit = t.type === 'profit';
-            const actions = userStatus.wallet_connected ? '' : `
-                <button class="icon-btn" onclick="deleteTrade('${t.id}')" style="width: 28px; height: 28px;">🗑️</button>
-            `;
-            return `
-                <tr>
-                    <td>${time}</td>
-                    <td>${t.pair}</td>
-                    <td>${t.volume.toFixed(2)}</td>
-                    <td class="${isProfit ? 'profit-text' : 'loss-text'}">${isProfit ? '+' : '−'} $${t.volume.toFixed(2)}</td>
-                    <td>${actions}</td>
-                </tr>
-            `;
-        }).join('');
+        var html = '';
+        for (var i = 0; i < filtered.length; i++) {
+            var t = filtered[i];
+            var time = new Date(t.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            var isProfit = t.type === 'profit';
+            var actions = userStatus.wallet_connected ? '' :
+                '<button class="icon-btn" onclick="deleteTrade(\'' + t.id + '\')" style="width: 28px; height: 28px;">🗑️</button>';
+            html += '<tr>' +
+                '<td>' + time + '</td>' +
+                '<td>' + t.pair + '</td>' +
+                '<td>' + t.volume.toFixed(2) + '</td>' +
+                '<td class="' + (isProfit ? 'profit-text' : 'loss-text') + '">' + (isProfit ? '+' : '−') + ' $' + t.volume.toFixed(2) + '</td>' +
+                '<td>' + actions + '</td>' +
+                '</tr>';
+        }
+        tbody.innerHTML = html;
     }
 
     updateStats();
 }
 
 function updateStats() {
-    let totalPL = 0, wins = 0, maxProfit = 0, maxLoss = 0, profitSum = 0, lossSum = 0;
+    var totalPL = 0, wins = 0, maxProfit = 0, maxLoss = 0, profitSum = 0, lossSum = 0;
 
-    trades.forEach(t => {
+    for (var i = 0; i < trades.length; i++) {
+        var t = trades[i];
         if (t.type === 'profit') {
             totalPL += t.volume; wins++; profitSum += t.volume;
             maxProfit = Math.max(maxProfit, t.volume);
@@ -591,67 +681,68 @@ function updateStats() {
             totalPL -= t.volume; lossSum += t.volume;
             maxLoss = Math.max(maxLoss, t.volume);
         }
-    });
-
-    const winRate = trades.length ? (wins / trades.length) * 100 : 0;
-    const avgProfit = wins ? profitSum / wins : 0;
-    const avgLoss = (trades.length - wins) ? lossSum / (trades.length - wins) : 0;
-
-    const totalPLEl = document.getElementById('totalPL');
-    if (totalPLEl) {
-        totalPLEl.textContent = (totalPL >= 0 ? '+' : '−') + '$' + Math.abs(totalPL).toFixed(2);
-        totalPLEl.className = `stat-value-new ${totalPL >= 0 ? 'profit-text' : 'loss-text'}`;
     }
 
-    const winRateEl = document.getElementById('winRate');
+    var winRate = trades.length ? (wins / trades.length) * 100 : 0;
+    var avgProfit = wins ? profitSum / wins : 0;
+    var avgLoss = (trades.length - wins) ? lossSum / (trades.length - wins) : 0;
+
+    var totalPLEl = document.getElementById('totalPL');
+    if (totalPLEl) {
+        totalPLEl.textContent = (totalPL >= 0 ? '+' : '−') + '$' + Math.abs(totalPL).toFixed(2);
+        totalPLEl.className = 'stat-value-new ' + (totalPL >= 0 ? 'profit-text' : 'loss-text');
+    }
+
+    var winRateEl = document.getElementById('winRate');
     if (winRateEl) winRateEl.textContent = winRate.toFixed(1) + '%';
 
-    const progressEl = document.getElementById('winRateProgress');
+    var progressEl = document.getElementById('winRateProgress');
     if (progressEl) progressEl.style.width = winRate + '%';
 
-    const totalTradesEl = document.getElementById('totalTradesCount');
+    var totalTradesEl = document.getElementById('totalTradesCount');
     if (totalTradesEl) totalTradesEl.textContent = trades.length;
 
-    const winCountEl = document.getElementById('winCount');
+    var winCountEl = document.getElementById('winCount');
     if (winCountEl) winCountEl.textContent = wins + ' LONG';
 
-    const lossCountEl = document.getElementById('lossCount');
+    var lossCountEl = document.getElementById('lossCount');
     if (lossCountEl) lossCountEl.textContent = (trades.length - wins) + ' SHORT';
 
-    const plChange = document.getElementById('plChange');
+    var plChange = document.getElementById('plChange');
     if (plChange && trades.length) {
-        const last = trades[0];
+        var last = trades[0];
         plChange.textContent = (last.type === 'profit' ? '+' : '-') + '$' + last.volume.toFixed(2);
         plChange.className = 'stat-change-new ' + (last.type === 'profit' ? 'positive' : 'negative');
     }
 
-    // Аналитика
-    const avgProfitEl = document.getElementById('avgProfit');
+    var avgProfitEl = document.getElementById('avgProfit');
     if (avgProfitEl) avgProfitEl.textContent = '$' + avgProfit.toFixed(2);
 
-    const avgLossEl = document.getElementById('avgLoss');
+    var avgLossEl = document.getElementById('avgLoss');
     if (avgLossEl) avgLossEl.textContent = '$' + avgLoss.toFixed(2);
 
-    const bestTradeEl = document.getElementById('bestTrade');
+    var bestTradeEl = document.getElementById('bestTrade');
     if (bestTradeEl) bestTradeEl.textContent = '$' + maxProfit.toFixed(2);
 
-    const worstTradeEl = document.getElementById('worstTrade');
+    var worstTradeEl = document.getElementById('worstTrade');
     if (worstTradeEl) worstTradeEl.textContent = '$' + maxLoss.toFixed(2);
 }
 
 function updateCharts() {
-    const ctx1 = document.getElementById('plChart')?.getContext('2d');
+    var ctx1 = document.getElementById('plChart');
     if (ctx1) {
+        var context1 = ctx1.getContext('2d');
         if (plChart) plChart.destroy();
-        const sorted = [...trades].sort((a, b) => a.timestamp - b.timestamp);
-        let cum = 0;
-        const data = [], labels = [];
-        sorted.forEach(t => {
+        var sorted = trades.slice().sort(function(a, b) { return a.timestamp - b.timestamp; });
+        var cum = 0;
+        var data = [], labels = [];
+        for (var i = 0; i < sorted.length; i++) {
+            var t = sorted[i];
             cum += t.type === 'profit' ? t.volume : -t.volume;
             data.push(cum);
             labels.push(new Date(t.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
-        });
-        plChart = new Chart(ctx1, {
+        }
+        plChart = new Chart(context1, {
             type: 'line',
             data: {
                 labels: labels.slice(-50),
@@ -667,12 +758,13 @@ function updateCharts() {
         });
     }
 
-    const ctx2 = document.getElementById('ratioChart')?.getContext('2d');
+    var ctx2 = document.getElementById('ratioChart');
     if (ctx2) {
+        var context2 = ctx2.getContext('2d');
         if (ratioChart) ratioChart.destroy();
-        const wins = trades.filter(t => t.type === 'profit').length;
-        const losses = trades.length - wins;
-        ratioChart = new Chart(ctx2, {
+        var wins = trades.filter(function(t) { return t.type === 'profit'; }).length;
+        var losses = trades.length - wins;
+        ratioChart = new Chart(context2, {
             type: 'doughnut',
             data: {
                 labels: ['LONG', 'SHORT'],
@@ -684,27 +776,29 @@ function updateCharts() {
             options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
-        const profitPercent = document.getElementById('profitPercent');
-        const lossPercent = document.getElementById('lossPercent');
+        var profitPercent = document.getElementById('profitPercent');
+        var lossPercent = document.getElementById('lossPercent');
         if (profitPercent) profitPercent.textContent = trades.length ? ((wins / trades.length) * 100).toFixed(1) + '%' : '0%';
         if (lossPercent) lossPercent.textContent = trades.length ? ((losses / trades.length) * 100).toFixed(1) + '%' : '0%';
     }
 }
 
 function updateDate() {
-    const now = new Date();
-    const el = document.getElementById('currentDate');
+    var now = new Date();
+    var el = document.getElementById('currentDate');
     if (el) el.textContent = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function updateProfileDisplay() {
     if (currentUser) {
-        document.querySelectorAll('#headerUsername, #profileUsername').forEach(el => {
-            if (el) el.textContent = currentUser.username;
-        });
-        const tariffName = document.getElementById('tariffName');
-        const tariffPrice = document.getElementById('tariffPrice');
-        const accountType = document.getElementById('accountTypeDisplay');
+        var headerUsername = document.getElementById('headerUsername');
+        var profileUsername = document.getElementById('profileUsername');
+        if (headerUsername) headerUsername.textContent = currentUser.username;
+        if (profileUsername) profileUsername.textContent = currentUser.username;
+
+        var tariffName = document.getElementById('tariffName');
+        var tariffPrice = document.getElementById('tariffPrice');
+        var accountType = document.getElementById('accountTypeDisplay');
 
         if (userStatus.wallet_connected) {
             if (tariffName) tariffName.textContent = 'Pro Аналитика';
@@ -716,7 +810,7 @@ function updateProfileDisplay() {
             if (accountType) accountType.textContent = 'Базовый';
         }
 
-        const toggle = document.getElementById('publicProfileToggle');
+        var toggle = document.getElementById('publicProfileToggle');
         if (toggle) toggle.checked = userStatus.is_public;
     }
 }
@@ -724,25 +818,40 @@ function updateProfileDisplay() {
 // ========== Premium ==========
 async function loadPremiumAnalytics() {
     try {
-        const res = await fetch(`${API_BASE}/api/premium/analytics`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
+        var res = await fetch(API_BASE + '/api/premium/analytics', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
         });
         if (res.ok) {
-            const d = await res.json();
-            document.getElementById('profitFactor')?.textContent = d.profitFactor;
-            document.getElementById('sharpeRatio')?.textContent = d.sharpeRatio;
-            document.getElementById('maxDrawdown')?.textContent = '$' + d.maxDrawdown;
-            document.getElementById('monthlyProjection')?.textContent = '$' + d.monthlyProjection;
-            document.getElementById('bestPair')?.textContent = d.bestPair;
-            document.getElementById('worstPair')?.textContent = d.worstPair;
-            document.getElementById('bestDay')?.textContent = d.bestDay ? `${d.bestDay.date} (+$${d.bestDay.pl})` : '—';
-            document.getElementById('worstDay')?.textContent = d.worstDay ? `${d.worstDay.date} (-$${Math.abs(d.worstDay.pl)})` : '—';
+            var d = await res.json();
+            var profitFactor = document.getElementById('profitFactor');
+            var sharpeRatio = document.getElementById('sharpeRatio');
+            var maxDrawdown = document.getElementById('maxDrawdown');
+            var monthlyProjection = document.getElementById('monthlyProjection');
+            var bestPair = document.getElementById('bestPair');
+            var worstPair = document.getElementById('worstPair');
+            var bestDay = document.getElementById('bestDay');
+            var worstDay = document.getElementById('worstDay');
 
-            const recs = [];
+            if (profitFactor) profitFactor.textContent = d.profitFactor;
+            if (sharpeRatio) sharpeRatio.textContent = d.sharpeRatio;
+            if (maxDrawdown) maxDrawdown.textContent = '$' + d.maxDrawdown;
+            if (monthlyProjection) monthlyProjection.textContent = '$' + d.monthlyProjection;
+            if (bestPair) bestPair.textContent = d.bestPair;
+            if (worstPair) worstPair.textContent = d.worstPair;
+            if (bestDay) bestDay.textContent = d.bestDay ? d.bestDay.date + ' (+$' + d.bestDay.pl + ')' : '—';
+            if (worstDay) worstDay.textContent = d.worstDay ? d.worstDay.date + ' (-$' + Math.abs(d.worstDay.pl) + ')' : '—';
+
+            var recs = [];
             if (d.winRate > 60) recs.push('Отличный винрейт!');
             if (d.profitFactor > 2) recs.push('Profit Factor > 2 — отлично!');
-            const recEl = document.getElementById('premiumRecommendations');
-            if (recEl) recEl.innerHTML = recs.length ? recs.map(r => `<p>• ${r}</p>`).join('') : '<p>Недостаточно данных</p>';
+            var recEl = document.getElementById('premiumRecommendations');
+            if (recEl) {
+                var html = '';
+                for (var i = 0; i < recs.length; i++) {
+                    html += '<p>• ' + recs[i] + '</p>';
+                }
+                recEl.innerHTML = html || '<p>Недостаточно данных</p>';
+            }
         }
     } catch (e) {}
 }
@@ -750,81 +859,88 @@ async function loadPremiumAnalytics() {
 // ========== Админ ==========
 async function loadAdminUsers() {
     try {
-        const res = await fetch(`${API_BASE}/api/admin/users`, {
-            headers: { 'Authorization': `Bearer ${authToken}` }
+        var res = await fetch(API_BASE + '/api/admin/users', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
         });
         if (res.ok) {
-            const users = await res.json();
-            const tbody = document.getElementById('adminUsersList');
+            var users = await res.json();
+            var tbody = document.getElementById('adminUsersList');
             if (tbody) {
-                tbody.innerHTML = users.map(u => `
-                    <tr>
-                        <td>${u.id}</td>
-                        <td>${u.username}</td>
-                        <td>${u.wallet_connected ? '✅' : '❌'}</td>
-                        <td>${u.trades_count || 0}</td>
-                        <td class="${u.total_pl >= 0 ? 'profit-text' : 'loss-text'}">$${u.total_pl?.toFixed(2) || '0'}</td>
-                        <td><button class="icon-btn" onclick="deleteAdminUser(${u.id})" style="color: #EF4444;">🗑️</button></td>
-                    </tr>
-                `).join('');
+                var html = '';
+                for (var i = 0; i < users.length; i++) {
+                    var u = users[i];
+                    html += '<tr>' +
+                        '<td>' + u.id + '</td>' +
+                        '<td>' + u.username + '</td>' +
+                        '<td>' + (u.wallet_connected ? '✅' : '❌') + '</td>' +
+                        '<td>' + (u.trades_count || 0) + '</td>' +
+                        '<td class="' + (u.total_pl >= 0 ? 'profit-text' : 'loss-text') + '">$' + (u.total_pl ? u.total_pl.toFixed(2) : '0.00') + '</td>' +
+                        '<td><button class="icon-btn" onclick="deleteAdminUser(' + u.id + ')" style="color: #EF4444;">🗑️</button></td>' +
+                        '</tr>';
+                }
+                tbody.innerHTML = html;
             }
         }
     } catch (e) {}
 }
 
-window.deleteAdminUser = async (id) => {
+window.deleteAdminUser = async function(id) {
     if (!confirm('Удалить?')) return;
-    await fetch(`${API_BASE}/api/admin/users/${id}`, {
+    await fetch(API_BASE + '/api/admin/users/' + id, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${authToken}` }
+        headers: { 'Authorization': 'Bearer ' + authToken }
     });
     loadAdminUsers();
 };
 
 // ========== Лидерборд ==========
 async function loadLeaderboard() {
-    const limit = document.getElementById('leaderboardLimit')?.value || 25;
-    const tbody = document.getElementById('leaderboardBody');
+    var limitEl = document.getElementById('leaderboardLimit');
+    var limit = limitEl ? limitEl.value : 25;
+    var tbody = document.getElementById('leaderboardBody');
     if (!tbody) return;
 
     try {
-        const res = await fetch(`${API_BASE}/api/leaderboard?limit=${limit}`);
-        const data = await res.json();
-        tbody.innerHTML = data.map(r => `
-            <tr>
-                <td>${r.rank}</td>
-                <td>${r.username}</td>
-                <td class="${r.totalPL >= 0 ? 'profit-text' : 'loss-text'}">${r.totalPL >= 0 ? '+' : ''}$${r.totalPL.toFixed(2)}</td>
-                <td>${r.winRate}%</td>
-                <td>${r.totalTrades}</td>
-            </tr>
-        `).join('') || '<tr><td colspan="5" class="empty-message">Нет данных</td></tr>';
+        var res = await fetch(API_BASE + '/api/leaderboard?limit=' + limit);
+        var data = await res.json();
+        var html = '';
+        for (var i = 0; i < data.length; i++) {
+            var r = data[i];
+            html += '<tr>' +
+                '<td>' + r.rank + '</td>' +
+                '<td>' + r.username + '</td>' +
+                '<td class="' + (r.totalPL >= 0 ? 'profit-text' : 'loss-text') + '">' + (r.totalPL >= 0 ? '+' : '') + '$' + r.totalPL.toFixed(2) + '</td>' +
+                '<td>' + r.winRate + '%</td>' +
+                '<td>' + r.totalTrades + '</td>' +
+                '</tr>';
+        }
+        tbody.innerHTML = html || '<tr><td colspan="5" class="empty-message">Нет данных</td></tr>';
     } catch (e) {}
 }
 
 // ========== Экспорт/импорт ==========
 function exportData() {
-    const data = { trades, exportDate: new Date().toISOString() };
-    const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
-    const a = document.createElement('a');
+    var data = { trades: trades, exportDate: new Date().toISOString() };
+    var blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+    var a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `trades-${Date.now()}.json`;
+    a.download = 'trades-' + Date.now() + '.json';
     a.click();
 }
 
 function importData(e) {
-    const file = e.target.files[0];
+    var file = e.target.files[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
+    var reader = new FileReader();
+    reader.onload = async function(ev) {
         try {
-            const data = JSON.parse(ev.target.result);
-            if (data.trades && confirm(`Импортировать ${data.trades.length} сделок?`)) {
-                await fetch(`${API_BASE}/api/trades/sync`, {
+            var data = JSON.parse(ev.target.result);
+            if (data.trades && confirm('Импортировать ' + data.trades.length + ' сделок?')) {
+                await fetch(API_BASE + '/api/trades/sync', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
+                        'Authorization': 'Bearer ' + authToken
                     },
                     body: JSON.stringify({ trades: data.trades })
                 });
@@ -839,11 +955,11 @@ function importData(e) {
 
 async function clearAllData() {
     if (!confirm('Удалить всё?')) return;
-    await fetch(`${API_BASE}/api/trades/sync`, {
+    await fetch(API_BASE + '/api/trades/sync', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${authToken}`
+            'Authorization': 'Bearer ' + authToken
         },
         body: JSON.stringify({ trades: [] })
     });
@@ -853,104 +969,104 @@ async function clearAllData() {
 
 // ========== ДИНАМИЧНЫЙ ФОН ==========
 (function() {
-    const canvas = document.getElementById('particleCanvas');
+    var canvas = document.getElementById('particleCanvas');
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    let mouseX = width / 2;
-    let mouseY = height / 2;
+    var ctx = canvas.getContext('2d');
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    var mouseX = width / 2;
+    var mouseY = height / 2;
 
-    const particles = [];
-    const particleCount = 100;
-    const connectionDistance = 150;
-    const mouseInfluenceDistance = 250;
+    var particles = [];
+    var particleCount = 100;
+    var connectionDistance = 150;
+    var mouseInfluenceDistance = 250;
 
-    class Particle {
-        constructor() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 0.2;
-            this.vy = (Math.random() - 0.5) * 0.2;
-            this.size = Math.random() * 2.5 + 1.5;
-            this.baseX = this.x;
-            this.baseY = this.y;
-        }
-
-        update() {
-            const dx = mouseX - this.x;
-            const dy = mouseY - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < mouseInfluenceDistance) {
-                const force = (1 - dist / mouseInfluenceDistance) * 0.15;
-                this.vx += dx * force;
-                this.vy += dy * force;
-            }
-
-            const homeDx = this.baseX - this.x;
-            const homeDy = this.baseY - this.y;
-            this.vx += homeDx * 0.005;
-            this.vy += homeDy * 0.005;
-
-            this.vx *= 0.95;
-            this.vy *= 0.95;
-
-            this.x += this.vx;
-            this.y += this.vy;
-
-            if (this.x < 0) { this.x = 0; this.vx *= -0.5; }
-            if (this.x > width) { this.x = width; this.vx *= -0.5; }
-            if (this.y < 0) { this.y = 0; this.vy *= -0.5; }
-            if (this.y > height) { this.y = height; this.vy *= -0.5; }
-        }
-
-        draw() {
-            const dx = mouseX - this.x;
-            const dy = mouseY - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            let opacity = 0.4;
-            let size = this.size;
-
-            if (dist < mouseInfluenceDistance) {
-                opacity = 0.8;
-                size = this.size * 1.5;
-            }
-
-            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 2);
-            gradient.addColorStop(0, `rgba(16, 185, 129, ${opacity})`);
-            gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity * 0.5})`);
-
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
-            ctx.fill();
-        }
+    function Particle() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.2;
+        this.vy = (Math.random() - 0.5) * 0.2;
+        this.size = Math.random() * 2.5 + 1.5;
+        this.baseX = this.x;
+        this.baseY = this.y;
     }
+
+    Particle.prototype.update = function() {
+        var dx = mouseX - this.x;
+        var dy = mouseY - this.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < mouseInfluenceDistance) {
+            var force = (1 - dist / mouseInfluenceDistance) * 0.15;
+            this.vx += dx * force;
+            this.vy += dy * force;
+        }
+
+        var homeDx = this.baseX - this.x;
+        var homeDy = this.baseY - this.y;
+        this.vx += homeDx * 0.005;
+        this.vy += homeDy * 0.005;
+
+        this.vx *= 0.95;
+        this.vy *= 0.95;
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0) { this.x = 0; this.vx *= -0.5; }
+        if (this.x > width) { this.x = width; this.vx *= -0.5; }
+        if (this.y < 0) { this.y = 0; this.vy *= -0.5; }
+        if (this.y > height) { this.y = height; this.vy *= -0.5; }
+    };
+
+    Particle.prototype.draw = function() {
+        var dx = mouseX - this.x;
+        var dy = mouseY - this.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+
+        var opacity = 0.4;
+        var size = this.size;
+
+        if (dist < mouseInfluenceDistance) {
+            opacity = 0.8;
+            size = this.size * 1.5;
+        }
+
+        var gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 2);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, ' + opacity + ')');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, ' + (opacity * 0.5) + ')');
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+    };
 
     function init() {
         particles.length = 0;
-        for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+        for (var i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
     }
 
     function drawConnections() {
-        for (let i = 0; i < particles.length; i++) {
-            for (let j = i + 1; j < particles.length; j++) {
-                const dx = particles[i].x - particles[j].x;
-                const dy = particles[i].y - particles[j].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
+        for (var i = 0; i < particles.length; i++) {
+            for (var j = i + 1; j < particles.length; j++) {
+                var dx = particles[i].x - particles[j].x;
+                var dy = particles[i].y - particles[j].y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
 
                 if (dist < connectionDistance) {
-                    const opacity = 0.15 * (1 - dist / connectionDistance);
+                    var opacity = 0.15 * (1 - dist / connectionDistance);
 
-                    const gradient = ctx.createLinearGradient(
+                    var gradient = ctx.createLinearGradient(
                         particles[i].x, particles[i].y,
                         particles[j].x, particles[j].y
                     );
-                    gradient.addColorStop(0, `rgba(16, 185, 129, ${opacity})`);
-                    gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity})`);
+                    gradient.addColorStop(0, 'rgba(16, 185, 129, ' + opacity + ')');
+                    gradient.addColorStop(1, 'rgba(59, 130, 246, ' + opacity + ')');
 
                     ctx.beginPath();
                     ctx.moveTo(particles[i].x, particles[i].y);
@@ -965,13 +1081,13 @@ async function clearAllData() {
 
     function animate() {
         ctx.clearRect(0, 0, width, height);
-        particles.forEach(p => p.update());
+        for (var i = 0; i < particles.length; i++) particles[i].update();
         drawConnections();
-        particles.forEach(p => p.draw());
+        for (var i = 0; i < particles.length; i++) particles[i].draw();
         requestAnimationFrame(animate);
     }
 
-    window.addEventListener('resize', () => {
+    window.addEventListener('resize', function() {
         width = window.innerWidth;
         height = window.innerHeight;
         canvas.width = width;
@@ -979,7 +1095,7 @@ async function clearAllData() {
         init();
     });
 
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener('mousemove', function(e) {
         mouseX = e.clientX;
         mouseY = e.clientY;
     });
@@ -992,104 +1108,104 @@ async function clearAllData() {
 
 // ========== ФОН ДЛЯ ОНБОРДИНГА ==========
 (function() {
-    const canvas = document.getElementById('onboardingParticleCanvas');
+    var canvas = document.getElementById('onboardingParticleCanvas');
     if (!canvas) return;
 
-    const ctx = canvas.getContext('2d');
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    let mouseX = width / 2;
-    let mouseY = height / 2;
+    var ctx = canvas.getContext('2d');
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    var mouseX = width / 2;
+    var mouseY = height / 2;
 
-    const particles = [];
-    const particleCount = 80;
-    const connectionDistance = 150;
-    const mouseInfluenceDistance = 250;
+    var particles = [];
+    var particleCount = 80;
+    var connectionDistance = 150;
+    var mouseInfluenceDistance = 250;
 
-    class Particle {
-        constructor() {
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 0.2;
-            this.vy = (Math.random() - 0.5) * 0.2;
-            this.size = Math.random() * 2.5 + 1.5;
-            this.baseX = this.x;
-            this.baseY = this.y;
-        }
-
-        update() {
-            const dx = mouseX - this.x;
-            const dy = mouseY - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist < mouseInfluenceDistance) {
-                const force = (1 - dist / mouseInfluenceDistance) * 0.15;
-                this.vx += dx * force;
-                this.vy += dy * force;
-            }
-
-            const homeDx = this.baseX - this.x;
-            const homeDy = this.baseY - this.y;
-            this.vx += homeDx * 0.005;
-            this.vy += homeDy * 0.005;
-
-            this.vx *= 0.95;
-            this.vy *= 0.95;
-
-            this.x += this.vx;
-            this.y += this.vy;
-
-            if (this.x < 0) { this.x = 0; this.vx *= -0.5; }
-            if (this.x > width) { this.x = width; this.vx *= -0.5; }
-            if (this.y < 0) { this.y = 0; this.vy *= -0.5; }
-            if (this.y > height) { this.y = height; this.vy *= -0.5; }
-        }
-
-        draw() {
-            const dx = mouseX - this.x;
-            const dy = mouseY - this.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            let opacity = 0.4;
-            let size = this.size;
-
-            if (dist < mouseInfluenceDistance) {
-                opacity = 0.8;
-                size = this.size * 1.5;
-            }
-
-            const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 2);
-            gradient.addColorStop(0, `rgba(16, 185, 129, ${opacity})`);
-            gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity * 0.5})`);
-
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
-            ctx.fillStyle = gradient;
-            ctx.fill();
-        }
+    function Particle() {
+        this.x = Math.random() * width;
+        this.y = Math.random() * height;
+        this.vx = (Math.random() - 0.5) * 0.2;
+        this.vy = (Math.random() - 0.5) * 0.2;
+        this.size = Math.random() * 2.5 + 1.5;
+        this.baseX = this.x;
+        this.baseY = this.y;
     }
+
+    Particle.prototype.update = function() {
+        var dx = mouseX - this.x;
+        var dy = mouseY - this.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist < mouseInfluenceDistance) {
+            var force = (1 - dist / mouseInfluenceDistance) * 0.15;
+            this.vx += dx * force;
+            this.vy += dy * force;
+        }
+
+        var homeDx = this.baseX - this.x;
+        var homeDy = this.baseY - this.y;
+        this.vx += homeDx * 0.005;
+        this.vy += homeDy * 0.005;
+
+        this.vx *= 0.95;
+        this.vy *= 0.95;
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        if (this.x < 0) { this.x = 0; this.vx *= -0.5; }
+        if (this.x > width) { this.x = width; this.vx *= -0.5; }
+        if (this.y < 0) { this.y = 0; this.vy *= -0.5; }
+        if (this.y > height) { this.y = height; this.vy *= -0.5; }
+    };
+
+    Particle.prototype.draw = function() {
+        var dx = mouseX - this.x;
+        var dy = mouseY - this.y;
+        var dist = Math.sqrt(dx * dx + dy * dy);
+
+        var opacity = 0.4;
+        var size = this.size;
+
+        if (dist < mouseInfluenceDistance) {
+            opacity = 0.8;
+            size = this.size * 1.5;
+        }
+
+        var gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, size * 2);
+        gradient.addColorStop(0, 'rgba(16, 185, 129, ' + opacity + ')');
+        gradient.addColorStop(1, 'rgba(59, 130, 246, ' + (opacity * 0.5) + ')');
+
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, size, 0, Math.PI * 2);
+        ctx.fillStyle = gradient;
+        ctx.fill();
+    };
 
     function init() {
         particles.length = 0;
-        for (let i = 0; i < particleCount; i++) particles.push(new Particle());
+        for (var i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
     }
 
     function drawConnections() {
-        for (let i = 0; i < particles.length; i++) {
-            for (let j = i + 1; j < particles.length; j++) {
-                const dx = particles[i].x - particles[j].x;
-                const dy = particles[i].y - particles[j].y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
+        for (var i = 0; i < particles.length; i++) {
+            for (var j = i + 1; j < particles.length; j++) {
+                var dx = particles[i].x - particles[j].x;
+                var dy = particles[i].y - particles[j].y;
+                var dist = Math.sqrt(dx * dx + dy * dy);
 
                 if (dist < connectionDistance) {
-                    const opacity = 0.15 * (1 - dist / connectionDistance);
+                    var opacity = 0.15 * (1 - dist / connectionDistance);
 
-                    const gradient = ctx.createLinearGradient(
+                    var gradient = ctx.createLinearGradient(
                         particles[i].x, particles[i].y,
                         particles[j].x, particles[j].y
                     );
-                    gradient.addColorStop(0, `rgba(16, 185, 129, ${opacity})`);
-                    gradient.addColorStop(1, `rgba(59, 130, 246, ${opacity})`);
+                    gradient.addColorStop(0, 'rgba(16, 185, 129, ' + opacity + ')');
+                    gradient.addColorStop(1, 'rgba(59, 130, 246, ' + opacity + ')');
 
                     ctx.beginPath();
                     ctx.moveTo(particles[i].x, particles[i].y);
@@ -1104,13 +1220,13 @@ async function clearAllData() {
 
     function animate() {
         ctx.clearRect(0, 0, width, height);
-        particles.forEach(p => p.update());
+        for (var i = 0; i < particles.length; i++) particles[i].update();
         drawConnections();
-        particles.forEach(p => p.draw());
+        for (var i = 0; i < particles.length; i++) particles[i].draw();
         requestAnimationFrame(animate);
     }
 
-    window.addEventListener('resize', () => {
+    window.addEventListener('resize', function() {
         width = window.innerWidth;
         height = window.innerHeight;
         canvas.width = width;
@@ -1118,7 +1234,7 @@ async function clearAllData() {
         init();
     });
 
-    window.addEventListener('mousemove', (e) => {
+    window.addEventListener('mousemove', function(e) {
         mouseX = e.clientX;
         mouseY = e.clientY;
     });

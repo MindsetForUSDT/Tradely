@@ -1410,3 +1410,15 @@ body {
         flex-wrap: wrap;
     }
 }
+.wallet-icon-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 18px;
+}
