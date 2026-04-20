@@ -13,6 +13,9 @@
     <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+    <!-- Toast контейнер -->
+    <div id="toastContainer" class="toast-container"></div>
+
     <!-- Прелоадер -->
     <div id="preloader" class="preloader">
         <div class="preloader-logo">T</div>
@@ -59,6 +62,7 @@
                     <button class="auth-switch" data-auth="register">Регистрация</button>
                 </div>
 
+                <!-- Форма входа -->
                 <form id="loginForm" class="auth-form-new">
                     <div class="input-group-new">
                         <label>Логин</label>
@@ -72,8 +76,12 @@
                         <span>Войти в аккаунт</span>
                         <span class="arrow">→</span>
                     </button>
+                    <p style="text-align: right; margin-top: 8px;">
+                        <a href="#" id="forgotPasswordLink" style="color: #71717A; text-decoration: none; font-size: 13px;">Забыли пароль?</a>
+                    </p>
                 </form>
 
+                <!-- Форма регистрации -->
                 <form id="registerForm" class="auth-form-new hidden">
                     <div class="input-group-new">
                         <label>Логин</label>
@@ -87,10 +95,62 @@
                         <label>Подтверждение пароля</label>
                         <input type="password" name="confirmPassword" placeholder="••••••••" required>
                     </div>
+                    <div class="input-group-new">
+                        <label>Секретный вопрос (для восстановления)</label>
+                        <input type="text" name="secretQuestion" placeholder="Например: Кличка первого питомца?">
+                    </div>
+                    <div class="input-group-new">
+                        <label>Ответ на секретный вопрос</label>
+                        <input type="text" name="secretAnswer" placeholder="Ваш ответ">
+                    </div>
                     <button type="submit" class="auth-submit-new">
                         <span>Создать аккаунт</span>
                         <span class="arrow">→</span>
                     </button>
+                </form>
+
+                <!-- Форма восстановления пароля (шаг 1) -->
+                <form id="forgotPasswordForm" class="auth-form-new hidden">
+                    <h3 style="margin-bottom: 20px; text-align: center;">Восстановление пароля</h3>
+                    <div class="input-group-new">
+                        <label>Логин</label>
+                        <input type="text" name="forgotUsername" placeholder="ivan_trader" required>
+                    </div>
+                    <button type="submit" class="auth-submit-new">
+                        <span>Далее</span>
+                        <span class="arrow">→</span>
+                    </button>
+                    <p style="text-align: center; margin-top: 12px;">
+                        <a href="#" id="backToLoginLink" style="color: #10B981; text-decoration: none; font-size: 13px;">← Вернуться ко входу</a>
+                    </p>
+                </form>
+
+                <!-- Форма сброса пароля (шаг 2) -->
+                <form id="resetPasswordForm" class="auth-form-new hidden">
+                    <h3 style="margin-bottom: 20px; text-align: center;">Новый пароль</h3>
+                    <div class="input-group-new">
+                        <label>Логин</label>
+                        <input type="text" name="resetUsername" id="resetUsername" readonly>
+                    </div>
+                    <div class="input-group-new">
+                        <label id="secretQuestionLabel">Секретный вопрос</label>
+                        <input type="text" name="secretAnswer" placeholder="Ваш ответ" required>
+                    </div>
+                    <div class="input-group-new">
+                        <label>Новый пароль</label>
+                        <input type="password" name="newPassword" placeholder="••••••••" required minlength="6">
+                    </div>
+                    <div class="input-group-new">
+                        <label>Подтверждение нового пароля</label>
+                        <input type="password" name="confirmNewPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="auth-submit-new">
+                        <span>Сменить пароль</span>
+                        <span class="arrow">→</span>
+                    </button>
+                    <p style="text-align: center; margin-top: 12px;">
+                        <a href="#" id="backToLoginFromReset" style="color: #10B981; text-decoration: none; font-size: 13px;">← Вернуться ко входу</a>
+                    </p>
                 </form>
 
                 <div id="authError" class="auth-error-new"></div>
@@ -98,7 +158,7 @@
                 <div class="auth-footer-new">
                     <span>Защищённое соединение</span>
                     <span>·</span>
-                    <span>v3.0.0</span>
+                    <span>v3.1.0</span>
                 </div>
             </div>
         </div>
@@ -116,7 +176,6 @@
                     <p class="onboarding-desc">Как вы хотите работать с аналитикой?</p>
 
                     <div class="mode-selector">
-                        <!-- Pro тариф -->
                         <div class="mode-card" data-mode="pro">
                             <div class="mode-badge">PRO</div>
                             <div class="mode-icon">
@@ -140,7 +199,6 @@
                             <button class="mode-select-btn">Выбрать Pro</button>
                         </div>
 
-                        <!-- Manual тариф -->
                         <div class="mode-card" data-mode="manual">
                             <div class="mode-badge free">FREE</div>
                             <div class="mode-icon">
@@ -164,26 +222,17 @@
                         </div>
                     </div>
 
-                    <p class="onboarding-note">
-                        Тариф можно изменить в любое время в настройках
-                    </p>
+                    <p class="onboarding-note">Тариф можно изменить в любое время в настройках</p>
                 </div>
 
-                <!-- Шаг 2: Pro -->
                 <div class="onboarding-step hidden" id="walletStep">
                     <div class="step-indicator">Шаг 2 из 2</div>
                     <h2>Активация Pro</h2>
-                    <p class="onboarding-desc">Подключите кошелёк для оплаты</p>
+                    <p class="onboarding-desc">Подключите кошелёк (тестовый режим)</p>
 
                     <div class="payment-summary">
-                        <div class="summary-row">
-                            <span>Тариф Pro Аналитика</span>
-                            <span>500 ₽/мес</span>
-                        </div>
-                        <div class="summary-row total">
-                            <span>К оплате</span>
-                            <span>500 ₽</span>
-                        </div>
+                        <div class="summary-row"><span>Тариф Pro Аналитика</span><span>500 ₽/мес</span></div>
+                        <div class="summary-row total"><span>К оплате</span><span>500 ₽</span></div>
                     </div>
 
                     <div class="wallet-selector">
@@ -207,13 +256,13 @@
                     </div>
 
                     <div class="payment-note">
-                        <p>Оплата в USDT (тестовый режим)</p>
+                        <p>Тестовый режим — оплата не требуется</p>
                         <p>После активации сделки начнут импортироваться автоматически</p>
                     </div>
 
                     <div class="onboarding-actions">
                         <button id="backToMode" class="onboarding-btn secondary">← Назад</button>
-                        <button id="finishOnboarding" class="onboarding-btn" disabled>Оплатить и активировать</button>
+                        <button id="finishOnboarding" class="onboarding-btn" disabled>Активировать Pro</button>
                     </div>
                 </div>
             </div>
@@ -246,10 +295,7 @@
         </header>
 
         <aside id="mobileMenu" class="mobile-menu hidden">
-            <div class="mobile-menu-header">
-                <span>Меню</span>
-                <button id="closeMenu">✕</button>
-            </div>
+            <div class="mobile-menu-header"><span>Меню</span><button id="closeMenu">✕</button></div>
             <nav class="mobile-nav">
                 <a href="#" class="mobile-nav-link active" data-view="journal">Журнал</a>
                 <a href="#" class="mobile-nav-link" data-view="analytics">Аналитика</a>
@@ -280,9 +326,7 @@
                     <div class="stat-item">
                         <span class="stat-label-new">Винрейт</span>
                         <span class="stat-value-new" id="winRate">0%</span>
-                        <div class="progress-bar-new">
-                            <div class="progress-fill-new" id="winRateProgress" style="width: 0%"></div>
-                        </div>
+                        <div class="progress-bar-new"><div class="progress-fill-new" id="winRateProgress" style="width: 0%"></div></div>
                     </div>
                     <div class="stat-item">
                         <span class="stat-label-new">Сделок</span>
@@ -311,12 +355,8 @@
                         <button class="filter-btn" data-filter="loss">SHORT</button>
                     </div>
                     <table class="trades-table-new">
-                        <thead>
-                            <tr><th>Время</th><th>Пара</th><th>Объём</th><th>P/L</th><th></th></tr>
-                        </thead>
-                        <tbody id="tradesList">
-                            <tr><td colspan="5" class="empty-message">Нет сделок</td></tr>
-                        </tbody>
+                        <thead><tr><th>Время</th><th>Пара</th><th>Объём</th><th>P/L</th><th></th></tr></thead>
+                        <tbody id="tradesList"><tr><td colspan="5" class="empty-message">Нет сделок</td></tr></tbody>
                     </table>
                 </div>
             </div>
@@ -327,7 +367,10 @@
                 <div class="charts-grid">
                     <div class="chart-card"><h3>Динамика P/L</h3><canvas id="plChart"></canvas></div>
                     <div class="chart-card"><h3>Соотношение</h3><canvas id="ratioChart"></canvas>
-                        <div class="chart-legend-new"><span><span class="dot profit"></span> LONG <span id="profitPercent">0%</span></span><span><span class="dot loss"></span> SHORT <span id="lossPercent">0%</span></span></div>
+                        <div class="chart-legend-new">
+                            <span><span class="dot profit"></span> LONG <span id="profitPercent">0%</span></span>
+                            <span><span class="dot loss"></span> SHORT <span id="lossPercent">0%</span></span>
+                        </div>
                     </div>
                     <div class="chart-card full-width"><h3>Детали</h3>
                         <div class="stats-details">
@@ -366,14 +409,18 @@
 
             <!-- Рейтинг -->
             <div id="leaderboardView" class="view-container hidden">
-                <div class="page-header"><h2>Рейтинг трейдеров</h2><select id="leaderboardLimit" class="simple-select"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div>
-                <table class="leaderboard-table-new"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделок</th></tr></thead><tbody id="leaderboardBody"><tr><td colspan="5" class="empty-message">Загрузка...</td></tr></tbody></table>
+                <div class="page-header"><h2>Рейтинг трейдеров</h2>
+                    <select id="leaderboardLimit" class="simple-select"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select>
+                </div>
+                <table class="leaderboard-table-new"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделок</th></tr></thead>
+                <tbody id="leaderboardBody"><tr><td colspan="5" class="empty-message">Загрузка...</td></tr></tbody></table>
             </div>
 
             <!-- Админ -->
             <div id="adminView" class="view-container hidden">
                 <div class="page-header"><h2>Администрирование</h2></div>
-                <table class="admin-table-new"><thead><tr><th>ID</th><th>Пользователь</th><th>Pro</th><th>Сделок</th><th>P/L</th><th></th></tr></thead><tbody id="adminUsersList"><tr><td colspan="6" class="empty-message">Загрузка...</td></tr></tbody></table>
+                <table class="admin-table-new"><thead><tr><th>ID</th><th>Пользователь</th><th>Pro</th><th>Сделок</th><th>P/L</th><th></th></tr></thead>
+                <tbody id="adminUsersList"><tr><td colspan="6" class="empty-message">Загрузка...</td></tr></tbody></table>
             </div>
 
             <!-- Настройки -->
@@ -383,6 +430,9 @@
                     <div class="settings-block"><h3>Профиль</h3>
                         <div class="settings-row"><span>Логин</span><span id="profileUsername">—</span></div>
                         <div class="settings-row"><span>Статус</span><span id="accountTypeDisplay">Базовый</span></div>
+                    </div>
+                    <div class="settings-block"><h3>Безопасность</h3>
+                        <button id="changePasswordBtn" class="btn-secondary">🔐 Сменить пароль</button>
                     </div>
                     <div class="settings-block"><h3>Тариф</h3>
                         <div id="tariffDisplay">
@@ -401,33 +451,15 @@
                         <div id="walletSettingsArea">
                             <div id="walletNotConnectedSettings">
                                 <div class="wallet-selector">
-                                    <div class="wallet-option-new" data-wallet="MetaMask">
-                                        <div class="wallet-icon-circle" style="background: #F6851B;">M</div>
-                                        <span>MetaMask</span>
-                                    </div>
-                                    <div class="wallet-option-new" data-wallet="Phantom">
-                                        <div class="wallet-icon-circle" style="background: #AB9FF2;">P</div>
-                                        <span>Phantom</span>
-                                    </div>
-                                    <div class="wallet-option-new" data-wallet="TrustWallet">
-                                        <div class="wallet-icon-circle" style="background: #3375BB;">T</div>
-                                        <span>Trust Wallet</span>
-                                    </div>
+                                    <div class="wallet-option-new" data-wallet="MetaMask"><div class="wallet-icon-circle" style="background: #F6851B;">M</div><span>MetaMask</span></div>
+                                    <div class="wallet-option-new" data-wallet="Phantom"><div class="wallet-icon-circle" style="background: #AB9FF2;">P</div><span>Phantom</span></div>
+                                    <div class="wallet-option-new" data-wallet="TrustWallet"><div class="wallet-icon-circle" style="background: #3375BB;">T</div><span>Trust Wallet</span></div>
                                 </div>
-                                <div class="input-group-new" style="margin-top: 20px;">
-                                    <label>Адрес кошелька</label>
-                                    <input type="text" id="walletAddressSettings" placeholder="0x..." class="wallet-input">
-                                </div>
+                                <div class="input-group-new" style="margin-top: 20px;"><label>Адрес кошелька</label><input type="text" id="walletAddressSettings" placeholder="0x..." class="wallet-input"></div>
                                 <button id="connectWalletBtnSettings" class="btn-primary" style="width: 100%; margin-top: 16px;">Подключить кошелёк</button>
                             </div>
                             <div id="walletConnectedSettings" class="hidden">
-                                <div class="wallet-status">
-                                    <div class="wallet-icon">✓</div>
-                                    <div class="wallet-details">
-                                        <h4>Кошелёк подключен</h4>
-                                        <p id="connectedWalletAddressSettings">0x...</p>
-                                    </div>
-                                </div>
+                                <div class="wallet-status"><div class="wallet-icon">✓</div><div class="wallet-details"><h4>Кошелёк подключен</h4><p id="connectedWalletAddressSettings">0x...</p></div></div>
                                 <button id="disconnectWalletBtnSettings" class="btn-danger" style="width: 100%; margin-top: 16px;">Отключить кошелёк</button>
                             </div>
                         </div>
@@ -442,6 +474,20 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- Модальное окно смены пароля -->
+    <div id="changePasswordModal" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-header"><h3>Смена пароля</h3><button class="modal-close" id="closeChangePasswordModal">✕</button></div>
+            <form id="changePasswordForm">
+                <div class="input-group-new"><label>Текущий пароль</label><input type="password" name="currentPassword" placeholder="••••••••" required></div>
+                <div class="input-group-new"><label>Новый пароль</label><input type="password" name="newPassword" placeholder="••••••••" required minlength="6"></div>
+                <div class="input-group-new"><label>Подтверждение</label><input type="password" name="confirmNewPassword" placeholder="••••••••" required></div>
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 20px;">Сменить пароль</button>
+            </form>
+            <div id="changePasswordError" class="auth-error-new"></div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
