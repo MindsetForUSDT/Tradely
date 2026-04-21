@@ -78,7 +78,17 @@ const Store = {
         const avgProfit = w ? pS / w : 0;
         const avgLoss = (this.trades.length - w) ? lS / (this.trades.length - w) : 0;
 
-        return { totalPL: pl, winRate: wr, totalTrades: this.trades.length, wins: w, losses: this.trades.length - w, avgProfit, avgLoss, maxProfit: maxP, maxLoss: maxL };
+        return {
+            totalPL: pl,
+            winRate: wr,
+            totalTrades: this.trades.length,
+            wins: w,
+            losses: this.trades.length - w,
+            avgProfit,
+            avgLoss,
+            maxProfit: maxP,
+            maxLoss: maxL
+        };
     }
 };
 
@@ -99,7 +109,7 @@ function toast(msg, type = 'info') {
     const c = document.getElementById('toastContainer');
     if (!c) return;
     const t = document.createElement('div');
-    t.className = `toast ${type}`;
+    t.className = 'toast ' + type;
     t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span><span>${msg}</span><span style="cursor:pointer;margin-left:auto;" onclick="this.parentElement.remove()">✕</span>`;
     c.appendChild(t);
     setTimeout(() => { if (t.parentNode) t.remove(); }, 4000);
@@ -110,7 +120,6 @@ function hidePreloader() {
     if (p) p.style.display = 'none';
 }
 
-// ========== ГРАФИКИ (Исправлены) ==========
 function destroyCharts() {
     if (plChart) { plChart.destroy(); plChart = null; }
     if (ratioChart) { ratioChart.destroy(); ratioChart = null; }
@@ -121,6 +130,7 @@ function isElementVisible(el) {
     return !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
 }
 
+// ========== ГРАФИКИ ==========
 function updateCharts() {
     const plCanvas = document.getElementById('plChart');
     const ratioCanvas = document.getElementById('ratioChart');
@@ -129,7 +139,6 @@ function updateCharts() {
     if (!isElementVisible(plCanvas) || !isElementVisible(ratioCanvas)) return;
     if (!Store.trades.length) return;
 
-    // P/L Chart
     const ctx1 = plCanvas.getContext('2d');
     if (plChart) plChart.destroy();
 
@@ -162,7 +171,6 @@ function updateCharts() {
         }
     });
 
-    // Ratio Chart
     const ctx2 = ratioCanvas.getContext('2d');
     if (ratioChart) ratioChart.destroy();
 
@@ -202,12 +210,61 @@ function scheduleChartUpdate() {
     });
 }
 
+// ========== РАСШИРЕННАЯ АНАЛИТИКА ==========
+function renderExtendedAnalytics() {
+    const pairsEl = document.getElementById('pairsDistribution');
+    const heatmapEl = document.getElementById('heatmapContainer');
+
+    if (!pairsEl || !heatmapEl) return;
+
+    const trades = Store.trades;
+    if (!trades.length) {
+        pairsEl.innerHTML = '<p style="color:#71717a;text-align:center;">Нет данных</p>';
+        heatmapEl.innerHTML = '<p style="color:#71717a;text-align:center;">Нет данных</p>';
+        return;
+    }
+
+    // Распределение по парам
+    const pairs = {};
+    trades.forEach(t => { pairs[t.pair] = (pairs[t.pair] || 0) + 1; });
+    const sorted = Object.entries(pairs).sort((a, b) => b[1] - a[1]).slice(0, 5);
+    const maxCount = sorted[0]?.[1] || 1;
+    pairsEl.innerHTML = sorted.map(([pair, count]) => `
+        <div class="pair-item">
+            <span class="pair-name">${pair}</span>
+            <div class="pair-bar"><div class="pair-bar-fill" style="width: ${(count / maxCount) * 100}%"></div></div>
+            <span class="pair-count">${count}</span>
+        </div>
+    `).join('');
+
+    // Тепловая карта (последние 28 дней)
+    const days = {};
+    const now = Date.now();
+    for (let i = 0; i < 28; i++) {
+        const d = new Date(now - i * 86400000).toLocaleDateString('ru-RU');
+        days[d] = { pl: 0, count: 0 };
+    }
+    trades.forEach(t => {
+        const d = new Date(t.timestamp).toLocaleDateString('ru-RU');
+        if (days[d] !== undefined) {
+            days[d].pl += t.type === 'profit' ? t.volume : -t.volume;
+            days[d].count++;
+        }
+    });
+    heatmapEl.innerHTML = Object.entries(days).reverse().map(([date, data]) => {
+        let cls = 'empty';
+        if (data.count > 0) cls = data.pl > 0 ? 'profit' : (data.pl < 0 ? 'loss' : 'neutral');
+        return `<div class="heatmap-day ${cls}" title="${date}: ${data.count} сделок, ${data.pl >= 0 ? '+' : ''}$${data.pl.toFixed(2)}"></div>`;
+    }).join('');
+}
+
 // ========== РЕНДЕРИНГ ==========
 function renderJournal() {
     const tb = document.getElementById('tradesList');
     if (!tb) return;
 
     const filtered = Store.getFilteredTrades();
+
     if (!filtered.length) {
         tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;">Нет сделок</td></tr>';
         return;
@@ -217,7 +274,13 @@ function renderJournal() {
     tb.innerHTML = filtered.map(t => {
         const tm = new Date(t.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
         const act = isPro ? '' : `<button class="icon-btn" onclick="window.deleteTrade('${t.id}')" style="width:28px;height:28px;">🗑️</button>`;
-        return `<tr><td>${tm}</td><td>${t.pair}</td><td>${t.volume.toFixed(2)}</td><td class="${t.type === 'profit' ? 'profit-text' : 'loss-text'}">${t.type === 'profit' ? '+' : '−'} $${t.volume.toFixed(2)}</td><td>${act}</td></tr>`;
+        return `<tr>
+            <td>${tm}</td>
+            <td>${t.pair}</td>
+            <td>${t.volume.toFixed(2)}</td>
+            <td class="${t.type === 'profit' ? 'profit-text' : 'loss-text'}">${t.type === 'profit' ? '+' : '−'} $${t.volume.toFixed(2)}</td>
+            <td>${act}</td>
+        </tr>`;
     }).join('');
 }
 
@@ -261,6 +324,11 @@ function updateStats() {
     if (worstTrade) worstTrade.textContent = '$' + stats.maxLoss.toFixed(2);
 }
 
+function updateAdminVisibility() {
+    const adminLinks = document.querySelectorAll('.admin-only');
+    adminLinks.forEach(el => el.classList.toggle('hidden', !Store.userStatus.is_admin));
+}
+
 function updateProfileDisplay() {
     if (!Store.currentUser) return;
     const user = Store.currentUser;
@@ -280,6 +348,8 @@ function updateProfileDisplay() {
 
     const toggle = document.getElementById('publicProfileToggle');
     if (toggle) toggle.checked = status.is_public;
+
+    updateAdminVisibility();
 }
 
 function updateDate() {
@@ -287,12 +357,13 @@ function updateDate() {
     if (el) el.textContent = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
-// Подписка на изменения Store
+// Подписка на Store
 Store.subscribe(() => {
     renderJournal();
     updateStats();
     updateProfileDisplay();
     scheduleChartUpdate();
+    renderExtendedAnalytics();
 });
 
 // ========== API ==========
@@ -384,19 +455,26 @@ function checkAuth() {
 
 async function fetchProfile() {
     try {
-        const r = await fetch(API + '/api/user/profile', { headers: { 'Authorization': 'Bearer ' + authToken } });
+        const r = await fetch(API + '/api/user/profile', {
+            headers: { 'Authorization': 'Bearer ' + authToken }
+        });
         if (r.ok) {
             const user = await r.json();
             Store.setCurrentUser(user);
             hidePreloader();
-            if (Store.userStatus.first_login) showTariffPage();
-            else { await loadTrades(); showAppPage(); }
+            if (Store.userStatus.first_login) {
+                showTariffPage();
+            } else {
+                await loadTrades();
+                showAppPage();
+            }
         } else {
             localStorage.removeItem('authToken');
             hidePreloader();
             showAuthPage();
         }
     } catch (e) {
+        console.error('Fetch profile error:', e);
         hidePreloader();
         showAuthPage();
     }
@@ -409,12 +487,15 @@ function showAuthPage() {
     document.querySelector('.auth-tab[data-tab="login"]')?.classList.add('active');
     document.getElementById('loginForm')?.classList.remove('hidden');
     document.getElementById('registerForm')?.classList.add('hidden');
+    document.getElementById('forgotPasswordForm')?.classList.add('hidden');
+    document.getElementById('resetPasswordForm')?.classList.add('hidden');
 }
 
 function showTariffPage() {
     hideAll();
     document.getElementById('tariffPage')?.classList.remove('hidden');
-    selectedMode = selectedWalletType = null;
+    selectedMode = null;
+    selectedWalletType = null;
     document.querySelectorAll('.tariff-card').forEach(c => c.classList.remove('selected'));
     document.querySelector('.tariff-cards')?.classList.remove('hidden');
     document.querySelector('.tariff-header')?.classList.remove('hidden');
@@ -430,7 +511,9 @@ function showAppPage() {
 }
 
 function hideAll() {
-    ['authPage', 'tariffPage', 'appPage'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    ['authPage', 'tariffPage', 'appPage'].forEach(id => {
+        document.getElementById(id)?.classList.add('hidden');
+    });
 }
 
 function switchView(v) {
@@ -442,18 +525,20 @@ function switchView(v) {
         toast('Доступ запрещён', 'error');
         return;
     }
+
     currentView = v;
     document.querySelectorAll('.view-container').forEach(c => c.classList.add('hidden'));
     const viewEl = document.getElementById(v + 'View');
     if (viewEl) viewEl.classList.remove('hidden');
 
-    document.querySelectorAll('.nav-link').forEach(l => {
+    document.querySelectorAll('.menu-link').forEach(l => {
         l.classList.remove('active');
         if (l.dataset.view === v) l.classList.add('active');
     });
 
     if (v === 'leaderboard') {
         if (!Store.userStatus.wallet_connected && !Store.userStatus.is_admin) {
+            toast('Требуется Pro статус', 'error');
             switchView('settings');
             return;
         }
@@ -477,6 +562,8 @@ function setupListeners() {
             const isL = this.dataset.tab === 'login';
             document.getElementById('loginForm')?.classList.toggle('hidden', !isL);
             document.getElementById('registerForm')?.classList.toggle('hidden', isL);
+            const errEl = document.getElementById('authError');
+            if (errEl) errEl.textContent = '';
         };
     });
 
@@ -496,12 +583,21 @@ function setupListeners() {
                 Store.setCurrentUser(d.user);
                 localStorage.setItem('authToken', authToken);
                 toast('Вход выполнен', 'success');
-                Store.userStatus.first_login ? showTariffPage() : (await loadTrades(), showAppPage());
+                if (Store.userStatus.first_login) {
+                    showTariffPage();
+                } else {
+                    await loadTrades();
+                    showAppPage();
+                }
             } else {
-                document.getElementById('authError').textContent = d.error;
+                const errEl = document.getElementById('authError');
+                if (errEl) errEl.textContent = d.error;
                 toast(d.error, 'error');
             }
-        } catch { document.getElementById('authError').textContent = 'Ошибка соединения'; }
+        } catch (err) {
+            const errEl = document.getElementById('authError');
+            if (errEl) errEl.textContent = 'Ошибка соединения';
+        }
     });
 
     // Регистрация
@@ -509,14 +605,20 @@ function setupListeners() {
         e.preventDefault();
         const f = new FormData(e.target);
         if (f.get('password') !== f.get('confirmPassword')) {
-            document.getElementById('authError').textContent = 'Пароли не совпадают';
+            const errEl = document.getElementById('authError');
+            if (errEl) errEl.textContent = 'Пароли не совпадают';
             return;
         }
         try {
             const r = await fetch(API + '/api/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: f.get('username'), password: f.get('password'), secretQuestion: f.get('secretQuestion'), secretAnswer: f.get('secretAnswer') })
+                body: JSON.stringify({
+                    username: f.get('username'),
+                    password: f.get('password'),
+                    secretQuestion: f.get('secretQuestion'),
+                    secretAnswer: f.get('secretAnswer')
+                })
             });
             const d = await r.json();
             if (r.ok) {
@@ -525,89 +627,135 @@ function setupListeners() {
                 localStorage.setItem('authToken', authToken);
                 toast('Регистрация успешна', 'success');
                 showTariffPage();
-            } else document.getElementById('authError').textContent = d.error;
-        } catch { document.getElementById('authError').textContent = 'Ошибка соединения'; }
+            } else {
+                const errEl = document.getElementById('authError');
+                if (errEl) errEl.textContent = d.error;
+            }
+        } catch (err) {
+            const errEl = document.getElementById('authError');
+            if (errEl) errEl.textContent = 'Ошибка соединения';
+        }
     });
 
     // Восстановление пароля
     document.getElementById('forgotPasswordLink')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.getElementById('loginForm')?.classList.add('hidden');
+        document.getElementById('registerForm')?.classList.add('hidden');
         document.getElementById('forgotPasswordForm')?.classList.remove('hidden');
     });
+
     document.getElementById('backToLoginLink')?.addEventListener('click', (e) => {
         e.preventDefault();
         document.getElementById('loginForm')?.classList.remove('hidden');
         document.getElementById('forgotPasswordForm')?.classList.add('hidden');
     });
+
+    document.getElementById('backToLoginFromReset')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.getElementById('loginForm')?.classList.remove('hidden');
+        document.getElementById('resetPasswordForm')?.classList.add('hidden');
+    });
+
     document.getElementById('forgotPasswordForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const u = e.target.querySelector('[name="forgotUsername"]').value;
         try {
-            const r = await fetch(API + '/api/auth/forgot-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u }) });
+            const r = await fetch(API + '/api/auth/forgot-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u })
+            });
             const d = await r.json();
             if (r.ok) {
                 document.getElementById('resetUsername').value = u;
                 document.getElementById('secretQuestionLabel').textContent = d.secretQuestion;
                 document.getElementById('forgotPasswordForm').classList.add('hidden');
                 document.getElementById('resetPasswordForm').classList.remove('hidden');
-            } else document.getElementById('authError').textContent = d.error;
-        } catch {}
+            } else {
+                const errEl = document.getElementById('authError');
+                if (errEl) errEl.textContent = d.error;
+            }
+        } catch (err) {}
     });
+
     document.getElementById('resetPasswordForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target);
         if (f.get('newPassword') !== f.get('confirmNewPassword')) {
-            document.getElementById('authError').textContent = 'Пароли не совпадают';
+            const errEl = document.getElementById('authError');
+            if (errEl) errEl.textContent = 'Пароли не совпадают';
             return;
         }
         try {
             const r = await fetch(API + '/api/auth/reset-password', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: document.getElementById('resetUsername').value, secretAnswer: f.get('secretAnswer'), newPassword: f.get('newPassword') })
+                body: JSON.stringify({
+                    username: document.getElementById('resetUsername').value,
+                    secretAnswer: f.get('secretAnswer'),
+                    newPassword: f.get('newPassword')
+                })
             });
             if (r.ok) {
                 toast('Пароль изменён', 'success');
                 document.getElementById('resetPasswordForm').classList.add('hidden');
                 document.getElementById('loginForm').classList.remove('hidden');
             }
-        } catch {}
+        } catch (err) {}
     });
 
-    // Тарифы
-    document.querySelectorAll('.tariff-card').forEach(c => c.onclick = function() {
-        document.querySelectorAll('.tariff-card').forEach(x => x.classList.remove('selected'));
-        this.classList.add('selected');
-        selectedMode = this.dataset.mode;
+    // Выбор тарифа
+    document.querySelectorAll('.tariff-card').forEach(c => {
+        c.onclick = function() {
+            document.querySelectorAll('.tariff-card').forEach(x => x.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedMode = this.dataset.mode;
+        };
     });
-    document.querySelectorAll('.tariff-select-btn').forEach(b => b.onclick = function(e) {
-        e.stopPropagation();
-        if (!selectedMode) { toast('Выберите тариф', 'error'); return; }
-        if (selectedMode === 'pro') {
-            document.querySelector('.tariff-cards')?.classList.add('hidden');
-            document.querySelector('.tariff-header')?.classList.add('hidden');
-            document.querySelector('.tariff-note')?.classList.add('hidden');
-            document.getElementById('walletStepContainer')?.classList.remove('hidden');
-        } else finishOnboarding(false);
+
+    document.querySelectorAll('.tariff-select-btn').forEach(b => {
+        b.onclick = function(e) {
+            e.stopPropagation();
+            if (!selectedMode) {
+                toast('Выберите тариф', 'error');
+                return;
+            }
+            if (selectedMode === 'pro') {
+                document.querySelector('.tariff-cards')?.classList.add('hidden');
+                document.querySelector('.tariff-header')?.classList.add('hidden');
+                document.querySelector('.tariff-note')?.classList.add('hidden');
+                document.getElementById('walletStepContainer')?.classList.remove('hidden');
+            } else {
+                finishOnboarding(false);
+            }
+        };
     });
 
     // Кошелёк
-    document.querySelectorAll('.wallet-option').forEach(o => o.onclick = function() {
-        document.querySelectorAll('.wallet-option').forEach(w => w.classList.remove('selected'));
-        this.classList.add('selected');
-        selectedWalletType = this.dataset.wallet;
-        document.getElementById('finishOnboarding').disabled = !document.getElementById('walletAddressInput')?.value.trim();
+    document.querySelectorAll('.wallet-option').forEach(o => {
+        o.onclick = function() {
+            document.querySelectorAll('.wallet-option').forEach(w => w.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedWalletType = this.dataset.wallet;
+            checkWallet();
+        };
     });
-    document.getElementById('walletAddressInput')?.addEventListener('input', function() {
-        document.getElementById('finishOnboarding').disabled = !selectedWalletType || !this.value.trim();
-    });
+
+    document.getElementById('walletAddressInput')?.addEventListener('input', checkWallet);
+
+    function checkWallet() {
+        const btn = document.getElementById('finishOnboarding');
+        if (btn) btn.disabled = !selectedWalletType || !document.getElementById('walletAddressInput')?.value.trim();
+    }
+
     document.getElementById('backToTariff')?.addEventListener('click', () => {
         document.querySelector('.tariff-cards')?.classList.remove('hidden');
         document.querySelector('.tariff-header')?.classList.remove('hidden');
         document.querySelector('.tariff-note')?.classList.remove('hidden');
         document.getElementById('walletStepContainer')?.classList.add('hidden');
     });
+
     document.getElementById('finishOnboarding')?.addEventListener('click', () => finishOnboarding(true));
 
     async function finishOnboarding(isPro) {
@@ -616,84 +764,111 @@ function setupListeners() {
                 await fetch(API + '/api/user/wallet', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                    body: JSON.stringify({ wallet_address: document.getElementById('walletAddressInput').value.trim(), wallet_type: selectedWalletType })
+                    body: JSON.stringify({
+                        wallet_address: document.getElementById('walletAddressInput')?.value.trim(),
+                        wallet_type: selectedWalletType
+                    })
                 });
                 Store.setUserStatus({ wallet_connected: true });
                 toast('Pro активирован', 'success');
             } else {
-                await fetch(API + '/api/user/skip-wallet', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken } });
-                toast('Базовый тариф', 'success');
+                await fetch(API + '/api/user/skip-wallet', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                toast('Базовый тариф активирован', 'success');
             }
             Store.setUserStatus({ first_login: false });
             await loadTrades();
             showAppPage();
-        } catch { toast('Ошибка', 'error'); }
+        } catch (e) {
+            toast('Ошибка активации', 'error');
+        }
     }
 
     // Навигация
-    document.querySelectorAll('[data-view]').forEach(el => el.onclick = (e) => { e.preventDefault(); switchView(el.dataset.view); });
+    document.querySelectorAll('[data-view]').forEach(el => {
+        el.onclick = (e) => {
+            e.preventDefault();
+            switchView(el.dataset.view);
+        };
+    });
 
     // Выход
-    const logout = () => { localStorage.removeItem('authToken'); authToken = null; Store.setCurrentUser(null); Store.setTrades([]); showAuthPage(); };
+    function logout() {
+        localStorage.removeItem('authToken');
+        authToken = null;
+        Store.setCurrentUser(null);
+        Store.setTrades([]);
+        showAuthPage();
+    }
     document.getElementById('headerLogout')?.addEventListener('click', logout);
     document.getElementById('logoutBtn')?.addEventListener('click', logout);
 
     // Сделки
     document.getElementById('addTradeBtn')?.addEventListener('click', addTrade);
-    document.querySelectorAll('.type-btn').forEach(b => b.onclick = function() {
-        document.querySelectorAll('.type-btn').forEach(x => x.classList.remove('active'));
-        this.classList.add('active');
+
+    document.querySelectorAll('.type-btn').forEach(b => {
+        b.onclick = function() {
+            document.querySelectorAll('.type-btn').forEach(x => x.classList.remove('active'));
+            this.classList.add('active');
+        };
     });
-    document.querySelectorAll('.filter-btn').forEach(b => b.onclick = function() {
-        document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active'));
-        this.classList.add('active');
-        Store.setFilter(this.dataset.filter);
+
+    document.querySelectorAll('.filter-btn').forEach(b => {
+        b.onclick = function() {
+            document.querySelectorAll('.filter-btn').forEach(x => x.classList.remove('active'));
+            this.classList.add('active');
+            Store.setFilter(this.dataset.filter);
+        };
     });
 
     // Настройки
     document.getElementById('publicProfileToggle')?.addEventListener('change', async (e) => {
-        if (!Store.userStatus.wallet_connected) { e.target.checked = false; toast('Требуется Pro', 'error'); return; }
-        await fetch(API + '/api/user/public', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }, body: JSON.stringify({ is_public: e.target.checked }) });
+        if (!Store.userStatus.wallet_connected) {
+            e.target.checked = false;
+            toast('Требуется Pro', 'error');
+            return;
+        }
+        await fetch(API + '/api/user/public', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify({ is_public: e.target.checked })
+        });
         Store.setUserStatus({ is_public: e.target.checked });
     });
-    document.getElementById('exportDataBtn')?.addEventListener('click', () => {
-        const d = { trades: Store.trades, exportDate: new Date().toISOString() };
-        const b = new Blob([JSON.stringify(d)], { type: 'application/json' });
-        const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'trades-' + Date.now() + '.json'; a.click();
-        toast('Экспортировано', 'success');
-    });
+
+    document.getElementById('exportDataBtn')?.addEventListener('click', exportData);
     document.getElementById('importDataBtn')?.addEventListener('click', () => document.getElementById('importFileInput')?.click());
-    document.getElementById('importFileInput')?.addEventListener('change', async (e) => {
-        const f = e.target.files[0]; if (!f) return;
-        const r = new FileReader();
-        r.onload = async (ev) => {
-            try {
-                const d = JSON.parse(ev.target.result);
-                if (d.trades && confirm('Импортировать ' + d.trades.length + ' сделок?')) {
-                    await fetch(API + '/api/trades/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }, body: JSON.stringify({ trades: d.trades }) });
-                    await loadTrades();
-                }
-            } catch { toast('Ошибка файла', 'error'); }
-        };
-        r.readAsText(f); e.target.value = '';
-    });
-    document.getElementById('clearDataBtn')?.addEventListener('click', async () => {
-        if (!confirm('Удалить всё?')) return;
-        await fetch(API + '/api/trades/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }, body: JSON.stringify({ trades: [] }) });
-        Store.setTrades([]);
-        toast('Очищено', 'info');
-    });
+    document.getElementById('importFileInput')?.addEventListener('change', importData);
+    document.getElementById('clearDataBtn')?.addEventListener('click', clearAllData);
     document.getElementById('upgradeToProBtn')?.addEventListener('click', () => showTariffPage());
-    document.getElementById('changePasswordBtn')?.addEventListener('click', () => document.getElementById('changePasswordModal')?.classList.remove('hidden'));
-    document.getElementById('closeChangePasswordModal')?.addEventListener('click', () => document.getElementById('changePasswordModal')?.classList.add('hidden'));
+
+    document.getElementById('changePasswordBtn')?.addEventListener('click', () => {
+        document.getElementById('changePasswordModal')?.classList.remove('hidden');
+    });
+    document.getElementById('closeChangePasswordModal')?.addEventListener('click', () => {
+        document.getElementById('changePasswordModal')?.classList.add('hidden');
+    });
+
     document.getElementById('changePasswordForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const f = new FormData(e.target);
-        if (f.get('newPassword') !== f.get('confirmNewPassword')) { document.getElementById('changePasswordError').textContent = 'Пароли не совпадают'; return; }
+        if (f.get('newPassword') !== f.get('confirmNewPassword')) {
+            document.getElementById('changePasswordError').textContent = 'Пароли не совпадают';
+            return;
+        }
         try {
-            const r = await fetch(API + '/api/user/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken }, body: JSON.stringify({ currentPassword: f.get('currentPassword'), newPassword: f.get('newPassword') }) });
-            if (r.ok) { toast('Пароль изменён', 'success'); document.getElementById('changePasswordModal')?.classList.add('hidden'); }
-        } catch {}
+            const r = await fetch(API + '/api/user/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                body: JSON.stringify({ currentPassword: f.get('currentPassword'), newPassword: f.get('newPassword') })
+            });
+            if (r.ok) {
+                toast('Пароль изменён', 'success');
+                document.getElementById('changePasswordModal')?.classList.add('hidden');
+            }
+        } catch (err) {}
     });
 }
 
@@ -714,9 +889,10 @@ async function loadPremium() {
             const recs = [];
             if (d.winRate > 60) recs.push('Отличный винрейт!');
             if (d.profitFactor > 2) recs.push('Profit Factor > 2 — отлично!');
-            document.getElementById('premiumRecommendations').innerHTML = recs.length ? recs.map(r => '<p>• ' + r + '</p>').join('') : '<p>Недостаточно данных</p>';
+            const recEl = document.getElementById('premiumRecommendations');
+            if (recEl) recEl.innerHTML = recs.length ? recs.map(r => '<p>• ' + r + '</p>').join('') : '<p>Недостаточно данных</p>';
         }
-    } catch {}
+    } catch (e) {}
 }
 
 async function loadAdmin() {
@@ -724,23 +900,92 @@ async function loadAdmin() {
         const r = await fetch(API + '/api/admin/users', { headers: { 'Authorization': 'Bearer ' + authToken } });
         if (r.ok) {
             const u = await r.json();
-            document.getElementById('adminUsersList').innerHTML = u.map(u => `<tr><td>${u.id}</td><td>${u.username}</td><td>${u.wallet_connected ? '✅' : '❌'}</td><td>${u.trades_count || 0}</td><td class="${u.total_pl >= 0 ? 'profit-text' : 'loss-text'}">$${u.total_pl?.toFixed(2) || '0.00'}</td><td><button class="icon-btn" onclick="window.deleteAdminUser(${u.id})">🗑️</button></td></tr>`).join('');
+            const tb = document.getElementById('adminUsersList');
+            if (tb) {
+                tb.innerHTML = u.map(u => `<tr>
+                    <td>${u.id}</td><td>${u.username}</td><td>${u.wallet_connected ? '✅' : '❌'}</td>
+                    <td>${u.trades_count || 0}</td>
+                    <td class="${u.total_pl >= 0 ? 'profit-text' : 'loss-text'}">$${u.total_pl ? u.total_pl.toFixed(2) : '0.00'}</td>
+                    <td><button class="icon-btn" onclick="window.deleteAdminUser(${u.id})" style="color:#ef4444;">🗑️</button></td>
+                </tr>`).join('');
+            }
         }
-    } catch {}
+    } catch (e) {}
 }
-window.deleteAdminUser = async (id) => { if (confirm('Удалить?')) { await fetch(API + '/api/admin/users/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + authToken } }); loadAdmin(); } };
+
+window.deleteAdminUser = async function(id) {
+    if (!confirm('Удалить?')) return;
+    await fetch(API + '/api/admin/users/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + authToken } });
+    loadAdmin();
+};
 
 async function loadLeaderboard() {
     const l = document.getElementById('leaderboardLimit')?.value || 25;
+    const tb = document.getElementById('leaderboardBody');
+    if (!tb) return;
     try {
         const r = await fetch(API + '/api/leaderboard?limit=' + l);
         const d = await r.json();
-        document.getElementById('leaderboardBody').innerHTML = d.map(r => `<tr><td>${r.rank}</td><td>${r.username}</td><td class="${r.totalPL >= 0 ? 'profit-text' : 'loss-text'}">${r.totalPL >= 0 ? '+' : ''}$${r.totalPL.toFixed(2)}</td><td>${r.winRate}%</td><td>${r.totalTrades}</td></tr>`).join('') || '<tr><td colspan="5">Нет данных</td></tr>';
-    } catch {}
+        tb.innerHTML = d.map(r => `<tr>
+            <td>${r.rank}</td><td>${r.username}</td>
+            <td class="${r.totalPL >= 0 ? 'profit-text' : 'loss-text'}">${r.totalPL >= 0 ? '+' : ''}$${r.totalPL.toFixed(2)}</td>
+            <td>${r.winRate}%</td><td>${r.totalTrades}</td>
+        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:40px;">Нет данных</td></tr>';
+    } catch (e) {}
 }
 
-// Таймаут прелоадера
+// ========== ЭКСПОРТ/ИМПОРТ ==========
+function exportData() {
+    const d = { trades: Store.trades, exportDate: new Date().toISOString() };
+    const b = new Blob([JSON.stringify(d)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(b);
+    a.download = 'trades-' + Date.now() + '.json';
+    a.click();
+    toast('Экспортировано', 'success');
+}
+
+function importData(e) {
+    const f = e.target.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = async (ev) => {
+        try {
+            const d = JSON.parse(ev.target.result);
+            if (d.trades && confirm('Импортировать ' + d.trades.length + ' сделок?')) {
+                await fetch(API + '/api/trades/sync', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ trades: d.trades })
+                });
+                await loadTrades();
+                toast('Импорт завершён', 'success');
+            }
+        } catch (err) {
+            toast('Ошибка чтения файла', 'error');
+        }
+    };
+    r.readAsText(f);
+    e.target.value = '';
+}
+
+async function clearAllData() {
+    if (!confirm('Удалить все сделки?')) return;
+    await fetch(API + '/api/trades/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+        body: JSON.stringify({ trades: [] })
+    });
+    Store.setTrades([]);
+    toast('Данные очищены', 'info');
+}
+
+// Таймаут для принудительного скрытия прелоадера
 setTimeout(() => {
     const p = document.getElementById('preloader');
-    if (p && p.style.display !== 'none') { p.style.display = 'none'; document.getElementById('authPage')?.classList.remove('hidden'); }
+    if (p && p.style.display !== 'none') {
+        p.style.display = 'none';
+        document.getElementById('authPage')?.classList.remove('hidden');
+        console.log('Прелоадер принудительно скрыт');
+    }
 }, 5000);

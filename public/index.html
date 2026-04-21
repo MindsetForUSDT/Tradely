@@ -25,7 +25,7 @@
             <div class="auth-card-left">
                 <div class="auth-brand"><span class="brand-icon">⟁</span><span class="brand-name">TRADEUM</span></div>
                 <h1 class="auth-headline">Анализируй<br><span class="text-gradient">и зарабатывай</span></h1>
-                <p class="auth-subheadline">Ваш персональный ассистент для разбора торговых операций.<br>Детальная статистика, графики и умные рекомендации.</p>
+                <p class="auth-subheadline">Ваш персональный ассистент для разбора торговых операций.</p>
                 <div class="auth-features">
                     <div class="feature"><span class="feature-num">15+</span><span>метрик</span></div>
                     <div class="feature"><span class="feature-num">100%</span><span>приватность</span></div>
@@ -67,7 +67,7 @@
                     <p class="auth-link"><a href="#" id="backToLoginFromReset">← Вернуться</a></p>
                 </form>
                 <div id="authError" class="auth-error"></div>
-                <div class="auth-footer">Защищённое соединение · v3.0</div>
+                <div class="auth-footer">Защищённое соединение · v4.0</div>
             </div>
         </div>
     </div>
@@ -124,22 +124,52 @@
 
     <!-- СТРАНИЦА 3: ДНЕВНИК -->
     <div id="appPage" class="app-page hidden">
-        <header class="app-header">
-            <div class="app-header-left"><span class="app-logo">TRADEUM</span></div>
-            <nav class="app-nav">
-                <a href="#" class="nav-link active" data-view="journal">Журнал</a>
-                <a href="#" class="nav-link" data-view="analytics">Аналитика</a>
-                <a href="#" class="nav-link" data-view="premium">Premium</a>
-                <a href="#" class="nav-link" data-view="leaderboard">Рейтинг</a>
-                <a href="#" class="nav-link" data-view="admin">Админ</a>
-            </nav>
-            <div class="app-header-right">
-                <span class="user-name" id="headerUsername">Trader</span>
-                <button class="icon-btn" id="headerSettings">⚙️</button>
-                <button class="icon-btn" id="headerLogout">↪</button>
+        <!-- Выезжающее меню слева -->
+        <div class="side-menu" id="sideMenu">
+            <div class="menu-trigger">
+                <span class="menu-icon">⟡</span>
             </div>
-        </header>
+            <nav class="menu-items">
+                <a href="#" class="menu-link active" data-view="journal">
+                    <span class="menu-icon">📊</span>
+                    <span class="menu-text">Журнал</span>
+                </a>
+                <a href="#" class="menu-link" data-view="analytics">
+                    <span class="menu-icon">📈</span>
+                    <span class="menu-text">Аналитика</span>
+                </a>
+                <a href="#" class="menu-link" data-view="premium">
+                    <span class="menu-icon">💎</span>
+                    <span class="menu-text">Premium</span>
+                </a>
+                <a href="#" class="menu-link" data-view="leaderboard">
+                    <span class="menu-icon">🏆</span>
+                    <span class="menu-text">Рейтинг</span>
+                </a>
+                <a href="#" class="menu-link" data-view="settings">
+                    <span class="menu-icon">⚙️</span>
+                    <span class="menu-text">Настройки</span>
+                </a>
+                <a href="#" class="menu-link admin-only hidden" data-view="admin">
+                    <span class="menu-icon">🛡️</span>
+                    <span class="menu-text">Админ</span>
+                </a>
+            </nav>
+        </div>
+
+        <!-- Основной контент -->
         <main class="app-main">
+            <!-- Шапка -->
+            <header class="app-header">
+                <div class="app-header-left">
+                    <span class="app-logo">TRADEUM</span>
+                </div>
+                <div class="app-header-right">
+                    <span class="user-name" id="headerUsername">Trader</span>
+                    <button class="icon-btn" id="headerLogout">↪</button>
+                </div>
+            </header>
+
             <!-- ЖУРНАЛ -->
             <div id="journalView" class="view-container">
                 <div class="page-header"><h2>Журнал сделок</h2><span class="date-badge" id="currentDate"></span></div>
@@ -148,6 +178,21 @@
                     <div class="stat-card"><span class="stat-label">Винрейт</span><span class="stat-value" id="winRate">0%</span><div class="progress-bar"><div class="progress-fill" id="winRateProgress" style="width:0%"></div></div></div>
                     <div class="stat-card"><span class="stat-label">Сделок</span><span class="stat-value" id="totalTradesCount">0</span><div class="stat-badges"><span class="badge profit" id="winCount">0 LONG</span><span class="badge loss" id="lossCount">0 SHORT</span></div></div>
                 </div>
+
+                <!-- Расширенная аналитика в журнале -->
+                <div class="extended-analytics">
+                    <div class="analytics-row">
+                        <div class="analytics-mini-card">
+                            <h4>Распределение по парам</h4>
+                            <div class="pairs-distribution" id="pairsDistribution"></div>
+                        </div>
+                        <div class="analytics-mini-card">
+                            <h4>Тепловая карта дней</h4>
+                            <div class="heatmap-container" id="heatmapContainer"></div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="quick-add">
                     <input type="text" id="pairInput" placeholder="Пара" value="BTC/USD">
                     <input type="text" id="volumeInput" placeholder="Объём" value="1.0">
@@ -160,32 +205,17 @@
                 </div>
             </div>
 
-            <!-- АНАЛИТИКА (исправлены контейнеры) -->
+            <!-- АНАЛИТИКА -->
             <div id="analyticsView" class="view-container hidden">
                 <div class="page-header"><h2>Аналитика</h2></div>
                 <div class="charts-grid">
-                    <div class="chart-card">
-                        <h3>P/L динамика</h3>
-                        <div class="chart-container"><canvas id="plChart"></canvas></div>
-                    </div>
-                    <div class="chart-card">
-                        <h3>Соотношение</h3>
-                        <div class="chart-container"><canvas id="ratioChart"></canvas></div>
-                        <div class="chart-legend"><span><span class="dot profit"></span>LONG <span id="profitPercent">0%</span></span><span><span class="dot loss"></span>SHORT <span id="lossPercent">0%</span></span></div>
-                    </div>
-                    <div class="chart-card full">
-                        <h3>Детали</h3>
-                        <div class="stats-details">
-                            <div class="detail"><span>Средний LONG</span><span class="profit-text" id="avgProfit">$0</span></div>
-                            <div class="detail"><span>Средний SHORT</span><span class="loss-text" id="avgLoss">$0</span></div>
-                            <div class="detail"><span>Лучшая</span><span class="profit-text" id="bestTrade">$0</span></div>
-                            <div class="detail"><span>Худшая</span><span class="loss-text" id="worstTrade">$0</span></div>
-                        </div>
-                    </div>
+                    <div class="chart-card"><h3>P/L динамика</h3><div class="chart-container"><canvas id="plChart"></canvas></div></div>
+                    <div class="chart-card"><h3>Соотношение</h3><div class="chart-container"><canvas id="ratioChart"></canvas></div><div class="chart-legend"><span><span class="dot profit"></span>LONG <span id="profitPercent">0%</span></span><span><span class="dot loss"></span>SHORT <span id="lossPercent">0%</span></span></div></div>
+                    <div class="chart-card full"><h3>Детали</h3><div class="stats-details"><div class="detail"><span>Средний LONG</span><span class="profit-text" id="avgProfit">$0</span></div><div class="detail"><span>Средний SHORT</span><span class="loss-text" id="avgLoss">$0</span></div><div class="detail"><span>Лучшая</span><span class="profit-text" id="bestTrade">$0</span></div><div class="detail"><span>Худшая</span><span class="loss-text" id="worstTrade">$0</span></div></div></div>
                 </div>
             </div>
 
-            <!-- PREMIUM, LEADERBOARD, ADMIN, SETTINGS (без изменений) -->
+            <!-- PREMIUM -->
             <div id="premiumView" class="view-container hidden">
                 <div class="page-header"><h2>Premium</h2><span class="premium-badge">PRO</span></div>
                 <div class="premium-grid">
@@ -194,14 +224,20 @@
                     <div class="premium-card full"><h3>Рекомендации</h3><div id="premiumRecommendations"></div></div>
                 </div>
             </div>
+
+            <!-- РЕЙТИНГ -->
             <div id="leaderboardView" class="view-container hidden">
-                <div class="page-header"><h2>Рейтинг</h2><select id="leaderboardLimit" class="select-sm"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div>
+                <div class="page-header"><h2>Рейтинг трейдеров</h2><select id="leaderboardLimit" class="select-sm"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select></div>
                 <table class="leaderboard-table"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделок</th></tr></thead><tbody id="leaderboardBody"></tbody></table>
             </div>
+
+            <!-- АДМИН (только для admin) -->
             <div id="adminView" class="view-container hidden">
-                <div class="page-header"><h2>Админ</h2></div>
+                <div class="page-header"><h2>Админ-панель</h2></div>
                 <table class="admin-table"><thead><tr><th>ID</th><th>Пользователь</th><th>Pro</th><th>Сделок</th><th>P/L</th><th></th></tr></thead><tbody id="adminUsersList"></tbody></table>
             </div>
+
+            <!-- НАСТРОЙКИ -->
             <div id="settingsView" class="view-container hidden">
                 <div class="page-header"><h2>Настройки</h2></div>
                 <div class="settings-blocks">
@@ -216,6 +252,7 @@
         </main>
     </div>
 
+    <!-- Модалка смены пароля -->
     <div id="changePasswordModal" class="modal hidden">
         <div class="modal-card">
             <div class="modal-header"><h3>Смена пароля</h3><button class="modal-close" id="closeChangePasswordModal">✕</button></div>
