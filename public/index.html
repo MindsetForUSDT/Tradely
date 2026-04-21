@@ -127,7 +127,7 @@
         <!-- Выезжающее меню слева -->
         <div class="side-menu" id="sideMenu">
             <div class="menu-trigger">
-                <span class="menu-icon">⟡</span>
+                <span class="menu-icon-trigger">⟡</span>
             </div>
             <nav class="menu-items">
                 <a href="#" class="menu-link active" data-view="journal">
@@ -159,7 +159,6 @@
 
         <!-- Основной контент -->
         <main class="app-main">
-            <!-- Шапка -->
             <header class="app-header">
                 <div class="app-header-left">
                     <span class="app-logo">TRADEUM</span>
@@ -179,7 +178,7 @@
                     <div class="stat-card"><span class="stat-label">Сделок</span><span class="stat-value" id="totalTradesCount">0</span><div class="stat-badges"><span class="badge profit" id="winCount">0 LONG</span><span class="badge loss" id="lossCount">0 SHORT</span></div></div>
                 </div>
 
-                <!-- Расширенная аналитика в журнале -->
+                <!-- Расширенная аналитика -->
                 <div class="extended-analytics">
                     <div class="analytics-row">
                         <div class="analytics-mini-card">
@@ -231,7 +230,7 @@
                 <table class="leaderboard-table"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделок</th></tr></thead><tbody id="leaderboardBody"></tbody></table>
             </div>
 
-            <!-- АДМИН (только для admin) -->
+            <!-- АДМИН -->
             <div id="adminView" class="view-container hidden">
                 <div class="page-header"><h2>Админ-панель</h2></div>
                 <table class="admin-table"><thead><tr><th>ID</th><th>Пользователь</th><th>Pro</th><th>Сделок</th><th>P/L</th><th></th></tr></thead><tbody id="adminUsersList"></tbody></table>
