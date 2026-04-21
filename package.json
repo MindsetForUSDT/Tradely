@@ -1,9 +1,12 @@
 {
   "name": "tradeum-diary",
   "version": "4.0.0",
-  "description": "Дневник трейдера",
+  "description": "Дневник трейдера с аналитикой",
   "main": "server.js",
-  "scripts": { "start": "node server.js", "dev": "nodemon server.js" },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "compression": "^1.7.4",
@@ -15,6 +18,10 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.5"
   },
-  "devDependencies": { "nodemon": "^3.1.0" },
-  "engines": { "node": ">=20.0.0" }
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
 }

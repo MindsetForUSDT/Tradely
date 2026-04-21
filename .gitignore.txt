@@ -1,15 +1,5 @@
-# Python
-__pycache__/
-*.pyc
-venv/
+node_modules/
 .env
-
-# База данных (если не хотите выгружать)
-*.db
-
-# IDE
-.vscode/
-.idea/
-
-# Логи
+database.sqlite
 *.log
+.DS_Store
