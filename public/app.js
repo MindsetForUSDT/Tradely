@@ -188,7 +188,6 @@
 
     // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     let authToken = null;
-    let currentView = 'journal';
     let plChart = null;
     let ratioChart = null;
     let selectedMode = null;
@@ -216,7 +215,6 @@
             return;
         }
 
-        const ctx1 = plCanvas.getContext('2d');
         destroyCharts();
 
         const sorted = [...trades].sort((a, b) => a.timestamp - b.timestamp);
@@ -229,7 +227,7 @@
             labels.push(new Date(t.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
         });
 
-        plChart = new Chart(ctx1, {
+        plChart = new Chart(plCanvas, {
             type: 'line',
             data: {
                 labels: labels.slice(-50),
@@ -254,11 +252,10 @@
             }
         });
 
-        const ctx2 = ratioCanvas.getContext('2d');
         const wins = trades.filter(t => t.type === 'profit').length;
         const losses = trades.length - wins;
 
-        ratioChart = new Chart(ctx2, {
+        ratioChart = new Chart(ratioCanvas, {
             type: 'doughnut',
             data: {
                 labels: ['LONG', 'SHORT'],
@@ -342,6 +339,8 @@
         if (trades.length) {
             const lst = trades[0];
             setText('plChange', `${lst.type === 'profit' ? '+' : '-'} $${lst.volume.toFixed(2)}`);
+        } else {
+            setText('plChange', '—');
         }
 
         setText('avgProfit', `$${s.avgProfit.toFixed(2)}`);
@@ -407,7 +406,13 @@
         setText('profileUsername', u.username);
         setText('tariffName', s.wallet_connected ? 'Pro' : 'Базовый');
         setText('tariffPrice', s.wallet_connected ? '500₽/мес' : 'Бесплатно');
-        setText('accountTypeDisplay', s.wallet_connected ? 'Pro' : 'Базовый');
+
+        if (u.wallet_address) {
+            setText('profileWalletAddress', u.wallet_address.slice(0, 6) + '...' + u.wallet_address.slice(-4));
+        } else {
+            setText('profileWalletAddress', '—');
+        }
+        setText('profileWalletType', u.wallet_type || '—');
 
         const toggle = document.getElementById('publicProfileToggle');
         if (toggle) {
@@ -434,6 +439,11 @@
         const disconnectBtn = document.getElementById('disconnectWalletBtn');
         if (disconnectBtn) {
             disconnectBtn.style.display = s.wallet_connected ? 'block' : 'none';
+        }
+
+        const upgradeBtn = document.getElementById('upgradeToProBtn');
+        if (upgradeBtn) {
+            upgradeBtn.style.display = s.wallet_connected ? 'none' : 'block';
         }
     };
 
@@ -472,7 +482,8 @@
         const volumeInput = document.getElementById('volumeInput');
         const pair = pairInput?.value.trim();
         const volume = parseFloat(volumeInput?.value.replace(',', '.'));
-        const isProfit = document.querySelector('.type-btn.profit')?.classList.contains('active');
+        const activeTypeBtn = document.querySelector('.type-btn.active');
+        const isProfit = activeTypeBtn?.classList.contains('profit');
 
         if (!pair || isNaN(volume) || volume <= 0) {
             toast('Заполните все поля корректно', 'error');
@@ -594,11 +605,7 @@
     const switchView = (view) => {
         const s = Store.getUserStatus();
 
-        if (view === 'premium' && !s.wallet_connected && !s.is_admin) {
-            toast('Требуется Pro тариф', 'error');
-            return;
-        }
-        if (view === 'leaderboard' && !s.wallet_connected && !s.is_admin) {
+        if ((view === 'premium' || view === 'leaderboard') && !s.wallet_connected && !s.is_admin) {
             toast('Требуется Pro тариф', 'error');
             return;
         }
@@ -606,8 +613,6 @@
             toast('Доступ запрещён', 'error');
             return;
         }
-
-        currentView = view;
 
         document.querySelectorAll('.view-container').forEach(c => c.classList.add('hidden'));
         document.getElementById(view + 'View')?.classList.remove('hidden');
@@ -1087,13 +1092,14 @@
             if (e.target.classList.contains('tariff-select-btn')) {
                 const btn = e.target;
                 disableButton(btn);
+                const mode = btn.dataset.mode || selectedMode;
 
-                if (!selectedMode) {
+                if (!mode) {
                     toast('Выберите тариф', 'error');
                     return;
                 }
 
-                if (selectedMode === 'pro') {
+                if (mode === 'pro') {
                     document.querySelector('.tariff-cards')?.classList.add('hidden');
                     document.querySelector('.tariff-header')?.classList.add('hidden');
                     document.querySelector('.tariff-note')?.classList.add('hidden');
