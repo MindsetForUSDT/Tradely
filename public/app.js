@@ -1,13 +1,54 @@
 (() => {
     "use strict";
 
-    // ========== STORE (Private) ==========
+    // ========== УТИЛИТЫ ==========
+    const escapeHtml = (text) => {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    };
+
+    const toast = (msg, type = 'info') => {
+        const c = document.getElementById('toastContainer');
+        if (!c) return;
+        const t = document.createElement('div');
+        t.className = `toast ${type}`;
+        t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span><span>${escapeHtml(msg)}</span><span style="cursor:pointer;margin-left:auto;" onclick="this.parentElement.remove()">✕</span>`;
+        c.appendChild(t);
+        setTimeout(() => t.remove(), 4000);
+    };
+
+    const hidePreloader = () => {
+        const p = document.getElementById('preloader');
+        if (p) p.style.display = 'none';
+    };
+
+    const destroyCharts = () => {
+        if (plChart) { plChart.destroy(); plChart = null; }
+        if (ratioChart) { ratioChart.destroy(); ratioChart = null; }
+    };
+
+    const isElementVisible = el => el && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+
+    // ========== STORE ==========
     const Store = (() => {
         let trades = [];
         let filter = 'all';
         let userStatus = { wallet_connected: false, is_public: false, first_login: true, is_admin: false };
         let currentUser = null;
         const subscribers = [];
+
+        const getLocalPro = () => {
+            const pro = localStorage.getItem('pro_activated') === 'true';
+            const wallet = localStorage.getItem('wallet_verified') === 'true';
+            return pro && wallet;
+        };
+
+        const setLocalPro = (pro, wallet) => {
+            localStorage.setItem('pro_activated', pro);
+            localStorage.setItem('wallet_verified', wallet);
+        };
 
         const notify = () => subscribers.forEach(fn => fn());
 
@@ -34,20 +75,24 @@
                 filter = f;
                 notify();
             },
-            getUserStatus: () => ({ ...userStatus }),
+            getUserStatus: () => ({ ...userStatus, wallet_connected: userStatus.wallet_connected || getLocalPro() }),
             setUserStatus(s) {
                 userStatus = { ...userStatus, ...s };
+                if (s.wallet_connected !== undefined) setLocalPro(s.wallet_connected, s.wallet_connected);
                 notify();
             },
             getCurrentUser: () => currentUser,
             setCurrentUser(u) {
                 currentUser = u;
-                if (u) userStatus = {
-                    wallet_connected: u.wallet_connected || false,
-                    is_public: u.is_public || false,
-                    first_login: u.first_login ?? true,
-                    is_admin: u.is_admin || false
-                };
+                if (u) {
+                    const localPro = getLocalPro();
+                    userStatus = {
+                        wallet_connected: u.wallet_connected || localPro,
+                        is_public: u.is_public || false,
+                        first_login: u.first_login ?? true,
+                        is_admin: u.is_admin || false
+                    };
+                }
                 notify();
             },
             getFilteredTrades() {
@@ -76,47 +121,32 @@
                     maxProfit: maxP,
                     maxLoss: maxL
                 };
+            },
+            clearLocalPro: () => setLocalPro(false, false),
+            reset: () => {
+                trades = [];
+                filter = 'all';
+                userStatus = { wallet_connected: false, is_public: false, first_login: true, is_admin: false };
+                currentUser = null;
+                notify();
             }
         };
     })();
 
-    // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ МОДУЛЯ ==========
+    // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     let authToken = null;
     let currentView = 'journal';
     let plChart = null;
     let ratioChart = null;
     let selectedMode = null;
     let selectedWalletType = null;
+    let sortableInstance = null;
     const API = '';
-
-    // ========== УТИЛИТЫ ==========
-    const toast = (msg, type = 'info') => {
-        const c = document.getElementById('toastContainer');
-        if (!c) return;
-        const t = document.createElement('div');
-        t.className = `toast ${type}`;
-        t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span><span>${msg}</span><span style="cursor:pointer;margin-left:auto;" onclick="this.parentElement.remove()">✕</span>`;
-        c.appendChild(t);
-        setTimeout(() => t.remove(), 4000);
-    };
-
-    const hidePreloader = () => {
-        const p = document.getElementById('preloader');
-        if (p) p.style.display = 'none';
-    };
-
-    const destroyCharts = () => {
-        if (plChart) { plChart.destroy(); plChart = null; }
-        if (ratioChart) { ratioChart.destroy(); ratioChart = null; }
-    };
-
-    const isElementVisible = el => el && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
 
     // ========== ГРАФИКИ ==========
     const updateCharts = () => {
         const plCanvas = document.getElementById('plChart');
         const ratioCanvas = document.getElementById('ratioChart');
-
         if (!plCanvas || !ratioCanvas) return;
         if (!isElementVisible(plCanvas) || !isElementVisible(ratioCanvas)) return;
         if (!Store.getTrades().length) return;
@@ -146,11 +176,7 @@
                     fill: true
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
         const ctx2 = ratioCanvas.getContext('2d');
@@ -168,11 +194,7 @@
                     backgroundColor: ['#10b981', '#ef4444']
                 }]
             },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } }
-            }
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
         });
 
         const profitPercent = document.getElementById('profitPercent');
@@ -204,10 +226,10 @@
         const isPro = Store.getUserStatus().wallet_connected;
         tb.innerHTML = filtered.map(t => {
             const tm = new Date(t.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            const act = isPro ? '' : `<button class="icon-btn" data-delete="${t.id}" style="width:28px;height:28px;">🗑️</button>`;
+            const act = isPro ? '' : `<button class="icon-btn" data-delete="${escapeHtml(t.id)}" style="width:28px;height:28px;">🗑️</button>`;
             return `<tr>
                 <td>${tm}</td>
-                <td>${t.pair}</td>
+                <td>${escapeHtml(t.pair)}</td>
                 <td>${t.volume.toFixed(2)}</td>
                 <td class="${t.type === 'profit' ? 'profit-text' : 'loss-text'}">${t.type === 'profit' ? '+' : '−'} $${t.volume.toFixed(2)}</td>
                 <td>${act}</td>
@@ -277,7 +299,7 @@
         const max = sorted[0]?.[1] || 1;
         pairsEl.innerHTML = sorted.map(([p, c]) => `
             <div class="pair-item">
-                <span class="pair-name">${p}</span>
+                <span class="pair-name">${escapeHtml(p)}</span>
                 <div class="pair-bar"><div class="pair-bar-fill" style="width: ${(c / max) * 100}%"></div></div>
                 <span class="pair-count">${c}</span>
             </div>
@@ -324,12 +346,27 @@
         if (accountType) accountType.textContent = s.wallet_connected ? 'Pro' : 'Базовый';
 
         const toggle = document.getElementById('publicProfileToggle');
-        if (toggle) toggle.checked = s.is_public;
+        if (toggle) {
+            toggle.checked = s.is_public;
+            toggle.disabled = !s.wallet_connected;
+        }
 
         document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', !s.is_admin));
+
+        const addBtn = document.getElementById('addTradeBtn');
+        if (addBtn) {
+            if (s.wallet_connected) {
+                addBtn.disabled = true;
+                addBtn.style.opacity = '0.5';
+                addBtn.title = 'Ручное добавление отключено в Pro';
+            } else {
+                addBtn.disabled = false;
+                addBtn.style.opacity = '1';
+                addBtn.title = '';
+            }
+        }
     };
 
-    // Подписка на изменения Store
     Store.subscribe(() => {
         renderJournal();
         updateStats();
@@ -354,8 +391,10 @@
             toast('Pro: ручное добавление отключено', 'error');
             return;
         }
-        const p = document.getElementById('pairInput')?.value.trim();
-        const v = parseFloat(document.getElementById('volumeInput')?.value.replace(',', '.'));
+        const pairInput = document.getElementById('pairInput');
+        const volumeInput = document.getElementById('volumeInput');
+        const p = pairInput?.value.trim();
+        const v = parseFloat(volumeInput?.value.replace(',', '.'));
         const isP = document.querySelector('.type-btn.profit')?.classList.contains('active');
         if (!p || isNaN(v) || v <= 0) return;
 
@@ -368,7 +407,7 @@
         };
 
         Store.addTrade(t);
-        document.getElementById('volumeInput').value = '';
+        if (volumeInput) volumeInput.value = '';
         toast('Сделка добавлена', 'success');
 
         try {
@@ -403,7 +442,194 @@
         }
     };
 
-    // ========== ИНИЦИАЛИЗАЦИЯ ==========
+    // ========== НАВИГАЦИЯ ==========
+    const hideAll = () => {
+        ['authPage', 'tariffPage', 'appPage'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    };
+
+    const showAuthPage = () => {
+        hideAll();
+        document.getElementById('authPage')?.classList.remove('hidden');
+        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+        document.querySelector('.auth-tab[data-tab="login"]')?.classList.add('active');
+        document.getElementById('loginForm')?.classList.remove('hidden');
+        document.getElementById('registerForm')?.classList.add('hidden');
+        document.getElementById('forgotPasswordForm')?.classList.add('hidden');
+        document.getElementById('resetPasswordForm')?.classList.add('hidden');
+        const err = document.getElementById('authError');
+        if (err) err.textContent = '';
+    };
+
+    const showTariffPage = () => {
+        hideAll();
+        document.getElementById('tariffPage')?.classList.remove('hidden');
+        selectedMode = selectedWalletType = null;
+        document.querySelectorAll('.tariff-card').forEach(c => c.classList.remove('selected'));
+        document.querySelector('.tariff-cards')?.classList.remove('hidden');
+        document.querySelector('.tariff-header')?.classList.remove('hidden');
+        document.querySelector('.tariff-note')?.classList.remove('hidden');
+        document.getElementById('walletStepContainer')?.classList.add('hidden');
+    };
+
+    const showAppPage = () => {
+        hideAll();
+        document.getElementById('appPage')?.classList.remove('hidden');
+        const el = document.getElementById('currentDate');
+        if (el) el.textContent = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        switchView('journal');
+    };
+
+    const switchView = v => {
+        const s = Store.getUserStatus();
+        if (v === 'premium' && !s.wallet_connected && !s.is_admin) {
+            toast('Требуется Pro', 'error');
+            return;
+        }
+        if (v === 'leaderboard' && !s.wallet_connected && !s.is_admin) {
+            toast('Требуется Pro', 'error');
+            return;
+        }
+        if (v === 'admin' && !s.is_admin) {
+            toast('Доступ запрещён', 'error');
+            return;
+        }
+
+        currentView = v;
+        document.querySelectorAll('.view-container').forEach(c => c.classList.add('hidden'));
+        document.getElementById(v + 'View')?.classList.remove('hidden');
+
+        document.querySelectorAll('.menu-link').forEach(l => {
+            l.classList.remove('active');
+            if (l.dataset.view === v) l.classList.add('active');
+        });
+
+        if (v === 'leaderboard') loadLeaderboard();
+        if (v === 'analytics') {
+            destroyCharts();
+            requestAnimationFrame(scheduleChartUpdate);
+        }
+        if (v === 'premium') loadPremium();
+        if (v === 'admin') loadAdmin();
+    };
+
+    // ========== ЗАГРУЗКА ДАННЫХ ==========
+    const loadPremium = async () => {
+        try {
+            const r = await fetch(API + '/api/premium/analytics', { headers: { 'Authorization': 'Bearer ' + authToken } });
+            if (r.ok) {
+                const d = await r.json();
+                Object.entries({
+                    profitFactor: d.profitFactor,
+                    sharpeRatio: d.sharpeRatio,
+                    maxDrawdown: '$' + d.maxDrawdown,
+                    monthlyProjection: '$' + d.monthlyProjection,
+                    bestPair: d.bestPair,
+                    worstPair: d.worstPair
+                }).forEach(([id, v]) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = v;
+                });
+                const bestDay = document.getElementById('bestDay');
+                if (bestDay) bestDay.textContent = d.bestDay ? `${d.bestDay.date} (+$${d.bestDay.pl})` : '—';
+                const worstDay = document.getElementById('worstDay');
+                if (worstDay) worstDay.textContent = d.worstDay ? `${d.worstDay.date} (-$${Math.abs(d.worstDay.pl)})` : '—';
+
+                const recs = [];
+                if (d.winRate > 60) recs.push('Отличный винрейт!');
+                if (d.profitFactor > 2) recs.push('Profit Factor > 2 — отлично!');
+                const recEl = document.getElementById('premiumRecommendations');
+                if (recEl) recEl.innerHTML = recs.length ? recs.map(r => `<p>• ${r}</p>`).join('') : '<p>Недостаточно данных</p>';
+            }
+        } catch {}
+    };
+
+    const loadAdmin = async () => {
+        try {
+            const r = await fetch(API + '/api/admin/users', { headers: { 'Authorization': 'Bearer ' + authToken } });
+            if (r.ok) {
+                const u = await r.json();
+                const tb = document.getElementById('adminUsersList');
+                if (tb) {
+                    tb.innerHTML = u.map(u => `<tr>
+                        <td>${u.id}</td><td>${escapeHtml(u.username)}</td><td>${u.wallet_connected ? '✅' : '❌'}</td>
+                        <td>${u.trades_count || 0}</td>
+                        <td class="${u.total_pl >= 0 ? 'profit-text' : 'loss-text'}">$${u.total_pl?.toFixed(2) || '0.00'}</td>
+                        <td><button class="icon-btn" data-delete-admin="${u.id}" style="color:#ef4444;">🗑️</button></td>
+                    </tr>`).join('');
+                    document.querySelectorAll('[data-delete-admin]').forEach(b => {
+                        b.addEventListener('click', async e => {
+                            if (!confirm('Удалить пользователя?')) return;
+                            await fetch(API + '/api/admin/users/' + b.dataset.deleteAdmin, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + authToken } });
+                            loadAdmin();
+                        });
+                    });
+                }
+            }
+        } catch {}
+    };
+
+    const loadLeaderboard = async () => {
+        const l = document.getElementById('leaderboardLimit')?.value || 25;
+        const tb = document.getElementById('leaderboardBody');
+        if (!tb) return;
+        try {
+            const r = await fetch(API + '/api/leaderboard?limit=' + l);
+            const d = await r.json();
+            tb.innerHTML = d.map(r => `<tr>
+                <td>${r.rank}</td><td>${escapeHtml(r.username)}</td>
+                <td class="${r.totalPL >= 0 ? 'profit-text' : 'loss-text'}">${r.totalPL >= 0 ? '+' : ''}$${r.totalPL.toFixed(2)}</td>
+                <td>${r.winRate}%</td><td>${r.totalTrades}</td>
+            </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:40px;">Нет данных</td></tr>';
+        } catch {}
+    };
+
+    // ========== ЭКСПОРТ/ИМПОРТ ==========
+    const exportData = () => {
+        const d = { trades: Store.getTrades(), exportDate: new Date().toISOString() };
+        const b = new Blob([JSON.stringify(d)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(b);
+        a.download = 'trades-' + Date.now() + '.json';
+        a.click();
+        toast('Экспортировано', 'success');
+    };
+
+    const importData = e => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = async ev => {
+            try {
+                const d = JSON.parse(ev.target.result);
+                if (d.trades && confirm('Импортировать ' + d.trades.length + ' сделок?')) {
+                    await fetch(API + '/api/trades/sync', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                        body: JSON.stringify({ trades: d.trades })
+                    });
+                    await loadTrades();
+                    toast('Импорт завершён', 'success');
+                }
+            } catch {
+                toast('Ошибка чтения файла', 'error');
+            }
+        };
+        r.readAsText(f);
+        e.target.value = '';
+    };
+
+    const clearAllData = async () => {
+        if (!confirm('Удалить все сделки?')) return;
+        await fetch(API + '/api/trades/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+            body: JSON.stringify({ trades: [] })
+        });
+        Store.setTrades([]);
+        toast('Данные очищены', 'info');
+    };
+
+    // ========== АВТОРИЗАЦИЯ ==========
     const checkAuth = () => {
         const t = localStorage.getItem('authToken');
         if (t) {
@@ -435,73 +661,84 @@
         }
     };
 
-    const showAuthPage = () => {
-        hideAll();
-        document.getElementById('authPage')?.classList.remove('hidden');
-        document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-        document.querySelector('.auth-tab[data-tab="login"]')?.classList.add('active');
-        document.getElementById('loginForm')?.classList.remove('hidden');
-        document.getElementById('registerForm')?.classList.add('hidden');
-        document.getElementById('forgotPasswordForm')?.classList.add('hidden');
-        document.getElementById('resetPasswordForm')?.classList.add('hidden');
-    };
-
-    const showTariffPage = () => {
-        hideAll();
-        document.getElementById('tariffPage')?.classList.remove('hidden');
-        selectedMode = selectedWalletType = null;
-        document.querySelectorAll('.tariff-card').forEach(c => c.classList.remove('selected'));
-        document.querySelector('.tariff-cards')?.classList.remove('hidden');
-        document.querySelector('.tariff-header')?.classList.remove('hidden');
-        document.querySelector('.tariff-note')?.classList.remove('hidden');
-        document.getElementById('walletStepContainer')?.classList.add('hidden');
-    };
-
-    const showAppPage = () => {
-        hideAll();
-        document.getElementById('appPage')?.classList.remove('hidden');
-        const el = document.getElementById('currentDate');
-        if (el) el.textContent = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        switchView('journal');
-    };
-
-    const hideAll = () => {
-        ['authPage', 'tariffPage', 'appPage'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
-    };
-
-    const switchView = v => {
-        const s = Store.getUserStatus();
-        if (v === 'premium' && !s.wallet_connected && !s.is_admin) {
-            toast('Требуется Pro', 'error');
-            return;
-        }
-        if (v === 'admin' && !s.is_admin) {
-            toast('Доступ запрещён', 'error');
-            return;
-        }
-
-        currentView = v;
-        document.querySelectorAll('.view-container').forEach(c => c.classList.add('hidden'));
-        document.getElementById(v + 'View')?.classList.remove('hidden');
-
-        document.querySelectorAll('.menu-link').forEach(l => {
-            l.classList.remove('active');
-            if (l.dataset.view === v) l.classList.add('active');
-        });
-
-        if (v === 'leaderboard') {
-            if (!s.wallet_connected && !s.is_admin) {
-                switchView('settings');
-                return;
+    const finishOnboarding = async isPro => {
+        try {
+            if (isPro) {
+                const addr = document.getElementById('walletAddressInput')?.value.trim();
+                if (!addr || !/^[a-zA-Z0-9]{5,}$/.test(addr)) {
+                    toast('Адрес кошелька должен содержать минимум 5 букв/цифр', 'error');
+                    return;
+                }
+                await fetch(API + '/api/user/wallet', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+                    body: JSON.stringify({ wallet_address: addr, wallet_type: selectedWalletType })
+                });
+                Store.setUserStatus({ wallet_connected: true });
+                toast('Pro активирован', 'success');
+            } else {
+                await fetch(API + '/api/user/skip-wallet', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + authToken }
+                });
+                toast('Базовый тариф', 'success');
             }
-            loadLeaderboard();
+            Store.setUserStatus({ first_login: false });
+            await loadTrades();
+            showAppPage();
+        } catch {
+            toast('Ошибка', 'error');
         }
-        if (v === 'analytics') {
-            destroyCharts();
-            requestAnimationFrame(scheduleChartUpdate);
+    };
+
+    // ========== ТЕМА И D&D ==========
+    const initTheme = () => {
+        const saved = localStorage.getItem('theme') || 'dark';
+        document.body.setAttribute('data-theme', saved);
+        const sel = document.getElementById('themeSelect');
+        if (sel) sel.value = saved;
+    };
+
+    const setTheme = (theme) => {
+        document.body.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+    };
+
+    const initDragDrop = () => {
+        const grid = document.getElementById('dashboardGrid');
+        if (!grid) return;
+        if (sortableInstance) sortableInstance.destroy();
+        sortableInstance = new Sortable(grid, {
+            animation: 200,
+            handle: '.drag-item',
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onEnd: function() {
+                const order = [...grid.querySelectorAll('.drag-item')].map(el => el.dataset.id);
+                localStorage.setItem('dashboardOrder', JSON.stringify(order));
+            }
+        });
+        const saved = localStorage.getItem('dashboardOrder');
+        if (saved) {
+            try {
+                const order = JSON.parse(saved);
+                order.forEach(id => {
+                    const el = grid.querySelector(`.drag-item[data-id="${id}"]`);
+                    if (el) grid.appendChild(el);
+                });
+            } catch {}
         }
-        if (v === 'premium') loadPremium();
-        if (v === 'admin') loadAdmin();
+    };
+
+    const disconnectWallet = async () => {
+        try {
+            await fetch(API + '/api/user/wallet/disconnect', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken } });
+            Store.setUserStatus({ wallet_connected: false, is_public: false });
+            Store.clearLocalPro();
+            toast('Pro отключён', 'info');
+        } catch {
+            toast('Ошибка отключения', 'error');
+        }
     };
 
     // ========== ДЕЛЕГИРОВАНИЕ СОБЫТИЙ ==========
@@ -513,8 +750,7 @@
             if (e.target.closest('#headerLogout') || e.target.closest('#logoutBtn')) {
                 localStorage.removeItem('authToken');
                 authToken = null;
-                Store.setCurrentUser(null);
-                Store.setTrades([]);
+                Store.reset();
                 showAuthPage();
             }
 
@@ -557,6 +793,9 @@
             if (e.target.closest('#importDataBtn')) document.getElementById('importFileInput')?.click();
             if (e.target.closest('#clearDataBtn')) clearAllData();
             if (e.target.closest('#upgradeToProBtn')) showTariffPage();
+            if (e.target.closest('#helpBtn')) document.getElementById('helpModal')?.classList.remove('hidden');
+            if (e.target.closest('#closeHelpModal')) document.getElementById('helpModal')?.classList.add('hidden');
+            if (e.target.closest('#disconnectWalletBtn')) disconnectWallet();
         });
 
         document.addEventListener('change', async e => {
@@ -574,6 +813,7 @@
                 }
             }
             if (e.target.id === 'leaderboardLimit') loadLeaderboard();
+            if (e.target.id === 'themeSelect') setTheme(e.target.value);
         });
 
         document.addEventListener('submit', async e => {
@@ -698,7 +938,6 @@
             }
         });
 
-        // Выбор тарифа
         document.querySelector('.tariff-cards')?.addEventListener('click', e => {
             const card = e.target.closest('.tariff-card');
             if (card) {
@@ -719,7 +958,6 @@
             }
         });
 
-        // Кошелёк
         document.querySelector('.wallet-options')?.addEventListener('click', e => {
             const opt = e.target.closest('.wallet-option');
             if (opt) {
@@ -744,160 +982,15 @@
         });
 
         document.getElementById('finishOnboarding')?.addEventListener('click', () => finishOnboarding(true));
-
-        // Импорт
         document.getElementById('importFileInput')?.addEventListener('change', importData);
     };
 
-    const finishOnboarding = async isPro => {
-        try {
-            if (isPro) {
-                await fetch(API + '/api/user/wallet', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                    body: JSON.stringify({
-                        wallet_address: document.getElementById('walletAddressInput').value.trim(),
-                        wallet_type: selectedWalletType
-                    })
-                });
-                Store.setUserStatus({ wallet_connected: true });
-                toast('Pro активирован', 'success');
-            } else {
-                await fetch(API + '/api/user/skip-wallet', {
-                    method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + authToken }
-                });
-                toast('Базовый тариф', 'success');
-            }
-            Store.setUserStatus({ first_login: false });
-            await loadTrades();
-            showAppPage();
-        } catch {
-            toast('Ошибка', 'error');
-        }
-    };
-
-    // ========== ЗАГРУЗКА ДАННЫХ ==========
-    const loadPremium = async () => {
-        try {
-            const r = await fetch(API + '/api/premium/analytics', { headers: { 'Authorization': 'Bearer ' + authToken } });
-            if (r.ok) {
-                const d = await r.json();
-                Object.entries({
-                    profitFactor: d.profitFactor,
-                    sharpeRatio: d.sharpeRatio,
-                    maxDrawdown: '$' + d.maxDrawdown,
-                    monthlyProjection: '$' + d.monthlyProjection,
-                    bestPair: d.bestPair,
-                    worstPair: d.worstPair
-                }).forEach(([id, v]) => {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = v;
-                });
-                const bestDay = document.getElementById('bestDay');
-                if (bestDay) bestDay.textContent = d.bestDay ? `${d.bestDay.date} (+$${d.bestDay.pl})` : '—';
-                const worstDay = document.getElementById('worstDay');
-                if (worstDay) worstDay.textContent = d.worstDay ? `${d.worstDay.date} (-$${Math.abs(d.worstDay.pl)})` : '—';
-
-                const recs = [];
-                if (d.winRate > 60) recs.push('Отличный винрейт!');
-                if (d.profitFactor > 2) recs.push('Profit Factor > 2 — отлично!');
-                const recEl = document.getElementById('premiumRecommendations');
-                if (recEl) recEl.innerHTML = recs.length ? recs.map(r => `<p>• ${r}</p>`).join('') : '<p>Недостаточно данных</p>';
-            }
-        } catch {}
-    };
-
-    const loadAdmin = async () => {
-        try {
-            const r = await fetch(API + '/api/admin/users', { headers: { 'Authorization': 'Bearer ' + authToken } });
-            if (r.ok) {
-                const u = await r.json();
-                const tb = document.getElementById('adminUsersList');
-                if (tb) {
-                    tb.innerHTML = u.map(u => `<tr>
-                        <td>${u.id}</td><td>${u.username}</td><td>${u.wallet_connected ? '✅' : '❌'}</td>
-                        <td>${u.trades_count || 0}</td>
-                        <td class="${u.total_pl >= 0 ? 'profit-text' : 'loss-text'}">$${u.total_pl?.toFixed(2) || '0.00'}</td>
-                        <td><button class="icon-btn" data-delete-admin="${u.id}" style="color:#ef4444;">🗑️</button></td>
-                    </tr>`).join('');
-                    document.querySelectorAll('[data-delete-admin]').forEach(b => {
-                        b.addEventListener('click', async e => {
-                            if (!confirm('Удалить?')) return;
-                            await fetch(API + '/api/admin/users/' + b.dataset.deleteAdmin, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + authToken } });
-                            loadAdmin();
-                        });
-                    });
-                }
-            }
-        } catch {}
-    };
-
-    const loadLeaderboard = async () => {
-        const l = document.getElementById('leaderboardLimit')?.value || 25;
-        const tb = document.getElementById('leaderboardBody');
-        if (!tb) return;
-        try {
-            const r = await fetch(API + '/api/leaderboard?limit=' + l);
-            const d = await r.json();
-            tb.innerHTML = d.map(r => `<tr>
-                <td>${r.rank}</td><td>${r.username}</td>
-                <td class="${r.totalPL >= 0 ? 'profit-text' : 'loss-text'}">${r.totalPL >= 0 ? '+' : ''}$${r.totalPL.toFixed(2)}</td>
-                <td>${r.winRate}%</td><td>${r.totalTrades}</td>
-            </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:40px;">Нет данных</td></tr>';
-        } catch {}
-    };
-
-    // ========== ЭКСПОРТ/ИМПОРТ ==========
-    const exportData = () => {
-        const d = { trades: Store.getTrades(), exportDate: new Date().toISOString() };
-        const b = new Blob([JSON.stringify(d)], { type: 'application/json' });
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(b);
-        a.download = 'trades-' + Date.now() + '.json';
-        a.click();
-        toast('Экспортировано', 'success');
-    };
-
-    const importData = e => {
-        const f = e.target.files[0];
-        if (!f) return;
-        const r = new FileReader();
-        r.onload = async ev => {
-            try {
-                const d = JSON.parse(ev.target.result);
-                if (d.trades && confirm('Импортировать ' + d.trades.length + ' сделок?')) {
-                    await fetch(API + '/api/trades/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                        body: JSON.stringify({ trades: d.trades })
-                    });
-                    await loadTrades();
-                    toast('Импорт завершён', 'success');
-                }
-            } catch {
-                toast('Ошибка чтения файла', 'error');
-            }
-        };
-        r.readAsText(f);
-        e.target.value = '';
-    };
-
-    const clearAllData = async () => {
-        if (!confirm('Удалить все сделки?')) return;
-        await fetch(API + '/api/trades/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-            body: JSON.stringify({ trades: [] })
-        });
-        Store.setTrades([]);
-        toast('Данные очищены', 'info');
-    };
-
-    // Старт
+    // ========== СТАРТ ==========
     document.addEventListener('DOMContentLoaded', () => {
         checkAuth();
         setupDelegation();
+        initTheme();
+        initDragDrop();
     });
 
     setTimeout(() => {
