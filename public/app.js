@@ -1,35 +1,77 @@
 (() => {
     "use strict";
 
-    // ========== УТИЛИТЫ ==========
+    // ========== КОНСТАНТЫ И УТИЛИТЫ ==========
+    const API = '';
+    const WALLET_VALIDATION_REGEX = /^[a-zA-Z0-9]{5,}$/;
+    const DEBOUNCE_DELAY = 300;
+
     const escapeHtml = (text) => {
-        if (!text) return '';
+        if (!text && text !== 0) return '';
         const div = document.createElement('div');
         div.textContent = String(text);
         return div.innerHTML;
     };
 
     const toast = (msg, type = 'info') => {
-        const c = document.getElementById('toastContainer');
-        if (!c) return;
-        const t = document.createElement('div');
-        t.className = `toast ${type}`;
-        t.innerHTML = `<span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span><span>${escapeHtml(msg)}</span><span style="cursor:pointer;margin-left:auto;" onclick="this.parentElement.remove()">✕</span>`;
-        c.appendChild(t);
-        setTimeout(() => t.remove(), 4000);
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+        const toastEl = document.createElement('div');
+        toastEl.className = `toast ${type}`;
+        toastEl.innerHTML = `
+            <span>${type === 'success' ? '✓' : type === 'error' ? '✕' : 'ℹ'}</span>
+            <span style="flex:1;">${escapeHtml(msg)}</span>
+            <span style="cursor:pointer;opacity:0.7;" class="toast-close">✕</span>
+        `;
+        toastEl.querySelector('.toast-close').addEventListener('click', () => toastEl.remove());
+        container.appendChild(toastEl);
+        setTimeout(() => toastEl.remove(), 4000);
     };
 
-    const hidePreloader = () => {
-        const p = document.getElementById('preloader');
-        if (p) p.style.display = 'none';
+    const safeLocalStorage = {
+        get(key, defaultValue = null) {
+            try {
+                const value = localStorage.getItem(key);
+                return value !== null ? value : defaultValue;
+            } catch {
+                return defaultValue;
+            }
+        },
+        set(key, value) {
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch {
+                return false;
+            }
+        },
+        getJSON(key, defaultValue = null) {
+            try {
+                const value = localStorage.getItem(key);
+                return value ? JSON.parse(value) : defaultValue;
+            } catch {
+                return defaultValue;
+            }
+        },
+        setJSON(key, value) {
+            try {
+                localStorage.setItem(key, JSON.stringify(value));
+                return true;
+            } catch {
+                return false;
+            }
+        }
     };
 
-    const destroyCharts = () => {
-        if (plChart) { plChart.destroy(); plChart = null; }
-        if (ratioChart) { ratioChart.destroy(); ratioChart = null; }
+    const disableButton = (btn, ms = DEBOUNCE_DELAY) => {
+        if (!btn || btn.disabled) return;
+        btn.disabled = true;
+        setTimeout(() => { btn.disabled = false; }, ms);
     };
 
-    const isElementVisible = el => el && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    const isElementVisible = (el) => {
+        return el && !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+    };
 
     // ========== STORE ==========
     const Store = (() => {
@@ -40,17 +82,19 @@
         const subscribers = [];
 
         const getLocalPro = () => {
-            const pro = localStorage.getItem('pro_activated') === 'true';
-            const wallet = localStorage.getItem('wallet_verified') === 'true';
+            const pro = safeLocalStorage.get('pro_activated') === 'true';
+            const wallet = safeLocalStorage.get('wallet_verified') === 'true';
             return pro && wallet;
         };
 
         const setLocalPro = (pro, wallet) => {
-            localStorage.setItem('pro_activated', pro);
-            localStorage.setItem('wallet_verified', wallet);
+            safeLocalStorage.set('pro_activated', String(pro));
+            safeLocalStorage.set('wallet_verified', String(wallet));
         };
 
-        const notify = () => subscribers.forEach(fn => fn());
+        const notify = () => subscribers.forEach(fn => {
+            try { fn(); } catch (e) { console.error('Store subscriber error:', e); }
+        });
 
         return {
             subscribe(fn) {
@@ -59,10 +103,11 @@
             },
             getTrades: () => [...trades],
             setTrades(newTrades) {
-                trades = [...newTrades].sort((a, b) => b.timestamp - a.timestamp);
+                trades = Array.isArray(newTrades) ? [...newTrades].sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)) : [];
                 notify();
             },
             addTrade(trade) {
+                if (!trade || !trade.id) return;
                 trades = [trade, ...trades];
                 notify();
             },
@@ -78,7 +123,9 @@
             getUserStatus: () => ({ ...userStatus, wallet_connected: userStatus.wallet_connected || getLocalPro() }),
             setUserStatus(s) {
                 userStatus = { ...userStatus, ...s };
-                if (s.wallet_connected !== undefined) setLocalPro(s.wallet_connected, s.wallet_connected);
+                if (s.wallet_connected !== undefined) {
+                    setLocalPro(s.wallet_connected, s.wallet_connected);
+                }
                 notify();
             },
             getCurrentUser: () => currentUser,
@@ -102,10 +149,13 @@
                 let pl = 0, w = 0, maxP = 0, maxL = 0, pS = 0, lS = 0;
                 trades.forEach(t => {
                     if (t.type === 'profit') {
-                        pl += t.volume; w++; pS += t.volume;
+                        pl += t.volume;
+                        w++;
+                        pS += t.volume;
                         maxP = Math.max(maxP, t.volume);
                     } else {
-                        pl -= t.volume; lS += t.volume;
+                        pl -= t.volume;
+                        lS += t.volume;
                         maxL = Math.max(maxL, t.volume);
                     }
                 });
@@ -122,7 +172,10 @@
                     maxLoss: maxL
                 };
             },
-            clearLocalPro: () => setLocalPro(false, false),
+            clearLocalPro: () => {
+                safeLocalStorage.set('pro_activated', 'false');
+                safeLocalStorage.set('wallet_verified', 'false');
+            },
             reset: () => {
                 trades = [];
                 filter = 'all';
@@ -141,20 +194,32 @@
     let selectedMode = null;
     let selectedWalletType = null;
     let sortableInstance = null;
-    const API = '';
+    let chartFrame = null;
+    let isSubmitting = false;
 
     // ========== ГРАФИКИ ==========
+    const destroyCharts = () => {
+        if (plChart) { plChart.destroy(); plChart = null; }
+        if (ratioChart) { ratioChart.destroy(); ratioChart = null; }
+    };
+
     const updateCharts = () => {
         const plCanvas = document.getElementById('plChart');
         const ratioCanvas = document.getElementById('ratioChart');
+
         if (!plCanvas || !ratioCanvas) return;
         if (!isElementVisible(plCanvas) || !isElementVisible(ratioCanvas)) return;
-        if (!Store.getTrades().length) return;
+
+        const trades = Store.getTrades();
+        if (!trades.length) {
+            destroyCharts();
+            return;
+        }
 
         const ctx1 = plCanvas.getContext('2d');
-        if (plChart) plChart.destroy();
+        destroyCharts();
 
-        const sorted = [...Store.getTrades()].sort((a, b) => a.timestamp - b.timestamp);
+        const sorted = [...trades].sort((a, b) => a.timestamp - b.timestamp);
         let cum = 0;
         const data = [];
         const labels = [];
@@ -173,17 +238,25 @@
                     borderColor: '#10b981',
                     backgroundColor: 'rgba(16, 185, 129, 0.1)',
                     tension: 0.4,
-                    fill: true
+                    fill: true,
+                    pointRadius: 2,
+                    pointHoverRadius: 5
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' } }
+                }
+            }
         });
 
         const ctx2 = ratioCanvas.getContext('2d');
-        if (ratioChart) ratioChart.destroy();
-
-        const wins = Store.getTrades().filter(t => t.type === 'profit').length;
-        const losses = Store.getTrades().length - wins;
+        const wins = trades.filter(t => t.type === 'profit').length;
+        const losses = trades.length - wins;
 
         ratioChart = new Chart(ctx2, {
             type: 'doughnut',
@@ -191,19 +264,24 @@
                 labels: ['LONG', 'SHORT'],
                 datasets: [{
                     data: [wins, losses],
-                    backgroundColor: ['#10b981', '#ef4444']
+                    backgroundColor: ['#10b981', '#ef4444'],
+                    borderWidth: 0
                 }]
             },
-            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                cutout: '60%'
+            }
         });
 
         const profitPercent = document.getElementById('profitPercent');
         const lossPercent = document.getElementById('lossPercent');
-        if (profitPercent) profitPercent.textContent = Store.getTrades().length ? ((wins / Store.getTrades().length) * 100).toFixed(1) + '%' : '0%';
-        if (lossPercent) lossPercent.textContent = Store.getTrades().length ? ((losses / Store.getTrades().length) * 100).toFixed(1) + '%' : '0%';
+        if (profitPercent) profitPercent.textContent = trades.length ? ((wins / trades.length) * 100).toFixed(1) + '%' : '0%';
+        if (lossPercent) lossPercent.textContent = trades.length ? ((losses / trades.length) * 100).toFixed(1) + '%' : '0%';
     };
 
-    let chartFrame = null;
     const scheduleChartUpdate = () => {
         if (chartFrame) cancelAnimationFrame(chartFrame);
         chartFrame = requestAnimationFrame(() => {
@@ -219,66 +297,57 @@
 
         const filtered = Store.getFilteredTrades();
         if (!filtered.length) {
-            tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;">Нет сделок</td></tr>';
+            tb.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--text-muted);">Нет сделок</td></tr>';
             return;
         }
 
         const isPro = Store.getUserStatus().wallet_connected;
         tb.innerHTML = filtered.map(t => {
             const tm = new Date(t.timestamp).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-            const act = isPro ? '' : `<button class="icon-btn" data-delete="${escapeHtml(t.id)}" style="width:28px;height:28px;">🗑️</button>`;
+            const deleteBtn = isPro ? '' : `<button class="icon-btn" data-delete="${escapeHtml(t.id)}" style="width:28px;height:28px;" aria-label="Удалить">🗑️</button>`;
             return `<tr>
                 <td>${tm}</td>
                 <td>${escapeHtml(t.pair)}</td>
                 <td>${t.volume.toFixed(2)}</td>
                 <td class="${t.type === 'profit' ? 'profit-text' : 'loss-text'}">${t.type === 'profit' ? '+' : '−'} $${t.volume.toFixed(2)}</td>
-                <td>${act}</td>
+                <td>${deleteBtn}</td>
             </tr>`;
         }).join('');
 
-        document.querySelectorAll('[data-delete]').forEach(btn => {
-            btn.addEventListener('click', e => deleteTrade(e.target.dataset.delete));
+        tb.querySelectorAll('[data-delete]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deleteTrade(btn.dataset.delete);
+            });
         });
     };
 
     const updateStats = () => {
         const s = Store.getStats();
+        const trades = Store.getTrades();
 
-        const totalPL = document.getElementById('totalPL');
-        if (totalPL) totalPL.textContent = `${s.totalPL >= 0 ? '+' : '−'} $${Math.abs(s.totalPL).toFixed(2)}`;
+        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+        const setHtml = (id, value) => { const el = document.getElementById(id); if (el) el.innerHTML = value; };
 
-        const winRate = document.getElementById('winRate');
-        if (winRate) winRate.textContent = `${s.winRate.toFixed(1)}%`;
+        setText('totalPL', `${s.totalPL >= 0 ? '+' : '−'} $${Math.abs(s.totalPL).toFixed(2)}`);
+        setText('winRate', `${s.winRate.toFixed(1)}%`);
 
         const progress = document.getElementById('winRateProgress');
         if (progress) progress.style.width = `${s.winRate}%`;
 
-        const totalTrades = document.getElementById('totalTradesCount');
-        if (totalTrades) totalTrades.textContent = s.totalTrades;
+        setText('totalTradesCount', String(s.totalTrades));
+        setText('winCount', `${s.wins} LONG`);
+        setText('lossCount', `${s.losses} SHORT`);
 
-        const winCount = document.getElementById('winCount');
-        if (winCount) winCount.textContent = `${s.wins} LONG`;
-
-        const lossCount = document.getElementById('lossCount');
-        if (lossCount) lossCount.textContent = `${s.losses} SHORT`;
-
-        if (Store.getTrades().length) {
-            const lst = Store.getTrades()[0];
-            const plChange = document.getElementById('plChange');
-            if (plChange) plChange.textContent = `${lst.type === 'profit' ? '+' : '-'} $${lst.volume.toFixed(2)}`;
+        if (trades.length) {
+            const lst = trades[0];
+            setText('plChange', `${lst.type === 'profit' ? '+' : '-'} $${lst.volume.toFixed(2)}`);
         }
 
-        const avgProfit = document.getElementById('avgProfit');
-        if (avgProfit) avgProfit.textContent = `$${s.avgProfit.toFixed(2)}`;
-
-        const avgLoss = document.getElementById('avgLoss');
-        if (avgLoss) avgLoss.textContent = `$${s.avgLoss.toFixed(2)}`;
-
-        const bestTrade = document.getElementById('bestTrade');
-        if (bestTrade) bestTrade.textContent = `$${s.maxProfit.toFixed(2)}`;
-
-        const worstTrade = document.getElementById('worstTrade');
-        if (worstTrade) worstTrade.textContent = `$${s.maxLoss.toFixed(2)}`;
+        setText('avgProfit', `$${s.avgProfit.toFixed(2)}`);
+        setText('avgLoss', `$${s.avgLoss.toFixed(2)}`);
+        setText('bestTrade', `$${s.maxProfit.toFixed(2)}`);
+        setText('worstTrade', `$${s.maxLoss.toFixed(2)}`);
     };
 
     const renderExtendedAnalytics = () => {
@@ -288,15 +357,16 @@
 
         const trades = Store.getTrades();
         if (!trades.length) {
-            pairsEl.innerHTML = '<p style="color:#71717a;text-align:center;">Нет данных</p>';
-            heatmapEl.innerHTML = '<p style="color:#71717a;text-align:center;">Нет данных</p>';
+            pairsEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;">Нет данных</p>';
+            heatmapEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;grid-column:span 7;">Нет данных</p>';
             return;
         }
 
         const pairs = {};
-        trades.forEach(t => pairs[t.pair] = (pairs[t.pair] || 0) + 1);
+        trades.forEach(t => { pairs[t.pair] = (pairs[t.pair] || 0) + 1; });
         const sorted = Object.entries(pairs).sort((a, b) => b[1] - a[1]).slice(0, 5);
         const max = sorted[0]?.[1] || 1;
+
         pairsEl.innerHTML = sorted.map(([p, c]) => `
             <div class="pair-item">
                 <span class="pair-name">${escapeHtml(p)}</span>
@@ -318,6 +388,7 @@
                 days[d].count++;
             }
         });
+
         heatmapEl.innerHTML = Object.entries(days).reverse().map(([date, data]) => {
             let cls = 'empty';
             if (data.count) cls = data.pl > 0 ? 'profit' : (data.pl < 0 ? 'loss' : 'neutral');
@@ -327,23 +398,16 @@
 
     const updateProfileDisplay = () => {
         const u = Store.getCurrentUser();
-        if (!u) return;
         const s = Store.getUserStatus();
+        if (!u) return;
 
-        const headerUser = document.getElementById('headerUsername');
-        if (headerUser) headerUser.textContent = u.username;
+        const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
 
-        const profileUser = document.getElementById('profileUsername');
-        if (profileUser) profileUser.textContent = u.username;
-
-        const tariffName = document.getElementById('tariffName');
-        if (tariffName) tariffName.textContent = s.wallet_connected ? 'Pro' : 'Базовый';
-
-        const tariffPrice = document.getElementById('tariffPrice');
-        if (tariffPrice) tariffPrice.textContent = s.wallet_connected ? '500₽/мес' : 'Бесплатно';
-
-        const accountType = document.getElementById('accountTypeDisplay');
-        if (accountType) accountType.textContent = s.wallet_connected ? 'Pro' : 'Базовый';
+        setText('headerUsername', u.username);
+        setText('profileUsername', u.username);
+        setText('tariffName', s.wallet_connected ? 'Pro' : 'Базовый');
+        setText('tariffPrice', s.wallet_connected ? '500₽/мес' : 'Бесплатно');
+        setText('accountTypeDisplay', s.wallet_connected ? 'Pro' : 'Базовый');
 
         const toggle = document.getElementById('publicProfileToggle');
         if (toggle) {
@@ -351,19 +415,25 @@
             toggle.disabled = !s.wallet_connected;
         }
 
-        document.querySelectorAll('.admin-only').forEach(el => el.classList.toggle('hidden', !s.is_admin));
+        document.querySelectorAll('.admin-only').forEach(el => {
+            el.classList.toggle('hidden', !s.is_admin);
+        });
 
         const addBtn = document.getElementById('addTradeBtn');
+        const quickAddInputs = document.querySelectorAll('#pairInput, #volumeInput, .type-btn');
         if (addBtn) {
             if (s.wallet_connected) {
                 addBtn.disabled = true;
-                addBtn.style.opacity = '0.5';
-                addBtn.title = 'Ручное добавление отключено в Pro';
+                quickAddInputs.forEach(el => el.disabled = true);
             } else {
                 addBtn.disabled = false;
-                addBtn.style.opacity = '1';
-                addBtn.title = '';
+                quickAddInputs.forEach(el => el.disabled = false);
             }
+        }
+
+        const disconnectBtn = document.getElementById('disconnectWalletBtn');
+        if (disconnectBtn) {
+            disconnectBtn.style.display = s.wallet_connected ? 'block' : 'none';
         }
     };
 
@@ -379,63 +449,88 @@
     const loadTrades = async () => {
         if (!authToken) return;
         try {
-            const r = await fetch(API + '/api/trades', { headers: { 'Authorization': 'Bearer ' + authToken } });
-            if (r.ok) Store.setTrades(await r.json());
+            const r = await fetch(API + '/api/trades', {
+                headers: { 'Authorization': 'Bearer ' + authToken }
+            });
+            if (r.ok) {
+                const data = await r.json();
+                Store.setTrades(data);
+            }
         } catch (e) {
             console.error('loadTrades failed', e);
         }
     };
 
     const addTrade = async () => {
+        if (isSubmitting) return;
         if (Store.getUserStatus().wallet_connected) {
             toast('Pro: ручное добавление отключено', 'error');
             return;
         }
+
         const pairInput = document.getElementById('pairInput');
         const volumeInput = document.getElementById('volumeInput');
-        const p = pairInput?.value.trim();
-        const v = parseFloat(volumeInput?.value.replace(',', '.'));
-        const isP = document.querySelector('.type-btn.profit')?.classList.contains('active');
-        if (!p || isNaN(v) || v <= 0) return;
+        const pair = pairInput?.value.trim();
+        const volume = parseFloat(volumeInput?.value.replace(',', '.'));
+        const isProfit = document.querySelector('.type-btn.profit')?.classList.contains('active');
 
-        const t = {
+        if (!pair || isNaN(volume) || volume <= 0) {
+            toast('Заполните все поля корректно', 'error');
+            return;
+        }
+
+        isSubmitting = true;
+        const addBtn = document.getElementById('addTradeBtn');
+        if (addBtn) addBtn.disabled = true;
+
+        const trade = {
             id: Date.now() + '-' + Math.random().toString(36).substr(2, 5),
-            pair: p.toUpperCase(),
-            volume: v,
-            type: isP ? 'profit' : 'loss',
+            pair: pair.toUpperCase(),
+            volume: volume,
+            type: isProfit ? 'profit' : 'loss',
             timestamp: Date.now()
         };
 
-        Store.addTrade(t);
+        Store.addTrade(trade);
         if (volumeInput) volumeInput.value = '';
         toast('Сделка добавлена', 'success');
 
         try {
             const r = await fetch(API + '/api/trades', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                body: JSON.stringify(t)
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + authToken
+                },
+                body: JSON.stringify(trade)
             });
             if (!r.ok) {
-                Store.removeTrade(t.id);
-                toast('Ошибка сохранения', 'error');
+                Store.removeTrade(trade.id);
+                toast('Ошибка сохранения на сервере', 'error');
             }
         } catch {
-            Store.removeTrade(t.id);
-            toast('Нет соединения', 'error');
+            Store.removeTrade(trade.id);
+            toast('Нет соединения с сервером', 'error');
+        } finally {
+            isSubmitting = false;
+            if (addBtn) addBtn.disabled = false;
         }
     };
 
-    const deleteTrade = async id => {
+    const deleteTrade = async (id) => {
         if (Store.getUserStatus().wallet_connected) {
             toast('Pro: удаление отключено', 'error');
             return;
         }
+
         Store.removeTrade(id);
         toast('Сделка удалена', 'info');
 
         try {
-            await fetch(API + '/api/trades/' + id, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + authToken } });
+            await fetch(API + '/api/trades/' + id, {
+                method: 'DELETE',
+                headers: { 'Authorization': 'Bearer ' + authToken }
+            });
         } catch {
             toast('Ошибка синхронизации', 'error');
             await loadTrades();
@@ -443,296 +538,378 @@
     };
 
     // ========== НАВИГАЦИЯ ==========
-    const hideAll = () => {
-        ['authPage', 'tariffPage', 'appPage'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+    const hideAllPages = () => {
+        ['authPage', 'tariffPage', 'appPage'].forEach(id => {
+            document.getElementById(id)?.classList.add('hidden');
+        });
     };
 
     const showAuthPage = () => {
-        hideAll();
+        hideAllPages();
         document.getElementById('authPage')?.classList.remove('hidden');
+
         document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
         document.querySelector('.auth-tab[data-tab="login"]')?.classList.add('active');
+
         document.getElementById('loginForm')?.classList.remove('hidden');
         document.getElementById('registerForm')?.classList.add('hidden');
         document.getElementById('forgotPasswordForm')?.classList.add('hidden');
         document.getElementById('resetPasswordForm')?.classList.add('hidden');
+
         const err = document.getElementById('authError');
         if (err) err.textContent = '';
     };
 
     const showTariffPage = () => {
-        hideAll();
+        hideAllPages();
         document.getElementById('tariffPage')?.classList.remove('hidden');
-        selectedMode = selectedWalletType = null;
+
+        selectedMode = null;
+        selectedWalletType = null;
+
         document.querySelectorAll('.tariff-card').forEach(c => c.classList.remove('selected'));
         document.querySelector('.tariff-cards')?.classList.remove('hidden');
         document.querySelector('.tariff-header')?.classList.remove('hidden');
         document.querySelector('.tariff-note')?.classList.remove('hidden');
         document.getElementById('walletStepContainer')?.classList.add('hidden');
+
+        const walletError = document.getElementById('walletError');
+        if (walletError) walletError.textContent = '';
     };
 
     const showAppPage = () => {
-        hideAll();
+        hideAllPages();
         document.getElementById('appPage')?.classList.remove('hidden');
-        const el = document.getElementById('currentDate');
-        if (el) el.textContent = new Date().toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+        const dateEl = document.getElementById('currentDate');
+        if (dateEl) {
+            dateEl.textContent = new Date().toLocaleDateString('ru-RU', {
+                day: '2-digit', month: '2-digit', year: 'numeric'
+            });
+        }
+
         switchView('journal');
     };
 
-    const switchView = v => {
+    const switchView = (view) => {
         const s = Store.getUserStatus();
-        if (v === 'premium' && !s.wallet_connected && !s.is_admin) {
-            toast('Требуется Pro', 'error');
+
+        if (view === 'premium' && !s.wallet_connected && !s.is_admin) {
+            toast('Требуется Pro тариф', 'error');
             return;
         }
-        if (v === 'leaderboard' && !s.wallet_connected && !s.is_admin) {
-            toast('Требуется Pro', 'error');
+        if (view === 'leaderboard' && !s.wallet_connected && !s.is_admin) {
+            toast('Требуется Pro тариф', 'error');
             return;
         }
-        if (v === 'admin' && !s.is_admin) {
+        if (view === 'admin' && !s.is_admin) {
             toast('Доступ запрещён', 'error');
             return;
         }
 
-        currentView = v;
+        currentView = view;
+
         document.querySelectorAll('.view-container').forEach(c => c.classList.add('hidden'));
-        document.getElementById(v + 'View')?.classList.remove('hidden');
+        document.getElementById(view + 'View')?.classList.remove('hidden');
 
         document.querySelectorAll('.menu-link').forEach(l => {
             l.classList.remove('active');
-            if (l.dataset.view === v) l.classList.add('active');
+            if (l.dataset.view === view) l.classList.add('active');
         });
 
-        if (v === 'leaderboard') loadLeaderboard();
-        if (v === 'analytics') {
+        if (view === 'leaderboard') loadLeaderboard();
+        if (view === 'analytics') {
             destroyCharts();
             requestAnimationFrame(scheduleChartUpdate);
         }
-        if (v === 'premium') loadPremium();
-        if (v === 'admin') loadAdmin();
+        if (view === 'premium') loadPremium();
+        if (view === 'admin') loadAdmin();
     };
 
     // ========== ЗАГРУЗКА ДАННЫХ ==========
     const loadPremium = async () => {
         try {
-            const r = await fetch(API + '/api/premium/analytics', { headers: { 'Authorization': 'Bearer ' + authToken } });
+            const r = await fetch(API + '/api/premium/analytics', {
+                headers: { 'Authorization': 'Bearer ' + authToken }
+            });
             if (r.ok) {
                 const d = await r.json();
-                Object.entries({
-                    profitFactor: d.profitFactor,
-                    sharpeRatio: d.sharpeRatio,
-                    maxDrawdown: '$' + d.maxDrawdown,
-                    monthlyProjection: '$' + d.monthlyProjection,
-                    bestPair: d.bestPair,
-                    worstPair: d.worstPair
-                }).forEach(([id, v]) => {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = v;
-                });
+
+                const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+
+                setText('profitFactor', d.profitFactor?.toFixed(2) || '—');
+                setText('sharpeRatio', d.sharpeRatio?.toFixed(2) || '—');
+                setText('maxDrawdown', '$' + (d.maxDrawdown?.toFixed(2) || '0.00'));
+                setText('monthlyProjection', '$' + (d.monthlyProjection?.toFixed(2) || '0.00'));
+                setText('bestPair', d.bestPair || '—');
+                setText('worstPair', d.worstPair || '—');
+
                 const bestDay = document.getElementById('bestDay');
-                if (bestDay) bestDay.textContent = d.bestDay ? `${d.bestDay.date} (+$${d.bestDay.pl})` : '—';
+                if (bestDay) {
+                    bestDay.textContent = d.bestDay ? `${d.bestDay.date} (+$${d.bestDay.pl})` : '—';
+                }
                 const worstDay = document.getElementById('worstDay');
-                if (worstDay) worstDay.textContent = d.worstDay ? `${d.worstDay.date} (-$${Math.abs(d.worstDay.pl)})` : '—';
+                if (worstDay) {
+                    worstDay.textContent = d.worstDay ? `${d.worstDay.date} (-$${Math.abs(d.worstDay.pl)})` : '—';
+                }
 
                 const recs = [];
-                if (d.winRate > 60) recs.push('Отличный винрейт!');
-                if (d.profitFactor > 2) recs.push('Profit Factor > 2 — отлично!');
+                if (d.winRate > 60) recs.push('Отличный винрейт! Продолжайте в том же духе.');
+                if (d.profitFactor > 2) recs.push('Profit Factor > 2 — отличный результат!');
+                if (d.sharpeRatio > 1) recs.push('Sharpe Ratio > 1 — хорошая доходность относительно риска.');
+
                 const recEl = document.getElementById('premiumRecommendations');
-                if (recEl) recEl.innerHTML = recs.length ? recs.map(r => `<p>• ${r}</p>`).join('') : '<p>Недостаточно данных</p>';
+                if (recEl) {
+                    recEl.innerHTML = recs.length ? recs.map(r => `<p>• ${r}</p>`).join('') : '<p>Недостаточно данных для рекомендаций</p>';
+                }
             }
-        } catch {}
+        } catch (e) {
+            console.error('loadPremium failed', e);
+        }
     };
 
     const loadAdmin = async () => {
         try {
-            const r = await fetch(API + '/api/admin/users', { headers: { 'Authorization': 'Bearer ' + authToken } });
+            const r = await fetch(API + '/api/admin/users', {
+                headers: { 'Authorization': 'Bearer ' + authToken }
+            });
             if (r.ok) {
-                const u = await r.json();
+                const users = await r.json();
                 const tb = document.getElementById('adminUsersList');
                 if (tb) {
-                    tb.innerHTML = u.map(u => `<tr>
-                        <td>${u.id}</td><td>${escapeHtml(u.username)}</td><td>${u.wallet_connected ? '✅' : '❌'}</td>
+                    tb.innerHTML = users.map(u => `<tr>
+                        <td>${u.id}</td>
+                        <td>${escapeHtml(u.username)}</td>
+                        <td>${u.wallet_connected ? '✅' : '❌'}</td>
                         <td>${u.trades_count || 0}</td>
                         <td class="${u.total_pl >= 0 ? 'profit-text' : 'loss-text'}">$${u.total_pl?.toFixed(2) || '0.00'}</td>
-                        <td><button class="icon-btn" data-delete-admin="${u.id}" style="color:#ef4444;">🗑️</button></td>
+                        <td><button class="icon-btn" data-delete-admin="${u.id}" style="color:#ef4444;" aria-label="Удалить">🗑️</button></td>
                     </tr>`).join('');
-                    document.querySelectorAll('[data-delete-admin]').forEach(b => {
-                        b.addEventListener('click', async e => {
-                            if (!confirm('Удалить пользователя?')) return;
-                            await fetch(API + '/api/admin/users/' + b.dataset.deleteAdmin, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + authToken } });
+
+                    tb.querySelectorAll('[data-delete-admin]').forEach(btn => {
+                        btn.addEventListener('click', async () => {
+                            if (!confirm('Удалить пользователя? Все его данные будут потеряны.')) return;
+                            await fetch(API + '/api/admin/users/' + btn.dataset.deleteAdmin, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': 'Bearer ' + authToken }
+                            });
                             loadAdmin();
+                            toast('Пользователь удалён', 'info');
                         });
                     });
                 }
             }
-        } catch {}
+        } catch (e) {
+            console.error('loadAdmin failed', e);
+        }
     };
 
     const loadLeaderboard = async () => {
-        const l = document.getElementById('leaderboardLimit')?.value || 25;
+        const limit = document.getElementById('leaderboardLimit')?.value || 25;
         const tb = document.getElementById('leaderboardBody');
         if (!tb) return;
+
         try {
-            const r = await fetch(API + '/api/leaderboard?limit=' + l);
-            const d = await r.json();
-            tb.innerHTML = d.map(r => `<tr>
-                <td>${r.rank}</td><td>${escapeHtml(r.username)}</td>
+            const r = await fetch(API + '/api/leaderboard?limit=' + limit);
+            const data = await r.json();
+
+            tb.innerHTML = data.length ? data.map(r => `<tr>
+                <td>${r.rank}</td>
+                <td>${escapeHtml(r.username)}</td>
                 <td class="${r.totalPL >= 0 ? 'profit-text' : 'loss-text'}">${r.totalPL >= 0 ? '+' : ''}$${r.totalPL.toFixed(2)}</td>
-                <td>${r.winRate}%</td><td>${r.totalTrades}</td>
-            </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;padding:40px;">Нет данных</td></tr>';
-        } catch {}
+                <td>${r.winRate}%</td>
+                <td>${r.totalTrades}</td>
+            </tr>`).join('') : '<tr><td colspan="5" style="text-align:center;padding:40px;">Нет данных</td></tr>';
+        } catch (e) {
+            console.error('loadLeaderboard failed', e);
+        }
     };
 
     // ========== ЭКСПОРТ/ИМПОРТ ==========
     const exportData = () => {
-        const d = { trades: Store.getTrades(), exportDate: new Date().toISOString() };
-        const b = new Blob([JSON.stringify(d)], { type: 'application/json' });
+        const data = {
+            trades: Store.getTrades(),
+            exportDate: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(b);
-        a.download = 'trades-' + Date.now() + '.json';
+        a.href = URL.createObjectURL(blob);
+        a.download = `trades-${Date.now()}.json`;
         a.click();
-        toast('Экспортировано', 'success');
+        URL.revokeObjectURL(a.href);
+        toast('Данные экспортированы', 'success');
     };
 
-    const importData = e => {
-        const f = e.target.files[0];
-        if (!f) return;
-        const r = new FileReader();
-        r.onload = async ev => {
+    const importData = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (ev) => {
             try {
-                const d = JSON.parse(ev.target.result);
-                if (d.trades && confirm('Импортировать ' + d.trades.length + ' сделок?')) {
-                    await fetch(API + '/api/trades/sync', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                        body: JSON.stringify({ trades: d.trades })
-                    });
+                const data = JSON.parse(ev.target.result);
+                if (!data.trades || !Array.isArray(data.trades)) {
+                    throw new Error('Invalid format');
+                }
+
+                if (!confirm(`Импортировать ${data.trades.length} сделок? Текущие данные будут заменены.`)) return;
+
+                const r = await fetch(API + '/api/trades/sync', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({ trades: data.trades })
+                });
+
+                if (r.ok) {
                     await loadTrades();
                     toast('Импорт завершён', 'success');
+                } else {
+                    toast('Ошибка импорта', 'error');
                 }
             } catch {
                 toast('Ошибка чтения файла', 'error');
             }
         };
-        r.readAsText(f);
+        reader.readAsText(file);
         e.target.value = '';
     };
 
     const clearAllData = async () => {
-        if (!confirm('Удалить все сделки?')) return;
-        await fetch(API + '/api/trades/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-            body: JSON.stringify({ trades: [] })
-        });
-        Store.setTrades([]);
-        toast('Данные очищены', 'info');
+        if (!confirm('Удалить ВСЕ сделки? Это действие нельзя отменить.')) return;
+
+        try {
+            await fetch(API + '/api/trades/sync', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + authToken
+                },
+                body: JSON.stringify({ trades: [] })
+            });
+            Store.setTrades([]);
+            toast('Данные очищены', 'info');
+        } catch {
+            toast('Ошибка очистки', 'error');
+        }
     };
 
     // ========== АВТОРИЗАЦИЯ ==========
     const checkAuth = () => {
-        const t = localStorage.getItem('authToken');
-        if (t) {
-            authToken = t;
+        const token = safeLocalStorage.get('authToken');
+        if (token) {
+            authToken = token;
             fetchProfile();
         } else {
-            hidePreloader();
+            document.getElementById('preloader').style.display = 'none';
             showAuthPage();
         }
     };
 
     const fetchProfile = async () => {
         try {
-            const r = await fetch(API + '/api/user/profile', { headers: { 'Authorization': 'Bearer ' + authToken } });
+            const r = await fetch(API + '/api/user/profile', {
+                headers: { 'Authorization': 'Bearer ' + authToken }
+            });
+
             if (r.ok) {
-                const u = await r.json();
-                Store.setCurrentUser(u);
-                hidePreloader();
-                if (u.first_login) showTariffPage();
-                else { await loadTrades(); showAppPage(); }
+                const user = await r.json();
+                Store.setCurrentUser(user);
+                document.getElementById('preloader').style.display = 'none';
+
+                if (user.first_login) {
+                    showTariffPage();
+                } else {
+                    await loadTrades();
+                    showAppPage();
+                }
             } else {
-                localStorage.removeItem('authToken');
-                hidePreloader();
+                safeLocalStorage.set('authToken', '');
+                document.getElementById('preloader').style.display = 'none';
                 showAuthPage();
             }
         } catch {
-            hidePreloader();
+            document.getElementById('preloader').style.display = 'none';
             showAuthPage();
         }
     };
 
-    const finishOnboarding = async isPro => {
+    const finishOnboarding = async (isPro) => {
+        if (isSubmitting) return;
+        isSubmitting = true;
+
+        const btn = document.getElementById('finishOnboarding');
+        if (btn) btn.disabled = true;
+
         try {
             if (isPro) {
                 const addr = document.getElementById('walletAddressInput')?.value.trim();
-                if (!addr || !/^[a-zA-Z0-9]{5,}$/.test(addr)) {
-                    toast('Адрес кошелька должен содержать минимум 5 букв/цифр', 'error');
+                const walletError = document.getElementById('walletError');
+
+                if (!addr || !WALLET_VALIDATION_REGEX.test(addr)) {
+                    if (walletError) walletError.textContent = 'Адрес кошелька должен содержать минимум 5 букв/цифр';
+                    isSubmitting = false;
+                    if (btn) btn.disabled = false;
                     return;
                 }
-                await fetch(API + '/api/user/wallet', {
+
+                if (!selectedWalletType) {
+                    if (walletError) walletError.textContent = 'Выберите тип кошелька';
+                    isSubmitting = false;
+                    if (btn) btn.disabled = false;
+                    return;
+                }
+
+                const r = await fetch(API + '/api/user/wallet', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                    body: JSON.stringify({ wallet_address: addr, wallet_type: selectedWalletType })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + authToken
+                    },
+                    body: JSON.stringify({
+                        wallet_address: addr,
+                        wallet_type: selectedWalletType
+                    })
                 });
-                Store.setUserStatus({ wallet_connected: true });
-                toast('Pro активирован', 'success');
+
+                if (r.ok) {
+                    Store.setUserStatus({ wallet_connected: true, first_login: false });
+                    safeLocalStorage.set('pro_activated', 'true');
+                    safeLocalStorage.set('wallet_verified', 'true');
+                    toast('Pro активирован! Добро пожаловать.', 'success');
+                    await loadTrades();
+                    showAppPage();
+                } else {
+                    toast('Ошибка активации Pro', 'error');
+                }
             } else {
                 await fetch(API + '/api/user/skip-wallet', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + authToken }
                 });
-                toast('Базовый тариф', 'success');
+                Store.setUserStatus({ wallet_connected: false, first_login: false });
+                toast('Базовый тариф активирован', 'success');
+                await loadTrades();
+                showAppPage();
             }
-            Store.setUserStatus({ first_login: false });
-            await loadTrades();
-            showAppPage();
-        } catch {
-            toast('Ошибка', 'error');
-        }
-    };
-
-    // ========== ТЕМА И D&D ==========
-    const initTheme = () => {
-        const saved = localStorage.getItem('theme') || 'dark';
-        document.body.setAttribute('data-theme', saved);
-        const sel = document.getElementById('themeSelect');
-        if (sel) sel.value = saved;
-    };
-
-    const setTheme = (theme) => {
-        document.body.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-    };
-
-    const initDragDrop = () => {
-        const grid = document.getElementById('dashboardGrid');
-        if (!grid) return;
-        if (sortableInstance) sortableInstance.destroy();
-        sortableInstance = new Sortable(grid, {
-            animation: 200,
-            handle: '.drag-item',
-            ghostClass: 'sortable-ghost',
-            dragClass: 'sortable-drag',
-            onEnd: function() {
-                const order = [...grid.querySelectorAll('.drag-item')].map(el => el.dataset.id);
-                localStorage.setItem('dashboardOrder', JSON.stringify(order));
-            }
-        });
-        const saved = localStorage.getItem('dashboardOrder');
-        if (saved) {
-            try {
-                const order = JSON.parse(saved);
-                order.forEach(id => {
-                    const el = grid.querySelector(`.drag-item[data-id="${id}"]`);
-                    if (el) grid.appendChild(el);
-                });
-            } catch {}
+        } catch (e) {
+            toast('Ошибка соединения', 'error');
+        } finally {
+            isSubmitting = false;
+            if (btn) btn.disabled = false;
         }
     };
 
     const disconnectWallet = async () => {
+        if (!confirm('Отключить Pro? Ваши Pro-возможности будут недоступны.')) return;
+
         try {
-            await fetch(API + '/api/user/wallet/disconnect', { method: 'POST', headers: { 'Authorization': 'Bearer ' + authToken } });
+            await fetch(API + '/api/user/wallet/disconnect', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + authToken }
+            });
             Store.setUserStatus({ wallet_connected: false, is_public: false });
             Store.clearLocalPro();
             toast('Pro отключён', 'info');
@@ -741,263 +918,462 @@
         }
     };
 
-    // ========== ДЕЛЕГИРОВАНИЕ СОБЫТИЙ ==========
-    const setupDelegation = () => {
-        document.addEventListener('click', e => {
-            const link = e.target.closest('[data-view]');
-            if (link) { e.preventDefault(); switchView(link.dataset.view); }
+    // ========== ТЕМА И D&D ==========
+    const initTheme = () => {
+        const saved = safeLocalStorage.get('theme') || 'dark';
+        document.body.setAttribute('data-theme', saved);
+        const sel = document.getElementById('themeSelect');
+        if (sel) sel.value = saved;
+    };
 
+    const setTheme = (theme) => {
+        document.body.setAttribute('data-theme', theme);
+        safeLocalStorage.set('theme', theme);
+
+        if (plChart) {
+            destroyCharts();
+            scheduleChartUpdate();
+        }
+    };
+
+    const initDragDrop = () => {
+        const grid = document.getElementById('dashboardGrid');
+        if (!grid || typeof Sortable === 'undefined') return;
+
+        if (sortableInstance) sortableInstance.destroy();
+
+        sortableInstance = new Sortable(grid, {
+            animation: 200,
+            handle: '.drag-item',
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            easing: "cubic-bezier(1, 0, 0, 1)",
+            onEnd: function() {
+                const order = [...grid.querySelectorAll('.drag-item')].map(el => el.dataset.id);
+                safeLocalStorage.setJSON('dashboardOrder', order);
+            }
+        });
+
+        const savedOrder = safeLocalStorage.getJSON('dashboardOrder', []);
+        if (savedOrder.length) {
+            savedOrder.forEach(id => {
+                const el = grid.querySelector(`.drag-item[data-id="${id}"]`);
+                if (el) grid.appendChild(el);
+            });
+        }
+    };
+
+    // ========== ДЕЛЕГИРОВАНИЕ СОБЫТИЙ ==========
+    const setupEventDelegation = () => {
+        document.addEventListener('click', async (e) => {
+            // Навигация по меню
+            const menuLink = e.target.closest('[data-view]');
+            if (menuLink) {
+                e.preventDefault();
+                switchView(menuLink.dataset.view);
+                return;
+            }
+
+            // Выход
             if (e.target.closest('#headerLogout') || e.target.closest('#logoutBtn')) {
-                localStorage.removeItem('authToken');
+                safeLocalStorage.set('authToken', '');
                 authToken = null;
                 Store.reset();
                 showAuthPage();
+                return;
             }
 
-            if (e.target.closest('#addTradeBtn')) addTrade();
+            // Добавление сделки
+            if (e.target.closest('#addTradeBtn')) {
+                await addTrade();
+                return;
+            }
 
+            // Переключение типа сделки
             if (e.target.closest('.type-btn')) {
                 document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
                 e.target.closest('.type-btn').classList.add('active');
+                return;
             }
 
+            // Фильтры
             if (e.target.closest('.filter-btn')) {
                 document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
                 const btn = e.target.closest('.filter-btn');
                 btn.classList.add('active');
                 Store.setFilter(btn.dataset.filter);
+                return;
             }
 
+            // Вкладки авторизации
+            if (e.target.closest('.auth-tab')) {
+                const tab = e.target.closest('.auth-tab');
+                document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+
+                const isLogin = tab.dataset.tab === 'login';
+                document.getElementById('loginForm')?.classList.toggle('hidden', !isLogin);
+                document.getElementById('registerForm')?.classList.toggle('hidden', isLogin);
+                document.getElementById('forgotPasswordForm')?.classList.add('hidden');
+                document.getElementById('resetPasswordForm')?.classList.add('hidden');
+                return;
+            }
+
+            // Ссылки восстановления пароля
             if (e.target.id === 'forgotPasswordLink') {
                 e.preventDefault();
                 document.getElementById('loginForm')?.classList.add('hidden');
                 document.getElementById('forgotPasswordForm')?.classList.remove('hidden');
+                return;
             }
-
             if (e.target.id === 'backToLoginLink' || e.target.id === 'backToLoginFromReset') {
                 e.preventDefault();
                 document.getElementById('loginForm')?.classList.remove('hidden');
                 document.getElementById('forgotPasswordForm')?.classList.add('hidden');
                 document.getElementById('resetPasswordForm')?.classList.add('hidden');
+                return;
             }
 
+            // Модалки
             if (e.target.closest('#changePasswordBtn')) {
                 document.getElementById('changePasswordModal')?.classList.remove('hidden');
+                return;
             }
-
             if (e.target.closest('#closeChangePasswordModal')) {
                 document.getElementById('changePasswordModal')?.classList.add('hidden');
+                return;
+            }
+            if (e.target.closest('#helpBtn')) {
+                document.getElementById('helpModal')?.classList.remove('hidden');
+                return;
+            }
+            if (e.target.closest('#closeHelpModal')) {
+                document.getElementById('helpModal')?.classList.add('hidden');
+                return;
             }
 
-            if (e.target.closest('#exportDataBtn')) exportData();
-            if (e.target.closest('#importDataBtn')) document.getElementById('importFileInput')?.click();
-            if (e.target.closest('#clearDataBtn')) clearAllData();
-            if (e.target.closest('#upgradeToProBtn')) showTariffPage();
-            if (e.target.closest('#helpBtn')) document.getElementById('helpModal')?.classList.remove('hidden');
-            if (e.target.closest('#closeHelpModal')) document.getElementById('helpModal')?.classList.add('hidden');
-            if (e.target.closest('#disconnectWalletBtn')) disconnectWallet();
-        });
-
-        document.addEventListener('change', async e => {
-            if (e.target.id === 'publicProfileToggle') {
-                if (!Store.getUserStatus().wallet_connected) {
-                    e.target.checked = false;
-                    toast('Требуется Pro', 'error');
-                } else {
-                    await fetch(API + '/api/user/public', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                        body: JSON.stringify({ is_public: e.target.checked })
-                    });
-                    Store.setUserStatus({ is_public: e.target.checked });
-                }
+            // Данные
+            if (e.target.closest('#exportDataBtn')) {
+                exportData();
+                return;
             }
-            if (e.target.id === 'leaderboardLimit') loadLeaderboard();
-            if (e.target.id === 'themeSelect') setTheme(e.target.value);
-        });
-
-        document.addEventListener('submit', async e => {
-            e.preventDefault();
-
-            if (e.target.id === 'loginForm') {
-                const f = new FormData(e.target);
-                try {
-                    const r = await fetch(API + '/api/auth/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: f.get('username'), password: f.get('password') })
-                    });
-                    const d = await r.json();
-                    if (r.ok) {
-                        authToken = d.token;
-                        Store.setCurrentUser(d.user);
-                        localStorage.setItem('authToken', authToken);
-                        toast('Вход выполнен', 'success');
-                        d.user.first_login ? showTariffPage() : (await loadTrades(), showAppPage());
-                    } else {
-                        document.getElementById('authError').textContent = d.error;
-                    }
-                } catch {
-                    document.getElementById('authError').textContent = 'Ошибка соединения';
-                }
+            if (e.target.closest('#importDataBtn')) {
+                document.getElementById('importFileInput')?.click();
+                return;
+            }
+            if (e.target.closest('#clearDataBtn')) {
+                await clearAllData();
+                return;
+            }
+            if (e.target.closest('#upgradeToProBtn')) {
+                showTariffPage();
+                return;
+            }
+            if (e.target.closest('#disconnectWalletBtn')) {
+                await disconnectWallet();
+                return;
             }
 
-            if (e.target.id === 'registerForm') {
-                const f = new FormData(e.target);
-                if (f.get('password') !== f.get('confirmPassword')) {
-                    document.getElementById('authError').textContent = 'Пароли не совпадают';
-                    return;
-                }
-                try {
-                    const r = await fetch(API + '/api/auth/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: f.get('username'),
-                            password: f.get('password'),
-                            secretQuestion: f.get('secretQuestion'),
-                            secretAnswer: f.get('secretAnswer')
-                        })
-                    });
-                    const d = await r.json();
-                    if (r.ok) {
-                        authToken = d.token;
-                        Store.setCurrentUser(d.user);
-                        localStorage.setItem('authToken', authToken);
-                        toast('Регистрация успешна', 'success');
-                        showTariffPage();
-                    } else {
-                        document.getElementById('authError').textContent = d.error;
-                    }
-                } catch {
-                    document.getElementById('authError').textContent = 'Ошибка соединения';
-                }
-            }
-
-            if (e.target.id === 'forgotPasswordForm') {
-                const u = e.target.querySelector('[name="forgotUsername"]').value;
-                try {
-                    const r = await fetch(API + '/api/auth/forgot-password', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username: u })
-                    });
-                    const d = await r.json();
-                    if (r.ok) {
-                        document.getElementById('resetUsername').value = u;
-                        document.getElementById('secretQuestionLabel').textContent = d.secretQuestion;
-                        document.getElementById('forgotPasswordForm').classList.add('hidden');
-                        document.getElementById('resetPasswordForm').classList.remove('hidden');
-                    } else {
-                        document.getElementById('authError').textContent = d.error;
-                    }
-                } catch {}
-            }
-
-            if (e.target.id === 'resetPasswordForm') {
-                const f = new FormData(e.target);
-                if (f.get('newPassword') !== f.get('confirmNewPassword')) {
-                    document.getElementById('authError').textContent = 'Пароли не совпадают';
-                    return;
-                }
-                try {
-                    const r = await fetch(API + '/api/auth/reset-password', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            username: document.getElementById('resetUsername').value,
-                            secretAnswer: f.get('secretAnswer'),
-                            newPassword: f.get('newPassword')
-                        })
-                    });
-                    if (r.ok) {
-                        toast('Пароль изменён', 'success');
-                        document.getElementById('resetPasswordForm').classList.add('hidden');
-                        document.getElementById('loginForm').classList.remove('hidden');
-                    }
-                } catch {}
-            }
-
-            if (e.target.id === 'changePasswordForm') {
-                const f = new FormData(e.target);
-                if (f.get('newPassword') !== f.get('confirmNewPassword')) {
-                    document.getElementById('changePasswordError').textContent = 'Пароли не совпадают';
-                    return;
-                }
-                try {
-                    const r = await fetch(API + '/api/user/change-password', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
-                        body: JSON.stringify({ currentPassword: f.get('currentPassword'), newPassword: f.get('newPassword') })
-                    });
-                    if (r.ok) {
-                        toast('Пароль изменён', 'success');
-                        document.getElementById('changePasswordModal')?.classList.add('hidden');
-                    }
-                } catch {}
-            }
-        });
-
-        document.querySelector('.tariff-cards')?.addEventListener('click', e => {
-            const card = e.target.closest('.tariff-card');
-            if (card) {
+            // Выбор тарифа
+            if (e.target.closest('.tariff-card')) {
+                const card = e.target.closest('.tariff-card');
                 document.querySelectorAll('.tariff-card').forEach(c => c.classList.remove('selected'));
                 card.classList.add('selected');
                 selectedMode = card.dataset.mode;
+                return;
             }
+
+            // Кнопки выбора тарифа
             if (e.target.classList.contains('tariff-select-btn')) {
-                if (!selectedMode) { toast('Выберите тариф', 'error'); return; }
+                const btn = e.target;
+                disableButton(btn);
+
+                if (!selectedMode) {
+                    toast('Выберите тариф', 'error');
+                    return;
+                }
+
                 if (selectedMode === 'pro') {
                     document.querySelector('.tariff-cards')?.classList.add('hidden');
                     document.querySelector('.tariff-header')?.classList.add('hidden');
                     document.querySelector('.tariff-note')?.classList.add('hidden');
                     document.getElementById('walletStepContainer')?.classList.remove('hidden');
                 } else {
-                    finishOnboarding(false);
+                    await finishOnboarding(false);
+                }
+                return;
+            }
+
+            // Выбор кошелька
+            if (e.target.closest('.wallet-option')) {
+                const opt = e.target.closest('.wallet-option');
+                document.querySelectorAll('.wallet-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                selectedWalletType = opt.dataset.wallet;
+
+                const addr = document.getElementById('walletAddressInput');
+                const finishBtn = document.getElementById('finishOnboarding');
+                if (finishBtn && addr) {
+                    finishBtn.disabled = !addr.value.trim() || !WALLET_VALIDATION_REGEX.test(addr.value.trim());
+                }
+                return;
+            }
+
+            // Назад к тарифам
+            if (e.target.closest('#backToTariff')) {
+                document.querySelector('.tariff-cards')?.classList.remove('hidden');
+                document.querySelector('.tariff-header')?.classList.remove('hidden');
+                document.querySelector('.tariff-note')?.classList.remove('hidden');
+                document.getElementById('walletStepContainer')?.classList.add('hidden');
+                return;
+            }
+
+            // Завершение онбординга
+            if (e.target.closest('#finishOnboarding')) {
+                await finishOnboarding(true);
+                return;
+            }
+        });
+
+        // Валидация адреса кошелька
+        document.getElementById('walletAddressInput')?.addEventListener('input', function() {
+            const addr = this.value.trim();
+            const finishBtn = document.getElementById('finishOnboarding');
+            const walletError = document.getElementById('walletError');
+
+            if (finishBtn) {
+                finishBtn.disabled = !selectedWalletType || !addr || !WALLET_VALIDATION_REGEX.test(addr);
+            }
+
+            if (walletError) {
+                if (addr && !WALLET_VALIDATION_REGEX.test(addr)) {
+                    walletError.textContent = 'Минимум 5 символов, только буквы и цифры';
+                } else {
+                    walletError.textContent = '';
                 }
             }
         });
 
-        document.querySelector('.wallet-options')?.addEventListener('click', e => {
-            const opt = e.target.closest('.wallet-option');
-            if (opt) {
-                document.querySelectorAll('.wallet-option').forEach(o => o.classList.remove('selected'));
-                opt.classList.add('selected');
-                selectedWalletType = opt.dataset.wallet;
-                const btn = document.getElementById('finishOnboarding');
-                if (btn) btn.disabled = !document.getElementById('walletAddressInput')?.value.trim();
+        // Изменения в формах и селектах
+        document.addEventListener('change', async (e) => {
+            if (e.target.id === 'publicProfileToggle') {
+                if (!Store.getUserStatus().wallet_connected) {
+                    e.target.checked = false;
+                    toast('Требуется Pro тариф', 'error');
+                    return;
+                }
+
+                try {
+                    await fetch(API + '/api/user/public', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + authToken
+                        },
+                        body: JSON.stringify({ is_public: e.target.checked })
+                    });
+                    Store.setUserStatus({ is_public: e.target.checked });
+                } catch {
+                    e.target.checked = !e.target.checked;
+                    toast('Ошибка обновления', 'error');
+                }
+            }
+
+            if (e.target.id === 'leaderboardLimit') {
+                loadLeaderboard();
+            }
+
+            if (e.target.id === 'themeSelect') {
+                setTheme(e.target.value);
             }
         });
 
-        document.getElementById('walletAddressInput')?.addEventListener('input', function() {
-            const btn = document.getElementById('finishOnboarding');
-            if (btn) btn.disabled = !selectedWalletType || !this.value.trim();
-        });
-
-        document.getElementById('backToTariff')?.addEventListener('click', () => {
-            document.querySelector('.tariff-cards')?.classList.remove('hidden');
-            document.querySelector('.tariff-header')?.classList.remove('hidden');
-            document.querySelector('.tariff-note')?.classList.remove('hidden');
-            document.getElementById('walletStepContainer')?.classList.add('hidden');
-        });
-
-        document.getElementById('finishOnboarding')?.addEventListener('click', () => finishOnboarding(true));
+        // Импорт файла
         document.getElementById('importFileInput')?.addEventListener('change', importData);
+
+        // Отправка форм
+        document.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            if (submitBtn) disableButton(submitBtn);
+
+            try {
+                // Логин
+                if (form.id === 'loginForm') {
+                    const fd = new FormData(form);
+                    const r = await fetch(API + '/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: fd.get('username'),
+                            password: fd.get('password')
+                        })
+                    });
+                    const d = await r.json();
+
+                    if (r.ok) {
+                        authToken = d.token;
+                        Store.setCurrentUser(d.user);
+                        safeLocalStorage.set('authToken', authToken);
+                        toast('Вход выполнен', 'success');
+
+                        if (d.user.first_login) {
+                            showTariffPage();
+                        } else {
+                            await loadTrades();
+                            showAppPage();
+                        }
+                    } else {
+                        document.getElementById('authError').textContent = d.error || 'Ошибка входа';
+                    }
+                }
+
+                // Регистрация
+                if (form.id === 'registerForm') {
+                    const fd = new FormData(form);
+
+                    if (fd.get('password') !== fd.get('confirmPassword')) {
+                        document.getElementById('authError').textContent = 'Пароли не совпадают';
+                        return;
+                    }
+
+                    const r = await fetch(API + '/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: fd.get('username'),
+                            password: fd.get('password'),
+                            secretQuestion: fd.get('secretQuestion'),
+                            secretAnswer: fd.get('secretAnswer')
+                        })
+                    });
+                    const d = await r.json();
+
+                    if (r.ok) {
+                        authToken = d.token;
+                        Store.setCurrentUser(d.user);
+                        safeLocalStorage.set('authToken', authToken);
+                        toast('Регистрация успешна', 'success');
+                        showTariffPage();
+                    } else {
+                        document.getElementById('authError').textContent = d.error || 'Ошибка регистрации';
+                    }
+                }
+
+                // Забыли пароль
+                if (form.id === 'forgotPasswordForm') {
+                    const username = form.querySelector('[name="forgotUsername"]').value;
+                    const r = await fetch(API + '/api/auth/forgot-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username })
+                    });
+                    const d = await r.json();
+
+                    if (r.ok) {
+                        document.getElementById('resetUsername').value = username;
+                        document.getElementById('secretQuestionLabel').textContent = d.secretQuestion || 'Вопрос не задан';
+                        form.classList.add('hidden');
+                        document.getElementById('resetPasswordForm').classList.remove('hidden');
+                    } else {
+                        document.getElementById('authError').textContent = d.error || 'Пользователь не найден';
+                    }
+                }
+
+                // Сброс пароля
+                if (form.id === 'resetPasswordForm') {
+                    const fd = new FormData(form);
+
+                    if (fd.get('newPassword') !== fd.get('confirmNewPassword')) {
+                        document.getElementById('authError').textContent = 'Пароли не совпадают';
+                        return;
+                    }
+
+                    const r = await fetch(API + '/api/auth/reset-password', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            username: document.getElementById('resetUsername').value,
+                            secretAnswer: fd.get('secretAnswer'),
+                            newPassword: fd.get('newPassword')
+                        })
+                    });
+
+                    if (r.ok) {
+                        toast('Пароль изменён', 'success');
+                        form.classList.add('hidden');
+                        document.getElementById('loginForm').classList.remove('hidden');
+                    } else {
+                        const d = await r.json();
+                        document.getElementById('authError').textContent = d.error || 'Ошибка смены пароля';
+                    }
+                }
+
+                // Смена пароля
+                if (form.id === 'changePasswordForm') {
+                    const fd = new FormData(form);
+
+                    if (fd.get('newPassword') !== fd.get('confirmNewPassword')) {
+                        document.getElementById('changePasswordError').textContent = 'Пароли не совпадают';
+                        return;
+                    }
+
+                    const r = await fetch(API + '/api/user/change-password', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + authToken
+                        },
+                        body: JSON.stringify({
+                            currentPassword: fd.get('currentPassword'),
+                            newPassword: fd.get('newPassword')
+                        })
+                    });
+
+                    if (r.ok) {
+                        toast('Пароль изменён', 'success');
+                        document.getElementById('changePasswordModal')?.classList.add('hidden');
+                        form.reset();
+                    } else {
+                        const d = await r.json();
+                        document.getElementById('changePasswordError').textContent = d.error || 'Ошибка';
+                    }
+                }
+            } catch (err) {
+                console.error('Form submit error:', err);
+                toast('Ошибка соединения', 'error');
+            }
+        });
+
+        // Закрытие модалок по клику вне
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        });
     };
 
-    // ========== СТАРТ ==========
+    // ========== ИНИЦИАЛИЗАЦИЯ ==========
     document.addEventListener('DOMContentLoaded', () => {
-        checkAuth();
-        setupDelegation();
         initTheme();
         initDragDrop();
+        setupEventDelegation();
+        checkAuth();
     });
 
+    // Фоллбэк для прелоадера
     setTimeout(() => {
         const p = document.getElementById('preloader');
         if (p && p.style.display !== 'none') {
             p.style.display = 'none';
-            document.getElementById('authPage')?.classList.remove('hidden');
+            const authPage = document.getElementById('authPage');
+            if (authPage && authPage.classList.contains('hidden')) {
+                authPage.classList.remove('hidden');
+            }
         }
     }, 5000);
 })();
