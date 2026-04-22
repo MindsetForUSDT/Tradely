@@ -2,8 +2,8 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Tradeum · Профессиональный дневник трейдера</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes, viewport-fit=cover">
+    <title>Tradeum · Календарь трейдера</title>
     <meta name="theme-color" content="#0a0a0c">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -41,29 +41,29 @@
                 <div class="auth-brand-large">
                     <span class="brand-icon-large">⟁</span>
                     <h1 class="brand-title">TRADEUM</h1>
-                    <p class="brand-subtitle">Профессиональная аналитика сделок</p>
+                    <p class="brand-subtitle">Автоматический дневник трейдера</p>
                 </div>
 
                 <div class="auth-features-grid">
                     <div class="feature-card">
+                        <div class="feature-icon">🔗</div>
+                        <h3>Подключите кошелёк</h3>
+                        <p>MetaMask, Phantom или Trust Wallet — все сделки загружаются автоматически</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📅</div>
+                        <h3>Календарь торговли</h3>
+                        <p>Наглядная история по дням с итогами и лучшими сделками</p>
+                    </div>
+                    <div class="feature-card">
                         <div class="feature-icon">📊</div>
-                        <h3>Глубокая аналитика</h3>
-                        <p>Profit Factor, Sharpe Ratio, максимальная просадка и 15+ метрик</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">🔒</div>
-                        <h3>Полная приватность</h3>
-                        <p>Ваши данные зашифрованы и никогда не передаются третьим лицам</p>
-                    </div>
-                    <div class="feature-card">
-                        <div class="feature-icon">⚡</div>
-                        <h3>Автоимпорт</h3>
-                        <p>Подключите кошелёк и сделки загрузятся автоматически</p>
+                        <h3>Детальная аналитика</h3>
+                        <p>Кликните на день — получите полный разбор торговой сессии</p>
                     </div>
                     <div class="feature-card">
                         <div class="feature-icon">🏆</div>
                         <h3>Рейтинг трейдеров</h3>
-                        <p>Сравнивайте свои результаты с лучшими (опционально)</p>
+                        <p>Сравнивайте результаты с лучшими (опционально)</p>
                     </div>
                 </div>
 
@@ -77,8 +77,8 @@
                         <span class="stat-label">объём сделок</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-number">4.9</span>
-                        <span class="stat-label">рейтинг</span>
+                        <span class="stat-number">500K+</span>
+                        <span class="stat-label">сделок в день</span>
                     </div>
                 </div>
             </div>
@@ -166,7 +166,7 @@
                         </button>
                     </form>
 
-                    <!-- Форма восстановления (шаг 1) -->
+                    <!-- Форма восстановления -->
                     <form id="forgotPasswordForm" class="auth-form hidden">
                         <h3 style="margin-bottom:24px;font-weight:600;">Восстановление пароля</h3>
 
@@ -188,7 +188,6 @@
                         </p>
                     </form>
 
-                    <!-- Форма восстановления (шаг 2) -->
                     <form id="resetPasswordForm" class="auth-form hidden">
                         <h3 style="margin-bottom:24px;font-weight:600;">Новый пароль</h3>
 
@@ -240,135 +239,69 @@
         </div>
     </div>
 
-    <!-- ==================== СТРАНИЦА ВЫБОРА ТАРИФА ==================== -->
-    <div id="tariffPage" class="tariff-page hidden">
-        <div class="tariff-background">
-            <div class="tariff-glow"></div>
+    <!-- ==================== СТРАНИЦА ПОДКЛЮЧЕНИЯ КОШЕЛЬКА ==================== -->
+    <div id="walletPage" class="wallet-page hidden">
+        <div class="wallet-background">
+            <div class="wallet-glow"></div>
         </div>
 
-        <div class="tariff-wrapper">
-            <div class="tariff-header">
-                <div class="tariff-step">Шаг 1 из 2</div>
-                <h2>Выберите подходящий тариф</h2>
-                <p>Начните бесплатно или получите полный доступ ко всем функциям</p>
+        <div class="wallet-wrapper">
+            <div class="wallet-header">
+                <span class="wallet-step-badge">Обязательный шаг</span>
+                <h2>Подключите криптокошелёк</h2>
+                <p>Для автоматического учёта сделок необходимо подключить кошелёк</p>
             </div>
 
-            <div class="tariff-cards">
-                <!-- Базовый тариф -->
-                <div class="tariff-card" data-mode="manual">
-                    <div class="tariff-card-header">
-                        <span class="tariff-badge free">Бесплатно</span>
-                        <div class="tariff-icon-wrap">
-                            <span class="tariff-icon">📋</span>
-                        </div>
-                        <h3>Базовый</h3>
-                        <div class="tariff-price">
-                            <span class="price-value">0 ₽</span>
-                            <span class="price-period">навсегда</span>
-                        </div>
-                    </div>
-
-                    <div class="tariff-features">
-                        <ul>
-                            <li class="feature-included">✓ Ручной ввод сделок</li>
-                            <li class="feature-included">✓ Базовая статистика (P/L, винрейт)</li>
-                            <li class="feature-included">✓ График доходности</li>
-                            <li class="feature-included">✓ Экспорт данных</li>
-                            <li class="feature-excluded">✗ Автоимпорт через кошелёк</li>
-                            <li class="feature-excluded">✗ Premium-метрики</li>
-                            <li class="feature-excluded">✗ Рейтинг трейдеров</li>
-                            <li class="feature-excluded">✗ Импорт данных</li>
-                        </ul>
-                    </div>
-
-                    <button class="btn-tariff" data-action="select-manual">
-                        Начать бесплатно
-                    </button>
+            <div class="wallet-providers-grid">
+                <div class="wallet-provider-card" data-wallet="MetaMask">
+                    <div class="provider-icon">🦊</div>
+                    <h3>MetaMask</h3>
+                    <p>Ethereum и EVM-совместимые сети</p>
+                    <span class="provider-badge">Рекомендуется</span>
                 </div>
 
-                <!-- Pro тариф -->
-                <div class="tariff-card pro" data-mode="pro">
-                    <div class="tariff-card-header">
-                        <span class="tariff-badge pro">PRO</span>
-                        <div class="tariff-icon-wrap">
-                            <span class="tariff-icon">💎</span>
-                        </div>
-                        <h3>Premium</h3>
-                        <div class="tariff-price">
-                            <span class="price-value">500 ₽</span>
-                            <span class="price-period">/ месяц</span>
-                        </div>
-                    </div>
+                <div class="wallet-provider-card" data-wallet="Phantom">
+                    <div class="provider-icon">👻</div>
+                    <h3>Phantom</h3>
+                    <p>Solana, Ethereum и Polygon</p>
+                </div>
 
-                    <div class="tariff-features">
-                        <ul>
-                            <li class="feature-included">✓ Всё из Базового</li>
-                            <li class="feature-included">✓ Автоимпорт через кошелёк</li>
-                            <li class="feature-included">✓ Premium-метрики (Sharpe, Drawdown)</li>
-                            <li class="feature-included">✓ Рейтинг трейдеров</li>
-                            <li class="feature-included">✓ Импорт/экспорт данных</li>
-                            <li class="feature-included">✓ Приоритетная поддержка</li>
-                            <li class="feature-included">✓ Без рекламы</li>
-                        </ul>
-                    </div>
-
-                    <button class="btn-tariff pro-btn" data-action="select-pro">
-                        Выбрать Premium
-                    </button>
+                <div class="wallet-provider-card" data-wallet="TrustWallet">
+                    <div class="provider-icon">🛡️</div>
+                    <h3>Trust Wallet</h3>
+                    <p>Мультисетевой кошелёк</p>
                 </div>
             </div>
 
-            <p class="tariff-guarantee">
-                <span>🛡️</span> 14 дней гарантия возврата · Отмена в любой момент
+            <div class="wallet-form-container">
+                <div class="form-group-large">
+                    <label>Адрес кошелька</label>
+                    <div class="input-wrapper-large">
+                        <input type="text" id="walletAddressInput" placeholder="0x... или адрес вашего кошелька" autocomplete="off" spellcheck="false">
+                    </div>
+                    <p class="wallet-hint">Введите адрес для тестового режима (минимум 5 символов, буквы и цифры)</p>
+                </div>
+
+                <div class="wallet-info-box">
+                    <span class="info-icon">ℹ️</span>
+                    <div>
+                        <h4>Как это работает?</h4>
+                        <p>Ваши сделки автоматически импортируются из блокчейна. В тестовом режиме используются демо-данные.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="walletError" class="wallet-error"></div>
+
+            <div class="wallet-actions">
+                <button id="connectWalletBtn" class="btn-primary-large" disabled>
+                    <span>🔗</span> Подключить кошелёк
+                </button>
+            </div>
+
+            <p class="wallet-footer">
+                Подключая кошелёк, вы соглашаетесь с <a href="#">условиями использования</a>
             </p>
-        </div>
-
-        <!-- Шаг 2: Активация Pro -->
-        <div id="walletStepContainer" class="wallet-step-container hidden">
-            <div class="wallet-wrapper">
-                <div class="wallet-header">
-                    <div class="wallet-step">Шаг 2 из 2</div>
-                    <h2>Подключите криптокошелёк</h2>
-                    <p>Для автоматического импорта сделок (тестовый режим)</p>
-                </div>
-
-                <div class="wallet-providers">
-                    <div class="wallet-provider" data-wallet="MetaMask">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23F6851B' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E🦊%3C/text%3E%3C/svg%3E" alt="MetaMask" class="wallet-icon-img">
-                        <span>MetaMask</span>
-                    </div>
-                    <div class="wallet-provider" data-wallet="Phantom">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%23AB9FF2' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E👻%3C/text%3E%3C/svg%3E" alt="Phantom" class="wallet-icon-img">
-                        <span>Phantom</span>
-                    </div>
-                    <div class="wallet-provider" data-wallet="TrustWallet">
-                        <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect fill='%233375BB' width='100' height='100' rx='20'/%3E%3Ctext x='50' y='70' font-size='50' text-anchor='middle' fill='white' font-family='Arial'%3E🛡️%3C/text%3E%3C/svg%3E" alt="Trust Wallet" class="wallet-icon-img">
-                        <span>Trust Wallet</span>
-                    </div>
-                </div>
-
-                <div class="wallet-form">
-                    <div class="form-group">
-                        <label>Адрес кошелька</label>
-                        <div class="input-wrapper">
-                            <input type="text" id="walletAddressInput" placeholder="0x... или любой тестовый адрес" autocomplete="off" spellcheck="false">
-                        </div>
-                        <p class="wallet-hint">Минимум 5 символов, только латинские буквы и цифры</p>
-                    </div>
-
-                    <div class="wallet-test-notice">
-                        <span class="notice-icon">ℹ️</span>
-                        <p>Тестовый режим — оплата не требуется. Для демонстрации используйте любой адрес.</p>
-                    </div>
-                </div>
-
-                <div id="walletError" class="wallet-error"></div>
-
-                <div class="wallet-actions">
-                    <button id="backToTariff" class="btn-secondary-large">← Назад к тарифам</button>
-                    <button id="finishOnboarding" class="btn-primary-large" disabled>Активировать Premium</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -380,21 +313,16 @@
                 <div class="nav-logo">
                     <span class="logo-icon">⟁</span>
                     <span class="logo-text">TRADEUM</span>
-                    <span class="nav-badge" id="navBadge">BASIC</span>
                 </div>
 
                 <div class="nav-menu">
-                    <a href="#" class="nav-link active" data-view="journal">
-                        <span class="nav-icon">📊</span>
-                        <span class="nav-text">Журнал</span>
+                    <a href="#" class="nav-link active" data-view="calendar">
+                        <span class="nav-icon">📅</span>
+                        <span class="nav-text">Календарь</span>
                     </a>
                     <a href="#" class="nav-link" data-view="analytics">
                         <span class="nav-icon">📈</span>
                         <span class="nav-text">Аналитика</span>
-                    </a>
-                    <a href="#" class="nav-link" data-view="premium">
-                        <span class="nav-icon">💎</span>
-                        <span class="nav-text">Premium</span>
                     </a>
                     <a href="#" class="nav-link" data-view="leaderboard">
                         <span class="nav-icon">🏆</span>
@@ -411,6 +339,10 @@
                 </div>
 
                 <div class="nav-user">
+                    <div class="wallet-info-mini" id="walletInfoMini">
+                        <span class="wallet-status online"></span>
+                        <span class="wallet-address" id="miniWalletAddress">0x...0000</span>
+                    </div>
                     <div class="user-info">
                         <span class="user-avatar" id="userAvatar">👤</span>
                         <span class="user-name" id="navUsername">Trader</span>
@@ -424,126 +356,64 @@
 
         <!-- Основной контент -->
         <main class="app-content">
-            <!-- ЖУРНАЛ -->
-            <div id="journalView" class="view-container">
+            <!-- КАЛЕНДАРЬ -->
+            <div id="calendarView" class="view-container">
                 <div class="view-header">
                     <div>
-                        <h1>Журнал сделок</h1>
-                        <p class="view-subtitle">Управляйте и анализируйте ваши торговые операции</p>
+                        <h1>Календарь торговли</h1>
+                        <p class="view-subtitle">История ваших сделок по дням</p>
                     </div>
-                    <div class="view-date" id="currentDate"></div>
-                </div>
-
-                <!-- Перетаскиваемые блоки -->
-                <div id="dashboardGrid" class="dashboard-grid">
-                    <div class="drag-item" data-id="stats">
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <div class="stat-header">
-                                    <span class="stat-title">Общий P/L</span>
-                                    <span class="stat-icon">💰</span>
-                                </div>
-                                <div class="stat-value" id="totalPL">$0.00</div>
-                                <div class="stat-footer">
-                                    <span class="stat-change" id="plChange">+0.00</span>
-                                    <span class="stat-period">за сегодня</span>
-                                </div>
-                            </div>
-
-                            <div class="stat-card">
-                                <div class="stat-header">
-                                    <span class="stat-title">Винрейт</span>
-                                    <span class="stat-icon">🎯</span>
-                                </div>
-                                <div class="stat-value" id="winRate">0%</div>
-                                <div class="progress-bar">
-                                    <div class="progress-fill" id="winRateProgress" style="width:0%"></div>
-                                </div>
-                            </div>
-
-                            <div class="stat-card">
-                                <div class="stat-header">
-                                    <span class="stat-title">Всего сделок</span>
-                                    <span class="stat-icon">📝</span>
-                                </div>
-                                <div class="stat-value" id="totalTradesCount">0</div>
-                                <div class="stat-breakdown">
-                                    <span class="badge-profit" id="winCount">0 LONG</span>
-                                    <span class="badge-loss" id="lossCount">0 SHORT</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="drag-item" data-id="quickadd">
-                        <div class="quick-add-card">
-                            <h3>Добавить сделку</h3>
-                            <div class="quick-add-form">
-                                <div class="form-row">
-                                    <div class="form-field">
-                                        <label>Торговая пара</label>
-                                        <input type="text" id="pairInput" placeholder="BTC/USD" value="BTC/USD" autocomplete="off">
-                                    </div>
-                                    <div class="form-field">
-                                        <label>Объём ($)</label>
-                                        <input type="text" id="volumeInput" placeholder="100" value="100" autocomplete="off" inputmode="decimal">
-                                    </div>
-                                </div>
-                                <div class="form-row">
-                                    <div class="type-selector">
-                                        <button class="type-option profit active" data-type="profit">
-                                            <span>📈</span> LONG
-                                        </button>
-                                        <button class="type-option loss" data-type="loss">
-                                            <span>📉</span> SHORT
-                                        </button>
-                                    </div>
-                                    <button id="addTradeBtn" class="btn-add-trade">
-                                        <span>+</span> Добавить
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="drag-item" data-id="extended">
-                        <div class="extended-analytics-grid">
-                            <div class="analytics-card">
-                                <h3>Топ торговых пар</h3>
-                                <div id="pairsDistribution" class="pairs-list"></div>
-                            </div>
-                            <div class="analytics-card">
-                                <h3>Активность по дням</h3>
-                                <div id="heatmapContainer" class="heatmap-grid"></div>
-                            </div>
-                        </div>
+                    <div class="calendar-controls">
+                        <button class="calendar-nav" id="prevMonth">←</button>
+                        <span class="calendar-month" id="currentMonthDisplay">Апрель 2026</span>
+                        <button class="calendar-nav" id="nextMonth">→</button>
                     </div>
                 </div>
 
-                <!-- Таблица сделок -->
-                <div class="trades-section">
-                    <div class="section-header">
-                        <h2>История сделок</h2>
-                        <div class="filter-tabs">
-                            <button class="filter-tab active" data-filter="all">Все</button>
-                            <button class="filter-tab" data-filter="profit">LONG</button>
-                            <button class="filter-tab" data-filter="loss">SHORT</button>
-                        </div>
+                <!-- Статистика месяца -->
+                <div class="month-stats">
+                    <div class="month-stat-card">
+                        <span class="stat-label">Общий P/L за месяц</span>
+                        <span class="stat-value-large" id="monthTotalPL">$0.00</span>
                     </div>
+                    <div class="month-stat-card">
+                        <span class="stat-label">Винрейт</span>
+                        <span class="stat-value-large" id="monthWinRate">0%</span>
+                    </div>
+                    <div class="month-stat-card">
+                        <span class="stat-label">Всего сделок</span>
+                        <span class="stat-value-large" id="monthTotalTrades">0</span>
+                    </div>
+                    <div class="month-stat-card">
+                        <span class="stat-label">Лучший день</span>
+                        <span class="stat-value-large" id="monthBestDay">—</span>
+                    </div>
+                </div>
 
-                    <div class="trades-table-wrapper">
-                        <table class="trades-table">
-                            <thead>
-                                <tr>
-                                    <th>Время</th>
-                                    <th>Пара</th>
-                                    <th>Объём</th>
-                                    <th>Результат</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody id="tradesList"></tbody>
-                        </table>
+                <!-- Сетка календаря -->
+                <div class="calendar-grid-container">
+                    <div class="calendar-weekdays">
+                        <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+                    </div>
+                    <div class="calendar-grid" id="calendarGrid"></div>
+                </div>
+
+                <!-- Легенда -->
+                <div class="calendar-legend">
+                    <div class="legend-item">
+                        <span class="legend-color profit"></span>
+                        <span>Прибыльный день</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color loss"></span>
+                        <span>Убыточный день</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-color neutral"></span>
+                        <span>Без сделок</span>
+                    </div>
+                    <div class="legend-item">
+                        <span class="legend-star">⭐</span>
                     </div>
                 </div>
             </div>
@@ -552,119 +422,53 @@
             <div id="analyticsView" class="view-container hidden">
                 <div class="view-header">
                     <div>
-                        <h1>Расширенная аналитика</h1>
+                        <h1>Общая аналитика</h1>
                         <p class="view-subtitle">Детальный разбор вашей торговой стратегии</p>
                     </div>
                 </div>
 
-                <div class="analytics-grid">
-                    <div class="chart-card">
-                        <h3>Динамика P/L</h3>
-                        <div class="chart-container">
-                            <canvas id="plChart"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="chart-card">
-                        <h3>Соотношение LONG/SHORT</h3>
-                        <div class="chart-container">
-                            <canvas id="ratioChart"></canvas>
-                        </div>
-                        <div class="chart-legend">
-                            <span><span class="dot-profit"></span>LONG <span id="profitPercent">0%</span></span>
-                            <span><span class="dot-loss"></span>SHORT <span id="lossPercent">0%</span></span>
-                        </div>
-                    </div>
-
-                    <div class="stats-card">
-                        <h3>Ключевые показатели</h3>
-                        <div class="stats-list">
-                            <div class="stat-row">
-                                <span>Средний LONG</span>
-                                <span class="profit-text" id="avgProfit">$0</span>
+                <div class="analytics-dashboard">
+                    <div class="analytics-row">
+                        <div class="chart-card large">
+                            <h3>Динамика P/L</h3>
+                            <div class="chart-container">
+                                <canvas id="mainPLChart"></canvas>
                             </div>
-                            <div class="stat-row">
-                                <span>Средний SHORT</span>
-                                <span class="loss-text" id="avgLoss">$0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>Лучшая сделка</span>
-                                <span class="profit-text" id="bestTrade">$0</span>
-                            </div>
-                            <div class="stat-row">
-                                <span>Худшая сделка</span>
-                                <span class="loss-text" id="worstTrade">$0</span>
+                        </div>
+                        <div class="chart-card">
+                            <h3>Распределение сделок</h3>
+                            <div class="chart-container">
+                                <canvas id="mainRatioChart"></canvas>
                             </div>
                         </div>
                     </div>
-                </div>
-            </div>
 
-            <!-- PREMIUM -->
-            <div id="premiumView" class="view-container hidden">
-                <div class="view-header">
-                    <div>
-                        <h1>Premium аналитика</h1>
-                        <p class="view-subtitle">Продвинутые метрики для профессиональных трейдеров</p>
-                    </div>
-                    <span class="premium-badge-large">PRO</span>
-                </div>
-
-                <div class="premium-locked" id="premiumLockedMessage">
-                    <div class="locked-content">
-                        <span class="locked-icon">🔒</span>
-                        <h2>Premium требуется</h2>
-                        <p>Для доступа к расширенной аналитике подключите Premium тариф</p>
-                        <button class="btn-upgrade-large" id="upgradeFromPremium">Обновить до Premium →</button>
-                    </div>
-                </div>
-
-                <div class="premium-content" id="premiumContent">
-                    <div class="premium-metrics-grid">
-                        <div class="metric-card">
-                            <span class="metric-label">Profit Factor</span>
-                            <span class="metric-value" id="profitFactor">—</span>
-                            <p class="metric-desc">Отношение прибыли к убыткам</p>
+                    <div class="analytics-row">
+                        <div class="stats-card-wide">
+                            <h3>Ключевые метрики</h3>
+                            <div class="metrics-grid">
+                                <div class="metric-item">
+                                    <span class="metric-label">Profit Factor</span>
+                                    <span class="metric-value" id="analyticsProfitFactor">—</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Sharpe Ratio</span>
+                                    <span class="metric-value" id="analyticsSharpeRatio">—</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Max Drawdown</span>
+                                    <span class="metric-value" id="analyticsMaxDrawdown">—</span>
+                                </div>
+                                <div class="metric-item">
+                                    <span class="metric-label">Средний P/L</span>
+                                    <span class="metric-value" id="analyticsAvgPL">—</span>
+                                </div>
+                            </div>
                         </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Sharpe Ratio</span>
-                            <span class="metric-value" id="sharpeRatio">—</span>
-                            <p class="metric-desc">Доходность с учётом риска</p>
+                        <div class="stats-card-wide">
+                            <h3>Топ торговых пар</h3>
+                            <div id="analyticsTopPairs" class="pairs-breakdown"></div>
                         </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Max Drawdown</span>
-                            <span class="metric-value" id="maxDrawdown">—</span>
-                            <p class="metric-desc">Максимальная просадка</p>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Прогноз на месяц</span>
-                            <span class="metric-value" id="monthlyProjection">—</span>
-                            <p class="metric-desc">Исходя из текущей динамики</p>
-                        </div>
-                    </div>
-
-                    <div class="premium-pairs-grid">
-                        <div class="metric-card">
-                            <span class="metric-label">Лучшая пара</span>
-                            <span class="metric-value" id="bestPair">—</span>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Худшая пара</span>
-                            <span class="metric-value" id="worstPair">—</span>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Лучший день</span>
-                            <span class="metric-value" id="bestDay">—</span>
-                        </div>
-                        <div class="metric-card">
-                            <span class="metric-label">Худший день</span>
-                            <span class="metric-value" id="worstDay">—</span>
-                        </div>
-                    </div>
-
-                    <div class="recommendations-card">
-                        <h3>Рекомендации по торговле</h3>
-                        <div id="premiumRecommendations" class="recommendations-list"></div>
                     </div>
                 </div>
             </div>
@@ -674,7 +478,7 @@
                 <div class="view-header">
                     <div>
                         <h1>Рейтинг трейдеров</h1>
-                        <p class="view-subtitle">Лучшие трейдеры платформы</p>
+                        <p class="view-subtitle">Лучшие трейдеры платформы за последние 30 дней</p>
                     </div>
                     <select id="leaderboardLimit" class="select-modern">
                         <option value="10">Топ 10</option>
@@ -714,7 +518,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Пользователь</th>
-                                <th>Premium</th>
+                                <th>Кошелёк</th>
                                 <th>Сделок</th>
                                 <th>P/L</th>
                                 <th></th>
@@ -742,8 +546,12 @@
                             <span class="settings-value" id="profileUsername">—</span>
                         </div>
                         <div class="settings-item">
-                            <span class="settings-label">Текущий тариф</span>
-                            <span class="settings-value" id="accountTypeDisplay">Базовый</span>
+                            <span class="settings-label">Кошелёк</span>
+                            <span class="settings-value" id="profileWalletAddress">—</span>
+                        </div>
+                        <div class="settings-item">
+                            <span class="settings-label">Тип кошелька</span>
+                            <span class="settings-value" id="profileWalletType">—</span>
                         </div>
                     </div>
 
@@ -751,22 +559,6 @@
                         <h2>Безопасность</h2>
                         <button id="changePasswordBtn" class="btn-settings">
                             <span>🔐</span> Сменить пароль
-                        </button>
-                    </div>
-
-                    <div class="settings-section">
-                        <h2>Управление тарифом</h2>
-                        <div class="current-plan" id="currentPlanDisplay">
-                            <div>
-                                <span id="tariffName">Базовый</span>
-                                <span id="tariffPrice">Бесплатно</span>
-                            </div>
-                        </div>
-                        <button id="upgradeToProBtn" class="btn-settings-primary">
-                            <span>⭐</span> Обновить до Premium
-                        </button>
-                        <button id="disconnectWalletBtn" class="btn-settings-danger" style="display:none;">
-                            <span>🔌</span> Отключить Premium
                         </button>
                     </div>
 
@@ -797,17 +589,11 @@
 
                     <div class="settings-section">
                         <h2>Управление данными</h2>
-                        <div class="button-group">
-                            <button id="exportDataBtn" class="btn-settings">
-                                <span>📤</span> Экспорт сделок
-                            </button>
-                            <button id="importDataBtn" class="btn-settings">
-                                <span>📥</span> Импорт сделок
-                            </button>
-                            <input type="file" id="importFileInput" accept=".json" hidden>
-                        </div>
-                        <button id="clearDataBtn" class="btn-settings-danger" style="margin-top:12px;">
-                            <span>🗑️</span> Очистить все данные
+                        <button id="syncWalletBtn" class="btn-settings-primary">
+                            <span>🔄</span> Синхронизировать с кошельком
+                        </button>
+                        <button id="exportDataBtn" class="btn-settings">
+                            <span>📤</span> Экспорт сделок
                         </button>
                     </div>
 
@@ -824,7 +610,78 @@
         </main>
     </div>
 
-    <!-- МОДАЛЬНЫЕ ОКНА -->
+    <!-- ==================== МОДАЛЬНОЕ ОКНО ДНЯ ==================== -->
+    <div id="dayModal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-card modal-day">
+            <div class="modal-header">
+                <h2 id="modalDayTitle">15 апреля 2026</h2>
+                <button class="modal-close" id="closeDayModal">✕</button>
+            </div>
+
+            <div class="day-summary">
+                <div class="summary-card">
+                    <span class="summary-label">Итог дня</span>
+                    <span class="summary-value" id="modalDayPL">$0.00</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Всего сделок</span>
+                    <span class="summary-value" id="modalDayTrades">0</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Винрейт</span>
+                    <span class="summary-value" id="modalDayWinRate">0%</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Лучшая сделка</span>
+                    <span class="summary-value profit-text" id="modalDayBest">—</span>
+                </div>
+                <div class="summary-card">
+                    <span class="summary-label">Худшая сделка</span>
+                    <span class="summary-value loss-text" id="modalDayWorst">—</span>
+                </div>
+            </div>
+
+            <div class="day-charts">
+                <div class="chart-card">
+                    <h3>Почасовая активность</h3>
+                    <div class="chart-container-small">
+                        <canvas id="modalHourlyChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-card">
+                    <h3>Распределение по парам</h3>
+                    <div class="chart-container-small">
+                        <canvas id="modalPairsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="day-trades">
+                <h3>Сделки за день</h3>
+                <div class="trades-table-wrapper modal-table">
+                    <table class="trades-table">
+                        <thead>
+                            <tr>
+                                <th>Время</th>
+                                <th>Пара</th>
+                                <th>Объём</th>
+                                <th>Результат</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalDayTradesList"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="day-insights">
+                <h3>Анализ дня</h3>
+                <div id="modalDayInsights" class="insights-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== МОДАЛЬНЫЕ ОКНА ==================== -->
     <div id="changePasswordModal" class="modal hidden">
         <div class="modal-overlay"></div>
         <div class="modal-card">
@@ -860,23 +717,19 @@
             </div>
             <div class="help-content">
                 <div class="help-section">
-                    <h3>📊 Журнал сделок</h3>
-                    <p>Добавляйте сделки вручную или подключите кошелёк для автоматического импорта. Блоки можно перетаскивать для удобного расположения.</p>
+                    <h3>📅 Календарь</h3>
+                    <p>Все ваши сделки автоматически группируются по дням. Зелёный день — прибыльный, красный — убыточный. Кликните на день для детального анализа.</p>
                 </div>
                 <div class="help-section">
-                    <h3>📈 Аналитика</h3>
-                    <p>Отслеживайте динамику P/L, соотношение прибыльных и убыточных сделок, средние показатели.</p>
+                    <h3>🔗 Кошелёк</h3>
+                    <p>Подключение кошелька обязательно. Сделки импортируются автоматически. В тестовом режиме используются демо-данные.</p>
                 </div>
                 <div class="help-section">
-                    <h3>💎 Premium</h3>
-                    <p>Доступ к продвинутым метрикам: Profit Factor, Sharpe Ratio, максимальная просадка, прогнозы и рекомендации.</p>
-                </div>
-                <div class="help-section">
-                    <h3>🏆 Рейтинг</h3>
-                    <p>Сравнивайте свои результаты с другими трейдерами. Для участия включите публичный профиль в настройках.</p>
+                    <h3>📊 Аналитика</h3>
+                    <p>Отслеживайте динамику P/L, Profit Factor, Sharpe Ratio и другие профессиональные метрики.</p>
                 </div>
                 <div class="help-footer">
-                    <p>Версия 5.0 · Служба поддержки: support@tradeum.app</p>
+                    <p>Версия 6.0 · Служба поддержки: support@tradeum.app</p>
                 </div>
             </div>
         </div>
@@ -886,4 +739,4 @@
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
     <script src="/app.js"></script>
 </body>
-</html>s
+</html>
