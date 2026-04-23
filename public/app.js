@@ -917,39 +917,7 @@
         }
     };
 
-    // ========== ОБРАБОТЧИК ТАРИФОВ (главная функция) ==========
-    const handleTariffSelection = async (mode) => {
-        console.log('handleTariffSelection called with mode:', mode);
-
-        if (mode === 'basic') {
-            // Базовый тариф
-            await finishOnboarding(false);
-        } else if (mode === 'pro') {
-            // Pro тариф - показываем ввод кошелька
-            const tariffCards = document.querySelector('.tariff-cards');
-            const tariffHeader = document.querySelector('.tariff-header');
-            const tariffNote = document.querySelector('.tariff-note');
-            const walletStep = document.getElementById('walletStepContainer');
-
-            if (tariffCards) tariffCards.classList.add('hidden');
-            if (tariffHeader) tariffHeader.classList.add('hidden');
-            if (tariffNote) tariffNote.classList.add('hidden');
-            if (walletStep) walletStep.classList.remove('hidden');
-
-            // Сбрасываем выбор кошелька
-            selectedWalletType = null;
-            document.querySelectorAll('.wallet-option').forEach(o => o.classList.remove('selected'));
-            const finishBtn = document.getElementById('finishOnboarding');
-            const walletInput = document.getElementById('walletAddressInput');
-            if (finishBtn) finishBtn.disabled = true;
-            if (walletInput) walletInput.value = '';
-            const walletError = document.getElementById('walletError');
-            if (walletError) walletError.textContent = '';
-        }
-    };
-
     const finishOnboarding = async (isPro) => {
-        console.log('finishOnboarding called, isPro:', isPro);
         if (isSubmitting) return;
         isSubmitting = true;
 
@@ -1075,59 +1043,6 @@
         }
     };
 
-    // ========== ПРЯМАЯ ПРИВЯЗКА КНОПОК ТАРИФА ==========
-    const initTariffButtons = () => {
-        console.log('initTariffButtons: starting...');
-
-        // Ищем ВСЕ кнопки выбора тарифа
-        const allTariffBtns = document.querySelectorAll('.tariff-select-btn');
-        console.log('initTariffButtons: found', allTariffBtns.length, 'buttons');
-
-        allTariffBtns.forEach((btn, index) => {
-            console.log(`Button ${index}:`, btn.dataset.mode, btn.textContent.trim());
-
-            // Удаляем старые обработчики (на всякий случай)
-            const newBtn = btn.cloneNode(true);
-            btn.parentNode.replaceChild(newBtn, btn);
-
-            // Добавляем новый обработчик
-            newBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const mode = this.dataset.mode;
-                console.log('Tariff button clicked! Mode:', mode);
-                disableButton(this);
-                handleTariffSelection(mode);
-            });
-        });
-
-        // Привязка к карточкам тарифа
-        const tariffCards = document.querySelectorAll('.tariff-card');
-        console.log('initTariffButtons: found', tariffCards.length, 'cards');
-
-        tariffCards.forEach(card => {
-            card.addEventListener('click', function() {
-                tariffCards.forEach(c => c.classList.remove('selected'));
-                this.classList.add('selected');
-                selectedMode = this.dataset.mode;
-                console.log('Card selected:', selectedMode);
-            });
-        });
-
-        // Привязка finishOnboarding
-        const finishBtn = document.getElementById('finishOnboarding');
-        if (finishBtn) {
-            const newFinishBtn = finishBtn.cloneNode(true);
-            finishBtn.parentNode.replaceChild(newFinishBtn, finishBtn);
-            newFinishBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Finish onboarding clicked');
-                handleTariffSelection('pro');
-            });
-        }
-    };
-
     // ========== ДЕЛЕГИРОВАНИЕ СОБЫТИЙ ==========
     const setupEventDelegation = () => {
         document.addEventListener('click', async (e) => {
@@ -1233,16 +1148,29 @@
                 return;
             }
 
-            // ТАРИФЫ (дублируем на всякий случай)
+            // ========== ИСПРАВЛЕНО: Выбор тарифа (карточка) ==========
+            if (e.target.closest('.tariff-card')) {
+                const card = e.target.closest('.tariff-card');
+                document.querySelectorAll('.tariff-card').forEach(c => c.classList.remove('selected'));
+                card.classList.add('selected');
+                selectedMode = card.dataset.mode;
+                return;
+            }
+
+            // ========== ИСПРАВЛЕНО: Кнопка выбора тарифа ==========
             if (e.target.closest('.tariff-select-btn')) {
                 e.preventDefault();
                 e.stopPropagation();
                 const btn = e.target.closest('.tariff-select-btn');
-                const mode = btn.dataset.mode;
-                console.log('Tariff button clicked (delegation)! Mode:', mode);
-                disableButton(btn);
-                if (mode) {
-                    handleTariffSelection(mode);
+                const mode = btn.getAttribute('data-mode');
+
+                if (mode === 'basic') {
+                    await finishOnboarding(false);
+                } else if (mode === 'pro') {
+                    document.querySelector('.tariff-cards')?.classList.add('hidden');
+                    document.querySelector('.tariff-header')?.classList.add('hidden');
+                    document.querySelector('.tariff-note')?.classList.add('hidden');
+                    document.getElementById('walletStepContainer')?.classList.remove('hidden');
                 }
                 return;
             }
@@ -1271,10 +1199,7 @@
             }
 
             if (e.target.closest('#finishOnboarding')) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('Finish onboarding clicked (delegation)');
-                await handleTariffSelection('pro');
+                await finishOnboarding(true);
                 return;
             }
         });
@@ -1453,11 +1378,9 @@
 
     // ========== ИНИЦИАЛИЗАЦИЯ ==========
     document.addEventListener('DOMContentLoaded', () => {
-        console.log('DOMContentLoaded: starting init...');
         initTheme();
         initDragDrop();
         setupEventDelegation();
-        initTariffButtons(); // Прямая привязка кнопок тарифов
         checkAuth();
     });
 
