@@ -19,7 +19,8 @@
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.11.5",
     "pino": "^9.0.0",
-    "pino-pretty": "^11.0.0"
+    "pino-pretty": "^11.0.0",
+    "cookie-parser": "^1.4.6"
   },
   "devDependencies": {
     "nodemon": "^3.1.0"
