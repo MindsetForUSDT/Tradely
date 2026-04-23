@@ -785,25 +785,20 @@ function calculatePremiumAnalytics(rows) {
 }
 
 // ========== Static Files & SPA Fallback ==========
-if (NODE_ENV === 'production') {
-    app.use(express.static(path.join(__dirname, 'public'), {
-        maxAge: '30d',
-        etag: true,
-        lastModified: true,
-        setHeaders: (res, filePath) => {
-            if (filePath.endsWith('.html')) {
-                res.setHeader('Cache-Control', 'no-cache');
-            }
+app.use(express.static(path.join(__dirname, 'public'), {
+    maxAge: NODE_ENV === 'production' ? '30d' : '0',
+    etag: true,
+    lastModified: true,
+    setHeaders: (res, filePath) => {
+        if (filePath.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache');
         }
-    }));
-} else {
-    app.use(express.static(path.join(__dirname, 'public')));
-}
+    }
+}));
 
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'index.html'));
 });
-
 // ========== Error Handler ==========
 app.use((err, req, res, next) => {
     logger.error({ err, url: req.url, method: req.method }, 'Unhandled error');
