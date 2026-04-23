@@ -5,8 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes, viewport-fit=cover">
     <title>Tradeum · Дневник трейдера</title>
     <meta name="theme-color" content="#0a0a0c">
+    <meta name="description" content="Автоматический дневник трейдера с аналитикой и Web3 интеграцией">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style.css">
 </head>
@@ -53,12 +55,12 @@
                 <!-- Форма входа -->
                 <form id="loginForm" class="auth-form">
                     <div class="form-field">
-                        <label>Логин</label>
-                        <input type="text" name="username" placeholder="Введите логин" required autocomplete="username">
+                        <label for="loginUsername">Логин</label>
+                        <input type="text" id="loginUsername" name="username" placeholder="Введите логин" required autocomplete="username">
                     </div>
                     <div class="form-field">
-                        <label>Пароль</label>
-                        <input type="password" name="password" placeholder="Введите пароль" required autocomplete="current-password">
+                        <label for="loginPassword">Пароль</label>
+                        <input type="password" id="loginPassword" name="password" placeholder="Введите пароль" required autocomplete="current-password">
                     </div>
                     <button type="submit" class="auth-btn">Войти в систему →</button>
                     <p class="auth-link"><a href="#" id="forgotPasswordLink">Забыли пароль?</a></p>
@@ -67,24 +69,24 @@
                 <!-- Форма регистрации -->
                 <form id="registerForm" class="auth-form hidden">
                     <div class="form-field">
-                        <label>Логин</label>
-                        <input type="text" name="username" placeholder="Придумайте логин" required minlength="3">
+                        <label for="regUsername">Логин</label>
+                        <input type="text" id="regUsername" name="username" placeholder="Придумайте логин" required minlength="3">
                     </div>
                     <div class="form-field">
-                        <label>Пароль</label>
-                        <input type="password" name="password" placeholder="Минимум 6 символов" required minlength="6">
+                        <label for="regPassword">Пароль</label>
+                        <input type="password" id="regPassword" name="password" placeholder="Минимум 6 символов" required minlength="6">
                     </div>
                     <div class="form-field">
-                        <label>Подтверждение</label>
-                        <input type="password" name="confirmPassword" placeholder="Повторите пароль" required>
+                        <label for="regConfirmPassword">Подтверждение</label>
+                        <input type="password" id="regConfirmPassword" name="confirmPassword" placeholder="Повторите пароль" required>
                     </div>
                     <div class="form-field">
-                        <label>Секретный вопрос</label>
-                        <input type="text" name="secretQuestion" placeholder="Например: Кличка питомца?">
+                        <label for="secretQuestion">Секретный вопрос</label>
+                        <input type="text" id="secretQuestion" name="secretQuestion" placeholder="Например: Кличка питомца?">
                     </div>
                     <div class="form-field">
-                        <label>Ответ</label>
-                        <input type="text" name="secretAnswer" placeholder="Ваш ответ">
+                        <label for="secretAnswer">Ответ</label>
+                        <input type="text" id="secretAnswer" name="secretAnswer" placeholder="Ваш ответ">
                     </div>
                     <button type="submit" class="auth-btn">Создать аккаунт →</button>
                 </form>
@@ -93,8 +95,8 @@
                 <form id="forgotPasswordForm" class="auth-form hidden">
                     <h3 style="margin-bottom:24px;">Восстановление</h3>
                     <div class="form-field">
-                        <label>Логин</label>
-                        <input type="text" name="forgotUsername" placeholder="Введите логин" required>
+                        <label for="forgotUsername">Логин</label>
+                        <input type="text" id="forgotUsername" name="forgotUsername" placeholder="Введите логин" required>
                     </div>
                     <button type="submit" class="auth-btn">Продолжить →</button>
                     <p class="auth-link"><a href="#" id="backToLoginLink">← Вернуться ко входу</a></p>
@@ -108,12 +110,12 @@
                         <input type="text" name="secretAnswer" placeholder="Ваш ответ" required>
                     </div>
                     <div class="form-field">
-                        <label>Новый пароль</label>
-                        <input type="password" name="newPassword" placeholder="Минимум 6 символов" required minlength="6">
+                        <label for="resetNewPassword">Новый пароль</label>
+                        <input type="password" id="resetNewPassword" name="newPassword" placeholder="Минимум 6 символов" required minlength="6">
                     </div>
                     <div class="form-field">
-                        <label>Подтверждение</label>
-                        <input type="password" name="confirmNewPassword" placeholder="Повторите пароль" required>
+                        <label for="resetConfirmPassword">Подтверждение</label>
+                        <input type="password" id="resetConfirmPassword" name="confirmNewPassword" placeholder="Повторите пароль" required>
                     </div>
                     <button type="submit" class="auth-btn">Сменить пароль →</button>
                     <p class="auth-link"><a href="#" id="backToLoginFromReset">← Вернуться ко входу</a></p>
@@ -183,7 +185,7 @@
                     </div>
                 </div>
                 <div class="form-field">
-                    <label>Адрес кошелька</label>
+                    <label for="walletAddressInput">Адрес кошелька</label>
                     <input type="text" id="walletAddressInput" placeholder="0x... или адрес кошелька">
                     <p class="field-hint">Минимум 5 символов (буквы и цифры)</p>
                 </div>
@@ -233,7 +235,7 @@
                 <div class="app-logo">TRADEUM</div>
                 <div class="app-header-right">
                     <span class="user-name" id="headerUsername"></span>
-                    <button class="icon-btn" id="headerLogout">↪</button>
+                    <button class="icon-btn" id="headerLogout" aria-label="Выйти">↪</button>
                 </div>
             </div>
 
@@ -370,15 +372,25 @@
             <div id="leaderboardView" class="view-container hidden">
                 <div class="page-header">
                     <h2>Рейтинг трейдеров</h2>
-                    <select id="leaderboardLimit" class="select-sm"><option value="10">10</option><option value="25" selected>25</option><option value="50">50</option></select>
+                    <select id="leaderboardLimit" class="select-sm" aria-label="Количество записей">
+                        <option value="10">10</option>
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                    </select>
                 </div>
-                <table class="leaderboard-table"><thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделок</th></tr></thead><tbody id="leaderboardBody"></tbody></table>
+                <table class="leaderboard-table">
+                    <thead><tr><th>#</th><th>Трейдер</th><th>P/L</th><th>Винрейт</th><th>Сделок</th></tr></thead>
+                    <tbody id="leaderboardBody"></tbody>
+                </table>
             </div>
 
             <!-- АДМИН -->
             <div id="adminView" class="view-container hidden">
                 <div class="page-header"><h2>Админ-панель</h2></div>
-                <table class="admin-table"><thead><tr><th>ID</th><th>Пользователь</th><th>Кошелёк</th><th>Сделок</th><th>P/L</th><th></th></tr></thead><tbody id="adminUsersList"></tbody></table>
+                <table class="admin-table">
+                    <thead><tr><th>ID</th><th>Пользователь</th><th>Кошелёк</th><th>Сделок</th><th>P/L</th><th></th></tr></thead>
+                    <tbody id="adminUsersList"></tbody>
+                </table>
             </div>
 
             <!-- НАСТРОЙКИ -->
@@ -399,16 +411,25 @@
                         <h3>Приватность</h3>
                         <div class="toggle">
                             <span>Публичный профиль</span>
-                            <label><input type="checkbox" id="publicProfileToggle"><span class="toggle-slider"></span></label>
+                            <label>
+                                <input type="checkbox" id="publicProfileToggle">
+                                <span class="toggle-slider"></span>
+                            </label>
                         </div>
                     </div>
                     <div class="settings-block">
                         <h3>Оформление</h3>
-                        <select id="themeSelect" class="select-sm"><option value="dark">Тёмная</option><option value="light">Светлая</option></select>
+                        <select id="themeSelect" class="select-sm" aria-label="Тема оформления">
+                            <option value="dark">Тёмная</option>
+                            <option value="light">Светлая</option>
+                        </select>
                     </div>
                     <div class="settings-block">
                         <h3>Тариф</h3>
-                        <div class="current-tariff"><span id="tariffName">Базовый</span><span id="tariffPrice">Бесплатно</span></div>
+                        <div class="current-tariff">
+                            <span id="tariffName">Базовый</span>
+                            <span id="tariffPrice">Бесплатно</span>
+                        </div>
                         <button id="upgradeToProBtn" class="btn-secondary">⭐ Перейти на Pro</button>
                         <button id="disconnectWalletBtn" class="btn-danger" style="display:none;">🔌 Отключить Pro</button>
                     </div>
@@ -427,23 +448,48 @@
     </div>
 
     <!-- МОДАЛКИ -->
-    <div id="changePasswordModal" class="modal hidden">
-        <div class="modal-card"><div class="modal-header"><h2>Смена пароля</h2><button class="modal-close" id="closeChangePasswordModal">✕</button></div>
-            <form id="changePasswordForm"><div class="form-field"><label>Текущий</label><input type="password" name="currentPassword" required></div>
-            <div class="form-field"><label>Новый</label><input type="password" name="newPassword" required minlength="6"></div>
-            <div class="form-field"><label>Подтверждение</label><input type="password" name="confirmNewPassword" required></div>
-            <button type="submit" class="auth-btn">Сменить</button></form><div id="changePasswordError" class="auth-error"></div>
+    <div id="changePasswordModal" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h2>Смена пароля</h2>
+                <button class="modal-close" id="closeChangePasswordModal" aria-label="Закрыть">✕</button>
+            </div>
+            <form id="changePasswordForm">
+                <div class="form-field">
+                    <label for="currentPassword">Текущий</label>
+                    <input type="password" id="currentPassword" name="currentPassword" required>
+                </div>
+                <div class="form-field">
+                    <label for="newPassword">Новый</label>
+                    <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                </div>
+                <div class="form-field">
+                    <label for="confirmNewPassword">Подтверждение</label>
+                    <input type="password" id="confirmNewPassword" name="confirmNewPassword" required>
+                </div>
+                <button type="submit" class="auth-btn">Сменить</button>
+            </form>
+            <div id="changePasswordError" class="auth-error"></div>
         </div>
     </div>
 
-    <div id="helpModal" class="modal hidden">
-        <div class="modal-card modal-help"><div class="modal-header"><h2>Помощь</h2><button class="modal-close" id="closeHelpModal">✕</button></div>
-            <div class="help-placeholder"><span>📘</span><h3>Tradeum Дневник</h3><p>Версия 6.0</p></div><div class="help-version">support@tradeum.app</div>
+    <div id="helpModal" class="modal hidden" role="dialog" aria-modal="true">
+        <div class="modal-card modal-help">
+            <div class="modal-header">
+                <h2>Помощь</h2>
+                <button class="modal-close" id="closeHelpModal" aria-label="Закрыть">✕</button>
+            </div>
+            <div class="help-placeholder">
+                <span>📘</span>
+                <h3>Tradeum Дневник</h3>
+                <p>Версия 6.0</p>
+            </div>
+            <div class="help-version">support@tradeum.app</div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js" crossorigin="anonymous"></script>
     <script src="/app.js"></script>
 </body>
 </html>

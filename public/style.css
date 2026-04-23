@@ -1453,3 +1453,12 @@ a:focus-visible {
     transform: none;
     box-shadow: none;
 }
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-muted);
+}
+
+.toast-close:hover {
+    color: var(--accent-loss);
+}
