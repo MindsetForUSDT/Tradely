@@ -1,21 +1,13 @@
-// ============================================================
-// TradeumDiary — Основной Layout дашборда
-// Композиция всех виджетов: статистика, графики, сделки
-// ============================================================
-
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
 import { StatsOverview } from './StatsOverview';
 import { PnLChart } from './PnLChart';
 import { VolumeByTokenChart } from './VolumeByTokenChart';
-import { WeekdayPerformanceChart } from './WeekdayPerformanceChart';
 import { TradeList } from './TradeList';
 import { useTrades } from '@/hooks/useTrades';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useStore } from '@/store/useStore';
 
-// Компонент-обёртка для скролл-анимаций
 function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
@@ -25,11 +17,7 @@ function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; d
       ref={ref}
       initial={{ opacity: 0, y: 30 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{
-        duration: 0.6,
-        delay,
-        ease: [0.16, 1, 0.3, 1],
-      }}
+      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
     >
       {children}
     </motion.div>
@@ -37,11 +25,10 @@ function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; d
 }
 
 export function DashboardLayout() {
-  const { trades, pnlData, tokenVolumes, weekdayPerformance, totalVolume, totalTrades, isLoading: tradesLoading } = useTrades({ limit: 100, daysAgo: 30 });
+  const { trades, pnlData, tokenVolumes, totalVolume, totalTrades, isLoading: tradesLoading } = useTrades({ limit: 100, daysAgo: 30 });
   const { todayAnalytics, isLoading: analyticsLoading } = useAnalytics();
   const setStats = useStore((s) => s.setStats);
 
-  // Обновляем глобальное состояние статистики
   useEffect(() => {
     setStats({
       totalBalance: totalVolume,
@@ -55,7 +42,6 @@ export function DashboardLayout() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
-      {/* Верхняя панель статистики */}
       <AnimatedSection>
         <StatsOverview
           balance={totalVolume}
@@ -65,7 +51,6 @@ export function DashboardLayout() {
         />
       </AnimatedSection>
 
-      {/* Графики — сетка 2 колонки на десктопе */}
       <div className="grid lg:grid-cols-2 gap-6">
         <AnimatedSection delay={0.1}>
           <PnLChart data={pnlData} isLoading={isLoading} />
@@ -76,17 +61,9 @@ export function DashboardLayout() {
         </AnimatedSection>
       </div>
 
-      {/* График по дням недели + последние сделки */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        <AnimatedSection delay={0.3}>
-          <WeekdayPerformanceChart data={weekdayPerformance} isLoading={isLoading} />
-        </AnimatedSection>
-
-        <AnimatedSection delay={0.4}>
-          {/* Мини-список последних сделок */}
-          <TradeList trades={trades.slice(0, 5)} isLoading={isLoading} compact />
-        </AnimatedSection>
-      </div>
+      <AnimatedSection delay={0.3}>
+        <TradeList trades={trades.slice(0, 5)} isLoading={isLoading} compact />
+      </AnimatedSection>
     </div>
   );
 }
