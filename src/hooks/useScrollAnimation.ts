@@ -1,61 +1,32 @@
-// ============================================================
-// TradeumDiary — Хук для скролл-анимаций
-// Использует IntersectionObserver для производительности
-// ============================================================
+import { useEffect, useRef, useState } from 'react';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
-
-interface UseScrollAnimationOptions {
+export function useScrollAnimation<T extends HTMLElement = HTMLDivElement>(options?: {
   threshold?: number;
   rootMargin?: string;
   triggerOnce?: boolean;
-}
-
-export function useScrollAnimation<T extends HTMLElement = HTMLDivElement>(
-  options: UseScrollAnimationOptions = {}
-) {
-  const {
-    threshold = 0.1,
-    rootMargin = '0px 0px -50px 0px',
-    triggerOnce = true,
-  } = options;
-
+}) {
   const ref = useRef<T>(null);
   const [isVisible, setIsVisible] = useState(false);
-
-  const handleIntersection = useCallback(
-    (entries: IntersectionObserverEntry[]) => {
-      const [entry] = entries;
-
-      if (entry.isIntersecting) {
-        setIsVisible(true);
-        // Если анимация должна сработать только один раз — отключаем наблюдение
-        if (triggerOnce && ref.current) {
-          observer?.unobserve(ref.current);
-        }
-      } else if (!triggerOnce) {
-        setIsVisible(false);
-      }
-    },
-    [triggerOnce]
-  );
 
   useEffect(() => {
     const node = ref.current;
     if (!node) return;
 
-    const observer = new IntersectionObserver(handleIntersection, {
-      threshold,
-      rootMargin,
-    });
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          if (options?.triggerOnce !== false) observer.unobserve(node);
+        } else if (options?.triggerOnce === false) {
+          setIsVisible(false);
+        }
+      },
+      { threshold: options?.threshold || 0.1, rootMargin: options?.rootMargin || '0px' }
+    );
 
     observer.observe(node);
-
-    return () => {
-      observer.unobserve(node);
-      observer.disconnect();
-    };
-  }, [handleIntersection, threshold, rootMargin]);
+    return () => observer.disconnect();
+  }, []);
 
   return { ref, isVisible };
 }

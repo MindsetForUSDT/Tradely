@@ -1,11 +1,15 @@
-// ============================================================
-// TradeumDiary — Хук аутентификации
-// Обёртка над Supabase Auth с состоянием пользователя
-// ============================================================
-
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import type { Profile } from '@/types';
+import type { User } from '@supabase/supabase-js';
+
+interface Profile {
+  id: string;
+  username: string;
+  avatar_url: string | null;
+  subscription_tier: 'free' | 'pro';
+  subscription_expires_at: string | null;
+  created_at: string;
+}
 
 interface AuthState {
   user: Profile | null;
@@ -19,7 +23,6 @@ export function useAuth(): AuthState {
   const [user, setUser] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Загрузка профиля по user ID
   const loadProfile = useCallback(async (userId: string): Promise<Profile | null> => {
     const { data, error } = await supabase
       .from('profiles')
@@ -27,15 +30,10 @@ export function useAuth(): AuthState {
       .eq('id', userId)
       .single();
 
-    if (error) {
-      console.error('❌ Ошибка загрузки профиля:', error.message);
-      return null;
-    }
-
+    if (error || !data) return null;
     return data as Profile;
   }, []);
 
-  // Обновление профиля (например, после оплаты)
   const refreshProfile = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
@@ -45,35 +43,25 @@ export function useAuth(): AuthState {
   }, [loadProfile]);
 
   useEffect(() => {
-    // Получаем текущую сессию
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        loadProfile(session.user.id).then((profile) => {
-          setUser(profile);
-          setIsLoading(false);
-        });
+        loadProfile(session.user.id).then(setUser).finally(() => setIsLoading(false));
       } else {
-        setUser(null);
         setIsLoading(false);
       }
     });
 
-    // Подписываемся на изменения аутентификации
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          const profile = await loadProfile(session.user.id);
-          setUser(profile);
-        } else if (event === 'SIGNED_OUT') {
-          setUser(null);
-        }
-        setIsLoading(false);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (session?.user) {
+        const profile = await loadProfile(session.user.id);
+        setUser(profile);
+      } else {
+        setUser(null);
       }
-    );
+      setIsLoading(false);
+    });
 
-    return () => {
-      subscription.unsubscribe();
-    };
+    return () => subscription.unsubscribe();
   }, [loadProfile]);
 
   const signOut = useCallback(async () => {
@@ -81,11 +69,5 @@ export function useAuth(): AuthState {
     setUser(null);
   }, []);
 
-  return {
-    user,
-    isLoading,
-    isAuthenticated: !!user,
-    signOut,
-    refreshProfile,
-  };
+  return { user, isLoading, isAuthenticated: !!user, signOut, refreshProfile };
 }
