@@ -1,6 +1,5 @@
 // ============================================================
 // TradeumDiary — Форма регистрации
-// Создание аккаунта через Supabase Auth + автоматический профиль
 // ============================================================
 
 import { useState } from 'react';
@@ -12,7 +11,6 @@ import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-// Схема валидации
 const registerSchema = z.object({
   username: z
     .string()
@@ -56,7 +54,6 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
     setIsLoading(true);
 
     try {
-      // 1. Создаём пользователя в Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: data.email,
         password: data.password,
@@ -68,21 +65,26 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       });
 
       if (authError) {
-        if (authError.message.includes('already registered')) {
+        if (authError.message.includes('already registered') || authError.message.includes('already exists')) {
           toast.error('Пользователь с таким email уже существует');
+        } else if (authError.message.includes('password')) {
+          toast.error('Пароль слишком простой. Минимум 8 символов, заглавная буква и цифра.');
         } else {
-          toast.error('Ошибка регистрации. Попробуйте позже.');
+          toast.error('Ошибка: ' + authError.message);
         }
         return;
       }
 
       if (authData.user) {
-        toast.success('Аккаунт создан! Проверьте почту для подтверждения.');
-        // Редирект в дашборд (даже без подтверждения email пользователь может войти)
-        navigate('/dashboard');
+        toast.success('Аккаунт создан!');
+
+        // Небольшая задержка, чтобы триггер создал профиль
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 500);
       }
-    } catch {
-      toast.error('Неизвестная ошибка. Попробуйте позже.');
+    } catch (err: any) {
+      toast.error('Ошибка: ' + (err?.message || 'Неизвестная ошибка'));
     } finally {
       setIsLoading(false);
     }
@@ -103,7 +105,6 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           className={`
             w-full px-4 py-2.5 bg-surface-elevated border rounded-xl text-sm
             placeholder:text-text-muted
-            transition-colors duration-200
             focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50
             ${errors.username ? 'border-accent-red' : 'border-surface-border'}
           `}
@@ -127,7 +128,6 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           className={`
             w-full px-4 py-2.5 bg-surface-elevated border rounded-xl text-sm
             placeholder:text-text-muted
-            transition-colors duration-200
             focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50
             ${errors.email ? 'border-accent-red' : 'border-surface-border'}
           `}
@@ -151,7 +151,6 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           className={`
             w-full px-4 py-2.5 bg-surface-elevated border rounded-xl text-sm
             placeholder:text-text-muted
-            transition-colors duration-200
             focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50
             ${errors.password ? 'border-accent-red' : 'border-surface-border'}
           `}
@@ -160,13 +159,12 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         {errors.password && (
           <p className="text-xs text-accent-red mt-1">{errors.password.message}</p>
         )}
-        {/* Подсказка по требованиям */}
         <p className="text-[10px] text-text-muted mt-1">
           Минимум 8 символов, одна заглавная буква и цифра
         </p>
       </div>
 
-      {/* Согласие с условиями */}
+      {/* Согласие */}
       <div className="flex items-start gap-2">
         <input
           id="reg-terms"
@@ -176,11 +174,11 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         />
         <label htmlFor="reg-terms" className="text-xs text-text-muted leading-relaxed">
           Я принимаю{' '}
-          <a href="/terms" className="text-accent-green hover:underline" target="_blank">
+          <a href="/terms" target="_blank" className="text-accent-green hover:underline">
             условия использования
           </a>{' '}
           и{' '}
-          <a href="/privacy" className="text-accent-green hover:underline" target="_blank">
+          <a href="/privacy" target="_blank" className="text-accent-green hover:underline">
             политику конфиденциальности
           </a>
         </label>
@@ -189,7 +187,7 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         <p className="text-xs text-accent-red">{errors.agreeToTerms.message}</p>
       )}
 
-      {/* Кнопка регистрации */}
+      {/* Кнопка */}
       <Button
         type="submit"
         variant="primary"

@@ -1,6 +1,5 @@
 // ============================================================
-// TradeumDiary — Корневой компонент приложения
-// Настройка маршрутизации с защищёнными роутами
+// TradeumDiary — Корневой компонент с маршрутизацией
 // ============================================================
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -11,16 +10,14 @@ import { Subscribe } from '@/pages/Subscribe';
 import { Payment } from '@/pages/Payment';
 import { Dashboard } from '@/pages/Dashboard';
 import { NotFound } from '@/pages/NotFound';
+import Terms from '@/pages/Terms';
+import Privacy from '@/pages/Privacy';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ProGuard } from '@/components/auth/ProGuard';
-
-// Ленивая загрузка страниц для улучшения производительности
-// (в MVP используем прямые импорты, в проде — React.lazy)
 
 export default function App() {
   return (
     <BrowserRouter>
-      {/* Система уведомлений */}
       <Toaster
         position="top-right"
         toastOptions={{
@@ -47,12 +44,14 @@ export default function App() {
       />
 
       <Routes>
-        {/* Публичные маршруты */}
         <Route element={<Layout />}>
+          {/* Публичные страницы */}
           <Route path="/" element={<Landing />} />
           <Route path="/subscribe" element={<Subscribe />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/privacy" element={<Privacy />} />
 
-          {/* Защищённые маршруты (требуется авторизация) */}
+          {/* Защищённые страницы */}
           <Route
             path="/payment"
             element={
@@ -61,8 +60,6 @@ export default function App() {
               </AuthGuard>
             }
           />
-
-          {/* Дашборд (требуется PRO-подписка) */}
           <Route
             path="/dashboard/*"
             element={
