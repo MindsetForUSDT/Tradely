@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
-interface LoginFormData {
-  email: string;
-  password: string;
-}
+const loginSchema = z.object({
+  email: z.string().min(1, 'Введите email').email('Некорректный email'),
+  password: z.string().min(1, 'Введите пароль').min(6, 'Минимум 6 символов'),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 interface LoginFormProps {
   onSwitchToRegister: () => void;
@@ -23,35 +27,29 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<LoginFormData>();
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+  });
 
   const onSubmit = async (data: LoginFormData) => {
+    console.log('🚀 Отправка формы входа:', data.email);
     setIsLoading(true);
 
-    try {
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: data.email,
+      password: data.password,
+    });
 
-      if (authError) {
-        if (authError.message.includes('Invalid login credentials')) {
-          toast.error('Неверный email или пароль');
-        } else {
-          toast.error('Ошибка: ' + authError.message);
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      if (authData.user) {
-        toast.success('Вход выполнен!');
-        navigate('/dashboard');
-      }
-    } catch (err: any) {
-      toast.error('Ошибка: ' + (err?.message || 'Неизвестная ошибка'));
+    if (error) {
+      console.error('❌ Ошибка входа:', error.message);
+      toast.error('Неверный email или пароль');
       setIsLoading(false);
+      return;
     }
+
+    console.log('✅ Вход успешен');
+    toast.success('Вход выполнен!');
+    navigate('/dashboard');
   };
 
   return (
@@ -64,12 +62,10 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
           type="email"
           autoComplete="email"
           placeholder="trader@example.com"
-          className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50"
-          {...register('email', { required: 'Введите email' })}
+          className={`w-full px-4 py-2.5 bg-surface-elevated border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50 ${errors.email ? 'border-accent-red' : 'border-surface-border'}`}
+          {...register('email')}
         />
-        {errors.email && (
-          <p className="text-xs text-accent-red mt-1">{errors.email.message as string}</p>
-        )}
+        {errors.email && <p className="text-xs text-accent-red mt-1">{errors.email.message}</p>}
       </div>
 
       <div>
@@ -80,41 +76,25 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
           type="password"
           autoComplete="current-password"
           placeholder="••••••••"
-          className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50"
-          {...register('password', { required: 'Введите пароль' })}
+          className={`w-full px-4 py-2.5 bg-surface-elevated border rounded-xl text-sm placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/50 ${errors.password ? 'border-accent-red' : 'border-surface-border'}`}
+          {...register('password')}
         />
-        {errors.password && (
-          <p className="text-xs text-accent-red mt-1">{errors.password.message as string}</p>
-        )}
+        {errors.password && <p className="text-xs text-accent-red mt-1">{errors.password.message}</p>}
       </div>
 
       <div className="text-right">
-        <button
-          type="button"
-          onClick={onSwitchToReset}
-          className="text-xs text-text-muted hover:text-accent-green transition-colors"
-        >
+        <button type="button" onClick={onSwitchToReset} className="text-xs text-text-muted hover:text-accent-green transition-colors">
           Забыли пароль?
         </button>
       </div>
 
-      <Button
-        type="submit"
-        variant="primary"
-        size="lg"
-        isLoading={isLoading}
-        className="w-full"
-      >
+      <Button type="submit" variant="primary" size="lg" isLoading={isLoading} className="w-full">
         Войти
       </Button>
 
       <p className="text-center text-sm text-text-muted">
         Нет аккаунта?{' '}
-        <button
-          type="button"
-          onClick={onSwitchToRegister}
-          className="text-accent-green hover:text-accent-green-dim transition-colors font-medium"
-        >
+        <button type="button" onClick={onSwitchToRegister} className="text-accent-green hover:text-accent-green-dim transition-colors font-medium">
           Зарегистрироваться
         </button>
       </p>
