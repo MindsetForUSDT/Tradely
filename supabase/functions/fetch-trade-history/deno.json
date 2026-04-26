@@ -1,0 +1,11 @@
+{
+  "importMap": "https://deno.land/x/import_map@v1.0.0/import_map.json",
+  "tasks": {
+    "serve": "deno run --allow-net --allow-env index.ts"
+  },
+  "compilerOptions": {
+    "allowJs": true,
+    "lib": ["deno.window", "esnext"],
+    "strict": true
+  }
+}

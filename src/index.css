@@ -1,0 +1,157 @@
+/* ============================================================ */
+/* TradeumDiary — Глобальные стили и анимированный фон          */
+/* ============================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Базовые стили --- */
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Мобильная оптимизация */
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body {
+    @apply bg-surface text-text-primary font-sans;
+    /* Запрет зума на двойной тап в iOS */
+    touch-action: manipulation;
+    /* Анимированный радиальный градиент-фон */
+    background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(0, 255, 163, 0.08) 0%,
+      rgba(0, 255, 163, 0.03) 30%,
+      rgba(10, 10, 10, 1) 70%
+    );
+    background-attachment: fixed;
+    min-height: 100vh;
+    min-height: 100dvh; /* Динамическая высота для iOS Safari */
+  }
+
+  /* Кастомный скроллбар */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-muted;
+  }
+
+  /* Выделение текста */
+  ::selection {
+    @apply bg-accent-green/20 text-accent-green;
+  }
+
+  /* Фокус для accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent-green;
+  }
+}
+
+/* --- Компонентные классы --- */
+@layer components {
+  /* Стеклянная карточка (glassmorphism) */
+  .glass-card {
+    @apply bg-surface-elevated/70 backdrop-blur-xl border border-surface-border/50 rounded-2xl shadow-card;
+  }
+
+  /* Градиентный текст (акцентный) */
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-green to-accent-green/60;
+  }
+
+  /* Кнопка с тактильной обратной связью */
+  .btn-tactile {
+    @apply transition-all duration-200 ease-out active:scale-[0.98] hover:scale-[1.02];
+  }
+
+  /* Линия-разделитель */
+  .divider {
+    @apply h-px bg-gradient-to-r from-transparent via-surface-border to-transparent;
+  }
+
+  /* Скелетон-лоадер */
+  .skeleton {
+    @apply animate-pulse bg-surface-overlay rounded-lg;
+  }
+
+  /* Анимированный счётчик */
+  .counter-value {
+    @apply font-mono tabular-nums;
+  }
+}
+
+/* --- Утилиты --- */
+@layer utilities {
+  /* Маска для градиентного фейда */
+  .mask-fade-right {
+    mask-image: linear-gradient(to right, black 60%, transparent 100%);
+  }
+
+  .mask-fade-bottom {
+    mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+  }
+
+  /* Скрытие скроллбара */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Задержки для stagger-анимаций */
+  .stagger-delay-1 { animation-delay: 0.1s; }
+  .stagger-delay-2 { animation-delay: 0.2s; }
+  .stagger-delay-3 { animation-delay: 0.3s; }
+  .stagger-delay-4 { animation-delay: 0.4s; }
+  .stagger-delay-5 { animation-delay: 0.5s; }
+}
+
+/* --- Анимированный фон: свечение, следующее за мышью --- */
+.mouse-glow {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.4;
+  transition: opacity 0.3s ease;
+}
+
+.mouse-glow.hidden {
+  opacity: 0;
+}
+
+/* --- Анимация появления при скролле --- */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

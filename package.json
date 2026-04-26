@@ -1,31 +1,45 @@
 {
-  "name": "tradeum-diary",
-  "version": "6.0.0",
-  "description": "Дневник трейдера с аналитикой",
-  "main": "server.js",
+  "name": "tradeumdiary",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "TradeumDiary — премиум дневник трейдера с аналитикой и автоматическим импортом сделок",
   "scripts": {
-    "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "compression": "^1.7.4",
-    "cookie-parser": "^1.4.6",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "express-rate-limit": "^7.2.0",
-    "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.11.5",
-    "pino": "^9.0.0",
-    "pino-pretty": "^11.0.0",
-    "cookie-parser": "^1.4.6"
+    "@radix-ui/react-dialog": "^1.0.5",
+    "@radix-ui/react-dropdown-menu": "^2.0.6",
+    "@radix-ui/react-select": "^2.0.0",
+    "@radix-ui/react-tabs": "^1.0.4",
+    "@radix-ui/react-toast": "^1.1.5",
+    "@supabase/supabase-js": "^2.39.0",
+    "clsx": "^2.0.0",
+    "date-fns": "^3.0.0",
+    "framer-motion": "^10.16.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.49.0",
+    "react-hot-toast": "^2.4.1",
+    "react-router-dom": "^6.21.0",
+    "recharts": "^2.10.0",
+    "tailwind-merge": "^2.1.0",
+    "zod": "^3.22.0",
+    "zustand": "^4.4.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
-  },
-  "engines": {
-    "node": ">=20.0.0"
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.16",
+    "eslint": "^8.55.0",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.3.6",
+    "typescript": "^5.3.0",
+    "vite": "^5.0.0"
   }
 }

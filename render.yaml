@@ -1,0 +1,129 @@
+# ============================================================
+# TradeumDiary — Конфигурация деплоя на Render
+# Инфраструктура как код: Blueprint для всего проекта
+# ============================================================
+
+# Версия схемы Render Blueprint
+version: "1"
+
+# ============================================================
+# СЕРВИСЫ
+# ============================================================
+
+services:
+  # --- Основное веб-приложение (Static Site) ---
+  - name: tradeumdiary-web
+    type: web
+    runtime: node
+    region: frankfurt  # Европейский регион для пользователей из РФ
+    plan: starter      # $7/мес, для старта. Масштабируется до pro при росте
+    buildCommand: |
+      npm ci
+      npm run build
+    startCommand: npx serve -s dist -l $PORT --single
+    healthCheckPath: /
+    envVars:
+      # Публичные ключи (доступны на клиенте)
+      - key: VITE_SUPABASE_URL
+        sync: false  # Задаётся вручную в дашборде Render
+      - key: VITE_SUPABASE_ANON_KEY
+        sync: false
+      # Серверные ключи (НЕ доступны на клиенте)
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: YOOKASSA_SHOP_ID
+        sync: false
+      - key: YOOKASSA_SECRET_KEY
+        sync: false
+      - key: ETHERSCAN_API_KEY
+        sync: false
+      - key: SOLANA_FM_API_KEY
+        sync: false
+      - key: APP_URL
+        value: https://tradeumdiary.ru
+    autoDeploy: true
+    scaling:
+      minInstances: 1
+      maxInstances: 3
+      targetMemoryPercent: 70
+      targetCPUPercent: 70
+    domains:
+      - tradeumdiary.ru
+      - www.tradeumdiary.ru
+
+  # --- Cron Job для обработки очереди кошельков (каждые 5 минут) ---
+  - name: tradeumdiary-cron-wallets
+    type: cron
+    runtime: node
+    region: frankfurt
+    plan: starter
+    schedule: "*/5 * * * *"  # Каждые 5 минут
+    buildCommand: npm ci
+    startCommand: |
+      curl -X POST https://tradeumdiary.ru/api/cron/process-wallets \
+        -H "Authorization: Bearer $CRON_SECRET" \
+        -H "Content-Type: application/json" \
+        -d '{"action": "process_queue"}'
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: ETHERSCAN_API_KEY
+        sync: false
+      - key: SOLANA_FM_API_KEY
+        sync: false
+
+  # --- Cron Job для расчёта дневной аналитики (каждый день в 2:00 UTC) ---
+  - name: tradeumdiary-cron-analytics
+    type: cron
+    runtime: node
+    region: frankfurt
+    plan: starter
+    schedule: "0 2 * * *"  # Каждый день в 2:00 UTC (5:00 МСК)
+    buildCommand: npm ci
+    startCommand: |
+      curl -X POST https://tradeumdiary.ru/api/cron/calculate-analytics \
+        -H "Authorization: Bearer $CRON_SECRET" \
+        -H "Content-Type: application/json"
+    envVars:
+      - key: CRON_SECRET
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+
+  # --- Supabase Edge Functions хостятся в самом Supabase ---
+  # --- Платёжный вебхук и fetch-trade-history деплоятся через Supabase CLI ---
+
+# ============================================================
+# БАЗА ДАННЫХ
+# ============================================================
+
+# Supabase является внешним сервисом и не деплоится через Render.
+# База данных управляется через Supabase Dashboard.
+# SQL-схема находится в файле supabase/supabase-setup.sql
+
+# ============================================================
+# ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ (общие)
+# ============================================================
+
+# Все секретные переменные задаются через Render Dashboard:
+# 1. Environment → TradeumDiary → Environment Variables
+# 2. Добавить все ключи из .env.example
+# 3. Пометить секретные ключи как "Protected"
+
+# ============================================================
+# МАСШТАБИРОВАНИЕ
+# ============================================================
+
+# При росте до 10K+ DAU:
+# - Увеличить план web-сервиса до pro ($25/мес) или custom
+# - Включить автоскейлинг: minInstances: 2, maxInstances: 10
+# - Добавить CDN (Cloudflare) для статики
+# - Рассмотреть переход на Supabase Team план
