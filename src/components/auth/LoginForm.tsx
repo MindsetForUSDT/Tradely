@@ -15,19 +15,14 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
   const navigate = useNavigate();
 
   const handleLogin = async () => {
-    console.log('1. Кнопка нажата', email);
-
     if (!email) { toast.error('Введите email'); return; }
     if (!password) { toast.error('Введите пароль'); return; }
 
     setLoading(true);
-    console.log('2. Отправляю запрос...');
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`;
       const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      console.log('3. URL:', url);
 
       const res = await fetch(url, {
         method: 'POST',
@@ -35,26 +30,27 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
         body: JSON.stringify({ email, password }),
       });
 
-      console.log('4. Статус:', res.status);
-
       const data = await res.json();
-      console.log('5. Ответ:', data);
+      console.log('ОТВЕТ:', JSON.stringify(data, null, 2));
 
-      if (data.access_token) {
+      const token = data.access_token || data.accessToken;
+
+      if (token) {
         await supabase.auth.setSession({
-          access_token: data.access_token,
-          refresh_token: data.refresh_token,
+          access_token: token,
+          refresh_token: data.refresh_token || data.refreshToken || '',
         });
-        console.log('6. Сессия установлена');
+        toast.success('Вход выполнен!');
+        navigate('/dashboard');
+      } else if (data.user?.id) {
+        // Может быть другой формат ответа
         toast.success('Вход выполнен!');
         navigate('/dashboard');
       } else {
-        console.log('7. Ошибка:', data);
-        toast.error(data.error_description || data.message || 'Ошибка');
+        toast.error(data.error_description || data.msg || 'Ошибка входа');
         setLoading(false);
       }
     } catch (e) {
-      console.log('8. Исключение:', e);
       toast.error('Ошибка сети');
       setLoading(false);
     }
