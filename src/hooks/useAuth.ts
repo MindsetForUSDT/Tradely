@@ -1,5 +1,4 @@
 import { useEffect, useState, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
 
 interface Profile {
   id: string;
@@ -18,18 +17,43 @@ interface AuthState {
   refreshProfile: () => Promise<void>;
 }
 
+function getToken(): string | null {
+  const key = 'sb-' + (import.meta.env.VITE_SUPABASE_URL as string).split('//')[1] + '-auth-token';
+  const stored = localStorage.getItem(key);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored).access_token || null;
+  } catch {
+    return null;
+  }
+}
+
+function getUserId(): string | null {
+  const key = 'sb-' + (import.meta.env.VITE_SUPABASE_URL as string).split('//')[1] + '-auth-token';
+  const stored = localStorage.getItem(key);
+  if (!stored) return null;
+  try {
+    return JSON.parse(stored).user?.id || null;
+  } catch {
+    return null;
+  }
+}
+
 export function useAuth(): AuthState {
   const [user, setUser] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const getProfile = async (userId: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
+  const getProfile = async () => {
+    const token = getToken();
+    const userId = getUserId();
+    if (!token || !userId) return null;
+
     const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?id=eq.${userId}&select=*`,
+      `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/profiles?select=*&id=eq.${userId}`,
       {
         headers: {
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${session?.access_token}`,
+          Authorization: `Bearer ${token}`,
         },
       }
     );
@@ -38,38 +62,23 @@ export function useAuth(): AuthState {
   };
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        getProfile(session.user.id).then(setUser).finally(() => setIsLoading(false));
-      } else {
-        setIsLoading(false);
-      }
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_e, session) => {
-      if (session?.user) {
-        const p = await getProfile(session.user.id);
-        setUser(p);
-      } else {
-        setUser(null);
-      }
+    const token = getToken();
+    if (token) {
+      getProfile().then(setUser).finally(() => setIsLoading(false));
+    } else {
       setIsLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    const key = 'sb-' + (import.meta.env.VITE_SUPABASE_URL as string).split('//')[1] + '-auth-token';
+    localStorage.removeItem(key);
     setUser(null);
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session?.user) {
-      const p = await getProfile(session.user.id);
-      setUser(p);
-    }
+    const p = await getProfile();
+    setUser(p);
   }, []);
 
   return { user, isLoading, isAuthenticated: !!user, signOut, refreshProfile };
