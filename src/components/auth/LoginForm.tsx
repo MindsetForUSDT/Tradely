@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -24,10 +25,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
 
     const res = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': key,
-      },
+      headers: { 'Content-Type': 'application/json', 'apikey': key },
       body: JSON.stringify({ email, password }),
     });
 
@@ -40,12 +38,12 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
     }
 
     if (data.access_token) {
-      // Сохраняем сессию вручную
-      localStorage.setItem('tradeumdiary-auth-token', JSON.stringify({
+      // Устанавливаем сессию в Supabase
+      await supabase.auth.setSession({
         access_token: data.access_token,
         refresh_token: data.refresh_token,
-        expires_at: data.expires_at,
-      }));
+      });
+
       toast.success('Вход выполнен!');
       navigate('/dashboard');
     }
