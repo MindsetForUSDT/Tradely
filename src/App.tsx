@@ -1,8 +1,4 @@
-// ============================================================
-// TradeumDiary — Корневой компонент с маршрутизацией
-// ============================================================
-
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/components/layout/Layout';
 import { Landing } from '@/pages/Landing';
@@ -28,49 +24,30 @@ export default function App() {
             borderRadius: '12px',
             fontSize: '14px',
           },
-          success: {
-            iconTheme: {
-              primary: '#00FFA3',
-              secondary: '#0A0A0A',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#FF3B5C',
-              secondary: '#0A0A0A',
-            },
-          },
+          success: { iconTheme: { primary: '#00FFA3', secondary: '#0A0A0A' } },
+          error: { iconTheme: { primary: '#FF3B5C', secondary: '#0A0A0A' } },
         }}
       />
 
       <Routes>
         <Route element={<Layout />}>
-          {/* Публичные страницы */}
           <Route path="/" element={<Landing />} />
           <Route path="/subscribe" element={<Subscribe />} />
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
 
-          {/* Защищённые страницы */}
-          <Route
-            path="/payment"
-            element={
-              <AuthGuard>
-                <Payment />
-              </AuthGuard>
-            }
-          />
-          <Route
-            path="/dashboard/*"
-            element={
-              <AuthGuard>
-                  <Dashboard />
-                </ProGuard>
-              </AuthGuard>
-            }
-          />
+          <Route path="/payment" element={
+            <AuthGuard><Payment /></AuthGuard>
+          } />
 
-          {/* 404 */}
+          <Route path="/dashboard/*" element={
+            <AuthGuard>
+              <ProGuard>
+                <Dashboard />
+              </ProGuard>
+            </AuthGuard>
+          } />
+
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>
