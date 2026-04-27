@@ -9,55 +9,27 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: true,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
-    storageKey: 'tradeumdiary-auth',
+    persistSession: false,  // Не сохранять через библиотеку
+    autoRefreshToken: false, // Не обновлять токен
+    detectSessionInUrl: false, // Не парсить URL
   },
 });
 
-// Хелперы для работы с токеном
+// Хелперы
 export function getToken(): string | null {
-  const key = 'tradeumdiary-auth';
-  const stored = localStorage.getItem(key);
-  if (!stored) return null;
   try {
-    const parsed = JSON.parse(stored);
-    return parsed.access_token || parsed.session?.access_token || null;
-  } catch {
-    return null;
-  }
+    const data = localStorage.getItem('tradeumdiary-auth');
+    return data ? JSON.parse(data).access_token : null;
+  } catch { return null; }
 }
 
 export function getUserId(): string | null {
-  const key = 'tradeumdiary-auth';
-  const stored = localStorage.getItem(key);
-  if (!stored) return null;
   try {
-    const parsed = JSON.parse(stored);
-    return parsed.user?.id || parsed.session?.user?.id || null;
-  } catch {
-    return null;
-  }
+    const data = localStorage.getItem('tradeumdiary-auth');
+    return data ? JSON.parse(data).user?.id : null;
+  } catch { return null; }
 }
 
 export function clearSession(): void {
   localStorage.removeItem('tradeumdiary-auth');
-}
-
-export async function apiFetch(path: string, options?: RequestInit): Promise<any> {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    'apikey': supabaseAnonKey,
-    'Content-Type': 'application/json',
-    ...(options?.headers as Record<string, string> || {}),
-  };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const res = await fetch(`${supabaseUrl}${path}`, { ...options, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Network error' }));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-  return res.json();
 }
