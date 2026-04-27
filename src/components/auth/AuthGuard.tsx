@@ -1,17 +1,16 @@
 import { Navigate } from 'react-router-dom';
-
-function hasToken(): boolean {
-  const key = 'sb-' + (import.meta.env.VITE_SUPABASE_URL as string).split('//')[1] + '-auth-token';
-  return !!localStorage.getItem(key);
-}
+import { getToken } from '@/lib/supabase';
 
 interface AuthGuardProps {
   children: React.ReactNode;
 }
 
 export function AuthGuard({ children }: AuthGuardProps) {
-  if (!hasToken()) {
+  const token = getToken();
+
+  if (!token) {
     return <Navigate to="/" replace />;
   }
+
   return <>{children}</>;
 }

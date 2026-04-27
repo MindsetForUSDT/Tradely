@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from './useAuth';
+import { getUserId, getToken } from '@/lib/supabase';
 
 interface DailyAnalytics {
   id: string;
@@ -15,32 +14,34 @@ interface DailyAnalytics {
 }
 
 export function useAnalytics(days = 30) {
-  const { user } = useAuth();
   const [analytics, setAnalytics] = useState<DailyAnalytics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAnalytics = useCallback(async () => {
-    if (!user || user.subscription_tier !== 'pro') {
-      setIsLoading(false);
-      return;
-    }
-    setIsLoading(true);
+    const userId = getUserId();
+    const token = getToken();
+    if (!userId || !token) { setIsLoading(false); return; }
+
     const since = new Date();
     since.setDate(since.getDate() - days);
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch(
-      `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/daily_analytics?user_id=eq.${user.id}&date=gte.${since.toISOString().split('T')[0]}&order=date.desc`,
-      {
-        headers: {
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${session?.access_token}`,
-        },
-      }
-    );
-    const data = await res.json();
-    setAnalytics(Array.isArray(data) ? data : []);
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/daily_analytics?user_id=eq.${userId}&order=date.desc&limit=${days}`,
+        {
+          headers: {
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const data = await res.json();
+      setAnalytics(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.error('Analytics fetch error:', e);
+    }
     setIsLoading(false);
-  }, [user, days]);
+  }, [days]);
 
   useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
 
