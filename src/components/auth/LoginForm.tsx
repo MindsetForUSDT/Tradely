@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Button } from '@/components/ui/Button';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -15,33 +14,30 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('FORM SUBMIT', email, password);
+  const handleLogin = async () => {
+    console.log('КНОПКА НАЖАТА', email, password);
 
     if (!email) {
-      console.log('Нет email');
       toast.error('Введите email');
       return;
     }
     if (!password) {
-      console.log('Нет пароля');
       toast.error('Введите пароль');
       return;
     }
 
     setIsLoading(true);
-    console.log('Отправляю запрос...');
+    console.log('ОТПРАВЛЯЮ ЗАПРОС...');
 
     const { data, error } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password: password,
     });
 
-    console.log('Ответ:', data, error);
+    console.log('ОТВЕТ:', data, error);
 
     if (error) {
-      toast.error('Ошибка: ' + error.message);
+      toast.error(error.message);
       setIsLoading(false);
       return;
     }
@@ -50,10 +46,12 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
       toast.success('Вход выполнен!');
       navigate('/dashboard');
     }
+
+    setIsLoading(false);
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-4">
       <div>
         <label className="block text-xs font-medium text-text-secondary mb-1.5">Email</label>
         <input
@@ -84,9 +82,14 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
         </button>
       </div>
 
-      <Button type="submit" variant="primary" size="lg" isLoading={isLoading} className="w-full">
-        Войти
-      </Button>
+      <button
+        type="button"
+        onClick={handleLogin}
+        disabled={isLoading}
+        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
+      >
+        {isLoading ? 'Загрузка...' : 'Войти'}
+      </button>
 
       <p className="text-center text-sm text-text-muted">
         Нет аккаунта?{' '}
@@ -94,6 +97,6 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
           Зарегистрироваться
         </button>
       </p>
-    </form>
+    </div>
   );
 }
