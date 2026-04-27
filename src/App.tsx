@@ -1,13 +1,12 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/components/layout/Layout';
 import { Landing } from '@/pages/Landing';
 import { Subscribe } from '@/pages/Subscribe';
 import { Payment } from '@/pages/Payment';
 import { Dashboard } from '@/pages/Dashboard';
+import { ProAnalytics } from '@/pages/ProAnalytics';
 import { NotFound } from '@/pages/NotFound';
-import Terms from '@/pages/Terms';
-import Privacy from '@/pages/Privacy';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ProGuard } from '@/components/auth/ProGuard';
 
@@ -31,21 +30,21 @@ export default function App() {
 
       <Routes>
         <Route element={<Layout />}>
+          {/* Публичные */}
           <Route path="/" element={<Landing />} />
           <Route path="/subscribe" element={<Subscribe />} />
-          <Route path="/terms" element={<Terms />} />
-          <Route path="/privacy" element={<Privacy />} />
 
-          <Route path="/payment" element={
-            <AuthGuard><Payment /></AuthGuard>
+          {/* Защищённые (только авторизованные) */}
+          <Route path="/payment" element={<AuthGuard><Payment /></AuthGuard>} />
+
+          {/* Дашборд (только с кошельком или триалом) */}
+          <Route path="/dashboard/*" element={
+            <AuthGuard><ProGuard><Dashboard /></ProGuard></AuthGuard>
           } />
 
-          <Route path="/dashboard/*" element={
-            <AuthGuard>
-              <ProGuard>
-                <Dashboard />
-              </ProGuard>
-            </AuthGuard>
+          {/* PRO-аналитика (только PRO) */}
+          <Route path="/pro/*" element={
+            <AuthGuard><ProGuard requirePro><ProAnalytics /></ProGuard></AuthGuard>
           } />
 
           <Route path="*" element={<NotFound />} />

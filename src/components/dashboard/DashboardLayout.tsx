@@ -4,21 +4,18 @@ import { StatsOverview } from './StatsOverview';
 import { PnLChart } from './PnLChart';
 import { VolumeByTokenChart } from './VolumeByTokenChart';
 import { TradeList } from './TradeList';
+import { RequireWallet } from './RequireWallet';
 import { useTrades } from '@/hooks/useTrades';
 import { useAnalytics } from '@/hooks/useAnalytics';
+import { useWallets } from '@/hooks/useWallets';
 import { useStore } from '@/store/useStore';
 
 function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; delay?: number }) {
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
-
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
-    >
+    <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}>
       {children}
     </motion.div>
   );
@@ -27,6 +24,7 @@ function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; d
 export function DashboardLayout() {
   const { trades, pnlData, tokenVolumes, totalVolume, totalTrades, isLoading: tradesLoading } = useTrades({ limit: 100, daysAgo: 30 });
   const { todayAnalytics, isLoading: analyticsLoading } = useAnalytics();
+  const { wallets, isLoading: walletsLoading } = useWallets();
   const setStats = useStore((s) => s.setStats);
 
   useEffect(() => {
@@ -37,6 +35,11 @@ export function DashboardLayout() {
       isLoading: tradesLoading || analyticsLoading,
     });
   }, [totalVolume, todayAnalytics, totalTrades, tradesLoading, analyticsLoading, setStats]);
+
+  // Проверка кошелька
+  if (!walletsLoading && wallets.length === 0) {
+    return <RequireWallet />;
+  }
 
   const isLoading = tradesLoading || analyticsLoading;
 
@@ -52,13 +55,8 @@ export function DashboardLayout() {
       </AnimatedSection>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <AnimatedSection delay={0.1}>
-          <PnLChart data={pnlData} isLoading={isLoading} />
-        </AnimatedSection>
-
-        <AnimatedSection delay={0.2}>
-          <VolumeByTokenChart data={tokenVolumes} isLoading={isLoading} />
-        </AnimatedSection>
+        <AnimatedSection delay={0.1}><PnLChart data={pnlData} isLoading={isLoading} /></AnimatedSection>
+        <AnimatedSection delay={0.2}><VolumeByTokenChart data={tokenVolumes} isLoading={isLoading} /></AnimatedSection>
       </div>
 
       <AnimatedSection delay={0.3}>

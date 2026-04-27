@@ -1,26 +1,16 @@
-// ============================================================
-// TradeumDiary — Точка входа
-// Строгий режим React для выявления потенциальных проблем
-// ============================================================
-
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import './index.css';
 
-// Инициализируем корневой элемент
-const rootElement = document.getElementById('root');
+const root = document.getElementById('root');
+if (!root) throw new Error('Root element not found');
 
-if (!rootElement) {
-  throw new Error(
-    '❌ TradeumDiary: Корневой элемент #root не найден в DOM.\n' +
-    'Проверьте index.html — там должен быть <div id="root"></div>.'
-  );
-}
-
-// Рендерим приложение
-ReactDOM.createRoot(rootElement).render(
+ReactDOM.createRoot(root).render(
   <React.StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </React.StrictMode>
 );
