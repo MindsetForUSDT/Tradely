@@ -7,6 +7,7 @@ export function useScrollAnimation<T extends HTMLElement = HTMLDivElement>(optio
 }) {
   const ref = useRef<T>(null);
   const [isVisible, setIsVisible] = useState(false);
+  const { threshold = 0.1, rootMargin = '0px', triggerOnce = true } = options || {};
 
   useEffect(() => {
     const node = ref.current;
@@ -16,17 +17,17 @@ export function useScrollAnimation<T extends HTMLElement = HTMLDivElement>(optio
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          if (options?.triggerOnce !== false) observer.unobserve(node);
-        } else if (options?.triggerOnce === false) {
+          if (triggerOnce) observer.unobserve(node);
+        } else if (!triggerOnce) {
           setIsVisible(false);
         }
       },
-      { threshold: options?.threshold || 0.1, rootMargin: options?.rootMargin || '0px' }
+      { threshold, rootMargin }
     );
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [threshold, rootMargin, triggerOnce]);
 
   return { ref, isVisible };
 }

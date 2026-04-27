@@ -6,7 +6,6 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
-import { useStore } from '@/store/useStore';
 import { cn, formatUSD } from '@/lib/utils';
 
 interface StatsOverviewProps {
