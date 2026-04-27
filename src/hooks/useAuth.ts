@@ -7,6 +7,7 @@ interface Profile {
   avatar_url: string | null;
   subscription_tier: 'free' | 'pro';
   subscription_expires_at: string | null;
+  trial_started_at: string | null;
   created_at: string;
 }
 
@@ -27,6 +28,18 @@ export function useAuth(): AuthState {
     const token = getToken();
     if (!userId || !token) return null;
     try {
+      // Активируем триал при первом входе
+      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/activate_trial`, {
+        method: 'POST',
+        headers: {
+          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ p_user_id: userId }),
+      });
+
+      // Получаем профиль
       const data = await apiFetch(`/rest/v1/profiles?select=*&id=eq.${userId}`);
       return data?.[0] || null;
     } catch {

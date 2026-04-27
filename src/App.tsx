@@ -64,7 +64,6 @@ export default function App() {
             path="/dashboard/*"
             element={
               <AuthGuard>
-                <ProGuard>
                   <Dashboard />
                 </ProGuard>
               </AuthGuard>

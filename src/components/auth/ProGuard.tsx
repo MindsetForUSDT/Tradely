@@ -8,7 +8,6 @@ interface ProGuardProps {
 export function ProGuard({ children }: ProGuardProps) {
   const { user, isLoading } = useAuth();
 
-  // Пока загружается — показываем экран загрузки
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -20,15 +19,19 @@ export function ProGuard({ children }: ProGuardProps) {
     );
   }
 
-  // Если пользователь есть, но подписка free — на страницу подписки
-  if (user && user.subscription_tier !== 'pro') {
-    return <Navigate to="/subscribe" replace />;
-  }
-
-  // Если пользователя нет (не авторизован) — AuthGuard уже должен был перехватить
   if (!user) {
     return <Navigate to="/" replace />;
   }
 
-  return <>{children}</>;
+  const now = new Date();
+  const expiresAt = user.subscription_expires_at ? new Date(user.subscription_expires_at) : null;
+  const isTierActive = expiresAt && expiresAt > now;
+  const isPro = user.subscription_tier === 'pro' && isTierActive;
+  const isTrialActive = user.subscription_tier === 'free' && isTierActive;
+
+  if (isPro || isTrialActive) {
+    return <>{children}</>;
+  }
+
+  return <Navigate to="/subscribe" replace />;
 }
