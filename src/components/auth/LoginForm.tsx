@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -20,38 +19,31 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
 
     setLoading(true);
 
-    try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`;
-      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': key },
-        body: JSON.stringify({ email, password }),
-      });
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': key },
+      body: JSON.stringify({ email, password }),
+    });
 
-      const data = await res.json();
-      console.log('ОТВЕТ:', JSON.stringify(data, null, 2));
+    const data = await res.json();
 
-      const token = data.access_token || data.accessToken;
+    if (data.access_token) {
+      // Сохраняем ВСЁ в localStorage
+      localStorage.setItem('sb-' + import.meta.env.VITE_SUPABASE_URL.split('//')[1] + '-auth-token', JSON.stringify({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_at: data.expires_at,
+        user: data.user,
+      }));
 
-      if (token) {
-        await supabase.auth.setSession({
-          access_token: token,
-          refresh_token: data.refresh_token || data.refreshToken || '',
-        });
-        toast.success('Вход выполнен!');
-        navigate('/dashboard');
-      } else if (data.user?.id) {
-        // Может быть другой формат ответа
-        toast.success('Вход выполнен!');
-        navigate('/dashboard');
-      } else {
-        toast.error(data.error_description || data.msg || 'Ошибка входа');
-        setLoading(false);
-      }
-    } catch (e) {
-      toast.error('Ошибка сети');
+      toast.success('Вход выполнен!');
+      // Принудительно перезагружаем страницу на /dashboard
+      window.location.href = '/dashboard';
+    } else {
+      toast.error('Ошибка входа');
       setLoading(false);
     }
   };
