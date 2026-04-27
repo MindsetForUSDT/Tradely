@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
@@ -19,15 +18,34 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
     if (!password) { toast.error('Введите пароль'); return; }
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      toast.error(error.message);
+    const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`;
+    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': key,
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await res.json();
+
+    if (data.error || data.message) {
+      toast.error(data.error_description || data.message || 'Ошибка входа');
       setLoading(false);
       return;
     }
 
-    if (data?.user) {
+    if (data.access_token) {
+      // Сохраняем сессию вручную
+      localStorage.setItem('tradeumdiary-auth-token', JSON.stringify({
+        access_token: data.access_token,
+        refresh_token: data.refresh_token,
+        expires_at: data.expires_at,
+      }));
       toast.success('Вход выполнен!');
       navigate('/dashboard');
     }
