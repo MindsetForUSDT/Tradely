@@ -1,0 +1,9 @@
+# TradeumDiary — Правила для поисковых роботов
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /payment
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://tradeumdiary.ru/sitemap.xml
