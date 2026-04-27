@@ -15,37 +15,48 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
   const navigate = useNavigate();
 
   const handleLogin = async () => {
+    console.log('1. Кнопка нажата', email);
+
     if (!email) { toast.error('Введите email'); return; }
     if (!password) { toast.error('Введите пароль'); return; }
 
     setLoading(true);
+    console.log('2. Отправляю запрос...');
 
-    const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`;
-    const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/auth/v1/token?grant_type=password`;
+      const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'apikey': key },
-      body: JSON.stringify({ email, password }),
-    });
+      console.log('3. URL:', url);
 
-    const data = await res.json();
-
-    if (data.error || data.message) {
-      toast.error(data.error_description || data.message || 'Ошибка входа');
-      setLoading(false);
-      return;
-    }
-
-    if (data.access_token) {
-      // Устанавливаем сессию в Supabase
-      await supabase.auth.setSession({
-        access_token: data.access_token,
-        refresh_token: data.refresh_token,
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': key },
+        body: JSON.stringify({ email, password }),
       });
 
-      toast.success('Вход выполнен!');
-      navigate('/dashboard');
+      console.log('4. Статус:', res.status);
+
+      const data = await res.json();
+      console.log('5. Ответ:', data);
+
+      if (data.access_token) {
+        await supabase.auth.setSession({
+          access_token: data.access_token,
+          refresh_token: data.refresh_token,
+        });
+        console.log('6. Сессия установлена');
+        toast.success('Вход выполнен!');
+        navigate('/dashboard');
+      } else {
+        console.log('7. Ошибка:', data);
+        toast.error(data.error_description || data.message || 'Ошибка');
+        setLoading(false);
+      }
+    } catch (e) {
+      console.log('8. Исключение:', e);
+      toast.error('Ошибка сети');
+      setLoading(false);
     }
   };
 
