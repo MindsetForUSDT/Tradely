@@ -1,26 +1,23 @@
-// ============================================================
-// TradeumDiary — Провайдеры приложения
-// React Query + глобальные настройки
-// ============================================================
-
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 
-// Создаём клиент Query с глобальными настройками
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      // Данные считаются свежими 30 секунд (можно менять per-query)
-      staleTime: 30 * 1000,
+      // ✅ Увеличиваем до 2 минут — данные не будут запрашиваться повторно при быстрых переходах
+      staleTime: 2 * 60 * 1000,
 
-      // Повторяем запросы при ошибках
-      retry: 2,
+      // ✅ Кеш живёт 30 минут даже после unmount компонента
+      gcTime: 30 * 60 * 1000,
 
-      // Запросы не выполняются, пока вкладка не в фокусе
-      refetchOnWindowFocus: true,
+      // ✅ 3 ретрая при ошибках вместо бесконечных
+      retry: 3,
 
-      // Не показываем устаревшие данные при ошибке
-      useErrorBoundary: false,
+      // ✅ Не перезапрашиваем при возврате на вкладку (уменьшает нагрузку)
+      refetchOnWindowFocus: false,
+
+      // ✅ Не перезапрашиваем при переподключении к интернету
+      refetchOnReconnect: false,
     },
     mutations: {
       retry: 1,

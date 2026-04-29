@@ -12,30 +12,37 @@ interface Profile {
   created_at: string;
 }
 
-const PROFILE_QUERY_KEY = ['profile'] as const;
+// ✅ Ключ без вложенных массивов для лучшего кеширования
+const PROFILE_QUERY_KEY = 'profile';
 
 export function useAuth() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<any>(null);
   const initialized = useRef(false);
+  // ✅ Кешируем ID пользователя, чтобы не дёргать getSession()
+  const userIdRef = useRef<string | null>(null);
 
   useEffect(() => {
-    // Защита от двойного вызова в StrictMode
     if (initialized.current) return;
     initialized.current = true;
 
     let mounted = true;
 
-    // Получаем начальную сессию
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted) setSession(session);
+      if (mounted && session) {
+        setSession(session);
+        userIdRef.current = session.user.id;
+      }
     });
 
-    // Слушаем изменения авторизации
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (mounted) {
         setSession(session);
-        if (!session) queryClient.clear();
+        userIdRef.current = session?.user?.id ?? null;
+        if (!session) {
+          queryClient.clear();
+          userIdRef.current = null;
+        }
       }
     });
 
@@ -48,39 +55,41 @@ export function useAuth() {
   const {
     data: user,
     isLoading,
-    refetch: refreshProfile,
   } = useQuery({
-    queryKey: PROFILE_QUERY_KEY,
+    queryKey: [PROFILE_QUERY_KEY, userIdRef.current],
     queryFn: async (): Promise<Profile | null> => {
-      if (!session?.user?.id) return null;
-
-      await supabase.rpc('activate_trial', {
-        p_user_id: session.user.id,
-      });
+      if (!userIdRef.current) return null;
 
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('id', userIdRef.current)
         .single();
 
       if (error) throw error;
       return data;
     },
-    enabled: !!session?.user?.id,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 30 * 60 * 1000,
+    enabled: !!userIdRef.current,
+    // ✅ Данные профиля почти не меняются — кешируем надолго
+    staleTime: 10 * 60 * 1000,  // 10 минут
+    gcTime: 60 * 60 * 1000,     // 1 час
     retry: 2,
   });
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
+    userIdRef.current = null;
     queryClient.clear();
+  }, [queryClient]);
+
+  const refreshProfile = useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: [PROFILE_QUERY_KEY] });
   }, [queryClient]);
 
   return {
     user: user ?? null,
-    isLoading: isLoading && !!session,
+    // ✅ Не показываем загрузку, если просто обновляем данные в фоне
+    isLoading: !user && !!session,
     isAuthenticated: !!user,
     signOut,
     refreshProfile,

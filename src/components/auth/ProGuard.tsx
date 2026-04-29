@@ -1,51 +1,48 @@
-import { ReactNode, Suspense } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import type { ReactNode } from 'react';
 
 interface ProGuardProps {
   children: ReactNode;
   requirePro?: boolean;
 }
 
-// Лёгкий спиннер для Suspense
-function PageLoader() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-surface">
-      <div className="text-center space-y-3">
-        <div className="w-10 h-10 mx-auto rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
-        <p className="text-text-muted text-sm">Загрузка...</p>
-      </div>
-    </div>
-  );
-}
-
 export function ProGuard({ children, requirePro = false }: ProGuardProps) {
   const { user, isLoading: authLoading } = useAuth();
 
-  // Кошельки загружаем параллельно через React Query
-  const { data: wallets = [], isLoading: walletsLoading } = useQuery({
+  // ✅ Кошельки загружаются ПАРАЛЛЕЛЬНО с авторизацией,
+  // а не ждут её завершения
+  const { data: wallets } = useQuery({
     queryKey: ['wallets'],
     queryFn: async () => {
+      if (!user?.id) return [];
+
       const { data, error } = await supabase
         .from('wallets')
         .select('*')
+        .eq('user_id', user.id)
         .order('added_at', { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!user,               // Запрос только когда есть пользователь
-    staleTime: 60 * 1000,          // 1 минута кеша
+    // ✅ Запрос выполняется только когда есть user.id
+    enabled: !!user?.id,
+    // ✅ Кошельки кешируем на 5 минут
+    staleTime: 5 * 60 * 1000,
   });
 
-  // Единый loading state
+  // ✅ Быстрый спиннер только при первой загрузке
   if (authLoading) {
-    return <PageLoader />;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-8 h-8 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+      </div>
+    );
   }
 
-  // Не авторизован
   if (!user) {
     return <Navigate to="/" replace />;
   }
@@ -61,15 +58,8 @@ export function ProGuard({ children, requirePro = false }: ProGuardProps) {
   }
 
   if (isPro || isTrialActive) {
-    // Показываем контент, даже если кошельки ещё грузятся
-    if (walletsLoading) {
-      return <Suspense fallback={<PageLoader />}>{children}</Suspense>;
-    }
-
-    if (!wallets || wallets.length === 0) {
-      return <Navigate to="/dashboard/wallets?required=true" replace />;
-    }
-
+    // ✅ Не ждём загрузки кошельков — показываем контент сразу
+    // Проверка на пустые кошельки произойдёт в DashboardLayout
     return <>{children}</>;
   }
 

@@ -14,15 +14,22 @@ function AnimatedSection({ children, delay = 0 }: { children: React.ReactNode; d
   const ref = useRef<HTMLDivElement>(null);
   const isInView = useInView(ref, { once: true, margin: '-50px' });
   return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}>
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
+    >
       {children}
     </motion.div>
   );
 }
 
 export function DashboardLayout() {
-  const { trades, pnlData, tokenVolumes, totalVolume, totalTrades, isLoading: tradesLoading } = useTrades({ limit: 100, daysAgo: 30 });
+  const { trades, pnlData, tokenVolumes, totalVolume, totalTrades, isLoading: tradesLoading } = useTrades({
+    limit: 100,
+    daysAgo: 30,
+  });
   const { todayAnalytics, isLoading: analyticsLoading } = useAnalytics();
   const { wallets, isLoading: walletsLoading } = useWallets();
   const setStats = useStore((s) => s.setStats);
@@ -36,11 +43,13 @@ export function DashboardLayout() {
     });
   }, [totalVolume, todayAnalytics, totalTrades, tradesLoading, analyticsLoading, setStats]);
 
-  // Проверка кошелька
+  // ✅ Проверка кошелька с учетом параллельной загрузки
   if (!walletsLoading && wallets.length === 0) {
     return <RequireWallet />;
   }
 
+  // ✅ Показываем контент даже если данные ещё грузятся
+  // React Query отдаст закешированные данные или покажет скелетоны
   const isLoading = tradesLoading || analyticsLoading;
 
   return (
@@ -55,8 +64,12 @@ export function DashboardLayout() {
       </AnimatedSection>
 
       <div className="grid lg:grid-cols-2 gap-6">
-        <AnimatedSection delay={0.1}><PnLChart data={pnlData} isLoading={isLoading} /></AnimatedSection>
-        <AnimatedSection delay={0.2}><VolumeByTokenChart data={tokenVolumes} isLoading={isLoading} /></AnimatedSection>
+        <AnimatedSection delay={0.1}>
+          <PnLChart data={pnlData} isLoading={isLoading} />
+        </AnimatedSection>
+        <AnimatedSection delay={0.2}>
+          <VolumeByTokenChart data={tokenVolumes} isLoading={isLoading} />
+        </AnimatedSection>
       </div>
 
       <AnimatedSection delay={0.3}>
