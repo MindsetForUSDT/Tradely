@@ -17,20 +17,21 @@ const PROFILE_QUERY_KEY = ['profile'] as const;
 export function useAuth() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<any>(null);
-  // ✅ Защита от двойного монтирования в StrictMode
   const initialized = useRef(false);
 
   useEffect(() => {
-    // Предотвращаем двойную инициализацию
+    // Защита от двойного вызова в StrictMode
     if (initialized.current) return;
     initialized.current = true;
 
     let mounted = true;
 
+    // Получаем начальную сессию
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (mounted) setSession(session);
     });
 
+    // Слушаем изменения авторизации
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (mounted) {
         setSession(session);
@@ -47,7 +48,7 @@ export function useAuth() {
   const {
     data: user,
     isLoading,
-    refetch: refreshProfile
+    refetch: refreshProfile,
   } = useQuery({
     queryKey: PROFILE_QUERY_KEY,
     queryFn: async (): Promise<Profile | null> => {
