@@ -1,5 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { getUserId, getToken } from '@/lib/supabase';
+// ============================================================
+// TradeumDiary — Хук сделок с кешированием и оптимизациями
+// Данные кешируются на 2 минуты. При повторном монтировании
+// компонента мгновенно отдаются закешированные данные
+// ============================================================
+
+import { useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface Trade {
   id: string;
@@ -15,39 +22,41 @@ interface Trade {
   is_buy: boolean;
 }
 
-export function useTrades(options?: { limit?: number; daysAgo?: number }) {
+interface UseTradesOptions {
+  limit?: number;
+  daysAgo?: number;
+}
+
+// Ключ кеша с параметрами для инвалидации
+const tradesQueryKey = (options: UseTradesOptions) => ['trades', options] as const;
+
+export function useTrades(options?: UseTradesOptions) {
   const { limit = 50, daysAgo = 30 } = options || {};
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  const fetchTrades = useCallback(async () => {
-    const userId = getUserId();
-    const token = getToken();
-    if (!userId || !token) { setIsLoading(false); return; }
+  const { data: trades = [], isLoading, error } = useQuery({
+    queryKey: tradesQueryKey({ limit, daysAgo }),
+    queryFn: async () => {
+      const since = new Date();
+      since.setDate(since.getDate() - daysAgo);
 
-    const since = new Date();
-    since.setDate(since.getDate() - daysAgo);
+      // ✅ Используем Supabase SDK вместо fetch()
+      const { data, error } = await supabase
+        .from('trades')
+        .select('*')
+        .order('timestamp', { ascending: false })
+        .gte('timestamp', since.toISOString())
+        .limit(limit);
 
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/trades?user_id=eq.${userId}&order=timestamp.desc&limit=${limit}`,
-        {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const data = await res.json();
-      setTrades(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error('Trades fetch error:', e);
-    }
-    setIsLoading(false);
-  }, [daysAgo, limit]);
+      if (error) throw error;
+      return data as Trade[];
+    },
+    staleTime: 2 * 60 * 1000,  // Данные устаревают через 2 минуты
+    gcTime: 10 * 60 * 1000,     // 10 минут храним неиспользуемые данные
+    refetchOnWindowFocus: true,  // Обновляем при возврате на вкладку
+    retry: 2,
+  });
 
-  useEffect(() => { fetchTrades(); }, [fetchTrades]);
-
+  // Все вычисления остаются в useMemo как раньше
   const pnlData = useMemo(() => {
     let cumulative = 0;
     return [...trades]
@@ -71,7 +80,11 @@ export function useTrades(options?: { limit?: number; daysAgo?: number }) {
     });
     const total = trades.reduce((s, t) => s + t.value_usd, 0);
     return Array.from(map.entries())
-      .map(([token, volume]) => ({ token, volume, percentage: total ? (volume / total) * 100 : 0 }))
+      .map(([token, volume]) => ({
+        token,
+        volume,
+        percentage: total ? (volume / total) * 100 : 0,
+      }))
       .sort((a, b) => b.volume - a.volume)
       .slice(0, 8);
   }, [trades]);
@@ -91,7 +104,7 @@ export function useTrades(options?: { limit?: number; daysAgo?: number }) {
   return {
     trades,
     isLoading,
-    refresh: fetchTrades,
+    error,
     pnlData,
     tokenVolumes,
     weekdayPerformance,

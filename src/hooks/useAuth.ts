@@ -1,5 +1,12 @@
+// ============================================================
+// TradeumDiary — Хук аутентификации с кешированием
+// React Query гарантирует, что профиль загружается один раз
+// и доступен всем компонентам без повторных запросов
+// ============================================================
+
 import { useEffect, useState, useCallback } from 'react';
-import { getToken, getUserId, clearSession, apiFetch } from '@/lib/supabase';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface Profile {
   id: string;
@@ -11,65 +18,73 @@ interface Profile {
   created_at: string;
 }
 
-interface AuthState {
-  user: Profile | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  signOut: () => void;
-  refreshProfile: () => Promise<void>;
-}
+// Уникальный ключ для кеша React Query
+const PROFILE_QUERY_KEY = ['profile'] as const;
 
-export function useAuth(): AuthState {
-  const [user, setUser] = useState<Profile | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export function useAuth() {
+  const queryClient = useQueryClient();
+  const [session, setSession] = useState(() => null);
 
-  const loadProfile = useCallback(async (): Promise<Profile | null> => {
-    const userId = getUserId();
-    const token = getToken();
-    if (!userId || !token) return null;
-    try {
+  // Отслеживаем изменения сессии
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+
+      // При выходе — сбрасываем весь кеш
+      if (!session) {
+        queryClient.clear();
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
+
+  // Загрузка профиля через React Query
+  const {
+    data: user,
+    isLoading,
+    error,
+    refetch: refreshProfile
+  } = useQuery({
+    queryKey: PROFILE_QUERY_KEY,
+    queryFn: async (): Promise<Profile | null> => {
+      if (!session?.user?.id) return null;
+
       // Активируем триал при первом входе
-      await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/rpc/activate_trial`, {
-        method: 'POST',
-        headers: {
-          'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ p_user_id: userId }),
+      await supabase.rpc('activate_trial', {
+        p_user_id: session.user.id,
       });
 
-      // Получаем профиль
-      const data = await apiFetch(`/rest/v1/profiles?select=*&id=eq.${userId}`);
-      return data?.[0] || null;
-    } catch {
-      return null;
-    }
-  }, []);
+      // Получаем профиль через SDK, а не fetch()
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
 
-  useEffect(() => {
-    const token = getToken();
-    if (token) {
-      loadProfile().then(p => { setUser(p); setIsLoading(false); });
-    } else {
-      setIsLoading(false);
-    }
-  }, [loadProfile]);
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!session?.user?.id,    // Запрос только при наличии сессии
+    staleTime: 5 * 60 * 1000,        // 5 минут считаем данные свежими
+    gcTime: 30 * 60 * 1000,           // 30 минут храним в кеше после unmount
+    retry: 2,                         // 2 ретрая при ошибке
+  });
 
-  const signOut = useCallback(() => {
-    clearSession();
-    setUser(null);
-  }, []);
-
-  const refreshProfile = useCallback(async () => {
-    const p = await loadProfile();
-    if (p) setUser(p);
-  }, [loadProfile]);
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    queryClient.clear();
+  }, [queryClient]);
 
   return {
-    user,
-    isLoading,
+    user: user ?? null,
+    isLoading: isLoading && !!session, // Не показываем загрузку, если нет сессии
     isAuthenticated: !!user,
+    error,
     signOut,
     refreshProfile,
   };

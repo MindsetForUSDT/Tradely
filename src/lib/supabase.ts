@@ -1,51 +1,47 @@
+// ============================================================
+// TradeumDiary — Supabase Client Singleton
+// Правильная инициализация с реальным SDK, а не самописным REST
+// ============================================================
+
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
 
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Отсутствуют VITE_SUPABASE_URL или VITE_SUPABASE_ANON_KEY');
+  throw new Error('❌ Отсутствуют VITE_SUPABASE_URL или VITE_SUPABASE_ANON_KEY');
 }
 
+// Единый экземпляр клиента для всего приложения
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-    detectSessionInUrl: false,
+    persistSession: true,        // Сохраняем сессию в localStorage
+    autoRefreshToken: true,      // Автоматически обновляем токен
+    detectSessionInUrl: false,   // Не используем OAuth редиректы
+    storageKey: 'tradeumdiary-auth', // Кастомный ключ
+  },
+  // Глобальные настройки для запросов
+  global: {
+    headers: {
+      'x-app-version': '1.0.0',
+    },
   },
 });
 
-export function getToken(): string | null {
-  try {
-    const data = localStorage.getItem('tradeumdiary-auth');
-    return data ? JSON.parse(data).access_token : null;
-  } catch { return null; }
+// Получение текущей сессии (не просто токен из localStorage!)
+export async function getSession() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return session;
 }
 
-export function getUserId(): string | null {
-  try {
-    const data = localStorage.getItem('tradeumdiary-auth');
-    return data ? JSON.parse(data).user?.id : null;
-  } catch { return null; }
+// Получение ID текущего пользователя
+export async function getUserId(): Promise<string | null> {
+  const session = await getSession();
+  return session?.user?.id ?? null;
 }
 
-export function clearSession(): void {
-  localStorage.removeItem('tradeumdiary-auth');
-}
-
-export async function apiFetch(path: string, options?: RequestInit): Promise<any> {
-  const token = getToken();
-  const headers: Record<string, string> = {
-    'apikey': supabaseAnonKey,
-    'Content-Type': 'application/json',
-    ...(options?.headers as Record<string, string> || {}),
-  };
-  if (token) headers['Authorization'] = `Bearer ${token}`;
-
-  const res = await fetch(`${supabaseUrl}${path}`, { ...options, headers });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Network error' }));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-  return res.json();
+// Выход из системы
+export async function signOut() {
+  const { error } = await supabase.auth.signOut();
+  if (error) throw error;
 }
