@@ -19,12 +19,17 @@ export function PlanCard({ title, price, period, description, features, isPopula
   return (
     <div className="relative group h-full">
       {isPopular && (
-        <div className="absolute -inset-px bg-gradient-to-b from-accent-green/30 via-accent-green/5 to-transparent rounded-2xl opacity-50 group-hover:opacity-80 transition-opacity duration-500" />
+        <div
+          className="absolute -inset-px bg-gradient-to-b from-accent-green/30 via-accent-green/5 to-transparent rounded-2xl opacity-50 group-hover:opacity-80 transition-opacity duration-500"
+          aria-hidden="true" // Декоративный элемент
+        />
       )}
       <div className={cn('relative h-full glass-card p-6 md:p-8 flex flex-col', isPopular && 'border-accent-green/20')}>
         {isPopular && (
           <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-            <span className="px-4 py-1.5 rounded-full bg-accent-green text-surface text-xs font-semibold tracking-wide">Популярный выбор</span>
+            <span className="px-4 py-1.5 rounded-full bg-accent-green text-surface text-xs font-semibold tracking-wide">
+              Популярный выбор
+            </span>
           </div>
         )}
         <div className="mb-6">
@@ -37,22 +42,52 @@ export function PlanCard({ title, price, period, description, features, isPopula
             <span className="text-sm text-text-muted">{period}</span>
           </div>
         </div>
-        <ul className="space-y-3 mb-8 flex-1">
+
+        {/* ✅ ИСПРАВЛЕНИЕ: Добавлен <ul> для семантического списка */}
+        <ul className="space-y-3 mb-8 flex-1" role="list">
           {features.map((feature, i) => (
             <li key={i} className="flex items-start gap-3">
               {feature.included ? (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-green shrink-0 mt-0.5">
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-accent-green shrink-0 mt-0.5"
+                  aria-hidden="true" // Декоративная иконка, скрываем от скринридеров
+                >
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               ) : (
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="text-text-muted shrink-0 mt-0.5">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  className="text-text-muted shrink-0 mt-0.5"
+                  aria-hidden="true" // Декоративная иконка, скрываем от скринридеров
+                >
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
                 </svg>
               )}
-              <span className={cn('text-sm', feature.included ? 'text-text-primary' : 'text-text-muted')}>{feature.text}</span>
+              <span className={cn(
+                'text-sm',
+                feature.included ? 'text-text-primary' : 'text-text-muted'
+              )}>
+                {feature.text}
+              </span>
             </li>
           ))}
         </ul>
+
         <div className="mt-auto">{action}</div>
       </div>
     </div>

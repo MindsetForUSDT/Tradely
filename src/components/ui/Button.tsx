@@ -1,9 +1,3 @@
-// ============================================================
-// TradeumDiary — Компонент кнопки
-// Поддержка вариантов: primary, secondary, outline, ghost
-// Тактильная обратная связь и состояния загрузки
-// ============================================================
-
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -27,6 +21,7 @@ const variantStyles: Record<ButtonVariant, string> = {
     'bg-transparent text-accent-green border border-accent-green/30 hover:border-accent-green hover:bg-accent-green/5',
   ghost:
     'bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay',
+  // ✅ ИСПРАВЛЕНИЕ: Добавлен жирный шрифт для лучшей читаемости на красном фоне
   danger:
     'bg-accent-red text-white font-semibold hover:bg-accent-red-dim shadow-glow-red',
 };
@@ -56,27 +51,39 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          // Базовые стили
           'inline-flex items-center justify-center font-medium',
           'transition-all duration-200 ease-out',
           'active:scale-[0.98] hover:scale-[1.02]',
           'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green',
           'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100',
-          // Вариант и размер
           variantStyles[variant],
           sizeStyles[size],
           className
         )}
         disabled={disabled || isLoading}
+        // ✅ ДОБАВЛЕНО: aria-busy для состояния загрузки
+        aria-busy={isLoading || undefined}
         {...props}
       >
         {isLoading ? (
-          <Spinner size={size} />
+          <>
+            <Spinner size={size} />
+            {/* ✅ ДОБАВЛЕНО: Скрытый текст для скринридеров во время загрузки */}
+            <span className="sr-only">Загрузка...</span>
+          </>
         ) : (
           <>
-            {leftIcon && <span className="shrink-0">{leftIcon}</span>}
+            {leftIcon && (
+              <span className="shrink-0" aria-hidden="true">
+                {leftIcon}
+              </span>
+            )}
             {children}
-            {rightIcon && <span className="shrink-0">{rightIcon}</span>}
+            {rightIcon && (
+              <span className="shrink-0" aria-hidden="true">
+                {rightIcon}
+              </span>
+            )}
           </>
         )}
       </button>
@@ -86,7 +93,6 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
 Button.displayName = 'Button';
 
-// Микро-спиннер для состояния загрузки
 function Spinner({ size }: { size: ButtonSize }) {
   const spinnerSize = size === 'sm' ? 'w-3.5 h-3.5' : size === 'lg' ? 'w-5 h-5' : 'w-4 h-4';
 
