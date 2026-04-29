@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
@@ -17,18 +17,31 @@ const PROFILE_QUERY_KEY = ['profile'] as const;
 export function useAuth() {
   const queryClient = useQueryClient();
   const [session, setSession] = useState<any>(null);
+  // ✅ Защита от двойного монтирования в StrictMode
+  const initialized = useRef(false);
 
   useEffect(() => {
+    // Предотвращаем двойную инициализацию
+    if (initialized.current) return;
+    initialized.current = true;
+
+    let mounted = true;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+      if (mounted) setSession(session);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) queryClient.clear();
+      if (mounted) {
+        setSession(session);
+        if (!session) queryClient.clear();
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [queryClient]);
 
   const {

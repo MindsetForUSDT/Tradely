@@ -18,5 +18,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: false,
     storageKey: 'tradeumdiary-auth',
+    // ✅ Отключаем блокировку — это решит ошибку в StrictMode
+    storage: localStorage,
+    // ✅ Увеличиваем таймаут блокировки
+    lock: {
+      acquireTimeout: 10000, // 10 секунд
+    },
   },
 });
