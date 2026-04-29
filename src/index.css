@@ -16,14 +16,17 @@
 
   html {
     scroll-behavior: smooth;
-    /* Мобильная оптимизация */
     -webkit-overflow-scrolling: touch;
+
+    /* Стандартные свойства скроллбара для Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: #2A2A2A transparent;
   }
 
   body {
     @apply bg-surface text-text-primary font-sans;
-    /* Запрет зума на двойной тап в iOS */
     touch-action: manipulation;
+
     /* Анимированный радиальный градиент-фон */
     background: radial-gradient(
       ellipse 80% 50% at 50% -20%,
@@ -33,72 +36,60 @@
     );
     background-attachment: fixed;
     min-height: 100vh;
-    min-height: 100dvh; /* Динамическая высота для iOS Safari */
+    min-height: 100dvh;
   }
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+
+  /* Кастомный скроллбар для Webkit-браузеров */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-border rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-text-muted;
+  }
+
+  /* Выделение текста */
+  ::selection {
+    @apply bg-accent-green/20 text-accent-green;
+  }
+
+  /* Фокус для accessibility */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent-green rounded;
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background-color: theme('colors.surface.border');
-  border-radius: 9999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background-color: theme('colors.text.muted');
-}
-
-/* ✅ ДОБАВЛЕНО: Стандартные свойства для Firefox */
-html {
-  scrollbar-width: thin;
-  scrollbar-color: theme('colors.surface.border') transparent;
-}
-
-/* Выделение текста */
-::selection {
-  background-color: rgba(0, 255, 163, 0.2);
-  color: #00FFA3;
-}
-
-/* Фокус для accessibility */
-:focus-visible {
-  outline: 2px solid theme('colors.accent.green');
-  outline-offset: 2px;
-  border-radius: 4px; /* Скругление для контура фокуса */
-}
 /* --- Компонентные классы --- */
 @layer components {
-  /* Стеклянная карточка (glassmorphism) */
   .glass-card {
     @apply bg-surface-elevated/70 backdrop-blur-xl border border-surface-border/50 rounded-2xl shadow-card;
   }
 
-  /* Градиентный текст (акцентный) */
   .text-gradient {
     @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-green to-accent-green/60;
   }
 
-  /* Кнопка с тактильной обратной связью */
   .btn-tactile {
     @apply transition-all duration-200 ease-out active:scale-[0.98] hover:scale-[1.02];
   }
 
-  /* Линия-разделитель */
   .divider {
     @apply h-px bg-gradient-to-r from-transparent via-surface-border to-transparent;
   }
 
-  /* Скелетон-лоадер */
   .skeleton {
     @apply animate-pulse bg-surface-overlay rounded-lg;
   }
 
-  /* Анимированный счётчик */
   .counter-value {
     @apply font-mono tabular-nums;
   }
@@ -106,7 +97,6 @@ html {
 
 /* --- Утилиты --- */
 @layer utilities {
-  /* Маска для градиентного фейда */
   .mask-fade-right {
     mask-image: linear-gradient(to right, black 60%, transparent 100%);
   }
@@ -115,16 +105,15 @@ html {
     mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
   }
 
-  /* Скрытие скроллбара */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
 
-  /* Задержки для stagger-анимаций */
   .stagger-delay-1 { animation-delay: 0.1s; }
   .stagger-delay-2 { animation-delay: 0.2s; }
   .stagger-delay-3 { animation-delay: 0.3s; }
