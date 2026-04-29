@@ -1,9 +1,3 @@
-// ============================================================
-// TradeumDiary — Хук аутентификации с кешированием
-// React Query гарантирует, что профиль загружается один раз
-// и доступен всем компонентам без повторных запросов
-// ============================================================
-
 import { useEffect, useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -18,14 +12,12 @@ interface Profile {
   created_at: string;
 }
 
-// Уникальный ключ для кеша React Query
 const PROFILE_QUERY_KEY = ['profile'] as const;
 
 export function useAuth() {
   const queryClient = useQueryClient();
-  const [session, setSession] = useState(() => null);
+  const [session, setSession] = useState<any>(null);
 
-  // Отслеживаем изменения сессии
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
@@ -33,33 +25,25 @@ export function useAuth() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-
-      // При выходе — сбрасываем весь кеш
-      if (!session) {
-        queryClient.clear();
-      }
+      if (!session) queryClient.clear();
     });
 
     return () => subscription.unsubscribe();
   }, [queryClient]);
 
-  // Загрузка профиля через React Query
   const {
     data: user,
     isLoading,
-    error,
     refetch: refreshProfile
   } = useQuery({
     queryKey: PROFILE_QUERY_KEY,
     queryFn: async (): Promise<Profile | null> => {
       if (!session?.user?.id) return null;
 
-      // Активируем триал при первом входе
       await supabase.rpc('activate_trial', {
         p_user_id: session.user.id,
       });
 
-      // Получаем профиль через SDK, а не fetch()
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
@@ -69,10 +53,10 @@ export function useAuth() {
       if (error) throw error;
       return data;
     },
-    enabled: !!session?.user?.id,    // Запрос только при наличии сессии
-    staleTime: 5 * 60 * 1000,        // 5 минут считаем данные свежими
-    gcTime: 30 * 60 * 1000,           // 30 минут храним в кеше после unmount
-    retry: 2,                         // 2 ретрая при ошибке
+    enabled: !!session?.user?.id,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+    retry: 2,
   });
 
   const signOut = useCallback(async () => {
@@ -82,9 +66,8 @@ export function useAuth() {
 
   return {
     user: user ?? null,
-    isLoading: isLoading && !!session, // Не показываем загрузку, если нет сессии
+    isLoading: isLoading && !!session,
     isAuthenticated: !!user,
-    error,
     signOut,
     refreshProfile,
   };

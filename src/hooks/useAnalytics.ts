@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getUserId, getToken } from '@/lib/supabase';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface DailyAnalytics {
   id: string;
@@ -14,41 +14,28 @@ interface DailyAnalytics {
 }
 
 export function useAnalytics(days = 30) {
-  const [analytics, setAnalytics] = useState<DailyAnalytics[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: analytics = [], isLoading } = useQuery({
+    queryKey: ['analytics', days],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
 
-  const fetchAnalytics = useCallback(async () => {
-    const userId = getUserId();
-    const token = getToken();
-    if (!userId || !token) { setIsLoading(false); return; }
+      const { data, error } = await supabase
+        .from('daily_analytics')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false })
+        .limit(days);
 
-    const since = new Date();
-    since.setDate(since.getDate() - days);
-
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/daily_analytics?user_id=eq.${userId}&order=date.desc&limit=${days}`,
-        {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      const data = await res.json();
-      setAnalytics(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.error('Analytics fetch error:', e);
-    }
-    setIsLoading(false);
-  }, [days]);
-
-  useEffect(() => { fetchAnalytics(); }, [fetchAnalytics]);
+      if (error) throw error;
+      return data as DailyAnalytics[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
 
   return {
     analytics,
     todayAnalytics: analytics[0] || null,
     isLoading,
-    refresh: fetchAnalytics,
   };
 }

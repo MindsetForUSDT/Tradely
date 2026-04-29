@@ -1,9 +1,3 @@
-// ============================================================
-// TradeumDiary — Хук сделок с кешированием и оптимизациями
-// Данные кешируются на 2 минуты. При повторном монтировании
-// компонента мгновенно отдаются закешированные данные
-// ============================================================
-
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
@@ -27,22 +21,22 @@ interface UseTradesOptions {
   daysAgo?: number;
 }
 
-// Ключ кеша с параметрами для инвалидации
-const tradesQueryKey = (options: UseTradesOptions) => ['trades', options] as const;
-
 export function useTrades(options?: UseTradesOptions) {
   const { limit = 50, daysAgo = 30 } = options || {};
 
-  const { data: trades = [], isLoading, error } = useQuery({
-    queryKey: tradesQueryKey({ limit, daysAgo }),
+  const { data: trades = [], isLoading } = useQuery({
+    queryKey: ['trades', { limit, daysAgo }],
     queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+
       const since = new Date();
       since.setDate(since.getDate() - daysAgo);
 
-      // ✅ Используем Supabase SDK вместо fetch()
       const { data, error } = await supabase
         .from('trades')
         .select('*')
+        .eq('user_id', user.id)
         .order('timestamp', { ascending: false })
         .gte('timestamp', since.toISOString())
         .limit(limit);
@@ -50,13 +44,10 @@ export function useTrades(options?: UseTradesOptions) {
       if (error) throw error;
       return data as Trade[];
     },
-    staleTime: 2 * 60 * 1000,  // Данные устаревают через 2 минуты
-    gcTime: 10 * 60 * 1000,     // 10 минут храним неиспользуемые данные
-    refetchOnWindowFocus: true,  // Обновляем при возврате на вкладку
-    retry: 2,
+    staleTime: 2 * 60 * 1000,
   });
 
-  // Все вычисления остаются в useMemo как раньше
+  // Все вычисления остаются как раньше
   const pnlData = useMemo(() => {
     let cumulative = 0;
     return [...trades]
@@ -104,7 +95,6 @@ export function useTrades(options?: UseTradesOptions) {
   return {
     trades,
     isLoading,
-    error,
     pnlData,
     tokenVolumes,
     weekdayPerformance,

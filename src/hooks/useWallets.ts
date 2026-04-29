@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { getUserId, getToken } from '@/lib/supabase';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 
 interface Wallet {
   id: string;
@@ -8,48 +8,33 @@ interface Wallet {
   chain: string;
   label: string | null;
   processing_status: string;
+  error_message: string | null;
+  added_at: string;
 }
 
 export function useWallets() {
-  const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: wallets = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['wallets'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
 
-  const fetchWallets = useCallback(async () => {
-    const userId = getUserId();
-    const token = getToken();
-    if (!userId || !token) {
-      setIsLoading(false);
-      return;
-    }
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('added_at', { ascending: false });
 
-    try {
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/wallets?user_id=eq.${userId}&order=added_at.desc`,
-        {
-          headers: {
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      if (error) throw error;
+      return data as Wallet[];
+    },
+    staleTime: 60 * 1000,
+  });
 
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-      const data = await res.json();
-      setWallets(Array.isArray(data) ? data : []);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Ошибка загрузки');
-      // Не обнуляем wallets — показываем старые данные
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchWallets();
-  }, [fetchWallets]);
-
-  return { wallets, isLoading, error, refresh: fetchWallets };
+  return {
+    wallets,
+    isLoading,
+    error: error ? (error as Error).message : null,
+    refresh: refetch,
+  };
 }
