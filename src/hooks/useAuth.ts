@@ -27,7 +27,6 @@ const AuthContext = createContext<AuthState>({
   refreshProfile: async () => {},
 });
 
-// Кеш профиля вне React
 let cachedProfile: Profile | null = null;
 
 async function loadProfile(): Promise<Profile | null> {
@@ -55,12 +54,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Profile | null>(cachedProfile);
   const [isLoading, setIsLoading] = useState(!cachedProfile);
   const mountedRef = useRef(true);
-  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
 
-    // Загружаем профиль только один раз
     if (cachedProfile) {
       setUser(cachedProfile);
       setIsLoading(false);
@@ -73,8 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    // ЕДИНСТВЕННАЯ подписка на изменения
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
       if (!mountedRef.current) return;
 
       if (event === 'SIGNED_OUT') {
@@ -93,11 +89,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    subscriptionRef.current = subscription;
-
     return () => {
       mountedRef.current = false;
-      subscription?.unsubscribe();
+      subscription.unsubscribe();
     };
   }, []);
 
@@ -114,16 +108,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const contextValue: AuthState = {
+    user,
+    isLoading,
+    isAuthenticated: !!user,
+    signOut,
+    refreshProfile,
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        signOut,
-        refreshProfile,
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );
