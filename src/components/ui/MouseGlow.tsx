@@ -1,8 +1,3 @@
-// ============================================================
-// TradeumDiary — Компонент "свечение за мышью"
-// Создаёт мягкий радиальный градиент, следующий за курсором
-// ============================================================
-
 import { useMousePosition } from '@/hooks/useMousePosition';
 import { useEffect, useState } from 'react';
 
@@ -10,7 +5,6 @@ export function MouseGlow() {
   const { x, y, isMoving } = useMousePosition();
   const [isVisible, setIsVisible] = useState(false);
 
-  // Показываем свечение только при движении мыши
   useEffect(() => {
     if (isMoving) {
       setIsVisible(true);
@@ -20,7 +14,6 @@ export function MouseGlow() {
     }
   }, [isMoving]);
 
-  // Не рендерим на мобильных
   const [isMobile, setIsMobile] = useState(true);
   useEffect(() => {
     setIsMobile(window.matchMedia('(max-width: 768px)').matches);
@@ -30,14 +23,9 @@ export function MouseGlow() {
 
   return (
     <div
-      className="mouse-glow"
+      className="fixed inset-0 pointer-events-none z-0 transition-opacity duration-300"
       style={{
-        background: `radial-gradient(
-          600px circle at ${x}px ${y}px,
-          rgba(0, 255, 163, 0.07) 0%,
-          rgba(0, 255, 163, 0.03) 30%,
-          transparent 70%
-        )`,
+        background: `radial-gradient(600px circle at ${x}px ${y}px, rgba(0, 255, 163, 0.07) 0%, rgba(0, 255, 163, 0.03) 30%, transparent 70%)`,
         opacity: isVisible ? 1 : 0,
       }}
       aria-hidden="true"

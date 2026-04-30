@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/components/layout/Layout';
 import { Landing } from '@/pages/Landing';
@@ -27,26 +27,13 @@ export default function App() {
           error: { iconTheme: { primary: '#FF3B5C', secondary: '#0A0A0A' } },
         }}
       />
-
       <Routes>
         <Route element={<Layout />}>
-          {/* Публичные */}
           <Route path="/" element={<Landing />} />
           <Route path="/subscribe" element={<Subscribe />} />
-
-          {/* Защищённые (только авторизованные) */}
           <Route path="/payment" element={<AuthGuard><Payment /></AuthGuard>} />
-
-          {/* Дашборд (только с кошельком или триалом) */}
-          <Route path="/dashboard/*" element={
-            <AuthGuard><ProGuard><Dashboard /></ProGuard></AuthGuard>
-          } />
-
-          {/* PRO-аналитика (только PRO) */}
-          <Route path="/pro/*" element={
-            <AuthGuard><ProGuard requirePro><ProAnalytics /></ProGuard></AuthGuard>
-          } />
-
+          <Route path="/dashboard/*" element={<AuthGuard><ProGuard><Dashboard /></ProGuard></AuthGuard>} />
+          <Route path="/pro/*" element={<AuthGuard><ProGuard requirePro><ProAnalytics /></ProGuard></AuthGuard>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

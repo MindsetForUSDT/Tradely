@@ -8,7 +8,6 @@ import { Navigate } from 'react-router-dom';
 export function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Показываем спиннер только при первой загрузке
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -17,9 +16,7 @@ export function Landing() {
     );
   }
 
-  if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
-  }
+  if (isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   return (
     <div className="min-h-screen">

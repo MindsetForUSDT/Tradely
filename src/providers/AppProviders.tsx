@@ -13,11 +13,6 @@ const queryClient = new QueryClient({
       gcTime: 30 * 60 * 1000,
       retry: 2,
       refetchOnWindowFocus: false,
-      refetchOnReconnect: true,
-      refetchOnMount: true,
-    },
-    mutations: {
-      retry: 1,
     },
   },
 });

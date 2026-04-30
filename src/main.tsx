@@ -6,14 +6,9 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import './index.css';
 
 const rootElement = document.getElementById('root');
+if (!rootElement) throw new Error('Root element not found');
 
-if (!rootElement) {
-  throw new Error('Root element not found');
-}
-
-const root = createRoot(rootElement);
-
-root.render(
+createRoot(rootElement).render(
   <StrictMode>
     <ErrorBoundary>
       <AppProviders>
