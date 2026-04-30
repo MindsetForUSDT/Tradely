@@ -11,7 +11,7 @@ export function AuthGuard({ children }: AuthGuardProps) {
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
       </div>
     );
   }

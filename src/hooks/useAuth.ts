@@ -1,5 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 
 interface Profile {
@@ -12,86 +11,124 @@ interface Profile {
   created_at: string;
 }
 
-// ✅ Ключ без вложенных массивов для лучшего кеширования
-const PROFILE_QUERY_KEY = 'profile';
+interface AuthState {
+  user: Profile | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  signOut: () => Promise<void>;
+  refreshProfile: () => Promise<void>;
+}
 
-export function useAuth() {
-  const queryClient = useQueryClient();
-  const [session, setSession] = useState<any>(null);
-  const initialized = useRef(false);
-  // ✅ Кешируем ID пользователя, чтобы не дёргать getSession()
-  const userIdRef = useRef<string | null>(null);
+const AuthContext = createContext<AuthState>({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  signOut: async () => {},
+  refreshProfile: async () => {},
+});
+
+// Кеш профиля вне React
+let cachedProfile: Profile | null = null;
+
+async function loadProfile(): Promise<Profile | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      cachedProfile = null;
+      return null;
+    }
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    cachedProfile = data;
+    return data;
+  } catch {
+    return cachedProfile;
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<Profile | null>(cachedProfile);
+  const [isLoading, setIsLoading] = useState(!cachedProfile);
+  const mountedRef = useRef(true);
+  const subscriptionRef = useRef<{ unsubscribe: () => void } | null>(null);
 
   useEffect(() => {
-    if (initialized.current) return;
-    initialized.current = true;
+    mountedRef.current = true;
 
-    let mounted = true;
+    // Загружаем профиль только один раз
+    if (cachedProfile) {
+      setUser(cachedProfile);
+      setIsLoading(false);
+    } else {
+      loadProfile().then(profile => {
+        if (mountedRef.current) {
+          setUser(profile);
+          setIsLoading(false);
+        }
+      });
+    }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (mounted && session) {
-        setSession(session);
-        userIdRef.current = session.user.id;
+    // ЕДИНСТВЕННАЯ подписка на изменения
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mountedRef.current) return;
+
+      if (event === 'SIGNED_OUT') {
+        cachedProfile = null;
+        setUser(null);
+        setIsLoading(false);
+        return;
       }
-    });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        setSession(session);
-        userIdRef.current = session?.user?.id ?? null;
-        if (!session) {
-          queryClient.clear();
-          userIdRef.current = null;
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        const profile = await loadProfile();
+        if (mountedRef.current) {
+          setUser(profile);
+          setIsLoading(false);
         }
       }
     });
 
+    subscriptionRef.current = subscription;
+
     return () => {
-      mounted = false;
-      subscription.unsubscribe();
+      mountedRef.current = false;
+      subscription?.unsubscribe();
     };
-  }, [queryClient]);
-
-  const {
-    data: user,
-    isLoading,
-  } = useQuery({
-    queryKey: [PROFILE_QUERY_KEY, userIdRef.current],
-    queryFn: async (): Promise<Profile | null> => {
-      if (!userIdRef.current) return null;
-
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userIdRef.current)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!userIdRef.current,
-    // ✅ Данные профиля почти не меняются — кешируем надолго
-    staleTime: 10 * 60 * 1000,  // 10 минут
-    gcTime: 60 * 60 * 1000,     // 1 час
-    retry: 2,
-  });
+  }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    userIdRef.current = null;
-    queryClient.clear();
-  }, [queryClient]);
+    cachedProfile = null;
+    setUser(null);
+  }, []);
 
   const refreshProfile = useCallback(async () => {
-    await queryClient.invalidateQueries({ queryKey: [PROFILE_QUERY_KEY] });
-  }, [queryClient]);
+    const profile = await loadProfile();
+    if (mountedRef.current) {
+      setUser(profile);
+    }
+  }, []);
 
-  return {
-    user: user ?? null,
-    // ✅ Не показываем загрузку, если просто обновляем данные в фоне
-    isLoading: !user && !!session,
-    isAuthenticated: !!user,
-    signOut,
-    refreshProfile,
-  };
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        signOut,
+        refreshProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
 }

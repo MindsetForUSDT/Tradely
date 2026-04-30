@@ -1,8 +1,3 @@
-// ============================================================
-// TradeumDiary — Страница лендинга
-// Корневая страница с анимированным хиро-блоком и формой входа
-// ============================================================
-
 import { HeroSection } from '@/components/landing/HeroSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { FAQSection } from '@/components/landing/FAQSection';
@@ -13,22 +8,25 @@ import { Navigate } from 'react-router-dom';
 export function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
 
-  // Если пользователь уже авторизован — редирект в дашборд
-  if (!isLoading && isAuthenticated) {
+  // Показываем спиннер только при первой загрузке
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
   return (
     <div className="min-h-screen">
-      {/* Хиро-секция с анимацией и формой входа */}
       <HeroSection>
         <AuthPage />
       </HeroSection>
-
-      {/* Возможности продукта */}
       <FeaturesSection />
-
-      {/* FAQ с аккордеоном */}
       <FAQSection />
     </div>
   );

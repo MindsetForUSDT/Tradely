@@ -1,7 +1,5 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
 import type { ReactNode } from 'react';
 
 interface ProGuardProps {
@@ -10,37 +8,10 @@ interface ProGuardProps {
 }
 
 export function ProGuard({ children, requirePro = false }: ProGuardProps) {
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, isLoading } = useAuth();
 
-  // ✅ Кошельки загружаются ПАРАЛЛЕЛЬНО с авторизацией,
-  // а не ждут её завершения
-  const { data: wallets } = useQuery({
-    queryKey: ['wallets'],
-    queryFn: async () => {
-      if (!user?.id) return [];
-
-      const { data, error } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('added_at', { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-    // ✅ Запрос выполняется только когда есть user.id
-    enabled: !!user?.id,
-    // ✅ Кошельки кешируем на 5 минут
-    staleTime: 5 * 60 * 1000,
-  });
-
-  // ✅ Быстрый спиннер только при первой загрузке
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-8 h-8 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
-      </div>
-    );
+  if (isLoading) {
+    return null; // Не показываем ничего — AuthGuard уже показал загрузку
   }
 
   if (!user) {
@@ -57,11 +28,9 @@ export function ProGuard({ children, requirePro = false }: ProGuardProps) {
     return <Navigate to="/subscribe" replace />;
   }
 
-  if (isPro || isTrialActive) {
-    // ✅ Не ждём загрузки кошельков — показываем контент сразу
-    // Проверка на пустые кошельки произойдёт в DashboardLayout
-    return <>{children}</>;
+  if (!isPro && !isTrialActive) {
+    return <Navigate to="/subscribe" replace />;
   }
 
-  return <Navigate to="/subscribe" replace />;
+  return <>{children}</>;
 }
