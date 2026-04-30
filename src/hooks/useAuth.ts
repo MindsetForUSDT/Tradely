@@ -124,11 +124,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     AuthContext.Provider,
     {
       value: {
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        signOut,
-        refreshProfile,
+        user: user,
+        isLoading: isLoading,
+        isAuthenticated: user !== null,
+        signOut: signOut,
+        refreshProfile: refreshProfile,
       },
     },
     children
