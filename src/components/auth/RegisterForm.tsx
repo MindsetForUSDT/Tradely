@@ -15,20 +15,14 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
-    e.preventDefault(); // Предотвращаем перезагрузку страницы
+    e.preventDefault();
 
     if (!username || !email || !password) {
       toast.error('Заполните все поля');
       return;
     }
-
-    if (username.length < 3) {
-      toast.error('Имя пользователя минимум 3 символа');
-      return;
-    }
-
-    if (password.length < 8) {
-      toast.error('Пароль минимум 8 символов');
+    if (password.length < 6) {
+      toast.error('Пароль минимум 6 символов');
       return;
     }
 
@@ -39,23 +33,23 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         email,
         password,
         options: {
-          data: { username }, // Метаданные пользователя
+          data: { username },
         },
       });
 
       if (error) {
-        toast.error(error.message === 'User already registered'
-          ? 'Пользователь с таким email уже существует'
-          : error.message);
+        toast.error(error.message);
+        setLoading(false);
         return;
       }
 
       if (data.user) {
         toast.success('Аккаунт создан!');
-        navigate('/dashboard', { replace: true }); // Клиентский переход без перезагрузки
+        // Редирект на страницу подписки для активации триала
+        navigate('/subscribe', { replace: true });
       }
-    } catch (err) {
-      toast.error('Ошибка сети. Проверьте подключение.');
+    } catch {
+      toast.error('Ошибка сети');
     } finally {
       setLoading(false);
     }
@@ -64,9 +58,7 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
   return (
     <form onSubmit={handleRegister} className="space-y-4" noValidate>
       <div>
-        <label htmlFor="register-username" className="sr-only">
-          Имя пользователя
-        </label>
+        <label htmlFor="register-username" className="sr-only">Имя пользователя</label>
         <input
           id="register-username"
           type="text"
@@ -75,15 +67,12 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
           onChange={e => setUsername(e.target.value)}
           autoComplete="username"
           required
-          minLength={3}
           className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
         />
       </div>
 
       <div>
-        <label htmlFor="register-email" className="sr-only">
-          Email
-        </label>
+        <label htmlFor="register-email" className="sr-only">Email</label>
         <input
           id="register-email"
           type="email"
@@ -97,18 +86,15 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       </div>
 
       <div>
-        <label htmlFor="register-password" className="sr-only">
-          Пароль
-        </label>
+        <label htmlFor="register-password" className="sr-only">Пароль</label>
         <input
           id="register-password"
           type="password"
-          placeholder="Пароль (мин. 8 символов)"
+          placeholder="Пароль (мин. 6 символов)"
           value={password}
           onChange={e => setPassword(e.target.value)}
           autoComplete="new-password"
           required
-          minLength={8}
           className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
         />
       </div>
@@ -116,18 +102,14 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
       >
         {loading ? 'Регистрация...' : 'Создать аккаунт'}
       </button>
 
       <p className="text-center text-sm text-text-muted">
         Уже есть аккаунт?{' '}
-        <button
-          type="button"
-          onClick={onSwitchToLogin}
-          className="text-accent-green font-medium hover:underline"
-        >
+        <button type="button" onClick={onSwitchToLogin} className="text-accent-green font-medium">
           Войти
         </button>
       </p>

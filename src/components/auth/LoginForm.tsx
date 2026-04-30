@@ -15,38 +15,28 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault(); // Предотвращаем перезагрузку страницы
+    e.preventDefault();
 
-    if (!email) {
-      toast.error('Введите email');
-      return;
-    }
-    if (!password) {
-      toast.error('Введите пароль');
-      return;
-    }
+    if (!email) { toast.error('Введите email'); return; }
+    if (!password) { toast.error('Введите пароль'); return; }
 
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
       if (error) {
-        toast.error(error.message === 'Invalid login credentials'
-          ? 'Неверный email или пароль'
-          : error.message);
+        toast.error('Неверный email или пароль');
+        setLoading(false);
         return;
       }
 
       if (data.user) {
         toast.success('Вход выполнен!');
-        navigate('/dashboard', { replace: true }); // Клиентский переход без перезагрузки
+        navigate('/dashboard', { replace: true });
       }
-    } catch (err) {
-      toast.error('Ошибка сети. Проверьте подключение.');
+    } catch {
+      toast.error('Ошибка сети');
     } finally {
       setLoading(false);
     }
@@ -55,9 +45,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
   return (
     <form onSubmit={handleLogin} className="space-y-4" noValidate>
       <div>
-        <label htmlFor="login-email" className="sr-only">
-          Email
-        </label>
+        <label htmlFor="login-email" className="sr-only">Email</label>
         <input
           id="login-email"
           type="email"
@@ -71,9 +59,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
       </div>
 
       <div>
-        <label htmlFor="login-password" className="sr-only">
-          Пароль
-        </label>
+        <label htmlFor="login-password" className="sr-only">Пароль</label>
         <input
           id="login-password"
           type="password"
@@ -89,28 +75,20 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
       >
         {loading ? 'Вход...' : 'Войти'}
       </button>
 
       <div className="text-right">
-        <button
-          type="button"
-          onClick={onSwitchToReset}
-          className="text-xs text-text-muted hover:text-accent-green transition-colors"
-        >
+        <button type="button" onClick={onSwitchToReset} className="text-xs text-text-muted hover:text-accent-green transition-colors">
           Забыли пароль?
         </button>
       </div>
 
       <p className="text-center text-sm text-text-muted">
         Нет аккаунта?{' '}
-        <button
-          type="button"
-          onClick={onSwitchToRegister}
-          className="text-accent-green font-medium hover:underline"
-        >
+        <button type="button" onClick={onSwitchToRegister} className="text-accent-green font-medium">
           Регистрация
         </button>
       </p>
