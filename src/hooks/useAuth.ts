@@ -119,19 +119,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        isLoading,
-        isAuthenticated: !!user,
-        signOut,
-        refreshProfile,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
+  // ВОТ ЭТО ИСПРАВЛЕНИЕ: выносим value в переменную
+  const providerValue: AuthState = {
+    user,
+    isLoading,
+    isAuthenticated: !!user,
+    signOut,
+    refreshProfile,
+  };
+
+  // И передаём переменную, а не объект напрямую
+  return <AuthContext.Provider value={providerValue}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
