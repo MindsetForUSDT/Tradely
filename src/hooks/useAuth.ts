@@ -1,6 +1,7 @@
 import {
   createContext,
   useContext,
+  createElement,
   useState,
   useEffect,
   useCallback,
@@ -119,17 +120,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // ВОТ ЭТО ИСПРАВЛЕНИЕ: выносим value в переменную
-  const providerValue: AuthState = {
-    user,
-    isLoading,
-    isAuthenticated: !!user,
-    signOut,
-    refreshProfile,
-  };
-
-  // И передаём переменную, а не объект напрямую
-  return <AuthContext.Provider value={providerValue}>{children}</AuthContext.Provider>;
+  return createElement(
+    AuthContext.Provider,
+    {
+      value: {
+        user,
+        isLoading,
+        isAuthenticated: !!user,
+        signOut,
+        refreshProfile,
+      },
+    },
+    children
+  );
 }
 
 export function useAuth() {
