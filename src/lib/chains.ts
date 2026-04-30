@@ -18,4 +18,4 @@ export function validateAddress(address: string, chain: BlockchainNetwork): { va
   if (!address || address.trim().length === 0) return { valid: false, error: 'Введите адрес' };
   if (!config.addressPattern.test(address.trim())) return { valid: false, error: `Неверный формат. Пример: ${config.addressExample}` };
   return { valid: true };
-}ы
+}
