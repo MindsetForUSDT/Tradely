@@ -11,11 +11,11 @@ services:
   # Основное веб-приложение (статический SPA)
   # ==========================================================
   - name: tradeumdiary-web
-    type: static
+    type: web
+    runtime: static
     region: frankfurt
     buildCommand: npm ci --production=false && npm run build
     staticPublishPath: ./dist
-    pullRequestPreviewsEnabled: false
     routes:
       - type: rewrite
         source: /*
@@ -42,13 +42,7 @@ services:
     region: frankfurt
     schedule: "*/5 * * * *"
     buildCommand: npm ci --production=false
-    startCommand: |
-      #!/bin/bash
-      set -e
-      curl -s -X POST "${SUPABASE_URL}/functions/v1/fetch-trade-history" \
-        -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-        -H "Content-Type: application/json" \
-        -d '{"action":"process_queue"}' && echo "✅ OK" || (echo "❌ FAILED" && exit 1)
+    startCommand: curl -s -X POST "${SUPABASE_URL}/functions/v1/fetch-trade-history" -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" -H "Content-Type: application/json" -d '{"action":"process_queue"}' && echo " OK" || (echo " FAILED" && exit 1)
     envVars:
       - key: SUPABASE_URL
         value: "https://zfgeofskmgycojbzrznk.supabase.co"
@@ -64,12 +58,7 @@ services:
     region: frankfurt
     schedule: "0 2 * * *"
     buildCommand: npm ci --production=false
-    startCommand: |
-      #!/bin/bash
-      set -e
-      curl -s -X POST "${SUPABASE_URL}/functions/v1/calculate-analytics" \
-        -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
-        -H "Content-Type: application/json" && echo "✅ OK" || (echo "❌ FAILED" && exit 1)
+    startCommand: curl -s -X POST "${SUPABASE_URL}/functions/v1/calculate-analytics" -H "Authorization: Bearer ${SUPABASE_ANON_KEY}" -H "Content-Type: application/json" && echo " OK" || (echo " FAILED" && exit 1)
     envVars:
       - key: SUPABASE_URL
         value: "https://zfgeofskmgycojbzrznk.supabase.co"
@@ -85,13 +74,7 @@ services:
     region: frankfurt
     schedule: "0 * * * *"
     buildCommand: npm ci --production=false
-    startCommand: |
-      #!/bin/bash
-      set -e
-      curl -s -X POST "${SUPABASE_URL}/rest/v1/rpc/expire_pro_subscriptions" \
-        -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" \
-        -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" \
-        -H "Content-Type: application/json" && echo "✅ OK" || (echo "❌ FAILED" && exit 1)
+    startCommand: curl -s -X POST "${SUPABASE_URL}/rest/v1/rpc/expire_pro_subscriptions" -H "Authorization: Bearer ${SUPABASE_SERVICE_ROLE_KEY}" -H "apikey: ${SUPABASE_SERVICE_ROLE_KEY}" -H "Content-Type: application/json" && echo " OK" || (echo " FAILED" && exit 1)
     envVars:
       - key: SUPABASE_URL
         value: "https://zfgeofskmgycojbzrznk.supabase.co"
