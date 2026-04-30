@@ -1,7 +1,15 @@
-import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { supabase } from '@/lib/supabase';
 
-interface Profile {
+export interface Profile {
   id: string;
   username: string;
   avatar_url: string | null;
@@ -31,7 +39,9 @@ let cachedProfile: Profile | null = null;
 
 async function loadProfile(): Promise<Profile | null> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) {
       cachedProfile = null;
       return null;
@@ -50,7 +60,11 @@ async function loadProfile(): Promise<Profile | null> {
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const [user, setUser] = useState<Profile | null>(cachedProfile);
   const [isLoading, setIsLoading] = useState(!cachedProfile);
   const mountedRef = useRef(true);
@@ -62,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(cachedProfile);
       setIsLoading(false);
     } else {
-      loadProfile().then(profile => {
+      loadProfile().then((profile) => {
         if (mountedRef.current) {
           setUser(profile);
           setIsLoading(false);
@@ -70,7 +84,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     }
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange(async (event) => {
       if (!mountedRef.current) return;
 
       if (event === 'SIGNED_OUT') {
@@ -108,7 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const contextValue: AuthState = {
+  const value: AuthState = {
     user,
     isLoading,
     isAuthenticated: !!user,
@@ -116,13 +132,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshProfile,
   };
 
-  return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
+export function useAuth(): AuthState {
   return useContext(AuthContext);
 }
