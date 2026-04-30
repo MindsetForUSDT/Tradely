@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
@@ -30,6 +30,35 @@ export function WalletConnect() {
     transactionsCount?: number;
     error?: string;
   } | null>(null);
+
+  // ============================================================
+  // Слушатели смены сети и аккаунта MetaMask
+  // ============================================================
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.ethereum) return;
+
+    const handleChainChanged = (chainId: string) => {
+      console.warn('[Wallet] Chain changed to:', chainId);
+      // Перезагружаем страницу при смене сети (рекомендация MetaMask)
+      window.location.reload();
+    };
+
+    const handleAccountsChanged = (accounts: string[]) => {
+      console.warn('[Wallet] Account changed:', accounts);
+      if (accounts.length === 0) {
+        // Пользователь отключил кошелёк
+        toast.error('Кошелёк отключён');
+      }
+    };
+
+    window.ethereum.on('chainChanged', handleChainChanged);
+    window.ethereum.on('accountsChanged', handleAccountsChanged);
+
+    return () => {
+      window.ethereum?.removeListener?.('chainChanged', handleChainChanged);
+      window.ethereum?.removeListener?.('accountsChanged', handleAccountsChanged);
+    };
+  }, []);
 
   const handleVerify = async () => {
     // Валидация формата
