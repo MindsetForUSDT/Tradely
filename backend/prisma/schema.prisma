@@ -1,0 +1,108 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String   @id @default(uuid())
+  email                  String   @unique
+  passwordHash           String   @map("password_hash")
+  subscriptionTier       String   @default("free") @map("subscription_tier")
+  trialStartedAt         DateTime? @map("trial_started_at")
+  subscriptionExpiresAt  DateTime? @map("subscription_expires_at")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
+
+  wallets         Wallet[]
+  trades          Trade[]
+  tags            Tag[]
+  dailyAnalytics  DailyAnalytics[]
+
+  @@map("users")
+}
+
+model Wallet {
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  address           String
+  chain             String
+  label             String?
+  processingStatus  String   @default("pending") @map("processing_status")
+  errorMessage      String?  @map("error_message")
+  lastSyncedAt      DateTime? @map("last_synced_at")
+  addedAt           DateTime @default(now()) @map("added_at")
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trades Trade[]
+
+  @@unique([userId, address, chain])
+  @@map("wallets")
+}
+
+model Trade {
+  id               String   @id @default(uuid())
+  userId           String   @map("user_id")
+  walletId         String?  @map("wallet_id")
+  transactionHash  String?  @map("transaction_hash")
+  symbol           String
+  side             String
+  amount           Decimal  @db.Decimal(30, 18)
+  price            Decimal  @db.Decimal(30, 18)
+  valueUsd         Decimal  @db.Decimal(20, 2) @map("value_usd")
+  timestamp        DateTime
+  exchange         String?
+  createdAt        DateTime @default(now()) @map("created_at")
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  wallet    Wallet?     @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  tags      TradeTag[]
+
+  @@index([userId, timestamp])
+  @@map("trades")
+}
+
+model Tag {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  name   String
+  color  String @default("#00FFA3")
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tradeTags TradeTag[]
+
+  @@unique([userId, name])
+  @@map("tags")
+}
+
+model TradeTag {
+  tradeId String @map("trade_id")
+  tagId   String @map("tag_id")
+
+  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  tag   Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([tradeId, tagId])
+  @@map("trade_tags")
+}
+
+model DailyAnalytics {
+  id              String  @id @default(uuid())
+  userId          String  @map("user_id")
+  date            DateTime @db.Date
+  totalVolumeUsd  Decimal @default(0) @db.Decimal(20, 2) @map("total_volume_usd")
+  totalTrades     Int     @default(0) @map("total_trades")
+  realizedPnlUsd  Decimal @default(0) @db.Decimal(20, 2) @map("realized_pnl_usd")
+  winRate         Decimal @default(0) @db.Decimal(5, 2) @map("win_rate")
+  bestTradeUsd    Decimal @default(0) @db.Decimal(20, 2) @map("best_trade_usd")
+  worstTradeUsd   Decimal @default(0) @db.Decimal(20, 2) @map("worst_trade_usd")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+  @@map("daily_analytics")
+}

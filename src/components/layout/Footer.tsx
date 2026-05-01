@@ -33,6 +33,8 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-10 pt-6 border-t border-surface-border/20 text-center">
+          <p className="text-xs text-accent-red/60 mt-4 text-center">
+            Не является инвестиционной рекомендацией. Торговля сопряжена с риском потери капитала.</p>
           <p className="text-xs text-text-muted">© {new Date().getFullYear()} TradeumDiary. Все права защищены.</p>
         </div>
       </div>
