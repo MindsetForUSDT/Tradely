@@ -2,7 +2,6 @@
 // TradeumDiary — Централизованные типы
 // ============================================================
 
-// --- Пользователь и профиль ---
 export type SubscriptionTier = 'free' | 'pro';
 export type BlockchainNetwork = 'ethereum' | 'solana' | 'polygon' | 'bsc' | 'arbitrum' | 'optimism';
 export type WalletProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
@@ -17,7 +16,6 @@ export interface Profile {
   updated_at: string;
 }
 
-// --- Кошелёк ---
 export interface Wallet {
   id: string;
   user_id: string;
@@ -30,7 +28,6 @@ export interface Wallet {
   added_at: string;
 }
 
-// --- Сделка (трейд) ---
 export interface Trade {
   id: string;
   wallet_id: string;
@@ -46,7 +43,6 @@ export interface Trade {
   created_at: string;
 }
 
-// --- Дневная аналитика ---
 export interface DailyAnalytics {
   id: string;
   user_id: string;
@@ -60,7 +56,6 @@ export interface DailyAnalytics {
   updated_at: string;
 }
 
-// --- Данные для графиков ---
 export interface PnLDataPoint {
   date: string;
   pnl: number;
@@ -77,21 +72,4 @@ export interface WeekdayPerformance {
   day: string;
   profit: number;
   trades: number;
-}
-
-// --- Состояние приложения (Zustand) ---
-export interface AppState {
-  // Пользователь
-  user: Profile | null;
-  setUser: (user: Profile | null) => void;
-
-  // Баланс и статистика (для верхней панели дашборда)
-  totalBalance: number;
-  dailyPnl: number;
-  dailyTrades: number;
-  setStats: (balance: number, pnl: number, trades: number) => void;
-
-  // Загрузка
-  isLoading: boolean;
-  setIsLoading: (loading: boolean) => void;
 }
