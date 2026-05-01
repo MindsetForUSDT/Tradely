@@ -14,6 +14,7 @@ interface Trade {
   amount_out: number;
   value_usd: number;
   is_buy: boolean;
+  created_at: string;
 }
 
 interface UseTradesOptions {
