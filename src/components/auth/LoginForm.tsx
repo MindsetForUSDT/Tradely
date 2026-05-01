@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -12,7 +11,6 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,14 +21,20 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
+      console.log('LOGIN ERROR:', error.message);
       toast.error('Неверный email или пароль');
       setLoading(false);
       return;
     }
 
-    if (data.user) {
+    console.log('LOGIN DATA:', data);
+
+    if (data?.session) {
       toast.success('Вход выполнен!');
-      navigate('/dashboard', { replace: true });
+      window.location.href = '/dashboard';
+    } else {
+      toast.error('Ошибка входа. Попробуйте снова.');
+      setLoading(false);
     }
   };
 
