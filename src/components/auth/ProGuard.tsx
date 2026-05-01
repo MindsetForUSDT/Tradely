@@ -4,13 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 export function ProGuard({ children, requirePro = false }: { children: React.ReactNode; requirePro?: boolean }) {
   const { user, isLoading } = useAuth();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-8 h-8 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+  if (isLoading) return null;
 
   if (!user) return <Navigate to="/" replace />;
 

@@ -31,7 +31,7 @@ export function DashboardLayout() {
     daysAgo: 30,
   });
   const { todayAnalytics, isLoading: analyticsLoading } = useAnalytics();
-  const { wallets, isLoading: walletsLoading } = useWallets();
+  const { wallets } = useWallets();
   const setStats = useStore((s) => s.setStats);
 
   useEffect(() => {
@@ -43,38 +43,23 @@ export function DashboardLayout() {
     });
   }, [totalVolume, todayAnalytics, totalTrades, tradesLoading, analyticsLoading, setStats]);
 
-  // ✅ Проверка кошелька с учетом параллельной загрузки
-  if (!walletsLoading && wallets.length === 0) {
+  if (wallets.length === 0) {
     return <RequireWallet />;
   }
 
-  // ✅ Показываем контент даже если данные ещё грузятся
-  // React Query отдаст закешированные данные или покажет скелетоны
-  const isLoading = tradesLoading || analyticsLoading;
-
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
-      <AnimatedSection>
-        <StatsOverview
-          balance={totalVolume}
-          pnl={todayAnalytics?.realized_pnl_usd ?? 0}
-          trades={todayAnalytics?.total_trades ?? totalTrades}
-          isLoading={isLoading}
-        />
-      </AnimatedSection>
-
+      <StatsOverview
+        balance={totalVolume}
+        pnl={todayAnalytics?.realized_pnl_usd ?? 0}
+        trades={todayAnalytics?.total_trades ?? totalTrades}
+        isLoading={tradesLoading || analyticsLoading}
+      />
       <div className="grid lg:grid-cols-2 gap-6">
-        <AnimatedSection delay={0.1}>
-          <PnLChart data={pnlData} isLoading={isLoading} />
-        </AnimatedSection>
-        <AnimatedSection delay={0.2}>
-          <VolumeByTokenChart data={tokenVolumes} isLoading={isLoading} />
-        </AnimatedSection>
+        <PnLChart data={pnlData} isLoading={tradesLoading} />
+        <VolumeByTokenChart data={tokenVolumes} isLoading={tradesLoading} />
       </div>
-
-      <AnimatedSection delay={0.3}>
-        <TradeList trades={trades.slice(0, 5)} isLoading={isLoading} compact />
-      </AnimatedSection>
+      <TradeList trades={trades.slice(0, 5)} isLoading={tradesLoading} compact />
     </div>
   );
 }
