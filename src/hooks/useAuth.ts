@@ -1,4 +1,4 @@
-import {
+import React, {
   createContext,
   useContext,
   useState,
@@ -113,8 +113,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (mountedRef.current) setUser(profile);
   }, []);
 
-  const ctx = { user, isLoading, isAuthenticated: !!user, signOut, refreshProfile };
-  return <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>;
+  const ctx: AuthState = {
+    user,
+    isLoading,
+    isAuthenticated: user !== null,
+    signOut,
+    refreshProfile,
+  };
+
+  const Provider = AuthContext.Provider;
+  return React.createElement(Provider, { value: ctx }, children);
 }
 
 export function useAuth() {
