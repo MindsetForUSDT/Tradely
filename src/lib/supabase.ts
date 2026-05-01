@@ -9,5 +9,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: false,
     storageKey: 'tradeumdiary-auth',
+    lock: {
+      acquireTimeout: 10000,
+    },
   },
 });
