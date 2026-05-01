@@ -1,67 +1,122 @@
-import { useCallback, useState } from 'react';
+import {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { supabase } from '@/lib/supabase';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
-
-async function fetchApi(path: string, options: RequestInit = {}) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ message: 'Network error' }));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-
-  return res.json();
+export interface Profile {
+  readonly id: string;
+  readonly username: string;
+  readonly avatar_url: string | null;
+  readonly subscription_tier: 'free' | 'pro';
+  readonly subscription_expires_at: string | null;
+  readonly trial_started_at: string | null;
+  readonly created_at: string;
 }
 
-export function useApi() {
-  const [loading, setLoading] = useState(false);
+interface AuthState {
+  readonly user: Profile | null;
+  readonly isLoading: boolean;
+  readonly isAuthenticated: boolean;
+  readonly signOut: () => Promise<void>;
+  readonly refreshProfile: () => Promise<void>;
+}
 
-  const get = useCallback(async (path: string) => {
-    setLoading(true);
-    try {
-      return await fetchApi(path);
-    } finally {
-      setLoading(false);
+const AuthContext = createContext<AuthState>({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  signOut: async () => {},
+  refreshProfile: async () => {},
+});
+
+let cachedProfile: Profile | null = null;
+
+async function loadProfile(): Promise<Profile | null> {
+  try {
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData.user) {
+      cachedProfile = null;
+      return null;
     }
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .single();
+    cachedProfile = profile;
+    return cachedProfile;
+  } catch {
+    return cachedProfile;
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<Profile | null>(cachedProfile);
+  const [isLoading, setIsLoading] = useState(!cachedProfile);
+  const mountedRef = useRef(true);
+  const initializedRef = useRef(false);
+
+  useEffect(() => {
+    if (initializedRef.current) return;
+    initializedRef.current = true;
+    mountedRef.current = true;
+
+    if (cachedProfile) {
+      setUser(cachedProfile);
+      setIsLoading(false);
+    } else {
+      loadProfile().then((profile) => {
+        if (mountedRef.current) {
+          setUser(profile);
+          setIsLoading(false);
+        }
+      });
+    }
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
+      if (!mountedRef.current) return;
+      if (event === 'SIGNED_OUT') {
+        cachedProfile = null;
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        const profile = await loadProfile();
+        if (mountedRef.current) {
+          setUser(profile);
+          setIsLoading(false);
+        }
+      }
+    });
+
+    return () => {
+      mountedRef.current = false;
+      authListener?.subscription?.unsubscribe();
+    };
   }, []);
 
-  const post = useCallback(async (path: string, body: any) => {
-    setLoading(true);
-    try {
-      return await fetchApi(path, { method: 'POST', body: JSON.stringify(body) });
-    } finally {
-      setLoading(false);
-    }
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    cachedProfile = null;
+    setUser(null);
   }, []);
 
-  const patch = useCallback(async (path: string, body: any) => {
-    setLoading(true);
-    try {
-      return await fetchApi(path, { method: 'PATCH', body: JSON.stringify(body) });
-    } finally {
-      setLoading(false);
-    }
+  const refreshProfile = useCallback(async () => {
+    const profile = await loadProfile();
+    if (mountedRef.current) setUser(profile);
   }, []);
 
-  const del = useCallback(async (path: string) => {
-    setLoading(true);
-    try {
-      return await fetchApi(path, { method: 'DELETE' });
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const ctx = { user, isLoading, isAuthenticated: !!user, signOut, refreshProfile };
+  return <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>;
+}
 
-  return { get, post, patch, del, loading };
+export function useAuth() {
+  return useContext(AuthContext);
 }
