@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
-import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns';
+import { format, isToday, isYesterday } from 'date-fns';
 import { ru } from 'date-fns/locale';
 
 export function cn(...inputs: ClassValue[]): string {
@@ -20,10 +20,6 @@ export function formatDate(date: string | Date): string {
   if (isToday(d)) return 'Сегодня';
   if (isYesterday(d)) return 'Вчера';
   return format(d, 'd MMMM yyyy', { locale: ru });
-}
-
-export function formatRelativeTime(date: string | Date): string {
-  return formatDistanceToNow(new Date(date), { addSuffix: true, locale: ru });
 }
 
 export function shortenAddress(address: string, chars = 4): string {

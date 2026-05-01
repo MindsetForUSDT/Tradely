@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
@@ -27,7 +27,7 @@ interface AuthState {
   readonly refreshProfile: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthState>({
+export const AuthContext = createContext<AuthState>({
   user: null,
   isLoading: true,
   isAuthenticated: false,
@@ -56,7 +56,9 @@ async function loadProfile(): Promise<Profile | null> {
   }
 }
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+// ⚠️ LEGACY / BROKEN — сохранён для отката
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Profile | null>(cachedProfile);
   const [isLoading, setIsLoading] = useState(!cachedProfile);
   const mountedRef = useRef(true);
@@ -121,8 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshProfile,
   };
 
-  const Provider = AuthContext.Provider;
-  return React.createElement(Provider, { value: ctx }, children);
+  return <AuthContext.Provider value={ctx}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
