@@ -19,8 +19,6 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
 
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-    console.log('LOGIN RESPONSE:', { data, error });
-
     if (error) {
       toast.error('Неверный email или пароль');
       setLoading(false);
@@ -29,7 +27,10 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
 
     if (data?.session) {
       toast.success('Вход выполнен!');
-      window.location.href = '/dashboard';
+      // Ждём 500ms чтобы Supabase сохранил сессию в localStorage
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 500);
     } else {
       toast.error('Ошибка входа');
       setLoading(false);
