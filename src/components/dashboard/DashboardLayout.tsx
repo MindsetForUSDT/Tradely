@@ -7,18 +7,12 @@ import { useWallets } from '@/hooks/useWallets';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useStore } from '@/store/useStore';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 export function DashboardLayout() {
   const { wallets, isLoading: walletsLoading } = useWallets();
-  const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setReady(true), 3000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (walletsLoading || !ready) {
+  if (walletsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
