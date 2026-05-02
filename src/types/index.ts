@@ -12,6 +12,7 @@ export interface Profile {
   avatar_url: string | null;
   subscription_tier: SubscriptionTier;
   subscription_expires_at: string | null;
+  trial_started_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -23,6 +24,7 @@ export interface Wallet {
   chain: BlockchainNetwork;
   label: string | null;
   processing_status: WalletProcessingStatus;
+  is_verified: boolean;
   last_synced_at: string | null;
   error_message: string | null;
   added_at: string;

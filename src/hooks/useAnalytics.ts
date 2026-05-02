@@ -17,7 +17,9 @@ export function useAnalytics(days = 30) {
   const { data: analytics = [], isLoading } = useQuery({
     queryKey: ['analytics', days],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
 
       const { data, error } = await supabase
@@ -33,9 +35,5 @@ export function useAnalytics(days = 30) {
     staleTime: 5 * 60 * 1000,
   });
 
-  return {
-    analytics,
-    todayAnalytics: analytics[0] || null,
-    isLoading,
-  };
+  return { analytics, todayAnalytics: analytics[0] || null, isLoading };
 }

@@ -1,5 +1,4 @@
-import { createContext, useContext, type ReactNode } from 'react';
-import { supabase } from '@/lib/supabase';
+import { createContext, useContext } from 'react';
 
 export interface Profile {
   readonly id: string;

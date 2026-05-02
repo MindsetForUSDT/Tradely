@@ -1,8 +1,3 @@
-// ============================================================
-// TradeumDiary — Совмещённая страница входа/регистрации
-// Переключение между формами с анимацией
-// ============================================================
-
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LoginForm } from './LoginForm';
@@ -14,35 +9,25 @@ type AuthView = 'login' | 'register' | 'reset';
 export function AuthPage() {
   const [view, setView] = useState<AuthView>('login');
 
-  const slideVariants = {
-    enter: (direction: number) => ({
-      x: direction > 0 ? 300 : -300,
-      opacity: 0,
-    }),
-    center: {
-      x: 0,
-      opacity: 1,
-    },
-    exit: (direction: number) => ({
-      x: direction < 0 ? 300 : -300,
-      opacity: 0,
-    }),
-  };
-
-  // Определяем направление анимации
   const viewOrder: AuthView[] = ['login', 'register', 'reset'];
-  const getDirection = (from: AuthView, to: AuthView) => {
-    return viewOrder.indexOf(to) - viewOrder.indexOf(from);
-  };
+  const getDirection = (from: AuthView, to: AuthView) =>
+    viewOrder.indexOf(to) - viewOrder.indexOf(from);
 
   return (
     <div className="w-full max-w-md mx-auto">
       <div className="glass-card p-0.5 rounded-2xl">
         <div className="bg-surface/90 rounded-2xl p-6 md:p-8">
-          {/* Заголовок */}
           <div className="text-center mb-8">
             <div className="w-12 h-12 rounded-xl bg-accent-green/10 border border-accent-green/20 flex items-center justify-center mx-auto mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="text-accent-green">
+              <svg
+                width="22"
+                height="22"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-accent-green"
+              >
                 <path d="M3 17l4-8 4 6 6-10 3 4" />
               </svg>
             </div>
@@ -58,15 +43,12 @@ export function AuthPage() {
             </p>
           </div>
 
-          {/* Анимированное переключение форм */}
-          <AnimatePresence mode="wait" custom={getDirection(view, view)}>
+          <AnimatePresence mode="wait">
             <motion.div
               key={view}
-              custom={getDirection(view, view)}
-              variants={slideVariants}
-              initial="enter"
-              animate="center"
-              exit="exit"
+              initial={{ x: getDirection(view, view) > 0 ? 300 : -300, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: getDirection(view, view) < 0 ? 300 : -300, opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
               {view === 'login' && (
@@ -75,22 +57,12 @@ export function AuthPage() {
                   onSwitchToReset={() => setView('reset')}
                 />
               )}
-              {view === 'register' && (
-                <RegisterForm
-                  onSwitchToLogin={() => setView('login')}
-                />
-              )}
-              {view === 'reset' && (
-                <PasswordReset
-                  onSwitchToLogin={() => setView('login')}
-                />
-              )}
+              {view === 'register' && <RegisterForm onSwitchToLogin={() => setView('login')} />}
+              {view === 'reset' && <PasswordReset onSwitchToLogin={() => setView('login')} />}
             </motion.div>
           </AnimatePresence>
         </div>
       </div>
-
-      {/* Социальное доказательство под формой */}
       <p className="text-center text-xs text-text-muted mt-4">
         Защищено сквозным шифрованием. Ваши данные только у вас.
       </p>

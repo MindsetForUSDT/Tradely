@@ -1,9 +1,9 @@
+import { Navigate } from 'react-router-dom';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { AuthPage } from '@/components/auth/AuthPage';
 import { useAuth } from '@/hooks/useAuth';
-import { Navigate } from 'react-router-dom';
 
 export function Landing() {
   const { isAuthenticated, isLoading } = useAuth();

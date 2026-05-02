@@ -1,10 +1,4 @@
-// ============================================================
-// TradeumDiary — Глобальное состояние (Zustand)
-// Управление пользователем, статистикой и UI-состоянием
-// ============================================================
-
 import { create } from 'zustand';
-import type { Profile } from '@/types';
 
 interface StatsState {
   totalBalance: number;
@@ -20,21 +14,21 @@ interface UIState {
 }
 
 interface AppStore {
-  // Пользователь
-  user: Profile | null;
-  setUser: (user: Profile | null) => void;
+  user: {
+    id: string;
+    username: string;
+    subscription_tier: 'free' | 'pro';
+  } | null;
+  setUser: (user: AppStore['user']) => void;
 
-  // Статистика дашборда
   stats: StatsState;
   setStats: (stats: Partial<StatsState>) => void;
   resetStats: () => void;
 
-  // UI
   ui: UIState;
   toggleMobileMenu: () => void;
   setActiveTab: (tab: string) => void;
 
-  // Глобальная загрузка
   isGlobalLoading: boolean;
   setGlobalLoading: (loading: boolean) => void;
 }
@@ -53,30 +47,18 @@ const initialUI: UIState = {
 };
 
 export const useStore = create<AppStore>((set) => ({
-  // Пользователь
   user: null,
   setUser: (user) => set({ user }),
 
-  // Статистика
   stats: initialStats,
-  setStats: (newStats) =>
-    set((state) => ({
-      stats: { ...state.stats, ...newStats },
-    })),
+  setStats: (newStats) => set((state) => ({ stats: { ...state.stats, ...newStats } })),
   resetStats: () => set({ stats: initialStats }),
 
-  // UI
   ui: initialUI,
   toggleMobileMenu: () =>
-    set((state) => ({
-      ui: { ...state.ui, isMobileMenuOpen: !state.ui.isMobileMenuOpen },
-    })),
-  setActiveTab: (tab) =>
-    set((state) => ({
-      ui: { ...state.ui, activeTab: tab },
-    })),
+    set((state) => ({ ui: { ...state.ui, isMobileMenuOpen: !state.ui.isMobileMenuOpen } })),
+  setActiveTab: (tab) => set((state) => ({ ui: { ...state.ui, activeTab: tab } })),
 
-  // Глобальная загрузка
   isGlobalLoading: false,
   setGlobalLoading: (loading) => set({ isGlobalLoading: loading }),
 }));

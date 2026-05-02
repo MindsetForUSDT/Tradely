@@ -1,13 +1,4 @@
-// FIX: 2026-05-02 — esbuild JSX parsing bug on Render
-// Обход через React.createElement вместо JSX
-
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useRef,
-  type ReactNode,
-} from 'react';
+import React, { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { AuthContext } from '@/hooks/useAuth';
 import type { Profile } from '@/hooks/useAuth';
@@ -43,26 +34,25 @@ async function loadProfileV2(): Promise<Profile | null> {
 
 export function AuthProviderV2({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<Profile | null>(cachedProfileV2);
-  const [isLoading, setIsLoading] = useState(!cachedProfileV2);
-  const mountedRef = useRef(true);
-  const initializedRef = useRef(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (initializedRef.current) return;
-    initializedRef.current = true;
-    mountedRef.current = true;
+    let mounted = true;
 
     if (cachedProfileV2) {
       setUser(cachedProfileV2);
       setIsLoading(false);
     } else {
       loadProfileV2().then((p) => {
-        if (mountedRef.current) { setUser(p); setIsLoading(false); }
+        if (mounted) {
+          setUser(p);
+          setIsLoading(false);
+        }
       });
     }
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
-      if (!mountedRef.current) return;
+      if (!mounted) return;
       if (event === 'SIGNED_OUT') {
         cachedProfileV2 = null;
         setUser(null);
@@ -71,12 +61,15 @@ export function AuthProviderV2({ children }: { children: ReactNode }) {
       }
       if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
         const p = await loadProfileV2();
-        if (mountedRef.current) { setUser(p); setIsLoading(false); }
+        if (mounted) {
+          setUser(p);
+          setIsLoading(false);
+        }
       }
     });
 
     return () => {
-      mountedRef.current = false;
+      mounted = false;
       authListener?.subscription?.unsubscribe();
     };
   }, []);
@@ -89,7 +82,7 @@ export function AuthProviderV2({ children }: { children: ReactNode }) {
 
   const refreshProfile = useCallback(async () => {
     const p = await loadProfileV2();
-    if (mountedRef.current) setUser(p);
+    setUser(p);
   }, []);
 
   const value: AuthState = {

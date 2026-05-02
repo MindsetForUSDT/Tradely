@@ -1,8 +1,3 @@
-// ============================================================
-// TradeumDiary — Хиро-секция лендинга
-// Гипнотический градиентный фон + форма входа
-// ============================================================
-
 import { useRef, useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 
@@ -19,48 +14,37 @@ export function HeroSection({ children }: HeroSectionProps) {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia('(max-width: 768px)');
-
-    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => {
-      setIsMobile(e.matches);
-    };
-
+    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
     handleChange(mediaQuery);
     mediaQuery.addEventListener('change', handleChange);
-
-    return () => mediaQuery.removeEventListener('change', handleChange);
+    return () => {
+      if (mediaQuery.removeEventListener) mediaQuery.removeEventListener('change', handleChange);
+    };
   }, []);
 
-  // Анимированный градиентный фон на canvas (только на десктопе)
   const startAnimation = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
+    if (!canvas) return () => {};
     const ctx = canvas.getContext('2d', { alpha: true });
-    if (!ctx) return;
+    if (!ctx) return () => {};
 
     const resize = () => {
       const dpr = window.devicePixelRatio || 1;
       const rect = canvas.getBoundingClientRect();
-
       canvas.width = rect.width * dpr;
       canvas.height = rect.height * dpr;
-
       ctx.scale(dpr, dpr);
-
       canvas.style.width = `${rect.width}px`;
       canvas.style.height = `${rect.height}px`;
     };
-
     resize();
 
     const animate = () => {
       timeRef.current += 0.003;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
       const width = canvas.width / (window.devicePixelRatio || 1);
       const height = canvas.height / (window.devicePixelRatio || 1);
 
-      // Создаём несколько органически движущихся градиентных пятен
       const spots = [
         {
           x: width * 0.3 + Math.sin(timeRef.current * 1.3) * 100,
@@ -83,14 +67,10 @@ export function HeroSection({ children }: HeroSectionProps) {
       ];
 
       spots.forEach((spot) => {
-        const gradient = ctx.createRadialGradient(
-          spot.x, spot.y, 0,
-          spot.x, spot.y, spot.radius
-        );
+        const gradient = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, spot.radius);
         gradient.addColorStop(0, spot.color);
         gradient.addColorStop(0.5, 'rgba(0, 255, 163, 0.01)');
         gradient.addColorStop(1, 'transparent');
-
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, width, height);
       });
@@ -100,14 +80,15 @@ export function HeroSection({ children }: HeroSectionProps) {
 
     animate();
 
-    const handleResize = () => {
-      resize();
-    };
-
+    const handleResize = () => resize();
     window.addEventListener('resize', handleResize);
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (animationIdRef.current) {
+        cancelAnimationFrame(animationIdRef.current);
+        animationIdRef.current = 0;
+      }
     };
   }, []);
 
@@ -123,25 +104,20 @@ export function HeroSection({ children }: HeroSectionProps) {
       stopAnimation();
       return;
     }
-
     const section = sectionRef.current;
     if (!section) return;
-
     let cleanup: (() => void) | undefined;
 
-    // Используем IntersectionObserver для запуска/остановки анимации
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting && !animationIdRef.current) {
-          cleanup = startAnimation();
-        } else if (!entry.isIntersecting) {
+        if (entry.isIntersecting && !animationIdRef.current) cleanup = startAnimation();
+        else if (!entry.isIntersecting) {
           stopAnimation();
           cleanup?.();
         }
       },
       { threshold: 0.1 }
     );
-
     observer.observe(section);
 
     return () => {
@@ -157,27 +133,17 @@ export function HeroSection({ children }: HeroSectionProps) {
       className="relative min-h-screen flex items-center justify-center overflow-hidden"
       aria-label="Главная секция"
     >
-      {/* Canvas с анимированным фоном (только десктоп) */}
       {!isMobile && (
-        <canvas
-          ref={canvasRef}
-          className="absolute inset-0 w-full h-full"
-          aria-hidden="true"
-          role="presentation"
-        />
+        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-hidden="true" />
       )}
-
-      {/* Контент */}
       <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
-          {/* Левая колонка — текст */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
             className="text-center lg:text-left"
           >
-            {/* Бейдж */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-green/5 border border-accent-green/10 mb-8">
               <span
                 className="w-2 h-2 rounded-full bg-accent-green animate-glow-pulse"
@@ -187,19 +153,15 @@ export function HeroSection({ children }: HeroSectionProps) {
                 Бета-версия
               </span>
             </div>
-
             <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6">
               Ваши сделки
               <br />
               <span className="text-gradient">под контролем</span>
             </h1>
-
             <p className="text-base md:text-lg text-text-secondary max-w-xl mx-auto lg:mx-0 leading-relaxed mb-8">
-              TradeumDiary автоматически импортирует историю сделок из блокчейна,
-              анализирует прибыльность и строит графики. Больше никаких Excel-таблиц.
+              TradeumDiary автоматически импортирует историю сделок из блокчейна, анализирует
+              прибыльность и строит графики. Больше никаких Excel-таблиц.
             </p>
-
-            {/* Статистика (социальное доказательство) */}
             <div
               className="flex items-center gap-8 justify-center lg:justify-start text-sm text-text-muted"
               aria-label="Статистика платформы"
@@ -240,8 +202,6 @@ export function HeroSection({ children }: HeroSectionProps) {
               </div>
             </div>
           </motion.div>
-
-          {/* Правая колонка — форма входа */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -251,8 +211,6 @@ export function HeroSection({ children }: HeroSectionProps) {
           </motion.div>
         </div>
       </div>
-
-      {/* Градиентная линия внизу */}
       <div
         className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-green/20 to-transparent"
         aria-hidden="true"

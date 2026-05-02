@@ -6,30 +6,23 @@ import { formatUSD, formatDate, shortenAddress, cn } from '@/lib/utils';
 import type { Trade } from '@/types';
 
 interface TradeListProps {
-  trades: Trade[];
+  trades?: Trade[];
   isLoading?: boolean;
   compact?: boolean;
 }
 
-export function TradeList({ trades, isLoading = false, compact = false }: TradeListProps) {
+export function TradeList({ trades = [], isLoading = false, compact = false }: TradeListProps) {
   const [showAll, setShowAll] = useState(false);
   const displayTrades = compact && !showAll ? trades.slice(0, 5) : trades;
 
   if (isLoading) {
     return (
       <Card padding={compact ? 'md' : 'lg'}>
-        {/* ✅ ИСПРАВЛЕНИЕ: Анимированные плейсхолдеры с правильной структурой таблицы */}
         <div className="animate-pulse space-y-4">
           <div className="h-4 w-32 bg-surface-border rounded" />
-          <table className="w-full" aria-hidden="true">
-            <tbody>
-              {[1, 2, 3].map((i) => (
-                <tr key={i}>
-                  <td className="py-2"><div className="h-12 bg-surface-border rounded-lg" /></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-12 bg-surface-border rounded-lg" />
+          ))}
         </div>
       </Card>
     );
@@ -38,7 +31,10 @@ export function TradeList({ trades, isLoading = false, compact = false }: TradeL
   if (trades.length === 0) {
     return (
       <Card padding={compact ? 'md' : 'lg'}>
-        <div className="flex flex-col items-center justify-center py-8 text-text-muted" role="status">
+        <div
+          className="flex flex-col items-center justify-center py-8 text-text-muted"
+          role="status"
+        >
           <svg
             width="40"
             height="40"
@@ -61,9 +57,7 @@ export function TradeList({ trades, isLoading = false, compact = false }: TradeL
   return (
     <Card padding={compact ? 'md' : 'lg'}>
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold">
-          {compact ? 'Последние сделки' : 'История сделок'}
-        </h3>
+        <h3 className="text-sm font-semibold">{compact ? 'Последние сделки' : 'История сделок'}</h3>
         {compact && trades.length > 5 && (
           <button
             onClick={() => setShowAll(!showAll)}
@@ -74,8 +68,6 @@ export function TradeList({ trades, isLoading = false, compact = false }: TradeL
           </button>
         )}
       </div>
-
-      {/* ✅ ИСПРАВЛЕНИЕ: Полноценная семантическая таблица */}
       <div className="overflow-x-auto">
         <table className="w-full">
           <caption className="sr-only">
@@ -101,7 +93,6 @@ export function TradeList({ trades, isLoading = false, compact = false }: TradeL
                     !compact && 'border-b border-surface-border/30 last:border-0'
                   )}
                 >
-                  {/* Индикатор buy/sell */}
                   <td className="py-3 pr-3">
                     <div
                       className={cn(
@@ -136,8 +127,6 @@ export function TradeList({ trades, isLoading = false, compact = false }: TradeL
                       </svg>
                     </div>
                   </td>
-
-                  {/* Детали сделки */}
                   <td className="py-3">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -156,16 +145,14 @@ export function TradeList({ trades, isLoading = false, compact = false }: TradeL
                       </div>
                     </div>
                   </td>
-
-                  {/* Сумма */}
                   <td className="py-3 text-right pl-4">
-                    <p className="text-sm font-semibold font-mono">
-                      {formatUSD(trade.value_usd)}
-                    </p>
-                    <p className={cn(
-                      'text-xs',
-                      trade.is_buy ? 'text-accent-green' : 'text-accent-red'
-                    )}>
+                    <p className="text-sm font-semibold font-mono">{formatUSD(trade.value_usd)}</p>
+                    <p
+                      className={cn(
+                        'text-xs',
+                        trade.is_buy ? 'text-accent-green' : 'text-accent-red'
+                      )}
+                    >
                       {trade.is_buy ? 'Покупка' : 'Продажа'}
                     </p>
                   </td>
@@ -175,8 +162,6 @@ export function TradeList({ trades, isLoading = false, compact = false }: TradeL
           </tbody>
         </table>
       </div>
-
-      {/* Кнопка "Загрузить ещё" */}
       {!compact && trades.length >= 20 && (
         <div className="mt-4 text-center">
           <Button variant="ghost" size="sm">

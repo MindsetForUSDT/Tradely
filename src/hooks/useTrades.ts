@@ -28,12 +28,12 @@ export function useTrades(options?: UseTradesOptions) {
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades', { limit, daysAgo }],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
-
       const since = new Date();
       since.setDate(since.getDate() - daysAgo);
-
       const { data, error } = await supabase
         .from('trades')
         .select('*')
@@ -41,27 +41,22 @@ export function useTrades(options?: UseTradesOptions) {
         .order('timestamp', { ascending: false })
         .gte('timestamp', since.toISOString())
         .limit(limit);
-
       if (error) throw error;
       return data as Trade[];
     },
     staleTime: 2 * 60 * 1000,
   });
 
-  // Все вычисления остаются как раньше
   const pnlData = useMemo(() => {
-    let cumulative = 0;
-    return [...trades]
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-      .map((t) => {
-        const pnl = t.is_buy ? -t.value_usd : t.value_usd;
-        cumulative += pnl;
-        return {
-          date: new Date(t.timestamp).toISOString().split('T')[0],
-          pnl,
-          cumulativePnl: cumulative,
-        };
-      });
+    const sorted = [...trades].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    let cum = 0;
+    return sorted.map((t) => {
+      const pnl = t.is_buy ? -t.value_usd : t.value_usd;
+      cum += pnl;
+      return { date: new Date(t.timestamp).toISOString().split('T')[0], pnl, cumulativePnl: cum };
+    });
   }, [trades]);
 
   const tokenVolumes = useMemo(() => {
@@ -72,11 +67,7 @@ export function useTrades(options?: UseTradesOptions) {
     });
     const total = trades.reduce((s, t) => s + t.value_usd, 0);
     return Array.from(map.entries())
-      .map(([token, volume]) => ({
-        token,
-        volume,
-        percentage: total ? (volume / total) * 100 : 0,
-      }))
+      .map(([token, volume]) => ({ token, volume, percentage: total ? (volume / total) * 100 : 0 }))
       .sort((a, b) => b.volume - a.volume)
       .slice(0, 8);
   }, [trades]);

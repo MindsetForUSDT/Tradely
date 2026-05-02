@@ -19,18 +19,4 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/test/setup.ts',
-    include: ['src/**/*.test.{ts,tsx}'],
-    exclude: [
-      'node_modules/**',
-      'backend/**',
-      'e2e/**',
-      'playwright-tests/**',
-      '**/auth.spec.ts',
-      '**/*.spec.ts',
-    ],
-  },
 });

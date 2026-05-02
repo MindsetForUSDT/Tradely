@@ -21,23 +21,31 @@ interface PnLChartProps {
 
 function CustomTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null;
-
   const pnl = payload[0]?.value ?? 0;
   const cumulative = payload[1]?.value ?? 0;
-
   return (
     <div className="glass-card p-4 text-xs shadow-xl border border-surface-border">
       <p className="text-text-muted mb-2">{label}</p>
       <div className="space-y-1">
         <div className="flex items-center justify-between gap-4">
           <span>Дневной P&L:</span>
-          <span className={cn('font-mono font-semibold', pnl >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+          <span
+            className={cn(
+              'font-mono font-semibold',
+              pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
+            )}
+          >
             {formatUSD(pnl)}
           </span>
         </div>
         <div className="flex items-center justify-between gap-4">
           <span>Накопленный:</span>
-          <span className={cn('font-mono font-semibold', cumulative >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+          <span
+            className={cn(
+              'font-mono font-semibold',
+              cumulative >= 0 ? 'text-accent-green' : 'text-accent-red'
+            )}
+          >
             {formatUSD(cumulative)}
           </span>
         </div>
@@ -53,22 +61,15 @@ export function PnLChart({ data, isLoading = false }: PnLChartProps) {
     const now = new Date();
     const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
     const since = new Date(now.setDate(now.getDate() - days));
-
     return data
-      .filter(point => new Date(point.date) >= since)
-      .map(point => ({
+      .filter((point) => new Date(point.date) >= since)
+      .map((point) => ({
         ...point,
-        date: new Date(point.date).toLocaleDateString('ru-RU', {
-          day: 'numeric',
-          month: 'short',
-        }),
+        date: new Date(point.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }),
       }));
   }, [data, timeframe]);
 
-  const totalPnl = useMemo(
-    () => filteredData.reduce((sum, d) => sum + d.pnl, 0),
-    [filteredData]
-  );
+  const totalPnl = useMemo(() => filteredData.reduce((sum, d) => sum + d.pnl, 0), [filteredData]);
 
   if (isLoading) {
     return (
@@ -86,16 +87,17 @@ export function PnLChart({ data, isLoading = false }: PnLChartProps) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold">P&L (Прибыль/Убыток)</h3>
-          <p className={cn(
-            'text-lg font-bold font-mono mt-1',
-            totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'
-          )}>
+          <p
+            className={cn(
+              'text-lg font-bold font-mono mt-1',
+              totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'
+            )}
+          >
             {formatUSD(totalPnl)}
           </p>
         </div>
-
         <div className="flex items-center gap-1 bg-surface-overlay rounded-lg p-1">
-          {(['7d', '30d', '90d'] as const).map(tf => (
+          {(['7d', '30d', '90d'] as const).map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
@@ -111,7 +113,6 @@ export function PnLChart({ data, isLoading = false }: PnLChartProps) {
           ))}
         </div>
       </div>
-
       <div className="h-64 md:h-72">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={filteredData} margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
@@ -125,9 +126,14 @@ export function PnLChart({ data, isLoading = false }: PnLChartProps) {
                 <stop offset="100%" stopColor="#FF3B5C" stopOpacity={0} />
               </linearGradient>
             </defs>
-
             <CartesianGrid strokeDasharray="3 3" stroke="#2A2A2A" vertical={false} />
-            <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: '#6B7280', fontSize: 11 }} dy={10} />
+            <XAxis
+              dataKey="date"
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: '#6B7280', fontSize: 11 }}
+              dy={10}
+            />
             <YAxis
               axisLine={false}
               tickLine={false}
@@ -143,7 +149,6 @@ export function PnLChart({ data, isLoading = false }: PnLChartProps) {
             />
             <Tooltip content={<CustomTooltip />} />
             <ReferenceLine y={0} stroke="#3A3A3A" strokeWidth={1} strokeDasharray="4 4" />
-
             <Area
               type="monotone"
               dataKey="cumulativePnl"

@@ -10,9 +10,10 @@ export function useMousePosition(): MousePosition {
   const [position, setPosition] = useState<MousePosition>({ x: 0, y: 0, isMoving: false });
 
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
     const isMobile = window.matchMedia('(max-width: 768px)').matches;
     if (isMobile) return;
+
+    let timeoutId: ReturnType<typeof setTimeout>;
 
     const handleMouseMove = (e: MouseEvent) => {
       setPosition({ x: e.clientX, y: e.clientY, isMoving: true });

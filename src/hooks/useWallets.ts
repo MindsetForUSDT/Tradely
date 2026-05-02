@@ -13,10 +13,17 @@ interface Wallet {
 }
 
 export function useWallets() {
-  const { data: wallets = [], isLoading, error, refetch } = useQuery({
+  const {
+    data: wallets = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['wallets'],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return [];
 
       const { data, error } = await supabase
@@ -28,13 +35,9 @@ export function useWallets() {
       if (error) throw error;
       return data as Wallet[];
     },
-    staleTime: 60 * 1000,
+    staleTime: 10 * 60 * 1000,
+    retry: 2,
   });
 
-  return {
-    wallets,
-    isLoading,
-    error: error ? (error as Error).message : null,
-    refresh: refetch,
-  };
+  return { wallets, isLoading, error: error ? (error as Error).message : null, refresh: refetch };
 }

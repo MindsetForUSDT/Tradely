@@ -1,6 +1,9 @@
 import { cn } from '@/lib/utils';
 
-interface PlanFeature { text: string; included: boolean; }
+interface PlanFeature {
+  text: string;
+  included: boolean;
+}
 
 interface PlanCardProps {
   title: string;
@@ -12,16 +15,34 @@ interface PlanCardProps {
   action: React.ReactNode;
 }
 
-export function PlanCard({ title, price, period, description, features, isPopular, action }: PlanCardProps) {
+export function PlanCard({
+  title,
+  price,
+  period,
+  description,
+  features,
+  isPopular,
+  action,
+}: PlanCardProps) {
   return (
     <div className="relative group h-full">
       {isPopular && (
-        <div className="absolute -inset-px bg-gradient-to-b from-accent-green/30 via-accent-green/5 to-transparent rounded-2xl opacity-50" />
+        <div
+          className="absolute -inset-px bg-gradient-to-b from-accent-green/30 via-accent-green/5 to-transparent rounded-2xl opacity-50"
+          aria-hidden="true"
+        />
       )}
-      <div className={cn('relative h-full glass-card p-6 md:p-8 flex flex-col', isPopular && 'border-accent-green/20')}>
+      <div
+        className={cn(
+          'relative h-full glass-card p-6 md:p-8 flex flex-col',
+          isPopular && 'border-accent-green/20'
+        )}
+      >
         {isPopular && (
           <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-            <span className="px-4 py-1.5 rounded-full bg-accent-green text-surface text-xs font-semibold">Популярный выбор</span>
+            <span className="px-4 py-1.5 rounded-full bg-accent-green text-surface text-xs font-semibold">
+              Популярный выбор
+            </span>
           </div>
         )}
         <div className="mb-6">
@@ -35,8 +56,15 @@ export function PlanCard({ title, price, period, description, features, isPopula
         <ul className="space-y-3 mb-8 flex-1">
           {features.map((f, i) => (
             <li key={i} className="flex items-start gap-3">
-              <span className={cn('text-lg', f.included ? 'text-accent-green' : 'text-text-muted')}>{f.included ? '✓' : '✗'}</span>
-              <span className={cn('text-sm', f.included ? 'text-text-primary' : 'text-text-muted')}>{f.text}</span>
+              <span
+                className={cn('text-lg', f.included ? 'text-accent-green' : 'text-text-muted')}
+                aria-hidden="true"
+              >
+                {f.included ? '✓' : '✗'}
+              </span>
+              <span className={cn('text-sm', f.included ? 'text-text-primary' : 'text-text-muted')}>
+                {f.text}
+              </span>
             </li>
           ))}
         </ul>

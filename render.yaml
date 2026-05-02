@@ -1,0 +1,40 @@
+version: "1"
+
+services:
+  - name: tradeumdiary-web
+    type: web
+    runtime: static
+    region: frankfurt
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+      - type: header
+        source: /assets/*
+        headers:
+          - key: Cache-Control
+            value: public, max-age=31536000, immutable
+    envVars:
+      - key: VITE_SUPABASE_URL
+        value: "https://zfgeofskmgycojbzrznk.supabase.co"
+      - key: VITE_SUPABASE_ANON_KEY
+        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpmZ2VvZnNrbWd5Y29qYnpyem5rIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY3MDAyOTEsImV4cCI6MjA5MjI3NjI5MX0.D8TJb9Wn-b_RpxG7I4MluTuBxoP68YheoqMu_Dlu8xo"
+      - key: NODE_ENV
+        value: "production"
+
+  - name: tradeumdiary-api
+    type: web
+    runtime: node
+    region: frankfurt
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        value: "tradeumdiary-jwt-secret-2026"
+      - key: NODE_VERSION
+        value: "20.20.2"

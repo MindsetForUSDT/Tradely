@@ -31,29 +31,14 @@ export function WalletConnect() {
     error?: string;
   } | null>(null);
 
-  // ============================================================
-  // Слушатели смены сети и аккаунта MetaMask
-  // ============================================================
   useEffect(() => {
     if (typeof window === 'undefined' || !window.ethereum) return;
-
-    const handleChainChanged = (chainId: string) => {
-      console.warn('[Wallet] Chain changed to:', chainId);
-      // Перезагружаем страницу при смене сети (рекомендация MetaMask)
-      window.location.reload();
-    };
-
+    const handleChainChanged = () => window.location.reload();
     const handleAccountsChanged = (accounts: string[]) => {
-      console.warn('[Wallet] Account changed:', accounts);
-      if (accounts.length === 0) {
-        // Пользователь отключил кошелёк
-        toast.error('Кошелёк отключён');
-      }
+      if (accounts.length === 0) toast.error('Кошелёк отключён');
     };
-
     window.ethereum.on('chainChanged', handleChainChanged);
     window.ethereum.on('accountsChanged', handleAccountsChanged);
-
     return () => {
       window.ethereum?.removeListener?.('chainChanged', handleChainChanged);
       window.ethereum?.removeListener?.('accountsChanged', handleAccountsChanged);
@@ -61,19 +46,20 @@ export function WalletConnect() {
   }, []);
 
   const handleVerify = async () => {
-    // Валидация формата
     const validation = validateAddress(address, chain);
     if (!validation.valid) {
       toast.error(validation.error!);
       return;
     }
-
     setVerifying(true);
     setVerificationResult(null);
 
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 15_000);
+
     try {
       const result = await verifyWallet(address, chain);
-
+      clearTimeout(timeout);
       if (result.exists) {
         setVerificationResult({
           verified: true,
@@ -82,19 +68,14 @@ export function WalletConnect() {
         });
         toast.success('Кошелёк найден в сети!');
       } else {
-        setVerificationResult({
-          verified: false,
-          error: result.error || 'Адрес не найден',
-        });
+        setVerificationResult({ verified: false, error: result.error || 'Адрес не найден' });
         toast.error(result.error || 'Адрес не найден в сети');
       }
-    } catch (err) {
-      setVerificationResult({
-        verified: false,
-        error: 'Ошибка проверки',
-      });
-      toast.error('Ошибка проверки адреса');
+    } catch {
+      setVerificationResult({ verified: false, error: 'Таймаут проверки' });
+      toast.error('Таймаут проверки адреса');
     } finally {
+      clearTimeout(timeout);
       setVerifying(false);
     }
   };
@@ -104,10 +85,10 @@ export function WalletConnect() {
       toast.error('Сначала проверьте адрес');
       return;
     }
-
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
-
     setAdding(true);
     try {
       const { error } = await supabase.from('wallets').insert({
@@ -116,7 +97,6 @@ export function WalletConnect() {
         chain,
         label: label.trim() || null,
       });
-
       if (error) {
         if (error.code === '23505') {
           toast.error('Этот кошелёк уже добавлен');
@@ -125,14 +105,13 @@ export function WalletConnect() {
         }
         return;
       }
-
       toast.success('Кошелёк добавлен!');
       setAddress('');
       setLabel('');
       setVerificationResult(null);
       setShowForm(false);
       refresh();
-    } catch (e) {
+    } catch {
       toast.error('Ошибка добавления');
     } finally {
       setAdding(false);
@@ -183,51 +162,48 @@ export function WalletConnect() {
           >
             <Card padding="md" className="mb-4 space-y-4">
               <div>
-                <label className="text-xs text-text-muted block mb-1">Адрес кошелька</label>
+                <span className="text-xs text-text-muted block mb-1">Адрес кошелька</span>
                 <input
                   type="text"
                   placeholder="0x... или Solana адрес"
                   value={address}
-                  onChange={e => {
+                  onChange={(e) => {
                     setAddress(e.target.value);
                     setVerificationResult(null);
                   }}
                   className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 font-mono"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs text-text-muted block mb-1">Сеть</label>
+                  <span className="text-xs text-text-muted block mb-1">Сеть</span>
                   <select
                     value={chain}
-                    onChange={e => {
+                    onChange={(e) => {
                       setChain(e.target.value as BlockchainNetwork);
                       setVerificationResult(null);
                     }}
                     className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
                   >
-                    {CHAINS.map(c => (
+                    {CHAINS.map((c) => (
                       <option key={c.value} value={c.value}>
                         {c.icon} {c.label}
                       </option>
                     ))}
                   </select>
                 </div>
-
                 <div>
-                  <label className="text-xs text-text-muted block mb-1">Название (опционально)</label>
+                  <span className="text-xs text-text-muted block mb-1">Название (опционально)</span>
                   <input
                     type="text"
                     placeholder="Мой кошелёк"
                     value={label}
-                    onChange={e => setLabel(e.target.value)}
+                    onChange={(e) => setLabel(e.target.value)}
                     className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
                   />
                 </div>
               </div>
 
-              {/* Результат проверки */}
               {verificationResult && (
                 <div
                   className={cn(
@@ -281,11 +257,10 @@ export function WalletConnect() {
         )}
       </AnimatePresence>
 
-      {/* Список кошельков */}
       {isLoading ? (
         <Card padding="md">
           <div className="animate-pulse space-y-3">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3].map((i) => (
               <div key={i} className="h-16 bg-surface-border rounded-lg" />
             ))}
           </div>
@@ -301,19 +276,18 @@ export function WalletConnect() {
               Добавьте адрес кошелька для автоматического импорта сделок
             </p>
             <p className="text-xs text-text-muted">
-              Поддерживаются: {CHAINS.map(c => c.label).join(', ')}
+              Поддерживаются: {CHAINS.map((c) => c.label).join(', ')}
             </p>
           </div>
         </Card>
       ) : (
         <div className="space-y-3">
-          {wallets.map(w => {
-            const chainConfig = CHAINS.find(x => x.value === w.chain);
+          {wallets.map((w) => {
+            const chainConfig = CHAINS.find((x) => x.value === w.chain);
             const status = STATUS_MAP[w.processing_status] || {
               label: w.processing_status,
               color: 'text-text-muted',
             };
-
             return (
               <Card key={w.id} padding="md">
                 <div className="flex items-center justify-between">
@@ -340,7 +314,6 @@ export function WalletConnect() {
                       <p className="text-xs text-accent-red mt-1">{w.error_message}</p>
                     )}
                   </div>
-
                   <div className="flex items-center gap-2 ml-4">
                     <a
                       href={`${chainConfig?.explorerUrl}/${w.address}`}

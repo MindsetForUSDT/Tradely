@@ -1,14 +1,16 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/components/layout/Layout';
 import { Landing } from '@/pages/Landing';
 import { Subscribe } from '@/pages/Subscribe';
 import { Payment } from '@/pages/Payment';
-import { Dashboard } from '@/pages/Dashboard';
-import { ProAnalytics } from '@/pages/ProAnalytics';
 import { NotFound } from '@/pages/NotFound';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ProGuard } from '@/components/auth/ProGuard';
+
+const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const ProAnalytics = lazy(() => import('@/pages/ProAnalytics'));
 
 export default function App() {
   return (
@@ -31,9 +33,38 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/" element={<Landing />} />
           <Route path="/subscribe" element={<Subscribe />} />
-          <Route path="/payment" element={<AuthGuard><Payment /></AuthGuard>} />
-          <Route path="/dashboard/*" element={<AuthGuard><ProGuard><Dashboard /></ProGuard></AuthGuard>} />
-          <Route path="/pro/*" element={<AuthGuard><ProGuard requirePro><ProAnalytics /></ProGuard></AuthGuard>} />
+          <Route
+            path="/payment"
+            element={
+              <AuthGuard>
+                <Payment />
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/dashboard/*"
+            element={
+              <AuthGuard>
+                <ProGuard>
+                  <Suspense fallback={null}>
+                    <Dashboard />
+                  </Suspense>
+                </ProGuard>
+              </AuthGuard>
+            }
+          />
+          <Route
+            path="/pro/*"
+            element={
+              <AuthGuard>
+                <ProGuard requirePro>
+                  <Suspense fallback={null}>
+                    <ProAnalytics />
+                  </Suspense>
+                </ProGuard>
+              </AuthGuard>
+            }
+          />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

@@ -27,9 +27,18 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       boxShadow: {
-        'card': '0 4px 24px rgba(0, 0, 0, 0.4)',
+        card: '0 4px 24px rgba(0, 0, 0, 0.4)',
         'glow-green': '0 0 20px rgba(0, 255, 163, 0.15)',
         'glow-red': '0 0 20px rgba(255, 59, 92, 0.15)',
+      },
+      animation: {
+        'glow-pulse': 'glowPulse 3s ease-in-out infinite',
+      },
+      keyframes: {
+        glowPulse: {
+          '0%, 100%': { opacity: '0.4' },
+          '50%': { opacity: '0.8' },
+        },
       },
     },
   },
