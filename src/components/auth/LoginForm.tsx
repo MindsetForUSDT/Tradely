@@ -33,9 +33,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
 
     if (data?.session) {
       toast.success('Вход выполнен!');
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 500);
+      window.location.href = '/dashboard';
     } else {
       toast.error('Ошибка входа');
       setLoading(false);
