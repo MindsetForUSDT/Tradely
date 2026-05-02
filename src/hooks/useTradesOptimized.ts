@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import type { Trade } from '@/types';
 
 interface UseTradesOptions {
   limit?: number;
@@ -17,7 +16,7 @@ export function useTradesOptimized(options?: UseTradesOptions) {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return [] as Trade[];
+      if (!user) return [];
 
       const since = new Date();
       since.setDate(since.getDate() - daysAgo);
@@ -31,24 +30,23 @@ export function useTradesOptimized(options?: UseTradesOptions) {
         .limit(limit);
 
       if (error) throw error;
-      return (data || []) as Trade[];
+      return (data || []) as Record<string, unknown>[];
     },
     staleTime: 2 * 60 * 1000,
   });
 
   const pnlData = useMemo(() => {
     const sorted = [...trades].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+      (a, b) =>
+        new Date(a.timestamp as string).getTime() - new Date(b.timestamp as string).getTime()
     );
     let cum = 0;
     const result: { date: string; pnl: number; cumulativePnl: number }[] = [];
     for (const t of sorted) {
-      const pnl =
-        ((t as Record<string, unknown>).pnl_realized as number) ||
-        (t.side === 'buy' ? -t.value_usd : t.value_usd);
+      const pnl = (t.pnl_realized as number) || 0;
       cum += pnl;
       result.push({
-        date: new Date(t.timestamp).toISOString().split('T')[0],
+        date: new Date(t.timestamp as string).toISOString().split('T')[0],
         pnl,
         cumulativePnl: cum,
       });
@@ -59,10 +57,11 @@ export function useTradesOptimized(options?: UseTradesOptions) {
   const tokenVolumes = useMemo(() => {
     const map = new Map<string, number>();
     for (const t of trades) {
-      const base = t.symbol.split('/')[0];
-      map.set(base, (map.get(base) || 0) + t.value_usd);
+      const symbol = (t.symbol as string) || 'UNKNOWN';
+      const base = symbol.split('/')[0];
+      map.set(base, (map.get(base) || 0) + ((t.value_usd as number) || 0));
     }
-    const total = trades.reduce((s, t) => s + t.value_usd, 0);
+    const total = trades.reduce((s, t) => s + ((t.value_usd as number) || 0), 0);
     return Array.from(map.entries())
       .map(([token, volume]) => ({ token, volume, percentage: total ? (volume / total) * 100 : 0 }))
       .sort((a, b) => b.volume - a.volume)
@@ -73,10 +72,8 @@ export function useTradesOptimized(options?: UseTradesOptions) {
     const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     const buckets = days.map((day) => ({ day, profit: 0, trades: 0 }));
     for (const t of trades) {
-      const idx = new Date(t.timestamp).getDay();
-      buckets[idx].profit +=
-        ((t as Record<string, unknown>).pnl_realized as number) ||
-        (t.side === 'buy' ? -t.value_usd : t.value_usd);
+      const idx = new Date(t.timestamp as string).getDay();
+      buckets[idx].profit += (t.pnl_realized as number) || 0;
       buckets[idx].trades += 1;
     }
     return buckets;
@@ -88,7 +85,7 @@ export function useTradesOptimized(options?: UseTradesOptions) {
     pnlData,
     tokenVolumes,
     weekdayPerformance,
-    totalVolume: trades.reduce((s, t) => s + t.value_usd, 0),
+    totalVolume: trades.reduce((s, t) => s + ((t.value_usd as number) || 0), 0),
     totalTrades: trades.length,
   };
 }
