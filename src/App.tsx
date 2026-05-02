@@ -9,8 +9,10 @@ import { NotFound } from '@/pages/NotFound';
 import { AuthGuard } from '@/components/auth/AuthGuard';
 import { ProGuard } from '@/components/auth/ProGuard';
 
-const Dashboard = lazy(() => import('@/pages/Dashboard'));
-const ProAnalytics = lazy(() => import('@/pages/ProAnalytics'));
+const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const ProAnalytics = lazy(() =>
+  import('@/pages/ProAnalytics').then((m) => ({ default: m.ProAnalytics }))
+);
 
 export default function App() {
   return (

@@ -32,16 +32,17 @@ export function WalletConnect() {
   } | null>(null);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !window.ethereum) return;
+    const w = window as any;
+    if (!w.ethereum) return;
     const handleChainChanged = () => window.location.reload();
     const handleAccountsChanged = (accounts: string[]) => {
       if (accounts.length === 0) toast.error('Кошелёк отключён');
     };
-    window.ethereum.on('chainChanged', handleChainChanged);
-    window.ethereum.on('accountsChanged', handleAccountsChanged);
+    w.ethereum.on('chainChanged', handleChainChanged);
+    w.ethereum.on('accountsChanged', handleAccountsChanged);
     return () => {
-      window.ethereum?.removeListener?.('chainChanged', handleChainChanged);
-      window.ethereum?.removeListener?.('accountsChanged', handleAccountsChanged);
+      w.ethereum?.removeListener?.('chainChanged', handleChainChanged);
+      w.ethereum?.removeListener?.('accountsChanged', handleAccountsChanged);
     };
   }, []);
 
@@ -203,7 +204,6 @@ export function WalletConnect() {
                   />
                 </div>
               </div>
-
               {verificationResult && (
                 <div
                   className={cn(
@@ -232,7 +232,6 @@ export function WalletConnect() {
                   )}
                 </div>
               )}
-
               <div className="flex gap-3">
                 <Button
                   variant="outline"
