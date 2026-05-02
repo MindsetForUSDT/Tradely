@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
+import React, { useState, useEffect, useCallback, type ReactNode } from 'react';
 import { supabase } from '@/lib/supabase';
 import { AuthContext } from '@/hooks/useAuth';
 import type { Profile } from '@/hooks/useAuth';
@@ -11,58 +11,55 @@ interface AuthState {
   readonly refreshProfile: () => Promise<void>;
 }
 
-let cachedProfileV2: Profile | null = null;
-
-async function loadProfileV2(): Promise<Profile | null> {
-  try {
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData.user) {
-      cachedProfileV2 = null;
-      return null;
-    }
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authData.user.id)
-      .single();
-    cachedProfileV2 = profile;
-    return cachedProfileV2;
-  } catch {
-    return cachedProfileV2;
-  }
-}
-
 export function AuthProviderV2({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Profile | null>(cachedProfileV2);
+  const [user, setUser] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     let mounted = true;
 
-    if (cachedProfileV2) {
-      setUser(cachedProfileV2);
-      setIsLoading(false);
-    } else {
-      loadProfileV2().then((p) => {
-        if (mounted) {
-          setUser(p);
-          setIsLoading(false);
-        }
-      });
-    }
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       if (!mounted) return;
-      if (event === 'SIGNED_OUT') {
-        cachedProfileV2 = null;
+      if (!session) {
         setUser(null);
         setIsLoading(false);
         return;
       }
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        const p = await loadProfileV2();
+
+      supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single()
+        .then(({ data: profile }) => {
+          if (mounted) {
+            setUser(profile);
+            setIsLoading(false);
+          }
+        })
+        .catch(() => {
+          if (mounted) {
+            setUser(null);
+            setIsLoading(false);
+          }
+        });
+    });
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      if (event === 'SIGNED_OUT') {
+        setUser(null);
+        setIsLoading(false);
+        return;
+      }
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
         if (mounted) {
-          setUser(p);
+          setUser(profile);
           setIsLoading(false);
         }
       }
@@ -76,13 +73,21 @@ export function AuthProviderV2({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
-    cachedProfileV2 = null;
     setUser(null);
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    const p = await loadProfileV2();
-    setUser(p);
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    if (authUser) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+      if (profile) setUser(profile);
+    }
   }, []);
 
   const value: AuthState = {
