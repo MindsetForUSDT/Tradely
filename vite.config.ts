@@ -9,7 +9,7 @@ export default defineConfig({
   },
   build: {
     target: 'es2022',
-    minify: 'terser',
+    minify: 'esbuild',
     cssMinify: true,
     rollupOptions: {
       output: {
@@ -21,7 +21,6 @@ export default defineConfig({
         },
       },
     },
-    reportCompressedSize: false,
   },
   server: {
     port: 3000,
