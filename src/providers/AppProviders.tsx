@@ -35,7 +35,6 @@ const queryClient = new QueryClient({
 
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user] = useState<UserProfile | null>(null);
-
   const value: AuthContextType = {
     user,
     isLoading: false,
@@ -43,18 +42,13 @@ function AuthProvider({ children }: { children: ReactNode }) {
     signOut: async () => {},
     refreshProfile: async () => {},
   };
-
   return React.createElement(AuthContext.Provider, { value }, children);
 }
 
-export function AppProviders({ children }: AppProvidersProps) {
+export function AppProviders({ children }: { children: ReactNode }) {
   return React.createElement(
     QueryClientProvider,
     { client: queryClient },
     React.createElement(AuthProvider, null, children)
   );
-}
-
-interface AppProvidersProps {
-  readonly children: ReactNode;
 }

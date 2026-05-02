@@ -1,4 +1,3 @@
-import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
 export function ProGuard({
@@ -8,17 +7,11 @@ export function ProGuard({
   children: React.ReactNode;
   requirePro?: boolean;
 }) {
-  const { user, isLoading } = useAuth();
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-8 h-8 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
-      </div>
-    );
+  const { user } = useAuth();
+  if (!user) {
+    window.location.href = '/';
+    return null;
   }
-
-  if (!user) return <Navigate to="/" replace />;
 
   const now = new Date();
   const expiresAt = user.subscription_expires_at ? new Date(user.subscription_expires_at) : null;
@@ -26,8 +19,14 @@ export function ProGuard({
   const isPro = user.subscription_tier === 'pro' && isTierActive;
   const isTrialActive = user.subscription_tier === 'free' && isTierActive;
 
-  if (requirePro && !isPro) return <Navigate to="/subscribe" replace />;
-  if (!isPro && !isTrialActive) return <Navigate to="/subscribe" replace />;
+  if (requirePro && !isPro) {
+    window.location.href = '/subscribe';
+    return null;
+  }
+  if (!isPro && !isTrialActive) {
+    window.location.href = '/subscribe';
+    return null;
+  }
 
   return <>{children}</>;
 }
