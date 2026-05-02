@@ -7,7 +7,7 @@ export function Dashboard() {
   return (
     <Routes>
       <Route index element={<DashboardLayout />} />
-      <Route path="trades" element={<TradeList />} />
+      <Route path="trades" element={<TradeList trades={[]} />} />
       <Route path="wallets" element={<WalletConnect />} />
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
