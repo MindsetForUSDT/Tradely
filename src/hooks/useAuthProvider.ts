@@ -18,9 +18,11 @@ export function AuthProviderV2({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth
-      .getSession()
-      .then(({ data: { session } }) => {
+    async function init() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
         if (!mounted) return;
         if (!session) {
           setUser(null);
@@ -28,30 +30,24 @@ export function AuthProviderV2({ children }: { children: ReactNode }) {
           return;
         }
 
-        supabase
+        const { data: profile } = await supabase
           .from('profiles')
           .select('*')
           .eq('id', session.user.id)
-          .single()
-          .then(({ data: profile }) => {
-            if (mounted) {
-              setUser(profile);
-              setIsLoading(false);
-            }
-          })
-          .catch(() => {
-            if (mounted) {
-              setUser(null);
-              setIsLoading(false);
-            }
-          });
-      })
-      .catch(() => {
+          .single();
+        if (mounted) {
+          setUser(profile);
+          setIsLoading(false);
+        }
+      } catch {
         if (mounted) {
           setUser(null);
           setIsLoading(false);
         }
-      });
+      }
+    }
+
+    init();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
@@ -61,14 +57,18 @@ export function AuthProviderV2({ children }: { children: ReactNode }) {
         return;
       }
       if (session?.user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single();
-        if (mounted) {
-          setUser(profile);
-          setIsLoading(false);
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          if (mounted) {
+            setUser(profile);
+            setIsLoading(false);
+          }
+        } catch {
+          // ignore
         }
       }
     });
