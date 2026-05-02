@@ -8,23 +8,6 @@ interface UseTradesOptions {
   daysAgo?: number;
 }
 
-const cache = new Map<string, { ts: number; data: unknown }>();
-const TTL = 60_000;
-
-function getCached<T>(key: string): T | null {
-  const c = cache.get(key);
-  if (c && Date.now() - c.ts < TTL) return c.data as T;
-  return null;
-}
-
-function setCache(key: string, data: unknown): void {
-  cache.set(key, { ts: Date.now(), data });
-  if (cache.size > 20) {
-    const first = cache.keys().next().value;
-    if (first) cache.delete(first);
-  }
-}
-
 export function useTradesOptimized(options?: UseTradesOptions) {
   const { limit = 50, daysAgo = 30 } = options || {};
 
@@ -53,67 +36,49 @@ export function useTradesOptimized(options?: UseTradesOptions) {
     staleTime: 2 * 60 * 1000,
   });
 
-  const totalVolume = useMemo(() => {
-    const key = 'tv_' + trades.length;
-    const c = getCached<number>(key);
-    if (c !== null) return c;
-    const v = trades.reduce((s, t) => s + t.value_usd, 0);
-    setCache(key, v);
-    return v;
-  }, [trades]);
-
   const pnlData = useMemo(() => {
-    const key = 'pnl_' + trades.length;
-    const c = getCached(key);
-    if (c) return c as { date: string; pnl: number; cumulativePnl: number }[];
-
+    const sorted = [...trades].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
     let cum = 0;
-    const data = [...trades]
-      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
-      .map((t) => {
-        const pnl = t.is_buy ? t.amount_out - t.amount_in : t.amount_in - t.amount_out;
-        cum += pnl;
-        return { date: new Date(t.timestamp).toISOString().split('T')[0], pnl, cumulativePnl: cum };
+    const result: { date: string; pnl: number; cumulativePnl: number }[] = [];
+    for (const t of sorted) {
+      const pnl =
+        ((t as Record<string, unknown>).pnl_realized as number) ||
+        (t.side === 'buy' ? -t.value_usd : t.value_usd);
+      cum += pnl;
+      result.push({
+        date: new Date(t.timestamp).toISOString().split('T')[0],
+        pnl,
+        cumulativePnl: cum,
       });
-    setCache(key, data);
-    return data;
+    }
+    return result;
   }, [trades]);
 
   const tokenVolumes = useMemo(() => {
-    const key = 'tok_' + trades.length;
-    const c = getCached(key);
-    if (c) return c as { token: string; volume: number; percentage: number }[];
-
     const map = new Map<string, number>();
     for (const t of trades) {
-      const tok = t.is_buy ? t.token_in : t.token_out;
-      map.set(tok, (map.get(tok) || 0) + t.value_usd);
+      const base = t.symbol.split('/')[0];
+      map.set(base, (map.get(base) || 0) + t.value_usd);
     }
-    const data = Array.from(map.entries())
-      .map(([token, volume]) => ({
-        token,
-        volume,
-        percentage: totalVolume ? (volume / totalVolume) * 100 : 0,
-      }))
+    const total = trades.reduce((s, t) => s + t.value_usd, 0);
+    return Array.from(map.entries())
+      .map(([token, volume]) => ({ token, volume, percentage: total ? (volume / total) * 100 : 0 }))
       .sort((a, b) => b.volume - a.volume)
       .slice(0, 8);
-    setCache(key, data);
-    return data;
-  }, [trades, totalVolume]);
+  }, [trades]);
 
   const weekdayPerformance = useMemo(() => {
-    const key = 'wd_' + trades.length;
-    const c = getCached(key);
-    if (c) return c as { day: string; profit: number; trades: number }[];
-
     const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     const buckets = days.map((day) => ({ day, profit: 0, trades: 0 }));
     for (const t of trades) {
       const idx = new Date(t.timestamp).getDay();
-      buckets[idx].profit += t.is_buy ? t.amount_out - t.amount_in : t.amount_in - t.amount_out;
+      buckets[idx].profit +=
+        ((t as Record<string, unknown>).pnl_realized as number) ||
+        (t.side === 'buy' ? -t.value_usd : t.value_usd);
       buckets[idx].trades += 1;
     }
-    setCache(key, buckets);
     return buckets;
   }, [trades]);
 
@@ -123,7 +88,7 @@ export function useTradesOptimized(options?: UseTradesOptions) {
     pnlData,
     tokenVolumes,
     weekdayPerformance,
-    totalVolume,
+    totalVolume: trades.reduce((s, t) => s + t.value_usd, 0),
     totalTrades: trades.length,
   };
 }
