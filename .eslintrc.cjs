@@ -16,10 +16,7 @@ module.exports = {
   },
   plugins: ['@typescript-eslint', 'jsx-a11y'],
   rules: {
-    '@typescript-eslint/no-floating-promises': 'off',
-    '@typescript-eslint/require-await': 'off',
-    '@typescript-eslint/no-misused-promises': 'off',
-    'jsx-a11y/alt-text': 'warn',
+    '@typescript-eslint/no-explicit-any': 'off',
     'react-hooks/exhaustive-deps': 'warn',
   },
   overrides: [
@@ -29,5 +26,10 @@ module.exports = {
         '@typescript-eslint/no-unused-vars': 'off',
       },
     },
+    {
+      files: ['dist/**/*.js'],
+      rules: {},
+    },
   ],
+  ignorePatterns: ['dist/**', 'backend/**', 'node_modules/**'],
 };
