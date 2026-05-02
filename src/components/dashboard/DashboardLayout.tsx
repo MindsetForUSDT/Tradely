@@ -64,7 +64,11 @@ function DashboardContent() {
         <PnLChart data={pnlData} isLoading={tradesLoading} />
         <VolumeByTokenChart data={tokenVolumes} isLoading={tradesLoading} />
       </div>
-      <TradeList trades={trades.slice(0, 5)} isLoading={tradesLoading} compact />
+      <TradeList
+        trades={trades as unknown as import('@/types').Trade[]}
+        isLoading={tradesLoading}
+        compact
+      />
     </div>
   );
 }
