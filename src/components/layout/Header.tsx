@@ -1,13 +1,12 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
 export function Header() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, signOut } = useAuth();
   const location = useLocation();
-  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -15,11 +14,6 @@ export function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
-
-  const handleSignOut = async () => {
-    await logout();
-    navigate('/', { replace: true });
-  };
 
   return (
     <header
@@ -50,14 +44,13 @@ export function Header() {
               Tradeum<span className="text-accent-green">Diary</span>
             </span>
           </Link>
-
           <nav className="hidden md:flex items-center gap-4">
             {isAuthenticated ? (
               <>
                 <Link
                   to="/dashboard"
                   className={cn(
-                    'text-sm px-3 py-2 rounded-lg transition-colors',
+                    'text-sm px-3 py-2 rounded-lg',
                     location.pathname === '/dashboard'
                       ? 'text-accent-green bg-accent-green/5'
                       : 'text-text-secondary hover:text-text-primary'
@@ -68,7 +61,7 @@ export function Header() {
                 <Link
                   to="/dashboard/wallets"
                   className={cn(
-                    'text-sm px-3 py-2 rounded-lg transition-colors',
+                    'text-sm px-3 py-2 rounded-lg',
                     location.pathname.includes('/wallets')
                       ? 'text-accent-green bg-accent-green/5'
                       : 'text-text-secondary hover:text-text-primary'
@@ -76,7 +69,7 @@ export function Header() {
                 >
                   Кошельки
                 </Link>
-                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <Button variant="ghost" size="sm" onClick={signOut}>
                   Выйти
                 </Button>
               </>
@@ -84,7 +77,7 @@ export function Header() {
               <>
                 <Link
                   to="/subscribe"
-                  className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                  className="text-sm text-text-secondary hover:text-text-primary"
                 >
                   Тарифы
                 </Link>
