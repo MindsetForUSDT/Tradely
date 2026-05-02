@@ -18,32 +18,40 @@ export function AuthProviderV2({ children }: { children: ReactNode }) {
   useEffect(() => {
     let mounted = true;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (!session) {
-        setUser(null);
-        setIsLoading(false);
-        return;
-      }
+    supabase.auth
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (!mounted) return;
+        if (!session) {
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
 
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', session.user.id)
-        .single()
-        .then(({ data: profile }) => {
-          if (mounted) {
-            setUser(profile);
-            setIsLoading(false);
-          }
-        })
-        .catch(() => {
-          if (mounted) {
-            setUser(null);
-            setIsLoading(false);
-          }
-        });
-    });
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data: profile }) => {
+            if (mounted) {
+              setUser(profile);
+              setIsLoading(false);
+            }
+          })
+          .catch(() => {
+            if (mounted) {
+              setUser(null);
+              setIsLoading(false);
+            }
+          });
+      })
+      .catch(() => {
+        if (mounted) {
+          setUser(null);
+          setIsLoading(false);
+        }
+      });
 
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
