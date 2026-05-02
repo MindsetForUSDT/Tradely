@@ -13,18 +13,13 @@ export function useTradesOptimized(options?: UseTradesOptions) {
   const { data: trades = [], isLoading } = useQuery({
     queryKey: ['trades', { limit, daysAgo }],
     queryFn: async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return [];
-
       const since = new Date();
       since.setDate(since.getDate() - daysAgo);
 
       const { data, error } = await supabase
         .from('trades')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', '77629667-dd24-487b-90ac-a2dbea8b994a')
         .order('timestamp', { ascending: false })
         .gte('timestamp', since.toISOString())
         .limit(limit);

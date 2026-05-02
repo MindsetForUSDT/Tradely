@@ -1,54 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 
-interface Wallet {
-  id: string;
-  user_id: string;
-  address: string;
-  chain: string;
-  label: string | null;
-  processing_status: string;
-  error_message: string | null;
-  added_at: string;
-}
-
 export function useWallets() {
-  const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const {
+    data: wallets = [],
+    isLoading,
+    refetch,
+  } = useQuery({
+    queryKey: ['wallets'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('user_id', '77629667-dd24-487b-90ac-a2dbea8b994a')
+        .order('added_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 10 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    let mounted = true;
-
-    async function fetch() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          if (mounted) setIsLoading(false);
-          return;
-        }
-
-        const { data } = await supabase
-          .from('wallets')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('added_at', { ascending: false });
-
-        if (mounted) {
-          setWallets(data || []);
-          setIsLoading(false);
-        }
-      } catch {
-        if (mounted) setIsLoading(false);
-      }
-    }
-
-    fetch();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  return { wallets, isLoading, error: null, refresh: () => {} };
+  return { wallets, isLoading, error: null, refresh: refetch };
 }
