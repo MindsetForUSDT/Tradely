@@ -3,13 +3,14 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { Layout } from '@/components/layout/Layout';
 
-// Ленивая загрузка страниц
-const Landing = lazy(() => import('@/pages/Landing'));
-const Subscribe = lazy(() => import('@/pages/Subscribe'));
-const Payment = lazy(() => import('@/pages/Payment'));
-const Dashboard = lazy(() => import('@/pages/Dashboard'));
-const ProAnalytics = lazy(() => import('@/pages/ProAnalytics'));
-const NotFound = lazy(() => import('@/pages/NotFound'));
+const Landing = lazy(() => import('@/pages/Landing').then((m) => ({ default: m.Landing })));
+const Subscribe = lazy(() => import('@/pages/Subscribe').then((m) => ({ default: m.Subscribe })));
+const Payment = lazy(() => import('@/pages/Payment').then((m) => ({ default: m.Payment })));
+const Dashboard = lazy(() => import('@/pages/Dashboard').then((m) => ({ default: m.Dashboard })));
+const ProAnalytics = lazy(() =>
+  import('@/pages/ProAnalytics').then((m) => ({ default: m.ProAnalytics }))
+);
+const NotFound = lazy(() => import('@/pages/NotFound').then((m) => ({ default: m.NotFound })));
 
 function PageLoader() {
   return (

@@ -27,7 +27,7 @@ export const AuthContext = createContext<AuthState>({
   signOut: async () => {},
   refreshProfile: async () => {},
 });
-
+export { useAuth, AuthContext } from '@/providers/AppProviders';
 export function useAuth() {
   return useContext(AuthContext);
 }
