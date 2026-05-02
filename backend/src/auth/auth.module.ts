@@ -11,12 +11,11 @@ import { PrismaModule } from '../prisma/prisma.module';
     PrismaModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'fallback-secret',
-      signOptions: { expiresIn: process.env.JWT_EXPIRATION || '15m' },
+      secret: process.env.JWT_SECRET || 'tradeumdiary-secret',
+      signOptions: { expiresIn: '15m' },
     }),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
 })
 export class AuthModule {}

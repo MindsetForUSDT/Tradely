@@ -20,9 +20,6 @@ export class AuthService {
       data: {
         email,
         passwordHash,
-        subscriptionTier: 'free',
-        trialStartedAt: new Date(),
-        subscriptionExpiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       },
     });
 
@@ -39,24 +36,11 @@ export class AuthService {
     return this.generateTokens(user.id, user.email);
   }
 
-  async refreshToken(userId: string) {
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
-    if (!user) throw new UnauthorizedException();
-    return this.generateTokens(user.id, user.email);
-  }
-
   private generateTokens(userId: string, email: string) {
     const payload = { sub: userId, email };
-
-    const accessToken = this.jwtService.sign(payload, {
-      expiresIn: process.env.JWT_EXPIRATION || '15m',
-    });
-
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET || 'refresh-fallback',
-      expiresIn: process.env.JWT_REFRESH_EXPIRATION || '7d',
-    });
-
-    return { accessToken, refreshToken };
+    return {
+      accessToken: this.jwtService.sign(payload),
+      refreshToken: this.jwtService.sign(payload, { expiresIn: '7d' }),
+    };
   }
 }

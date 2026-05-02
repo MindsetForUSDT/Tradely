@@ -8,13 +8,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly prisma: PrismaService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-      secretOrKey: process.env.JWT_SECRET || 'fallback-secret',
+      secretOrKey: process.env.JWT_SECRET || 'tradeumdiary-secret',
     });
   }
 
   async validate(payload: { sub: string; email: string }) {
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub } });
-    if (!user) return null;
-    return { id: user.id, email: user.email, subscriptionTier: user.subscriptionTier };
+    return user ? { id: user.id, email: user.email } : null;
   }
 }
