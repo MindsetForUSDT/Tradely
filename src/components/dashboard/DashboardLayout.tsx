@@ -10,15 +10,7 @@ import { useStore } from '@/store/useStore';
 import { useEffect } from 'react';
 
 export function DashboardLayout() {
-  const { wallets, isLoading: walletsLoading } = useWallets();
-
-  if (walletsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+  const { wallets } = useWallets();
 
   if (wallets.length === 0) return <RequireWallet />;
 
@@ -58,11 +50,7 @@ function DashboardContent() {
         <PnLChart data={pnlData} isLoading={tradesLoading} />
         <VolumeByTokenChart data={tokenVolumes} isLoading={tradesLoading} />
       </div>
-      <TradeList
-        trades={trades as unknown as import('@/types').Trade[]}
-        isLoading={tradesLoading}
-        compact
-      />
+      <TradeList trades={trades as any} isLoading={tradesLoading} compact />
     </div>
   );
 }
