@@ -1,156 +1,88 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useWallets } from '@/hooks/useWallets';
 import { shortenAddress, cn } from '@/lib/utils';
-import { CHAINS, validateAddress, type BlockchainNetwork } from '@/lib/chains';
-import { verifyWallet } from '@/lib/explorer';
 import toast from 'react-hot-toast';
 
-const STATUS_MAP: Record<string, { label: string; color: string }> = {
-  pending: { label: 'В очереди', color: 'text-yellow-400' },
-  processing: { label: 'Обработка', color: 'text-blue-400' },
-  completed: { label: 'Готово', color: 'text-accent-green' },
-  failed: { label: 'Ошибка', color: 'text-accent-red' },
-};
+type ConnectionType = 'wallet' | 'exchange';
+type Exchange = 'binance' | 'bybit' | 'okx';
+
+const EXCHANGES: { value: Exchange; label: string; icon: string }[] = [
+  { value: 'binance', label: 'Binance', icon: '🔶' },
+  { value: 'bybit', label: 'Bybit', icon: '🔷' },
+  { value: 'okx', label: 'OKX', icon: '🔵' },
+];
 
 export function WalletConnect() {
-  const { wallets, isLoading, refresh } = useWallets();
+  const { wallets, refresh } = useWallets();
   const [showForm, setShowForm] = useState(false);
+  const [connectionType, setConnectionType] = useState<ConnectionType>('wallet');
+  const [exchange, setExchange] = useState<Exchange>('binance');
   const [address, setAddress] = useState('');
-  const [chain, setChain] = useState<BlockchainNetwork>('ethereum');
+  const [apiKey, setApiKey] = useState('');
+  const [apiSecret, setApiSecret] = useState('');
   const [label, setLabel] = useState('');
   const [adding, setAdding] = useState(false);
-  const [verifying, setVerifying] = useState(false);
-  const [verificationResult, setVerificationResult] = useState<{
-    verified: boolean;
-    balance?: string;
-    transactionsCount?: number;
-    error?: string;
-  } | null>(null);
 
-  useEffect(() => {
-    const w = window as any;
-    if (!w.ethereum) return;
-    const handleChainChanged = () => window.location.reload();
-    const handleAccountsChanged = (accounts: string[]) => {
-      if (accounts.length === 0) toast.error('Кошелёк отключён');
-    };
-    w.ethereum.on('chainChanged', handleChainChanged);
-    w.ethereum.on('accountsChanged', handleAccountsChanged);
-    return () => {
-      w.ethereum?.removeListener?.('chainChanged', handleChainChanged);
-      w.ethereum?.removeListener?.('accountsChanged', handleAccountsChanged);
-    };
-  }, []);
-
-  const handleVerify = async () => {
-    const validation = validateAddress(address, chain);
-    if (!validation.valid) {
-      toast.error(validation.error!);
-      return;
-    }
-    setVerifying(true);
-    setVerificationResult(null);
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15_000);
-
-    try {
-      const result = await verifyWallet(address, chain);
-      clearTimeout(timeout);
-      if (result.exists) {
-        setVerificationResult({
-          verified: true,
-          balance: result.balance,
-          transactionsCount: result.transactionsCount,
-        });
-        toast.success('Кошелёк найден в сети!');
-      } else {
-        setVerificationResult({ verified: false, error: result.error || 'Адрес не найден' });
-        toast.error(result.error || 'Адрес не найден в сети');
-      }
-    } catch {
-      setVerificationResult({ verified: false, error: 'Таймаут проверки' });
-      toast.error('Таймаут проверки адреса');
-    } finally {
-      clearTimeout(timeout);
-      setVerifying(false);
-    }
-  };
-
-  const addWallet = async () => {
-    if (!verificationResult?.verified) {
-      toast.error('Сначала проверьте адрес');
-      return;
-    }
+  const addConnection = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      toast.error('Не авторизован');
+      return;
+    }
+
+    if (connectionType === 'wallet' && !address.trim()) {
+      toast.error('Введите адрес кошелька');
+      return;
+    }
+    if (connectionType === 'exchange' && (!apiKey.trim() || !apiSecret.trim())) {
+      toast.error('Введите API ключ и секрет');
+      return;
+    }
+
     setAdding(true);
     try {
       const { error } = await supabase.from('wallets').insert({
         user_id: user.id,
-        address: address.trim(),
-        chain,
-        label: label.trim() || null,
+        address:
+          connectionType === 'wallet'
+            ? address.trim()
+            : `${exchange}:${apiKey.trim().slice(0, 8)}...`,
+        chain: connectionType === 'exchange' ? 'exchange' : 'ethereum',
+        label:
+          label.trim() || (connectionType === 'wallet' ? address.trim().slice(0, 8) : exchange),
       });
-      if (error) {
-        if (error.code === '23505') {
-          toast.error('Этот кошелёк уже добавлен');
-        } else {
-          throw error;
-        }
-        return;
-      }
-      toast.success('Кошелёк добавлен!');
-      setAddress('');
-      setLabel('');
-      setVerificationResult(null);
-      setShowForm(false);
-      refresh();
-    } catch {
-      toast.error('Ошибка добавления');
-    } finally {
-      setAdding(false);
-    }
-  };
 
-  const deleteWallet = async (id: string) => {
-    const { error } = await supabase.from('wallets').delete().eq('id', id);
-    if (error) {
-      toast.error('Ошибка удаления');
-    } else {
-      toast.success('Кошелёк удалён');
+      if (error) throw error;
+      toast.success(connectionType === 'wallet' ? 'Кошелёк добавлен!' : 'Биржа подключена!');
+      setShowForm(false);
+      setAddress('');
+      setApiKey('');
+      setApiSecret('');
+      setLabel('');
       refresh();
+    } catch (e: any) {
+      toast.error(e?.message || 'Ошибка');
     }
+    setAdding(false);
   };
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Кошельки</h1>
+          <h1 className="text-2xl font-bold">Кошельки и биржи</h1>
           <p className="text-sm text-text-muted mt-1">
-            {wallets.length > 0
-              ? `Добавлено кошельков: ${wallets.length}`
-              : 'Добавьте кошелёк для импорта сделок'}
+            Подключите кошелёк или биржу для импорта сделок
           </p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={() => {
-            setShowForm(!showForm);
-            setVerificationResult(null);
-            setAddress('');
-            setLabel('');
-          }}
-        >
-          {showForm ? 'Отмена' : '+ Кошелёк'}
+        <Button variant="primary" size="sm" onClick={() => setShowForm(!showForm)}>
+          {showForm ? 'Отмена' : '+ Подключить'}
         </Button>
       </div>
 
@@ -162,179 +94,174 @@ export function WalletConnect() {
             exit={{ opacity: 0, height: 0 }}
           >
             <Card padding="md" className="mb-4 space-y-4">
+              {/* Выбор типа подключения */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setConnectionType('wallet')}
+                  className={cn(
+                    'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                    connectionType === 'wallet'
+                      ? 'bg-accent-green text-surface'
+                      : 'bg-surface-overlay text-text-secondary'
+                  )}
+                >
+                  💳 Кошелёк
+                </button>
+                <button
+                  onClick={() => setConnectionType('exchange')}
+                  className={cn(
+                    'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
+                    connectionType === 'exchange'
+                      ? 'bg-accent-green text-surface'
+                      : 'bg-surface-overlay text-text-secondary'
+                  )}
+                >
+                  🏦 Биржа
+                </button>
+              </div>
+
+              {/* Поля для кошелька */}
+              {connectionType === 'wallet' && (
+                <>
+                  <div>
+                    <span className="text-xs text-text-muted block mb-1">Адрес кошелька</span>
+                    <input
+                      type="text"
+                      placeholder="0x..."
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 font-mono"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Поля для биржи */}
+              {connectionType === 'exchange' && (
+                <>
+                  <div>
+                    <span className="text-xs text-text-muted block mb-1">Биржа</span>
+                    <select
+                      value={exchange}
+                      onChange={(e) => setExchange(e.target.value as Exchange)}
+                      className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
+                    >
+                      {EXCHANGES.map((e) => (
+                        <option key={e.value} value={e.value}>
+                          {e.icon} {e.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <span className="text-xs text-text-muted block mb-1">API Key</span>
+                    <input
+                      type="password"
+                      placeholder="Введите API ключ"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs text-text-muted block mb-1">API Secret</span>
+                    <input
+                      type="password"
+                      placeholder="Введите секретный ключ"
+                      value={apiSecret}
+                      onChange={(e) => setApiSecret(e.target.value)}
+                      className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 font-mono"
+                    />
+                  </div>
+
+                  {/* Блок безопасности */}
+                  <div className="p-4 rounded-xl bg-accent-green/5 border border-accent-green/20 space-y-2">
+                    <p className="text-accent-green font-semibold text-sm">
+                      🔒 Только для чтения (Read-only)
+                    </p>
+                    <p className="text-text-secondary text-xs leading-relaxed">
+                      При создании API ключа на бирже включите <strong>только чтение</strong> и
+                      отключите торговлю и вывод средств. Ваши средства в полной безопасности — сайт
+                      не сможет совершать сделки.
+                    </p>
+                    <div className="text-xs text-text-muted space-y-1 mt-2">
+                      <p>
+                        • Binance: отметьте{' '}
+                        <span className="text-accent-green">Enable Spot Trading</span> → снимите
+                        галочку <strong>Enable Trading</strong>
+                      </p>
+                      <p>
+                        • Bybit: выберите <span className="text-accent-green">Read-only</span> при
+                        создании ключа
+                      </p>
+                      <p>
+                        • OKX: поставьте <span className="text-accent-green">Trade</span> →{' '}
+                        <strong>Read</strong>
+                      </p>
+                    </div>
+                  </div>
+                </>
+              )}
+
               <div>
-                <span className="text-xs text-text-muted block mb-1">Адрес кошелька</span>
+                <span className="text-xs text-text-muted block mb-1">Название (опционально)</span>
                 <input
                   type="text"
-                  placeholder="0x... или Solana адрес"
-                  value={address}
-                  onChange={(e) => {
-                    setAddress(e.target.value);
-                    setVerificationResult(null);
-                  }}
-                  className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 font-mono"
+                  placeholder="Мой кошелёк"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                  className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <span className="text-xs text-text-muted block mb-1">Сеть</span>
-                  <select
-                    value={chain}
-                    onChange={(e) => {
-                      setChain(e.target.value as BlockchainNetwork);
-                      setVerificationResult(null);
-                    }}
-                    className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
-                  >
-                    {CHAINS.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.icon} {c.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <span className="text-xs text-text-muted block mb-1">Название (опционально)</span>
-                  <input
-                    type="text"
-                    placeholder="Мой кошелёк"
-                    value={label}
-                    onChange={(e) => setLabel(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
-                  />
-                </div>
-              </div>
-              {verificationResult && (
-                <div
-                  className={cn(
-                    'p-4 rounded-xl text-sm',
-                    verificationResult.verified
-                      ? 'bg-accent-green/5 border border-accent-green/20'
-                      : 'bg-accent-red/5 border border-accent-red/20'
-                  )}
-                >
-                  {verificationResult.verified ? (
-                    <div className="space-y-1">
-                      <p className="text-accent-green font-medium">✓ Кошелёк подтверждён</p>
-                      {verificationResult.balance && (
-                        <p className="text-text-secondary text-xs">
-                          Баланс: {verificationResult.balance} wei
-                        </p>
-                      )}
-                      {verificationResult.transactionsCount !== undefined && (
-                        <p className="text-text-secondary text-xs">
-                          Транзакций: {verificationResult.transactionsCount}
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <p className="text-accent-red">{verificationResult.error}</p>
-                  )}
-                </div>
-              )}
-              <div className="flex gap-3">
-                <Button
-                  variant="outline"
-                  onClick={handleVerify}
-                  isLoading={verifying}
-                  className="flex-1"
-                >
-                  Проверить адрес
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={addWallet}
-                  isLoading={adding}
-                  disabled={!verificationResult?.verified}
-                  className="flex-1"
-                >
-                  Добавить
-                </Button>
-              </div>
+
+              <Button
+                variant="primary"
+                onClick={addConnection}
+                isLoading={adding}
+                className="w-full"
+              >
+                {connectionType === 'wallet' ? 'Добавить кошелёк' : 'Подключить биржу'}
+              </Button>
             </Card>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {isLoading ? (
-        <Card padding="md">
-          <div className="animate-pulse space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-surface-border rounded-lg" />
-            ))}
-          </div>
-        </Card>
-      ) : wallets.length === 0 ? (
+      {/* Список кошельков */}
+      {wallets.length === 0 ? (
         <Card padding="lg">
           <div className="text-center py-8">
             <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
               <span className="text-2xl">💳</span>
             </div>
-            <h3 className="text-lg font-semibold mb-2">Нет кошельков</h3>
-            <p className="text-sm text-text-muted mb-4">
-              Добавьте адрес кошелька для автоматического импорта сделок
-            </p>
-            <p className="text-xs text-text-muted">
-              Поддерживаются: {CHAINS.map((c) => c.label).join(', ')}
-            </p>
+            <h3 className="text-lg font-semibold mb-2">Нет подключений</h3>
+            <p className="text-sm text-text-muted">Добавьте кошелёк или биржу для импорта сделок</p>
           </div>
         </Card>
       ) : (
         <div className="space-y-3">
-          {wallets.map((w) => {
-            const chainConfig = CHAINS.find((x) => x.value === w.chain);
-            const status = STATUS_MAP[w.processing_status] || {
-              label: w.processing_status,
-              color: 'text-text-muted',
-            };
-            return (
-              <Card key={w.id} padding="md">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-lg">{chainConfig?.icon}</span>
-                      <span className="text-sm font-medium truncate">
-                        {w.label || shortenAddress(w.address, 6)}
-                      </span>
-                      <span
-                        className={cn(
-                          'text-[10px] px-2 py-0.5 rounded-full',
-                          status.color,
-                          'bg-surface-overlay'
-                        )}
-                      >
-                        {status.label}
-                      </span>
-                    </div>
-                    <p className="text-xs text-text-muted font-mono">
-                      {shortenAddress(w.address, 8)}
-                    </p>
-                    {w.error_message && (
-                      <p className="text-xs text-accent-red mt-1">{w.error_message}</p>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-2 ml-4">
-                    <a
-                      href={`${chainConfig?.explorerUrl}/${w.address}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-text-muted hover:text-accent-green transition-colors"
-                      title="Открыть в explorer"
-                    >
-                      ↗
-                    </a>
-                    <button
-                      onClick={() => deleteWallet(w.id)}
-                      className="text-text-muted hover:text-accent-red transition-colors p-1"
-                      title="Удалить кошелёк"
-                    >
-                      🗑
-                    </button>
-                  </div>
+          {wallets.map((w: any) => (
+            <Card key={w.id} padding="md">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium">{w.label || shortenAddress(w.address, 8)}</p>
+                  <p className="text-xs text-text-muted font-mono">
+                    {w.chain === 'exchange' ? 'Биржа' : shortenAddress(w.address, 12)}
+                  </p>
                 </div>
-              </Card>
-            );
-          })}
+                <span
+                  className={cn(
+                    'text-[10px] px-2 py-0.5 rounded-full',
+                    w.processing_status === 'completed'
+                      ? 'text-accent-green bg-accent-green/5'
+                      : 'text-text-muted bg-surface-overlay'
+                  )}
+                >
+                  {w.processing_status === 'completed' ? 'Готово' : w.processing_status}
+                </span>
+              </div>
+            </Card>
+          ))}
         </div>
       )}
     </div>
