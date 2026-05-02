@@ -17,7 +17,9 @@ interface AuthState {
   readonly signOut: () => Promise<void>;
   readonly refreshProfile: () => Promise<void>;
 }
-
+// Перенаправление на единый провайдер
+export { useAuth, AuthContext } from '@/providers/AppProviders';
+export type { Profile } from '@/types';
 export const AuthContext = createContext<AuthState>({
   user: null,
   isLoading: true,

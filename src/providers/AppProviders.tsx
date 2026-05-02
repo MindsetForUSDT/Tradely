@@ -1,12 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { AuthContext } from '@/hooks/useAuth';
-import type { Profile } from '@/hooks/useAuth';
 import type { ReactNode } from 'react';
 
-interface AppProvidersProps {
-  readonly children: ReactNode;
+interface UserProfile {
+  id: string;
+  email?: string;
+  username?: string;
+  subscription_tier: 'free' | 'pro';
+  subscription_expires_at: string | null;
+}
+
+interface AuthContextType {
+  user: UserProfile | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<{ error?: string }>;
+  register: (email: string, password: string, username?: string) => Promise<{ error?: string }>;
+  logout: () => Promise<void>;
+}
+
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+  isAuthenticated: false,
+  login: async () => ({ error: 'AuthProvider not mounted' }),
+  register: async () => ({ error: 'AuthProvider not mounted' }),
+  logout: async () => {},
+});
+
+export function useAuth() {
+  return useContext(AuthContext);
 }
 
 const queryClient = new QueryClient({
@@ -20,93 +44,122 @@ const queryClient = new QueryClient({
   },
 });
 
-function SimpleAuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<Profile | null>(null);
-  const [ready, setReady] = useState(false);
+function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    let mounted = true;
+    let cancelled = false;
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session?.user) {
-        supabase
+    async function loadSession() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (cancelled) return;
+
+        if (!session) {
+          setUser(null);
+          setIsLoading(false);
+          return;
+        }
+
+        const { data: profile } = await supabase
           .from('profiles')
-          .select('*')
+          .select('id, username, subscription_tier, subscription_expires_at')
           .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (mounted) {
-              setUser(data);
-              setReady(true);
-            }
-          });
-      } else {
-        setReady(true);
+          .single();
+
+        if (!cancelled) {
+          setUser(profile ? { ...profile, email: session.user.email } : null);
+          setIsLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          setUser(null);
+          setIsLoading(false);
+        }
       }
-    });
+    }
+
+    void loadSession();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            if (mounted) setUser(data);
-          });
-      } else {
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_OUT') {
         setUser(null);
+        return;
+      }
+
+      if (session?.user && (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED')) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('id, username, subscription_tier, subscription_expires_at')
+          .eq('id', session.user.id)
+          .single();
+
+        setUser(profile ? { ...profile, email: session.user.email } : null);
       }
     });
 
     return () => {
-      mounted = false;
+      cancelled = true;
       subscription.unsubscribe();
     };
   }, []);
 
-  if (!ready) {
+  const login = useCallback(async (email: string, password: string) => {
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const register = useCallback(async (email: string, password: string, username?: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username } },
+    });
+    if (error) return { error: error.message };
+    return {};
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+  }, []);
+
+  if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-8 h-8 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+      <div
+        className="min-h-screen flex items-center justify-center bg-surface"
+        role="status"
+        aria-label="Загрузка"
+      >
+        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+        <span className="sr-only">Загрузка...</span>
       </div>
     );
   }
 
   return (
     <AuthContext.Provider
-      value={{
-        user,
-        isLoading: false,
-        isAuthenticated: !!user,
-        signOut: async () => {
-          await supabase.auth.signOut();
-          setUser(null);
-        },
-        refreshProfile: async () => {
-          const {
-            data: { user: u },
-          } = await supabase.auth.getUser();
-          if (u) {
-            const { data } = await supabase.from('profiles').select('*').eq('id', u.id).single();
-            if (data) setUser(data);
-          }
-        },
-      }}
+      value={{ user, isLoading, isAuthenticated: !!user, login, register, logout }}
     >
       {children}
     </AuthContext.Provider>
   );
 }
 
+interface AppProvidersProps {
+  readonly children: ReactNode;
+}
+
 export function AppProviders({ children }: AppProvidersProps) {
   return (
     <QueryClientProvider client={queryClient}>
-      <SimpleAuthProvider>{children}</SimpleAuthProvider>
+      <AuthProvider>{children}</AuthProvider>
     </QueryClientProvider>
   );
 }
