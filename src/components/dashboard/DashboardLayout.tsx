@@ -1,15 +1,37 @@
-import { useEffect } from 'react';
 import { StatsOverview } from './StatsOverview';
 import { PnLChart } from './PnLChart';
 import { VolumeByTokenChart } from './VolumeByTokenChart';
 import { TradeList } from './TradeList';
 import { RequireWallet } from './RequireWallet';
-import { useTradesOptimized as useTrades } from '@/hooks/useTradesOptimized';
-import { useAnalytics } from '@/hooks/useAnalytics';
 import { useWallets } from '@/hooks/useWallets';
+import { useTradesOptimized } from '@/hooks/useTradesOptimized';
+import { useAnalytics } from '@/hooks/useAnalytics';
 import { useStore } from '@/store/useStore';
+import { useEffect, useState } from 'react';
 
 export function DashboardLayout() {
+  const { wallets, isLoading: walletsLoading } = useWallets();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setReady(true), 3000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (walletsLoading || !ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  if (wallets.length === 0) return <RequireWallet />;
+
+  return <DashboardContent />;
+}
+
+function DashboardContent() {
   const {
     trades,
     pnlData,
@@ -17,8 +39,7 @@ export function DashboardLayout() {
     totalVolume,
     totalTrades,
     isLoading: tradesLoading,
-  } = useTrades({ limit: 100, daysAgo: 30 });
-  const { wallets, isLoading: walletsLoading } = useWallets();
+  } = useTradesOptimized({ limit: 100, daysAgo: 30 });
   const { todayAnalytics, isLoading: analyticsLoading } = useAnalytics();
   const setStats = useStore((s) => s.setStats);
 
@@ -30,9 +51,6 @@ export function DashboardLayout() {
       isLoading: tradesLoading || analyticsLoading,
     });
   }, [totalVolume, todayAnalytics, totalTrades, tradesLoading, analyticsLoading, setStats]);
-
-  if (walletsLoading) return null;
-  if (wallets.length === 0) return <RequireWallet />;
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
