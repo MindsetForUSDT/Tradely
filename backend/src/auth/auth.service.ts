@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly jwtService: JwtService,
+    private readonly jwtService: JwtService
   ) {}
 
   async register(email: string, password: string) {
@@ -17,10 +17,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(password, 10);
 
     const user = await this.prisma.user.create({
-      data: {
-        email,
-        passwordHash,
-      },
+      data: { email, passwordHash },
     });
 
     return this.generateTokens(user.id, user.email);
