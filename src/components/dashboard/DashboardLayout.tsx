@@ -7,10 +7,25 @@ import { useWallets } from '@/hooks/useWallets';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useStore } from '@/store/useStore';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function DashboardLayout() {
-  const { wallets } = useWallets();
+  const { wallets, isLoading: walletsLoading } = useWallets();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    if (!walletsLoading) {
+      setReady(true);
+    }
+  }, [walletsLoading]);
+
+  if (!ready) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   if (wallets.length === 0) return <RequireWallet />;
 
