@@ -11,15 +11,8 @@ import { useEffect, useState } from 'react';
 
 export function DashboardLayout() {
   const { wallets, isLoading: walletsLoading } = useWallets();
-  const [ready, setReady] = useState(false);
 
-  useEffect(() => {
-    if (!walletsLoading) {
-      setReady(true);
-    }
-  }, [walletsLoading]);
-
-  if (!ready) {
+  if (walletsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />

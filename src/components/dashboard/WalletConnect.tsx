@@ -93,24 +93,28 @@ export function WalletConnect() {
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Кошельки</h1>
-        <div className="relative">
+        <div style={{ position: 'relative', zIndex: 9999 }}>
           <button
+            type="button"
             onClick={() => setShowDropdown(!showDropdown)}
-            className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold cursor-pointer"
+            style={{ cursor: 'pointer', pointerEvents: 'auto' }}
+            className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold"
           >
             + Кошелёк
           </button>
           {showDropdown && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-2xl shadow-2xl z-50">
+            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-2xl shadow-2xl">
               <div className="p-2">
                 <p className="text-xs text-text-muted px-3 py-2">Выберите источник</p>
                 {SOURCES.map((s) => (
                   <button
                     key={s.value}
+                    type="button"
                     onClick={() => {
                       setSource(s.value);
                       setShowDropdown(false);
                     }}
+                    style={{ cursor: 'pointer' }}
                     className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-surface-overlay text-left"
                   >
                     <span className="text-2xl">{s.icon}</span>
@@ -129,7 +133,9 @@ export function WalletConnect() {
       {source && (
         <Card padding="md" className="space-y-4">
           <button
+            type="button"
             onClick={() => setSource(null)}
+            style={{ cursor: 'pointer' }}
             className="text-text-muted hover:text-text-primary text-sm"
           >
             ← Назад
@@ -175,9 +181,11 @@ export function WalletConnect() {
             className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white"
           />
           <button
+            type="button"
             onClick={handleAdd}
             disabled={adding}
-            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 cursor-pointer"
+            style={{ cursor: 'pointer' }}
+            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50"
           >
             {adding ? 'Добавление...' : 'Добавить'}
           </button>

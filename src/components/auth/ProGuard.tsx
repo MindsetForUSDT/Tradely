@@ -27,6 +27,5 @@ export function ProGuard({
     window.location.href = '/subscribe';
     return null;
   }
-
   return <>{children}</>;
 }
