@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
-import { Button } from '@/components/ui/Button';
 import { supabase } from '@/lib/supabase';
 import { useWallets } from '@/hooks/useWallets';
 import { shortenAddress, cn } from '@/lib/utils';
@@ -48,21 +47,22 @@ export function WalletConnect() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 md:px-6 py-6 space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between relative" style={{ zIndex: 50 }}>
         <div>
           <h1 className="text-2xl font-bold">Кошельки</h1>
           <p className="text-sm text-text-muted mt-1">Подключите кошелёк для импорта сделок</p>
         </div>
         <button
           onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold hover:bg-accent-green-dim transition-colors"
+          className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold hover:bg-accent-green-dim transition-colors cursor-pointer"
+          style={{ zIndex: 100, position: 'relative', pointerEvents: 'auto' }}
         >
           {showForm ? 'Отмена' : '+ Кошелёк'}
         </button>
       </div>
 
       {showForm && (
-        <Card padding="md" className="space-y-4">
+        <Card padding="md" className="space-y-4" style={{ position: 'relative', zIndex: 50 }}>
           <div>
             <span className="text-xs text-text-muted block mb-1">Адрес кошелька</span>
             <input
@@ -86,7 +86,8 @@ export function WalletConnect() {
           <button
             onClick={addWallet}
             disabled={adding}
-            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold hover:bg-accent-green-dim transition-colors disabled:opacity-50"
+            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold hover:bg-accent-green-dim transition-colors disabled:opacity-50 cursor-pointer"
+            style={{ pointerEvents: 'auto' }}
           >
             {adding ? 'Добавление...' : 'Добавить кошелёк'}
           </button>
