@@ -20,7 +20,7 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
-  isLoading: true,
+  isLoading: false,
   isAuthenticated: false,
   signOut: async () => {},
   refreshProfile: async () => {},
@@ -34,7 +34,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1, refetchOnWindowFocus: false } },
 });
 
-function getUserId(): string | null {
+function getUserFromLocalStorage(): UserProfile | null {
   try {
     const raw = localStorage.getItem('tradeumdiary-auth');
     if (!raw) return null;
@@ -42,61 +42,19 @@ function getUserId(): string | null {
     const token = parsed?.access_token;
     if (!token) return null;
     const payload = JSON.parse(atob(token.split('.')[1]));
-    return payload?.sub || null;
+    return {
+      id: payload.sub,
+      email: payload.email,
+      subscription_tier: parsed.user?.subscription_tier || 'free',
+      subscription_expires_at: parsed.user?.subscription_expires_at || null,
+    };
   } catch {
     return null;
   }
 }
 
 function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let mounted = true;
-
-    async function init() {
-      try {
-        const userId = getUserId();
-        if (!userId) {
-          if (mounted) setReady(true);
-          return;
-        }
-        const { data } = await supabase
-          .from('profiles')
-          .select('id, subscription_tier, subscription_expires_at')
-          .eq('id', userId)
-          .single();
-        if (mounted) {
-          setUser(
-            data
-              ? {
-                  id: data.id,
-                  subscription_tier: data.subscription_tier,
-                  subscription_expires_at: data.subscription_expires_at,
-                }
-              : null
-          );
-          setReady(true);
-        }
-      } catch {
-        if (mounted) setReady(true);
-      }
-    }
-
-    init();
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+  const [user] = useState<UserProfile | null>(getUserFromLocalStorage);
 
   const value: AuthContextType = {
     user,
@@ -105,7 +63,6 @@ function AuthProvider({ children }: { children: ReactNode }) {
     signOut: async () => {
       await supabase.auth.signOut();
       localStorage.removeItem('tradeumdiary-auth');
-      setUser(null);
     },
     refreshProfile: async () => {},
   };
