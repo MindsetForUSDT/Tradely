@@ -1,15 +1,17 @@
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 
-export function ProGuard({
-  children,
-  requirePro = false,
-}: {
+interface ProGuardProps {
   children: React.ReactNode;
   requirePro?: boolean;
-}) {
+}
+
+export function ProGuard({ children, requirePro = false }: ProGuardProps) {
   const { user } = useAuth();
-  if (!user) return <Navigate to="/" replace />;
+
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
 
   const now = new Date();
   const expiresAt = user.subscription_expires_at ? new Date(user.subscription_expires_at) : null;
@@ -17,7 +19,13 @@ export function ProGuard({
   const isPro = user.subscription_tier === 'pro' && isTierActive;
   const isTrialActive = user.subscription_tier === 'free' && isTierActive;
 
-  if (requirePro && !isPro) return <Navigate to="/subscribe" replace />;
-  if (!isPro && !isTrialActive) return <Navigate to="/subscribe" replace />;
+  if (requirePro && !isPro) {
+    return <Navigate to="/subscribe" replace />;
+  }
+
+  if (!isPro && !isTrialActive) {
+    return <Navigate to="/subscribe" replace />;
+  }
+
   return <>{children}</>;
 }

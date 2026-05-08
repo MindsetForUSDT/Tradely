@@ -10,7 +10,10 @@ import { calculateSharpeRatio } from '@/lib/sharpe';
 
 export function ProAnalytics() {
   const { trades, pnlData, tokenVolumes, weekdayPerformance, totalVolume, totalTrades } =
-    useTradesOptimized({ limit: 500, daysAgo: 90 });
+    useTradesOptimized({
+      limit: 500,
+      daysAgo: 90,
+    });
   const [activeTab, setActiveTab] = useState<'pnl' | 'volume' | 'weekday'>('pnl');
 
   const dailyReturns = pnlData.map((d) => d.pnl);
@@ -28,17 +31,35 @@ export function ProAnalytics() {
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
-          { label: 'Win Rate', value: `${winRate}%` },
-          { label: 'Sharpe', value: sharpeRatio.toFixed(2) },
-          { label: 'Sortino', value: sortinoRatio.toFixed(2) },
-          { label: 'Годовая дох.', value: `${annualizedReturn}%` },
-          { label: 'Всего сделок', value: totalTrades },
+          {
+            label: 'Win Rate',
+            value: `${winRate}%`,
+          },
+          {
+            label: 'Sharpe',
+            value: sharpeRatio.toFixed(2),
+          },
+          {
+            label: 'Sortino',
+            value: sortinoRatio.toFixed(2),
+          },
+          {
+            label: 'Годовая дох.',
+            value: `${annualizedReturn}%`,
+          },
+          {
+            label: 'Всего сделок',
+            value: totalTrades,
+          },
           {
             label: 'Общий P&L',
             value: formatUSD(totalPnl),
             color: totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red',
           },
-          { label: 'Общий объём', value: formatUSD(totalVolume) },
+          {
+            label: 'Общий объём',
+            value: formatUSD(totalVolume),
+          },
         ].map((m) => (
           <Card key={m.label} padding="md">
             <p className="text-xs text-text-muted mb-1">{m.label}</p>
@@ -51,8 +72,14 @@ export function ProAnalytics() {
       <div className="flex gap-2">
         {[
           { key: 'pnl', label: 'P&L' },
-          { key: 'volume', label: 'Объёмы' },
-          { key: 'weekday', label: 'По дням' },
+          {
+            key: 'volume',
+            label: 'Объёмы',
+          },
+          {
+            key: 'weekday',
+            label: 'По дням',
+          },
         ].map((tab) => (
           <button
             key={tab.key}

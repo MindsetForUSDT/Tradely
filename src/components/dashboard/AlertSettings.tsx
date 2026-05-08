@@ -16,25 +16,40 @@ export function AlertSettings() {
       toast.error('Не авторизован');
       return;
     }
+
     setSaving(true);
 
-    const alerts = [];
-    if (pnlTarget)
+    const alerts: any[] = [];
+    const pnlVal = parseFloat(pnlTarget);
+    const ddVal = parseFloat(drawdownLimit);
+
+    if (!isNaN(pnlVal) && pnlVal > 0) {
       alerts.push({
         user_id: uid,
         name: 'P&L Цель',
         alert_type: 'pnl_target',
-        condition_config: { metric: 'pnl_daily', operator: 'gte', value: parseFloat(pnlTarget) },
+        condition_config: {
+          metric: 'pnl_daily',
+          operator: 'gte',
+          value: pnlVal,
+        },
         channels: email ? ['email'] : [],
       });
-    if (drawdownLimit)
+    }
+
+    if (!isNaN(ddVal) && ddVal > 0) {
       alerts.push({
         user_id: uid,
         name: 'Макс. просадка',
         alert_type: 'drawdown',
-        condition_config: { metric: 'drawdown', operator: 'gte', value: parseFloat(drawdownLimit) },
+        condition_config: {
+          metric: 'drawdown',
+          operator: 'gte',
+          value: ddVal,
+        },
         channels: email ? ['email'] : [],
       });
+    }
 
     if (alerts.length) {
       const { error } = await supabase.from('alerts').insert(alerts);

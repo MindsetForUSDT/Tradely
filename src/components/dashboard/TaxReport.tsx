@@ -5,7 +5,10 @@ import { formatUSD } from '@/lib/utils';
 import type { Trade } from '@/types';
 
 export function TaxReport() {
-  const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 365 });
+  const { trades } = useTradesOptimized({
+    limit: 5000,
+    daysAgo: 365,
+  });
   const [year, setYear] = useState(new Date().getFullYear());
 
   const report = useMemo(() => {
@@ -19,7 +22,14 @@ export function TaxReport() {
     const net = totalProceeds - totalCostBasis;
     const taxRate = net > 5_000_000 ? 15 : 13;
     const tax = net > 0 ? net * (taxRate / 100) : 0;
-    return { totalProceeds, totalCostBasis, net, taxRate, tax, count: yearTrades.length };
+    return {
+      totalProceeds,
+      totalCostBasis,
+      net,
+      taxRate,
+      tax,
+      count: yearTrades.length,
+    };
   }, [trades, year]);
 
   return (
