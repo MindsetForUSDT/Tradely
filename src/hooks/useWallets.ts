@@ -1,42 +1,34 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export function useWallets() {
   const [wallets, setWallets] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const loadedRef = useRef(false);
 
   const load = async () => {
-    setIsLoading(true);
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) {
-        setWallets([]);
-        setIsLoading(false);
-        return;
-      }
-      const { data } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('added_at', { ascending: false });
-      setWallets(data || []);
-      setError(null);
-    } catch (e: any) {
-      setError(e.message);
+    const raw = localStorage.getItem('tradeumdiary-auth');
+    const userId = raw
+      ? JSON.parse(raw)?.user?.id ||
+        JSON.parse(atob(JSON.parse(raw).access_token.split('.')[1])).sub
+      : null;
+    if (!userId) {
       setWallets([]);
-    } finally {
       setIsLoading(false);
-      loadedRef.current = true;
+      return;
     }
+
+    const { data } = await supabase
+      .from('wallets')
+      .select('*')
+      .eq('user_id', userId)
+      .order('added_at', { ascending: false });
+    setWallets(data || []);
+    setIsLoading(false);
   };
 
   useEffect(() => {
-    if (!loadedRef.current) load();
+    load();
   }, []);
 
-  return { wallets, isLoading, error, refresh: load };
+  return { wallets, isLoading, error: null, refresh: load };
 }

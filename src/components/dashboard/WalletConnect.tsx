@@ -20,6 +20,15 @@ const SOURCES = [
   { value: 'manual' as WalletSource, label: 'Другой', icon: '💳', desc: 'Ввести адрес' },
 ];
 
+function getUserId(): string | null {
+  const raw = localStorage.getItem('tradeumdiary-auth');
+  if (!raw) return null;
+  const p = JSON.parse(raw);
+  return (
+    p?.user?.id || (p?.access_token ? JSON.parse(atob(p.access_token.split('.')[1])).sub : null)
+  );
+}
+
 export function WalletConnect() {
   const [wallets, setWallets] = useState<any[]>([]);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -37,23 +46,19 @@ export function WalletConnect() {
   }, []);
 
   const loadWallets = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const uid = getUserId();
+    if (!uid) return;
     const { data } = await supabase
       .from('wallets')
       .select('*')
-      .eq('user_id', user.id)
+      .eq('user_id', uid)
       .order('added_at', { ascending: false });
     if (data) setWallets(data);
   };
 
   const handleAdd = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
+    const uid = getUserId();
+    if (!uid) {
       toast.error('Не авторизован');
       return;
     }
@@ -69,12 +74,11 @@ export function WalletConnect() {
     setAdding(true);
     const walletAddress = isExchange ? `${source}:${apiKey.slice(0, 8)}***` : address.trim();
     const { error } = await supabase.from('wallets').insert({
-      user_id: user.id,
+      user_id: uid,
       address: walletAddress,
       chain: 'ethereum',
       label: label || source || 'Кошелёк',
     });
-
     if (error) {
       toast.error('Ошибка');
     } else {
@@ -93,17 +97,17 @@ export function WalletConnect() {
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Кошельки</h1>
-        <div style={{ position: 'relative', zIndex: 9999 }}>
+        <div className="relative" style={{ zIndex: 50 }}>
           <button
             type="button"
             onClick={() => setShowDropdown(!showDropdown)}
-            style={{ cursor: 'pointer', pointerEvents: 'auto' }}
-            className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold"
+            className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold cursor-pointer"
+            style={{ pointerEvents: 'auto' }}
           >
             + Кошелёк
           </button>
           {showDropdown && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-2xl shadow-2xl">
+            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-2xl shadow-2xl z-50">
               <div className="p-2">
                 <p className="text-xs text-text-muted px-3 py-2">Выберите источник</p>
                 {SOURCES.map((s) => (
@@ -114,8 +118,7 @@ export function WalletConnect() {
                       setSource(s.value);
                       setShowDropdown(false);
                     }}
-                    style={{ cursor: 'pointer' }}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-surface-overlay text-left"
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-surface-overlay text-left cursor-pointer"
                   >
                     <span className="text-2xl">{s.icon}</span>
                     <div>
@@ -135,8 +138,7 @@ export function WalletConnect() {
           <button
             type="button"
             onClick={() => setSource(null)}
-            style={{ cursor: 'pointer' }}
-            className="text-text-muted hover:text-text-primary text-sm"
+            className="text-text-muted hover:text-text-primary text-sm cursor-pointer"
           >
             ← Назад
           </button>
@@ -184,8 +186,7 @@ export function WalletConnect() {
             type="button"
             onClick={handleAdd}
             disabled={adding}
-            style={{ cursor: 'pointer' }}
-            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50"
+            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 cursor-pointer"
           >
             {adding ? 'Добавление...' : 'Добавить'}
           </button>
