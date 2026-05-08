@@ -1,4 +1,4 @@
-function escapeCell(value: any): string {
+function escapeCell(value: unknown): string {
   const str = String(value ?? '');
   if (str.includes(',') || str.includes('"') || str.includes('\n')) {
     return `"${str.replace(/"/g, '""')}"`;
@@ -6,19 +6,19 @@ function escapeCell(value: any): string {
   return str;
 }
 
-export function exportToCsv(trades: any[]) {
+export function exportToCsv(trades: Record<string, unknown>[]): void {
   const headers = ['Символ', 'Тип', 'Количество', 'Цена', 'Объём USD', 'P&L', 'Дата'];
-  const rows = trades.map((t: any) => [
-    escapeCell(t.symbol),
+  const rows = trades.map((t) => [
+    escapeCell(t.symbol ?? 'N/A'),
     t.side === 'buy' ? 'Покупка' : 'Продажа',
-    t.amount,
-    t.price,
-    t.value_usd,
-    t.pnl_realized || 0,
-    new Date(t.timestamp).toLocaleDateString('ru-RU'),
+    t.amount ?? 0,
+    t.price ?? 0,
+    t.value_usd ?? 0,
+    t.pnl_realized ?? 0,
+    new Date((t.timestamp as string) ?? Date.now()).toLocaleDateString('ru-RU'),
   ]);
 
-  const csv = [headers.join(','), ...rows.map((r: any[]) => r.join(','))].join('\n');
+  const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');

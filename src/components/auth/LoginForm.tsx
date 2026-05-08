@@ -3,12 +3,13 @@ import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 interface LoginFormProps {
+  savedEmail: string;
   onSwitchToRegister: () => void;
   onSwitchToReset: () => void;
 }
 
-export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProps) {
-  const [email, setEmail] = useState('');
+export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: LoginFormProps) {
+  const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 

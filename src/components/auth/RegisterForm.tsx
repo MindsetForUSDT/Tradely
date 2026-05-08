@@ -3,12 +3,14 @@ import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 interface RegisterFormProps {
+  savedEmail: string;
   onSwitchToLogin: () => void;
+  onEmailChange: (email: string) => void;
 }
 
-export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
+export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: RegisterFormProps) {
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -63,7 +65,10 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
         type="email"
         placeholder="Email"
         value={email}
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e) => {
+          setEmail(e.target.value);
+          onEmailChange(e.target.value);
+        }}
         autoComplete="email"
         className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
       />

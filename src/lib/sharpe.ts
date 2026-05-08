@@ -1,3 +1,8 @@
+/**
+ * Расчёт Sharpe Ratio и Sortino Ratio.
+ * Все значения в процентах (%).
+ * riskFreeRate по умолчанию 5% (ключевая ставка ЦБ РФ).
+ */
 export function calculateSharpeRatio(
   dailyReturns: number[],
   riskFreeRate = 5

@@ -1,3 +1,7 @@
+/**
+ * Извлекает ID пользователя из localStorage.
+ * Не делает сетевых запросов — работает синхронно.
+ */
 export function getUserId(): string | null {
   try {
     const raw = localStorage.getItem('tradeumdiary-auth');

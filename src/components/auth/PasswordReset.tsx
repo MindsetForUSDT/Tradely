@@ -3,11 +3,12 @@ import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 interface PasswordResetProps {
+  savedEmail: string;
   onSwitchToLogin: () => void;
 }
 
-export function PasswordReset({ onSwitchToLogin }: PasswordResetProps) {
-  const [email, setEmail] = useState('');
+export function PasswordReset({ savedEmail, onSwitchToLogin }: PasswordResetProps) {
+  const [email, setEmail] = useState(savedEmail);
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -17,17 +18,14 @@ export function PasswordReset({ onSwitchToLogin }: PasswordResetProps) {
       return;
     }
     setLoading(true);
-
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: window.location.origin + '/reset-password',
     });
-
     if (error) {
       toast.error('Ошибка отправки');
       setLoading(false);
       return;
     }
-
     setSent(true);
     toast.success('Ссылка отправлена на email');
     setLoading(false);
@@ -37,7 +35,7 @@ export function PasswordReset({ onSwitchToLogin }: PasswordResetProps) {
     return (
       <div className="text-center space-y-4">
         <h3 className="text-lg font-semibold">Проверьте почту</h3>
-        <p className="text-sm text-text-muted">Ссылка для сброса пароля отправлена на {email}</p>
+        <p className="text-sm text-text-muted">Ссылка отправлена на {email}</p>
         <button onClick={onSwitchToLogin} className="text-accent-green text-sm">
           ← Вернуться ко входу
         </button>
@@ -62,14 +60,12 @@ export function PasswordReset({ onSwitchToLogin }: PasswordResetProps) {
       >
         {loading ? 'Отправка...' : 'Отправить ссылку'}
       </button>
-      <p className="text-center">
-        <button
-          onClick={onSwitchToLogin}
-          className="text-sm text-text-muted hover:text-accent-green transition-colors"
-        >
-          ← Вернуться ко входу
-        </button>
-      </p>
+      <button
+        onClick={onSwitchToLogin}
+        className="w-full text-sm text-text-muted hover:text-accent-green transition-colors"
+      >
+        ← Вернуться ко входу
+      </button>
     </div>
   );
 }
