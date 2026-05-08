@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { supabase } from '@/lib/supabase';
 import type { ReactNode } from 'react';
 
 interface UserProfile {
@@ -19,7 +20,7 @@ interface AuthContextType {
 
 export const AuthContext = createContext<AuthContextType>({
   user: null,
-  isLoading: false,
+  isLoading: true,
   isAuthenticated: false,
   signOut: async () => {},
   refreshProfile: async () => {},
@@ -34,14 +35,88 @@ const queryClient = new QueryClient({
 });
 
 function AuthProvider({ children }: { children: ReactNode }) {
-  const [user] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            setUser(
+              data
+                ? {
+                    id: data.id,
+                    email: session.user.email,
+                    subscription_tier: data.subscription_tier,
+                    subscription_expires_at: data.subscription_expires_at,
+                  }
+                : null
+            );
+            setReady(true);
+          })
+          .catch(() => setReady(true));
+      } else {
+        setReady(true);
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single()
+          .then(({ data }) => {
+            setUser(
+              data
+                ? {
+                    id: data.id,
+                    email: session.user.email,
+                    subscription_tier: data.subscription_tier,
+                    subscription_expires_at: data.subscription_expires_at,
+                  }
+                : null
+            );
+          })
+          .catch(() => {});
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  if (!ready) {
+    return React.createElement(
+      'div',
+      { className: 'min-h-screen flex items-center justify-center bg-surface' },
+      React.createElement('div', {
+        className:
+          'w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin',
+      })
+    );
+  }
+
   const value: AuthContextType = {
     user,
     isLoading: false,
-    isAuthenticated: false,
-    signOut: async () => {},
+    isAuthenticated: !!user,
+    signOut: async () => {
+      await supabase.auth.signOut();
+      setUser(null);
+    },
     refreshProfile: async () => {},
   };
+
   return React.createElement(AuthContext.Provider, { value }, children);
 }
 
