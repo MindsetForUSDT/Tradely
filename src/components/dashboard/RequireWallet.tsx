@@ -29,11 +29,12 @@ export function RequireWallet() {
           </p>
         </div>
         <div className="space-y-3">
-          <Link to="/dashboard/wallets">
-            <Button variant="primary" size="lg" className="w-full">
-              Подключить кошелёк
-            </Button>
-          </Link>
+          <button
+            onClick={() => (window.location.href = '/dashboard/wallets')}
+            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold"
+          >
+            Подключить кошелёк
+          </button>
           <p className="text-xs text-text-muted">
             Поддерживаются Ethereum, Solana, Polygon, BSC, Arbitrum, Optimism
           </p>
