@@ -26,7 +26,9 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
     const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      toast.error('Неверный email или пароль');
+      toast.error(
+        error.message === 'Invalid login credentials' ? 'Неверный email или пароль' : error.message
+      );
       setLoading(false);
       return;
     }
@@ -34,9 +36,6 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
     if (data?.session) {
       toast.success('Вход выполнен!');
       window.location.href = '/dashboard';
-    } else {
-      toast.error('Ошибка входа');
-      setLoading(false);
     }
   };
 
@@ -61,7 +60,8 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
       <button
         onClick={handleLogin}
         disabled={loading}
-        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
+        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
+        style={{ pointerEvents: 'auto', zIndex: 10, position: 'relative' }}
       >
         {loading ? 'Вход...' : 'Войти'}
       </button>
