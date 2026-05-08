@@ -1,5 +1,3 @@
-import { safeAdd, safeDivide, safeMultiply } from './decimal';
-
 export function calculateSharpeRatio(
   dailyReturns: number[],
   riskFreeRate = 5
@@ -12,7 +10,7 @@ export function calculateSharpeRatio(
     return { sharpeRatio: 0, sortinoRatio: 0, annualizedReturn: 0 };
   }
 
-  const avgReturn = dailyReturns.reduce((s, r) => safeAdd(s, r), 0) / dailyReturns.length;
+  const avgReturn = dailyReturns.reduce((s, r) => s + r, 0) / dailyReturns.length;
   const variance =
     dailyReturns.reduce((s, r) => s + Math.pow(r - avgReturn, 2), 0) / dailyReturns.length;
   const stdDev = Math.sqrt(variance);
@@ -20,7 +18,7 @@ export function calculateSharpeRatio(
   const downsideReturns = dailyReturns.filter((r) => r < 0);
   const downsideAvg =
     downsideReturns.length > 0
-      ? downsideReturns.reduce((s, r) => safeAdd(s, r), 0) / downsideReturns.length
+      ? downsideReturns.reduce((s, r) => s + r, 0) / downsideReturns.length
       : 0;
   const downsideVariance =
     downsideReturns.length > 0
@@ -29,15 +27,12 @@ export function calculateSharpeRatio(
       : 0;
   const downsideDev = Math.sqrt(downsideVariance);
 
-  const annualizedReturn = safeMultiply(avgReturn, 252 * 100);
-  const annualizedVol = safeMultiply(stdDev, Math.sqrt(252) * 100);
+  const annualizedReturn = avgReturn * 252 * 100;
+  const annualizedVol = stdDev * Math.sqrt(252) * 100;
 
-  const sharpeRatio =
-    annualizedVol > 0 ? safeDivide(annualizedReturn - riskFreeRate, annualizedVol) : 0;
+  const sharpeRatio = annualizedVol > 0 ? (annualizedReturn - riskFreeRate) / annualizedVol : 0;
   const sortinoRatio =
-    downsideDev > 0
-      ? safeDivide(annualizedReturn - riskFreeRate, safeMultiply(downsideDev, Math.sqrt(252) * 100))
-      : 0;
+    downsideDev > 0 ? (annualizedReturn - riskFreeRate) / (downsideDev * Math.sqrt(252) * 100) : 0;
 
   return {
     sharpeRatio: +sharpeRatio.toFixed(4),

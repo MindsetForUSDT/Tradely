@@ -30,6 +30,9 @@ export function ProAnalytics() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Win Rate', value: `${winRate}%` },
+          { label: 'Sharpe Ratio', value: sharpeRatio.toFixed(2) },
+          { label: 'Sortino Ratio', value: sortinoRatio.toFixed(2) },
+          { label: 'Годовая доходность', value: `${annualizedReturn}%` },
           { label: 'Всего сделок', value: totalTrades },
           {
             label: 'Общий P&L',
@@ -37,9 +40,6 @@ export function ProAnalytics() {
             color: totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red',
           },
           { label: 'Общий объём', value: formatUSD(totalVolume) },
-          { label: 'Sharpe Ratio', value: sharpeRatio.toFixed(2) },
-          { label: 'Sortino Ratio', value: sortinoRatio.toFixed(2) },
-          { label: 'Годовая доходность', value: `${annualizedReturn}%` },
         ].map((m) => (
           <Card key={m.label} padding="md">
             <p className="text-xs text-text-muted mb-1">{m.label}</p>

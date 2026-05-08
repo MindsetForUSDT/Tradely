@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
-import { cn, formatUSD } from '@/lib/utils';
 import { WalletIcon, ChartIcon, TradesIcon } from '@/components/ui/Icons';
+import { cn, formatUSD } from '@/lib/utils';
 
 interface StatsOverviewProps {
   balance: number;
@@ -71,7 +71,7 @@ export function StatsOverview({ balance, pnl, trades, isLoading = false }: Stats
       animate="visible"
       className="grid grid-cols-1 md:grid-cols-3 gap-4"
     >
-      {statsItems.map((item) => (
+      {statsItems.map((item, index) => (
         <motion.div key={item.label} variants={itemVariants}>
           <Card padding="md">
             <div className="flex items-center justify-between mb-2">
