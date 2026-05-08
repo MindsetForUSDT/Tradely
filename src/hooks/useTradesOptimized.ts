@@ -55,18 +55,14 @@ export function useTradesOptimized(options?: UseTradesOptions) {
     for (const t of trades) {
       const symbol = (t.symbol as string) || 'UNKNOWN';
       const base = symbol.split('/')[0];
-      const currentVolume = map.get(base) || 0;
-      map.set(base, safeAdd(currentVolume, (t.value_usd as number) || 0));
+      map.set(base, (map.get(base) || 0) + ((t.value_usd as number) || 0));
     }
-    const total = trades.reduce((s, t) => safeAdd(s, (t.value_usd as number) || 0), 0);
-    return Array.from(map.entries())
-      .map(({ token, volume }) => ({
-        token,
-        volume,
-        percentage: total ? (volume / total) * 100 : 0,
-      }))
-      .sort((a, b) => b.volume - a.volume)
-      .slice(0, 8);
+    const total = trades.reduce((s, t) => s + ((t.value_usd as number) || 0), 0);
+    const result: { token: string; volume: number; percentage: number }[] = [];
+    map.forEach((volume, token) => {
+      result.push({ token, volume, percentage: total ? (volume / total) * 100 : 0 });
+    });
+    return result.sort((a, b) => b.volume - a.volume).slice(0, 8);
   }, [trades]);
 
   const weekdayPerformance = useMemo(() => {
