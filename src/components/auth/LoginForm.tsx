@@ -35,7 +35,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
 
     if (data?.session) {
       toast.success('Вход выполнен!');
-      window.location.href = '/dashboard';
+      window.location.replace('/dashboard');
     }
   };
 
