@@ -39,70 +39,81 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
+    let mounted = true;
+
+    async function init() {
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session?.user) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          if (mounted) {
             setUser(
-              data
+              profile
                 ? {
-                    id: data.id,
+                    id: profile.id,
                     email: session.user.email,
-                    subscription_tier: data.subscription_tier,
-                    subscription_expires_at: data.subscription_expires_at,
+                    subscription_tier: profile.subscription_tier,
+                    subscription_expires_at: profile.subscription_expires_at,
                   }
                 : null
             );
             setReady(true);
-          })
-          .catch(() => setReady(true));
-      } else {
-        setReady(true);
+          }
+        } else {
+          setReady(true);
+        }
+      } catch {
+        if (mounted) setReady(true);
       }
-    });
+    }
+
+    init();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!mounted) return;
       if (session?.user) {
-        supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', session.user.id)
-          .single()
-          .then(({ data }) => {
-            setUser(
-              data
-                ? {
-                    id: data.id,
-                    email: session.user.email,
-                    subscription_tier: data.subscription_tier,
-                    subscription_expires_at: data.subscription_expires_at,
-                  }
-                : null
-            );
-          })
-          .catch(() => {});
+        try {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+          if (mounted && profile) {
+            setUser({
+              id: profile.id,
+              email: session.user.email,
+              subscription_tier: profile.subscription_tier,
+              subscription_expires_at: profile.subscription_expires_at,
+            });
+          }
+        } catch {
+          /* ignore */
+        }
       } else {
         setUser(null);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   if (!ready) {
-    return React.createElement(
-      'div',
-      { className: 'min-h-screen flex items-center justify-center bg-surface' },
-      React.createElement('div', {
-        className:
-          'w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin',
-      })
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+      </div>
     );
   }
 
@@ -117,13 +128,13 @@ function AuthProvider({ children }: { children: ReactNode }) {
     refreshProfile: async () => {},
   };
 
-  return React.createElement(AuthContext.Provider, { value }, children);
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
-  return React.createElement(
-    QueryClientProvider,
-    { client: queryClient },
-    React.createElement(AuthProvider, null, children)
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
   );
 }
