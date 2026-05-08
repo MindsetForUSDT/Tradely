@@ -34,12 +34,10 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       setLoading(false);
       return;
     }
-
-    if (data.user) {
+    if (data?.session) {
       toast.success('Аккаунт создан!');
-      setTimeout(() => {
-        window.location.href = '/subscribe';
-      }, 500);
+      localStorage.setItem('tradeumdiary-auth', JSON.stringify(data.session));
+      window.location.replace('/subscribe');
     }
   };
 
