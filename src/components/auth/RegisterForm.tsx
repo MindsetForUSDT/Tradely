@@ -34,9 +34,12 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       setLoading(false);
       return;
     }
+
     if (data.user) {
       toast.success('Аккаунт создан!');
-      window.location.href = '/subscribe';
+      setTimeout(() => {
+        window.location.href = '/subscribe';
+      }, 500);
     }
   };
 
