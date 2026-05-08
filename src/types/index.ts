@@ -35,13 +35,20 @@ export interface Trade {
   wallet_id: string;
   user_id: string;
   transaction_hash: string;
-  timestamp: string;
-  token_in: string;
-  token_out: string;
-  amount_in: number;
-  amount_out: number;
+  symbol: string;
+  side: 'buy' | 'sell';
+  amount: number;
+  price: number;
   value_usd: number;
-  is_buy: boolean;
+  timestamp: string;
+  pnl_realized: number | null;
+  fee: number;
+  fee_currency: string;
+  status: 'open' | 'closed' | 'cancelled';
+  leverage: number;
+  pnl_percent: number | null;
+  notes: string | null;
+  exchange: string | null;
   created_at: string;
 }
 

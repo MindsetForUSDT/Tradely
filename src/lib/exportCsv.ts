@@ -6,18 +6,17 @@ function escapeCell(value: unknown): string {
   return str;
 }
 
-export function exportToCsv(trades: Record<string, unknown>[]): void {
+export function exportToCsv(trades: any[]): void {
   const headers = ['Символ', 'Тип', 'Количество', 'Цена', 'Объём USD', 'P&L', 'Дата'];
-  const rows = trades.map((t) => [
+  const rows = trades.map((t: any) => [
     escapeCell(t.symbol ?? 'N/A'),
     t.side === 'buy' ? 'Покупка' : 'Продажа',
     t.amount ?? 0,
     t.price ?? 0,
     t.value_usd ?? 0,
     t.pnl_realized ?? 0,
-    new Date((t.timestamp as string) ?? Date.now()).toLocaleDateString('ru-RU'),
+    new Date(t.timestamp ?? Date.now()).toLocaleDateString('ru-RU'),
   ]);
-
   const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
   const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);

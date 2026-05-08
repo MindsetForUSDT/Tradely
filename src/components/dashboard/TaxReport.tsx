@@ -2,18 +2,19 @@ import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { formatUSD } from '@/lib/utils';
+import type { Trade } from '@/types';
 
 export function TaxReport() {
   const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 365 });
   const [year, setYear] = useState(new Date().getFullYear());
 
   const report = useMemo(() => {
-    const yearTrades = trades.filter((t) => new Date(t.timestamp).getFullYear() === year);
+    const yearTrades = trades.filter((t: Trade) => new Date(t.timestamp).getFullYear() === year);
     const totalProceeds = yearTrades
-      .filter((t) => t.side === 'sell')
+      .filter((t: Trade) => t.side === 'sell')
       .reduce((s, t) => s + (t.value_usd || 0), 0);
     const totalCostBasis = yearTrades
-      .filter((t) => t.side === 'buy')
+      .filter((t: Trade) => t.side === 'buy')
       .reduce((s, t) => s + (t.value_usd || 0), 0);
     const net = totalProceeds - totalCostBasis;
     const taxRate = net > 5_000_000 ? 15 : 13;

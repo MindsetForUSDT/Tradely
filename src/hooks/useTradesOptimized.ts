@@ -27,24 +27,24 @@ export function useTradesOptimized(options?: UseTradesOptions) {
         .gte('timestamp', since.toISOString())
         .limit(limit);
       if (error) throw error;
-      return (data || []) as unknown as Trade[];
+      return (data || []) as Trade[];
     },
     staleTime: 2 * 60 * 1000,
   });
 
-  const pnlData = useMemo(() => {
+  const pnlData: PnLDataPoint[] = useMemo(() => {
     const sorted = [...trades].sort(
       (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
     let cum = 0;
     return sorted.map((t) => {
-      const pnl = (t as any).pnl_realized || 0;
+      const pnl = t.pnl_realized || 0;
       cum += pnl;
       return { date: new Date(t.timestamp).toISOString().split('T')[0], pnl, cumulativePnl: cum };
     });
   }, [trades]);
 
-  const tokenVolumes = useMemo(() => {
+  const tokenVolumes: TokenVolume[] = useMemo(() => {
     const map = new Map<string, number>();
     for (const t of trades) {
       const s = t.symbol || '?';
@@ -52,19 +52,19 @@ export function useTradesOptimized(options?: UseTradesOptions) {
       map.set(base, (map.get(base) || 0) + (t.value_usd || 0));
     }
     const total = trades.reduce((s, t) => s + (t.value_usd || 0), 0);
-    const r: { token: string; volume: number; percentage: number }[] = [];
+    const r: TokenVolume[] = [];
     map.forEach((vol, tok) =>
       r.push({ token: tok, volume: vol, percentage: total ? (vol / total) * 100 : 0 })
     );
     return r.sort((a, b) => b.volume - a.volume).slice(0, 8);
   }, [trades]);
 
-  const weekdayPerformance = useMemo(() => {
+  const weekdayPerformance: WeekdayPerformance[] = useMemo(() => {
     const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
     const buckets = days.map((d) => ({ day: d, profit: 0, trades: 0 }));
     for (const t of trades) {
       const i = new Date(t.timestamp).getDay();
-      buckets[i].profit += (t as any).pnl_realized || 0;
+      buckets[i].profit += t.pnl_realized || 0;
       buckets[i].trades++;
     }
     return buckets;
