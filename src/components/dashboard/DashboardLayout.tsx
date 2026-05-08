@@ -7,7 +7,7 @@ import { useWallets } from '@/hooks/useWallets';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useStore } from '@/store/useStore';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 export function DashboardLayout() {
   const { wallets, isLoading: walletsLoading } = useWallets();
@@ -20,7 +20,9 @@ export function DashboardLayout() {
     );
   }
 
-  if (wallets.length === 0) return <RequireWallet />;
+  if (!wallets || wallets.length === 0) {
+    return <RequireWallet />;
+  }
 
   return <DashboardContent />;
 }
