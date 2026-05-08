@@ -20,10 +20,7 @@ export function DashboardLayout() {
     );
   }
 
-  if (!wallets || wallets.length === 0) {
-    return <RequireWallet />;
-  }
-
+  if (!wallets?.length) return <RequireWallet />;
   return <DashboardContent />;
 }
 

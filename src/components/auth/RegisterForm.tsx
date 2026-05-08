@@ -35,8 +35,16 @@ export function RegisterForm({ onSwitchToLogin }: RegisterFormProps) {
       return;
     }
     if (data?.session) {
+      localStorage.setItem(
+        'tradeumdiary-auth',
+        JSON.stringify({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+          user: data.session.user,
+        })
+      );
       toast.success('Аккаунт создан!');
-      localStorage.setItem('tradeumdiary-auth', JSON.stringify(data.session));
+      window.dispatchEvent(new Event('auth-change'));
       window.location.replace('/subscribe');
     }
   };

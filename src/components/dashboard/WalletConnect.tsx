@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
 import { shortenAddress, cn } from '@/lib/utils';
+import { getUserId } from '@/lib/auth';
 import toast from 'react-hot-toast';
 
 type WalletSource = 'metamask' | 'trustwallet' | 'binance' | 'bybit' | 'okx' | 'manual';
@@ -19,15 +20,6 @@ const SOURCES = [
   { value: 'okx' as WalletSource, label: 'OKX', icon: '🔵', desc: 'Биржа (API ключ)' },
   { value: 'manual' as WalletSource, label: 'Другой', icon: '💳', desc: 'Ввести адрес' },
 ];
-
-function getUserId(): string | null {
-  const raw = localStorage.getItem('tradeumdiary-auth');
-  if (!raw) return null;
-  const p = JSON.parse(raw);
-  return (
-    p?.user?.id || (p?.access_token ? JSON.parse(atob(p.access_token.split('.')[1])).sub : null)
-  );
-}
 
 export function WalletConnect() {
   const [wallets, setWallets] = useState<any[]>([]);

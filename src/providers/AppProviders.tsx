@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { ReactNode } from 'react';
@@ -15,7 +15,7 @@ interface AuthContextType {
   isLoading: boolean;
   isAuthenticated: boolean;
   signOut: () => Promise<void>;
-  refreshProfile: () => Promise<void>;
+  refreshProfile: () => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -23,7 +23,7 @@ export const AuthContext = createContext<AuthContextType>({
   isLoading: false,
   isAuthenticated: false,
   signOut: async () => {},
-  refreshProfile: async () => {},
+  refreshProfile: () => {},
 });
 
 export function useAuth() {
@@ -54,17 +54,30 @@ function getUserFromLocalStorage(): UserProfile | null {
 }
 
 function AuthProvider({ children }: { children: ReactNode }) {
-  const [user] = useState<UserProfile | null>(getUserFromLocalStorage);
+  const [user, setUser] = useState<UserProfile | null>(getUserFromLocalStorage);
+
+  const refreshProfile = useCallback(() => {
+    setUser(getUserFromLocalStorage());
+  }, []);
+
+  useEffect(() => {
+    const handler = () => refreshProfile();
+    window.addEventListener('auth-change', handler);
+    return () => window.removeEventListener('auth-change', handler);
+  }, [refreshProfile]);
+
+  const signOut = useCallback(async () => {
+    await supabase.auth.signOut();
+    localStorage.removeItem('tradeumdiary-auth');
+    setUser(null);
+  }, []);
 
   const value: AuthContextType = {
     user,
     isLoading: false,
     isAuthenticated: !!user,
-    signOut: async () => {
-      await supabase.auth.signOut();
-      localStorage.removeItem('tradeumdiary-auth');
-    },
-    refreshProfile: async () => {},
+    signOut,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getUserId } from '@/lib/auth';
 import toast from 'react-hot-toast';
 
 const PRESET_TAGS = ['Стратегия', 'Эмоция', 'FOMO', 'По плану', 'Ошибка', 'Удача'];
@@ -11,7 +12,6 @@ interface TagManagerProps {
 export function TagManager({ tradeId }: TagManagerProps) {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
-  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadTags();
@@ -26,26 +26,37 @@ export function TagManager({ tradeId }: TagManagerProps) {
     const clean = tagName.trim().slice(0, 50).replace(/['"]/g, '');
     if (!clean) return;
 
+    const prev = [...tags];
     setTags((prev) => [...prev, clean]);
     setNewTag('');
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
+    const uid = getUserId();
+    if (!uid) {
+      setTags(prev);
+      return;
+    }
 
-    await supabase.from('trade_tags').insert({
-      user_id: user.id,
-      trade_id: tradeId,
-      tag_name: clean,
-    });
-    toast.success('Тег добавлен');
+    const { error } = await supabase
+      .from('trade_tags')
+      .insert({ user_id: uid, trade_id: tradeId, tag_name: clean });
+    if (error) {
+      setTags(prev);
+      toast.error('Ошибка');
+    } else toast.success('Тег добавлен');
   };
 
   const removeTag = async (tagName: string) => {
+    const prev = [...tags];
     setTags((prev) => prev.filter((t) => t !== tagName));
-    await supabase.from('trade_tags').delete().eq('trade_id', tradeId).eq('tag_name', tagName);
-    toast.success('Тег удалён');
+    const { error } = await supabase
+      .from('trade_tags')
+      .delete()
+      .eq('trade_id', tradeId)
+      .eq('tag_name', tagName);
+    if (error) {
+      setTags(prev);
+      toast.error('Ошибка');
+    } else toast.success('Тег удалён');
   };
 
   return (
