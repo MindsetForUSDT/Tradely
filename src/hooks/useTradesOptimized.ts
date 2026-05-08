@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { getUserId } from '@/lib/auth';
-import type { Trade } from '@/types';
+import type { Trade, PnLDataPoint, TokenVolume, WeekdayPerformance } from '@/types';
 
 interface UseTradesOptions {
   limit?: number;
