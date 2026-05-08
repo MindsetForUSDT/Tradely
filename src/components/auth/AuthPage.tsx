@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { PasswordReset } from './PasswordReset';
@@ -8,10 +7,6 @@ type AuthView = 'login' | 'register' | 'reset';
 
 export function AuthPage() {
   const [view, setView] = useState<AuthView>('login');
-
-  const viewOrder: AuthView[] = ['login', 'register', 'reset'];
-  const getDirection = (from: AuthView, to: AuthView) =>
-    viewOrder.indexOf(to) - viewOrder.indexOf(from);
 
   return (
     <div className="w-full max-w-md mx-auto">
@@ -43,24 +38,16 @@ export function AuthPage() {
             </p>
           </div>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={view}
-              initial={{ x: getDirection(view, view) > 0 ? 300 : -300, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: getDirection(view, view) < 0 ? 300 : -300, opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            >
-              {view === 'login' && (
-                <LoginForm
-                  onSwitchToRegister={() => setView('register')}
-                  onSwitchToReset={() => setView('reset')}
-                />
-              )}
-              {view === 'register' && <RegisterForm onSwitchToLogin={() => setView('login')} />}
-              {view === 'reset' && <PasswordReset onSwitchToLogin={() => setView('login')} />}
-            </motion.div>
-          </AnimatePresence>
+          <div>
+            {view === 'login' && (
+              <LoginForm
+                onSwitchToRegister={() => setView('register')}
+                onSwitchToReset={() => setView('reset')}
+              />
+            )}
+            {view === 'register' && <RegisterForm onSwitchToLogin={() => setView('login')} />}
+            {view === 'reset' && <PasswordReset onSwitchToLogin={() => setView('login')} />}
+          </div>
         </div>
       </div>
       <p className="text-center text-xs text-text-muted mt-4">

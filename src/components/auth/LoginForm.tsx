@@ -60,8 +60,7 @@ export function LoginForm({ onSwitchToRegister, onSwitchToReset }: LoginFormProp
       <button
         onClick={handleLogin}
         disabled={loading}
-        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50 cursor-pointer"
-        style={{ pointerEvents: 'auto', zIndex: 10, position: 'relative' }}
+        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
       >
         {loading ? 'Вход...' : 'Войти'}
       </button>
