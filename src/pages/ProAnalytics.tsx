@@ -6,6 +6,7 @@ import { VolumeByTokenChart } from '@/components/dashboard/VolumeByTokenChart';
 import { WeekdayPerformanceChart } from '@/components/dashboard/WeekdayPerformanceChart';
 import { formatUSD } from '@/lib/utils';
 import { exportToCsv } from '@/lib/exportCsv';
+import { calculateSharpeRatio } from '@/lib/sharpe';
 
 export function ProAnalytics() {
   const { trades, pnlData, tokenVolumes, weekdayPerformance, totalVolume, totalTrades } =
@@ -15,6 +16,9 @@ export function ProAnalytics() {
   const winningTrades = pnlData.filter((d: any) => d.pnl > 0).length;
   const winRate = pnlData.length ? ((winningTrades / pnlData.length) * 100).toFixed(1) : '0';
   const totalPnl = pnlData.reduce((s: number, d: any) => s + d.pnl, 0);
+
+  const dailyReturns = pnlData.map((d: any) => d.pnl);
+  const { sharpeRatio, sortinoRatio, annualizedReturn } = calculateSharpeRatio(dailyReturns);
 
   return (
     <div className="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 space-y-6">
@@ -33,6 +37,9 @@ export function ProAnalytics() {
             color: totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red',
           },
           { label: 'Общий объём', value: formatUSD(totalVolume) },
+          { label: 'Sharpe Ratio', value: sharpeRatio.toFixed(2) },
+          { label: 'Sortino Ratio', value: sortinoRatio.toFixed(2) },
+          { label: 'Годовая доходность', value: `${annualizedReturn}%` },
         ].map((m) => (
           <Card key={m.label} padding="md">
             <p className="text-xs text-text-muted mb-1">{m.label}</p>

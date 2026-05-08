@@ -32,7 +32,15 @@ export function TaxReport() {
 
   return (
     <Card padding="md">
-      <h3 className="text-sm font-semibold mb-4">📊 Налоговый отчёт (РФ)</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold">📊 Налоговый отчёт (РФ)</h3>
+        <button
+          onClick={() => window.print()}
+          className="px-4 py-2 text-xs rounded-lg bg-surface-overlay text-text-secondary hover:text-text-primary transition-colors"
+        >
+          📄 Печать / PDF
+        </button>
+      </div>
       <div className="mb-4">
         <select
           value={year}

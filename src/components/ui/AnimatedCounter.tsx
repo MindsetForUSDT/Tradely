@@ -20,16 +20,30 @@ export function AnimatedCounter({
   const prevValue = useRef(value);
   const animationFrame = useRef<number>(0);
   const mountedRef = useRef(true);
+  const hiddenRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
+
+    const handleVisibility = () => {
+      hiddenRef.current = document.hidden;
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       mountedRef.current = false;
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, []);
 
   useEffect(() => {
     if (prevValue.current === value) return;
+    if (hiddenRef.current) {
+      setDisplayValue(value);
+      prevValue.current = value;
+      return;
+    }
+
     const startValue = prevValue.current;
     const diff = value - startValue;
     const startTime = performance.now();
