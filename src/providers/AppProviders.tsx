@@ -54,42 +54,22 @@ function getUserFromLocalStorage(): UserProfile | null {
 }
 
 function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(getUserFromLocalStorage);
-  const [timedOut, setTimedOut] = useState(false);
-
-  const refreshProfile = useCallback(() => {
-    const profile = getUserFromLocalStorage();
-    if (profile?.id !== user?.id) {
-      setUser(profile);
-    }
-  }, [user]);
+  const [user, setUser] = useState<UserProfile | null>(() => getUserFromLocalStorage());
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const timer = setTimeout(() => setTimedOut(true), 3000);
-    return () => clearTimeout(timer);
+    setReady(true);
   }, []);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      const profile = getUserFromLocalStorage();
-      if (profile?.id !== user?.id) {
-        setUser(profile);
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'tradeumdiary-auth') {
+        setUser(getUserFromLocalStorage());
       }
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [user]);
-
-  useEffect(() => {
-    const handler = () => refreshProfile();
-    window.addEventListener('auth-change', handler);
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'tradeumdiary-auth') refreshProfile();
-    });
-    return () => {
-      window.removeEventListener('auth-change', handler);
-      window.removeEventListener('storage', handler);
     };
-  }, [refreshProfile]);
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
@@ -97,15 +77,11 @@ function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  const value: AuthContextType = {
-    user,
-    isLoading: false,
-    isAuthenticated: !!user,
-    signOut,
-    refreshProfile,
-  };
+  const refreshProfile = useCallback(() => {
+    setUser(getUserFromLocalStorage());
+  }, []);
 
-  if (!timedOut && !user) {
+  if (!ready) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
@@ -113,7 +89,19 @@ function AuthProvider({ children }: { children: ReactNode }) {
     );
   }
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider
+      value={{
+        user,
+        isLoading: false,
+        isAuthenticated: !!user,
+        signOut,
+        refreshProfile,
+      }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function AppProviders({ children }: { children: ReactNode }) {
