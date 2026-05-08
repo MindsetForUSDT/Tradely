@@ -24,11 +24,9 @@ export function AnimatedCounter({
 
   useEffect(() => {
     mountedRef.current = true;
-
     const handleVisibility = () => {
       hiddenRef.current = document.hidden;
     };
-
     document.addEventListener('visibilitychange', handleVisibility);
     return () => {
       mountedRef.current = false;

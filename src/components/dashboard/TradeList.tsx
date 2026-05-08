@@ -14,7 +14,6 @@ interface TradeListProps {
 export function TradeList({ trades = [], isLoading = false, compact = false }: TradeListProps) {
   const [filter, setFilter] = useState<'all' | 'buy' | 'sell' | 'profit' | 'loss'>('all');
   const [search, setSearch] = useState('');
-  const [sort, setSort] = useState<'date' | 'pnl' | 'volume'>('date');
   const parentRef = useRef<HTMLDivElement>(null);
 
   const filtered = useMemo(() => {
@@ -25,12 +24,8 @@ export function TradeList({ trades = [], isLoading = false, compact = false }: T
     if (filter === 'loss') result = result.filter((t) => (t.pnl_realized || 0) < 0);
     if (search)
       result = result.filter((t) => (t.symbol || '').toLowerCase().includes(search.toLowerCase()));
-
-    if (sort === 'pnl') result.sort((a, b) => (b.pnl_realized || 0) - (a.pnl_realized || 0));
-    if (sort === 'volume') result.sort((a, b) => (b.value_usd || 0) - (a.value_usd || 0));
-
     return result;
-  }, [trades, filter, search, sort]);
+  }, [trades, filter, search]);
 
   const displayTrades = compact ? filtered.slice(0, 5) : filtered;
 
@@ -62,54 +57,15 @@ export function TradeList({ trades = [], isLoading = false, compact = false }: T
           <h3 className="text-sm font-semibold">
             {compact ? 'Последние сделки' : 'История сделок'}
           </h3>
-          <div className="flex items-center gap-2">
-            {!compact && (
-              <>
-                <div className="flex gap-1">
-                  <button
-                    onClick={() => setSort('date')}
-                    className={cn(
-                      'px-2 py-1 text-[10px] rounded-md font-medium transition-colors',
-                      sort === 'date'
-                        ? 'bg-accent-green text-surface'
-                        : 'bg-surface-overlay text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    По дате
-                  </button>
-                  <button
-                    onClick={() => setSort('pnl')}
-                    className={cn(
-                      'px-2 py-1 text-[10px] rounded-md font-medium transition-colors',
-                      sort === 'pnl'
-                        ? 'bg-accent-green text-surface'
-                        : 'bg-surface-overlay text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    По P&L
-                  </button>
-                  <button
-                    onClick={() => setSort('volume')}
-                    className={cn(
-                      'px-2 py-1 text-[10px] rounded-md font-medium transition-colors',
-                      sort === 'volume'
-                        ? 'bg-accent-green text-surface'
-                        : 'bg-surface-overlay text-text-secondary hover:text-text-primary'
-                    )}
-                  >
-                    По объёму
-                  </button>
-                </div>
-                <input
-                  type="text"
-                  placeholder="Поиск по символу..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="px-3 py-1.5 text-xs bg-surface-elevated border border-surface-border rounded-lg text-white placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-green/30 w-36"
-                />
-              </>
-            )}
-          </div>
+          {!compact && (
+            <input
+              type="text"
+              placeholder="Поиск по символу..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="px-3 py-1.5 text-xs bg-surface-elevated border border-surface-border rounded-lg text-white placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-green/30 w-36"
+            />
+          )}
         </div>
         <div className="flex gap-1.5 flex-wrap">
           {(['all', 'buy', 'sell', 'profit', 'loss'] as const).map((f) => (
