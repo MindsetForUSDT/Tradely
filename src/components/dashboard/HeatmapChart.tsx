@@ -9,7 +9,6 @@ interface HeatmapChartProps {
 
 export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
   const heatmapData = useMemo(() => {
-    // Дни недели × Часы
     const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
     const hours = Array.from({ length: 24 }, (_, i) => i);
 
@@ -23,7 +22,7 @@ export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
 
     trades.forEach((t: any) => {
       const d = new Date(t.timestamp);
-      const day = days[d.getDay() === 0 ? 6 : d.getDay() - 1]; // Вс → 6, Пн → 0
+      const day = days[d.getDay() === 0 ? 6 : d.getDay() - 1];
       const hour = d.getHours();
       if (grid[day] && grid[day][hour] !== undefined) {
         grid[day][hour].pnl += t.pnl_realized || 0;
@@ -31,7 +30,6 @@ export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
       }
     });
 
-    // Находим максимум для нормализации
     let maxAbs = 0;
     days.forEach((d) =>
       hours.forEach((h) => {
@@ -56,15 +54,12 @@ export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
       <h3 className="text-sm font-semibold mb-4">Тепловая карта активности (P&L по дням/часам)</h3>
       <div className="overflow-x-auto">
         <div className="grid grid-cols-[auto_repeat(24,1fr)] gap-[1px] text-[10px] min-w-[600px]">
-          {/* Заголовки часов */}
           <div />
           {heatmapData.hours.map((h) => (
             <div key={h} className="text-center text-text-muted py-1">
               {h}
             </div>
           ))}
-
-          {/* Строки дней */}
           {heatmapData.days.map((day) => (
             <>
               <div key={`label-${day}`} className="text-text-muted pr-2 py-1 text-right">
@@ -72,23 +67,20 @@ export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
               </div>
               {heatmapData.hours.map((h) => {
                 const cell = heatmapData.grid[day][h];
-                const intensity = maxAbs > 0 ? cell.pnl / maxAbs : 0;
+                const intensity = heatmapData.maxAbs > 0 ? cell.pnl / heatmapData.maxAbs : 0;
                 const isPositive = cell.pnl > 0;
                 const isNegative = cell.pnl < 0;
                 const bgOpacity = Math.abs(intensity) * 0.8;
-
                 return (
                   <div
                     key={`${day}-${h}`}
                     className={cn(
                       'aspect-square rounded-sm flex items-center justify-center text-[8px] font-mono cursor-default',
-                      isPositive && `bg-accent-green`,
-                      isNegative && `bg-accent-red`,
+                      isPositive && 'bg-accent-green',
+                      isNegative && 'bg-accent-red',
                       !isPositive && !isNegative && 'bg-surface-border'
                     )}
-                    style={{
-                      opacity: cell.count > 0 ? 0.3 + bgOpacity : 0.1,
-                    }}
+                    style={{ opacity: cell.count > 0 ? 0.3 + bgOpacity : 0.1 }}
                     title={`${day} ${h}:00\nP&L: $${cell.pnl.toFixed(2)}\nСделок: ${cell.count}`}
                   >
                     {cell.count > 0 ? cell.count : ''}

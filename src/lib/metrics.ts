@@ -1,4 +1,7 @@
-import { safeDivide } from './decimal';
+function safeDivide(a: number, b: number): number {
+  if (b === 0) return 0;
+  return +(a / b).toFixed(2);
+}
 
 export function calculateExpectancy(trades: any[]): number {
   const winners = trades.filter((t) => (t.pnl_realized || 0) > 0);
