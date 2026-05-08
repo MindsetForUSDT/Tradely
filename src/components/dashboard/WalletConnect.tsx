@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
 import { shortenAddress, cn } from '@/lib/utils';
-import { getUserId } from '@/lib/auth';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
@@ -40,20 +39,47 @@ export function WalletConnect() {
   }, []);
 
   const loadWallets = async () => {
-    const uid = getUserId();
-    if (!uid) return;
-    const { data } = await supabase
-      .from('wallets')
-      .select('*')
-      .eq('user_id', uid)
-      .order('added_at', { ascending: false });
-    if (data) setWallets(data);
+    const raw = localStorage.getItem('tradeumdiary-auth');
+    if (!raw) return;
+    try {
+      const p = JSON.parse(raw);
+      const uid =
+        p?.user?.id ||
+        (p?.access_token ? JSON.parse(atob(p.access_token.split('.')[1])).sub : null);
+      if (!uid) return;
+      const { data } = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('user_id', uid)
+        .order('added_at', { ascending: false });
+      if (data) setWallets(data);
+    } catch {
+      /* ignore */
+    }
   };
 
   const handleAdd = async () => {
-    const uid = getUserId();
+    const raw = localStorage.getItem('tradeumdiary-auth');
+    if (!raw) {
+      toast.error('Не авторизован: нет данных сессии');
+      return;
+    }
+
+    let uid: string | null = null;
+    try {
+      const p = JSON.parse(raw);
+      uid = p?.user?.id;
+      if (!uid && p?.access_token) {
+        const payload = JSON.parse(atob(p.access_token.split('.')[1]));
+        uid = payload.sub;
+      }
+    } catch {
+      toast.error('Ошибка чтения сессии');
+      return;
+    }
+
     if (!uid) {
-      toast.error('Не авторизован');
+      toast.error('Не авторизован: ID не найден');
       return;
     }
     if (!isExchange && !address.trim()) {
@@ -68,14 +94,12 @@ export function WalletConnect() {
     setAdding(true);
     try {
       const walletAddress = isExchange ? `${source}:${apiKey.slice(0, 8)}***` : address.trim();
-      const { error } = await supabase
-        .from('wallets')
-        .insert({
-          user_id: uid,
-          address: walletAddress,
-          chain: 'ethereum',
-          label: label || source || 'Кошелёк',
-        });
+      const { error } = await supabase.from('wallets').insert({
+        user_id: uid,
+        address: walletAddress,
+        chain: 'ethereum',
+        label: label || source || 'Кошелёк',
+      });
       if (error) {
         toast.error('Ошибка: ' + error.message);
         setAdding(false);
@@ -89,9 +113,8 @@ export function WalletConnect() {
       setLabel('');
       loadWallets();
       queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
     } catch {
-      toast.error('Сетевая ошибка. Попробуйте позже.');
+      toast.error('Сетевая ошибка');
     }
     setAdding(false);
   };
@@ -134,6 +157,7 @@ export function WalletConnect() {
           )}
         </div>
       </div>
+
       {source && (
         <Card padding="md" className="space-y-4">
           <button
@@ -193,6 +217,7 @@ export function WalletConnect() {
           </button>
         </Card>
       )}
+
       {!source && wallets.length === 0 && (
         <Card padding="lg">
           <div className="text-center py-8">
