@@ -34,7 +34,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1, refetchOnWindowFocus: false } },
 });
 
-function getUserIdFromLocalStorage(): string | null {
+function getUserId(): string | null {
   try {
     const raw = localStorage.getItem('tradeumdiary-auth');
     if (!raw) return null;
@@ -53,33 +53,41 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    const userId = getUserIdFromLocalStorage();
+    let mounted = true;
 
-    if (!userId) {
-      setReady(true);
-      return;
+    async function init() {
+      try {
+        const userId = getUserId();
+        if (!userId) {
+          if (mounted) setReady(true);
+          return;
+        }
+        const { data } = await supabase
+          .from('profiles')
+          .select('id, subscription_tier, subscription_expires_at')
+          .eq('id', userId)
+          .single();
+        if (mounted) {
+          setUser(
+            data
+              ? {
+                  id: data.id,
+                  subscription_tier: data.subscription_tier,
+                  subscription_expires_at: data.subscription_expires_at,
+                }
+              : null
+          );
+          setReady(true);
+        }
+      } catch {
+        if (mounted) setReady(true);
+      }
     }
 
-    supabase
-      .from('profiles')
-      .select('id, subscription_tier, subscription_expires_at')
-      .eq('id', userId)
-      .single()
-      .then(({ data }) => {
-        setUser(
-          data
-            ? {
-                id: data.id,
-                subscription_tier: data.subscription_tier,
-                subscription_expires_at: data.subscription_expires_at,
-              }
-            : null
-        );
-        setReady(true);
-      })
-      .catch(() => {
-        setReady(true);
-      });
+    init();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   if (!ready) {
