@@ -34,79 +34,52 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1, refetchOnWindowFocus: false } },
 });
 
+function getUserIdFromLocalStorage(): string | null {
+  try {
+    const raw = localStorage.getItem('tradeumdiary-auth');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const token = parsed?.access_token;
+    if (!token) return null;
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload?.sub || null;
+  } catch {
+    return null;
+  }
+}
+
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    let mounted = true;
+    const userId = getUserIdFromLocalStorage();
 
-    async function init() {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (!mounted) return;
-        if (session?.user) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          if (mounted) {
-            setUser(
-              profile
-                ? {
-                    id: profile.id,
-                    email: session.user.email,
-                    subscription_tier: profile.subscription_tier,
-                    subscription_expires_at: profile.subscription_expires_at,
-                  }
-                : null
-            );
-            setReady(true);
-          }
-        } else {
-          setReady(true);
-        }
-      } catch {
-        if (mounted) setReady(true);
-      }
+    if (!userId) {
+      setReady(true);
+      return;
     }
 
-    init();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      if (!mounted) return;
-      if (session?.user) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          if (mounted && profile) {
-            setUser({
-              id: profile.id,
-              email: session.user.email,
-              subscription_tier: profile.subscription_tier,
-              subscription_expires_at: profile.subscription_expires_at,
-            });
-          }
-        } catch {
-          /* ignore */
-        }
-      } else {
-        setUser(null);
-      }
-    });
-
-    return () => {
-      mounted = false;
-      subscription.unsubscribe();
-    };
+    supabase
+      .from('profiles')
+      .select('id, subscription_tier, subscription_expires_at')
+      .eq('id', userId)
+      .single()
+      .then(({ data }) => {
+        setUser(
+          data
+            ? {
+                id: data.id,
+                subscription_tier: data.subscription_tier,
+                subscription_expires_at: data.subscription_expires_at,
+              }
+            : null
+        );
+        setReady(true);
+      })
+      .catch(() => {
+        setReady(true);
+      });
   }, []);
 
   if (!ready) {
@@ -123,6 +96,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user,
     signOut: async () => {
       await supabase.auth.signOut();
+      localStorage.removeItem('tradeumdiary-auth');
       setUser(null);
     },
     refreshProfile: async () => {},
