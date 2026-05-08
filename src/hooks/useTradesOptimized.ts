@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { safeAdd } from '@/lib/decimal';
 
 interface UseTradesOptions {
   limit?: number;
@@ -40,7 +39,7 @@ export function useTradesOptimized(options?: UseTradesOptions) {
     const result: { date: string; pnl: number; cumulativePnl: number }[] = [];
     for (const t of sorted) {
       const pnl = (t.pnl_realized as number) || 0;
-      cum = safeAdd(cum, pnl);
+      cum += pnl;
       result.push({
         date: new Date(t.timestamp as string).toISOString().split('T')[0],
         pnl,
@@ -58,11 +57,10 @@ export function useTradesOptimized(options?: UseTradesOptions) {
       map.set(base, (map.get(base) || 0) + ((t.value_usd as number) || 0));
     }
     const total = trades.reduce((s, t) => s + ((t.value_usd as number) || 0), 0);
-    const result: { token: string; volume: number; percentage: number }[] = [];
-    map.forEach((volume, token) => {
-      result.push({ token, volume, percentage: total ? (volume / total) * 100 : 0 });
-    });
-    return result.sort((a, b) => b.volume - a.volume).slice(0, 8);
+    return Array.from(map.entries())
+      .map(([token, volume]) => ({ token, volume, percentage: total ? (volume / total) * 100 : 0 }))
+      .sort((a, b) => b.volume - a.volume)
+      .slice(0, 8);
   }, [trades]);
 
   const weekdayPerformance = useMemo(() => {
@@ -70,7 +68,7 @@ export function useTradesOptimized(options?: UseTradesOptions) {
     const buckets = days.map((day) => ({ day, profit: 0, trades: 0 }));
     for (const t of trades) {
       const idx = new Date(t.timestamp as string).getDay();
-      buckets[idx].profit = safeAdd(buckets[idx].profit, (t.pnl_realized as number) || 0);
+      buckets[idx].profit += (t.pnl_realized as number) || 0;
       buckets[idx].trades += 1;
     }
     return buckets;
@@ -82,7 +80,7 @@ export function useTradesOptimized(options?: UseTradesOptions) {
     pnlData,
     tokenVolumes,
     weekdayPerformance,
-    totalVolume: trades.reduce((s, t) => safeAdd(s, (t.value_usd as number) || 0), 0),
+    totalVolume: trades.reduce((s, t) => s + ((t.value_usd as number) || 0), 0),
     totalTrades: trades.length,
   };
 }
