@@ -44,7 +44,6 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         })
       );
       toast.success('Вход выполнен!');
-      window.dispatchEvent(new Event('auth-change'));
       window.location.replace('/dashboard');
     }
   };

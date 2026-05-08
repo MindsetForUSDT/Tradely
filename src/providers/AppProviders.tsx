@@ -31,13 +31,7 @@ export function useAuth() {
 }
 
 const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 5 * 60 * 1000,
-      retry: 1,
-      refetchOnWindowFocus: false,
-    },
-  },
+  defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1, refetchOnWindowFocus: false } },
 });
 
 function getUserFromLocalStorage(): UserProfile | null {
@@ -64,13 +58,26 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [timedOut, setTimedOut] = useState(false);
 
   const refreshProfile = useCallback(() => {
-    setUser(getUserFromLocalStorage());
+    const profile = getUserFromLocalStorage();
+    if (profile?.id !== user?.id) {
+      setUser(profile);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setTimedOut(true), 3000);
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    const timer = setTimeout(() => setTimedOut(true), 5000);
-    return () => clearTimeout(timer);
-  }, []);
+    const interval = setInterval(() => {
+      const profile = getUserFromLocalStorage();
+      if (profile?.id !== user?.id) {
+        setUser(profile);
+      }
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     const handler = () => refreshProfile();
@@ -90,14 +97,6 @@ function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
-  if (!timedOut && !user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
-      </div>
-    );
-  }
-
   const value: AuthContextType = {
     user,
     isLoading: false,
@@ -105,6 +104,14 @@ function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     refreshProfile,
   };
+
+  if (!timedOut && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

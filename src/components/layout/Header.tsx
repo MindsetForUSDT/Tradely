@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
@@ -7,6 +7,7 @@ import { useState, useEffect } from 'react';
 export function Header() {
   const { isAuthenticated, signOut } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
@@ -14,6 +15,11 @@ export function Header() {
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/', { replace: true });
+  };
 
   return (
     <header
@@ -44,6 +50,7 @@ export function Header() {
               Tradeum<span className="text-accent-green">Diary</span>
             </span>
           </Link>
+
           <nav className="hidden md:flex items-center gap-3">
             {isAuthenticated ? (
               <>
@@ -108,7 +115,7 @@ export function Header() {
                 >
                   PRO
                 </Link>
-                <Button variant="ghost" size="sm" onClick={signOut}>
+                <Button variant="ghost" size="sm" onClick={handleSignOut}>
                   Выйти
                 </Button>
               </>
