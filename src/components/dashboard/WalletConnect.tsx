@@ -3,6 +3,7 @@ import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
 import { shortenAddress, cn } from '@/lib/utils';
 import { getUserId } from '@/lib/auth';
+import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
 type WalletSource = 'metamask' | 'trustwallet' | 'binance' | 'bybit' | 'okx' | 'manual';
@@ -30,6 +31,7 @@ export function WalletConnect() {
   const [apiSecret, setApiSecret] = useState('');
   const [label, setLabel] = useState('');
   const [adding, setAdding] = useState(false);
+  const queryClient = useQueryClient();
 
   const isExchange = source === 'binance' || source === 'bybit' || source === 'okx';
 
@@ -64,16 +66,21 @@ export function WalletConnect() {
     }
 
     setAdding(true);
-    const walletAddress = isExchange ? `${source}:${apiKey.slice(0, 8)}***` : address.trim();
-    const { error } = await supabase.from('wallets').insert({
-      user_id: uid,
-      address: walletAddress,
-      chain: 'ethereum',
-      label: label || source || 'Кошелёк',
-    });
-    if (error) {
-      toast.error('Ошибка');
-    } else {
+    try {
+      const walletAddress = isExchange ? `${source}:${apiKey.slice(0, 8)}***` : address.trim();
+      const { error } = await supabase
+        .from('wallets')
+        .insert({
+          user_id: uid,
+          address: walletAddress,
+          chain: 'ethereum',
+          label: label || source || 'Кошелёк',
+        });
+      if (error) {
+        toast.error('Ошибка: ' + error.message);
+        setAdding(false);
+        return;
+      }
       toast.success('Добавлен!');
       setSource(null);
       setAddress('');
@@ -81,6 +88,10 @@ export function WalletConnect() {
       setApiSecret('');
       setLabel('');
       loadWallets();
+      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      queryClient.invalidateQueries({ queryKey: ['analytics'] });
+    } catch {
+      toast.error('Сетевая ошибка. Попробуйте позже.');
     }
     setAdding(false);
   };
@@ -94,7 +105,6 @@ export function WalletConnect() {
             type="button"
             onClick={() => setShowDropdown(!showDropdown)}
             className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold cursor-pointer"
-            style={{ pointerEvents: 'auto' }}
           >
             + Кошелёк
           </button>
@@ -124,7 +134,6 @@ export function WalletConnect() {
           )}
         </div>
       </div>
-
       {source && (
         <Card padding="md" className="space-y-4">
           <button
@@ -184,7 +193,6 @@ export function WalletConnect() {
           </button>
         </Card>
       )}
-
       {!source && wallets.length === 0 && (
         <Card padding="lg">
           <div className="text-center py-8">

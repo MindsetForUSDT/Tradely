@@ -55,15 +55,27 @@ function getUserFromLocalStorage(): UserProfile | null {
 
 function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(getUserFromLocalStorage);
+  const [timedOut, setTimedOut] = useState(false);
 
   const refreshProfile = useCallback(() => {
     setUser(getUserFromLocalStorage());
   }, []);
 
   useEffect(() => {
+    const timer = setTimeout(() => setTimedOut(true), 5000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
     const handler = () => refreshProfile();
     window.addEventListener('auth-change', handler);
-    return () => window.removeEventListener('auth-change', handler);
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'tradeumdiary-auth') refreshProfile();
+    });
+    return () => {
+      window.removeEventListener('auth-change', handler);
+      window.removeEventListener('storage', handler);
+    };
   }, [refreshProfile]);
 
   const signOut = useCallback(async () => {
@@ -71,6 +83,14 @@ function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('tradeumdiary-auth');
     setUser(null);
   }, []);
+
+  if (!timedOut && !user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   const value: AuthContextType = {
     user,

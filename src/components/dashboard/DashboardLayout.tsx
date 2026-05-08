@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { StatsOverview } from './StatsOverview';
 import { PnLChart } from './PnLChart';
 import { VolumeByTokenChart } from './VolumeByTokenChart';
@@ -7,19 +8,15 @@ import { useWallets } from '@/hooks/useWallets';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useStore } from '@/store/useStore';
-import { useEffect } from 'react';
 
 export function DashboardLayout() {
   const { wallets, isLoading: walletsLoading } = useWallets();
-
-  if (walletsLoading) {
+  if (walletsLoading)
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
       </div>
     );
-  }
-
   if (!wallets?.length) return <RequireWallet />;
   return <DashboardContent />;
 }
@@ -57,7 +54,7 @@ function DashboardContent() {
         <PnLChart data={pnlData} isLoading={tradesLoading} />
         <VolumeByTokenChart data={tokenVolumes} isLoading={tradesLoading} />
       </div>
-      <TradeList trades={trades as any} isLoading={tradesLoading} compact />
+      <TradeList trades={trades} isLoading={tradesLoading} compact />
     </div>
   );
 }

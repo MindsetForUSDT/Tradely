@@ -25,17 +25,14 @@ export function TagManager({ tradeId }: TagManagerProps) {
   const addTag = async (tagName: string) => {
     const clean = tagName.trim().slice(0, 50).replace(/['"]/g, '');
     if (!clean) return;
-
     const prev = [...tags];
     setTags((prev) => [...prev, clean]);
     setNewTag('');
-
     const uid = getUserId();
     if (!uid) {
       setTags(prev);
       return;
     }
-
     const { error } = await supabase
       .from('trade_tags')
       .insert({ user_id: uid, trade_id: tradeId, tag_name: clean });
@@ -66,7 +63,7 @@ export function TagManager({ tradeId }: TagManagerProps) {
           <span
             key={tag}
             onClick={() => removeTag(tag)}
-            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full bg-accent-green/10 text-accent-green cursor-pointer hover:bg-accent-red/10 hover:text-accent-red transition-colors"
+            className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] rounded-full bg-accent-green/10 text-accent-green cursor-pointer hover:bg-accent-red/10 hover:text-accent-red"
           >
             {tag} ×
           </span>
@@ -77,7 +74,7 @@ export function TagManager({ tradeId }: TagManagerProps) {
           <button
             key={tag}
             onClick={() => addTag(tag)}
-            className="px-2 py-0.5 text-[11px] rounded-full bg-surface-overlay text-text-muted hover:bg-accent-green/10 hover:text-accent-green transition-colors"
+            className="px-2 py-0.5 text-[11px] rounded-full bg-surface-overlay text-text-muted hover:bg-accent-green/10 hover:text-accent-green"
           >
             + {tag}
           </button>
