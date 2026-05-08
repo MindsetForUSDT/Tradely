@@ -51,13 +51,13 @@ export function Header() {
             </span>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-3">
+          <nav className="hidden md:flex items-center gap-1">
             {isAuthenticated ? (
               <>
                 <Link
                   to="/dashboard"
                   className={cn(
-                    'text-sm px-2 py-1 rounded-lg transition-colors',
+                    'text-xs px-2 py-1 rounded-lg transition-colors',
                     location.pathname === '/dashboard'
                       ? 'text-accent-green bg-accent-green/5'
                       : 'text-text-secondary hover:text-text-primary'
@@ -68,7 +68,7 @@ export function Header() {
                 <Link
                   to="/dashboard/trades"
                   className={cn(
-                    'text-sm px-2 py-1 rounded-lg transition-colors',
+                    'text-xs px-2 py-1 rounded-lg transition-colors',
                     location.pathname.includes('/trades')
                       ? 'text-accent-green bg-accent-green/5'
                       : 'text-text-secondary hover:text-text-primary'
@@ -77,9 +77,20 @@ export function Header() {
                   Сделки
                 </Link>
                 <Link
+                  to="/dashboard/journal"
+                  className={cn(
+                    'text-xs px-2 py-1 rounded-lg transition-colors',
+                    location.pathname.includes('/journal')
+                      ? 'text-accent-green bg-accent-green/5'
+                      : 'text-text-secondary hover:text-text-primary'
+                  )}
+                >
+                  Журнал
+                </Link>
+                <Link
                   to="/dashboard/wallets"
                   className={cn(
-                    'text-sm px-2 py-1 rounded-lg transition-colors',
+                    'text-xs px-2 py-1 rounded-lg transition-colors',
                     location.pathname.includes('/wallets')
                       ? 'text-accent-green bg-accent-green/5'
                       : 'text-text-secondary hover:text-text-primary'
@@ -88,30 +99,30 @@ export function Header() {
                   Кошельки
                 </Link>
                 <Link
-                  to="/dashboard/alerts"
+                  to="/dashboard/risk"
                   className={cn(
-                    'text-sm px-2 py-1 rounded-lg transition-colors',
-                    location.pathname.includes('/alerts')
+                    'text-xs px-2 py-1 rounded-lg transition-colors',
+                    location.pathname.includes('/risk')
                       ? 'text-accent-green bg-accent-green/5'
                       : 'text-text-secondary hover:text-text-primary'
                   )}
                 >
-                  Алерты
+                  Риск
                 </Link>
                 <Link
-                  to="/dashboard/tax"
+                  to="/dashboard/strategies"
                   className={cn(
-                    'text-sm px-2 py-1 rounded-lg transition-colors',
-                    location.pathname.includes('/tax')
+                    'text-xs px-2 py-1 rounded-lg transition-colors',
+                    location.pathname.includes('/strategies')
                       ? 'text-accent-green bg-accent-green/5'
                       : 'text-text-secondary hover:text-text-primary'
                   )}
                 >
-                  Налоги
+                  Стратегии
                 </Link>
                 <Link
                   to="/pro"
-                  className="text-sm text-accent-green font-medium px-2 py-1 rounded-lg hover:bg-accent-green/5 transition-colors"
+                  className="text-xs text-accent-green font-medium px-2 py-1 rounded-lg hover:bg-accent-green/5 transition-colors"
                 >
                   PRO
                 </Link>

@@ -4,9 +4,10 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { label: 'Дашборд', href: '/dashboard', icon: '📊' },
   { label: 'Сделки', href: '/dashboard/trades', icon: '📋' },
+  { label: 'Журнал', href: '/dashboard/journal', icon: '📝' },
   { label: 'Кошельки', href: '/dashboard/wallets', icon: '💳' },
-  { label: 'Алерты', href: '/dashboard/alerts', icon: '🔔' },
-  { label: 'Налоги', href: '/dashboard/tax', icon: '📑' },
+  { label: 'Риск', href: '/dashboard/risk', icon: '⚠️' },
+  { label: 'PRO', href: '/pro', icon: '⭐' },
 ];
 
 export function MobileNav() {
@@ -27,7 +28,7 @@ export function MobileNav() {
               key={item.href}
               to={item.href}
               className={cn(
-                'flex flex-col items-center gap-0.5 min-w-[56px] py-1 px-1 rounded-xl transition-all',
+                'flex flex-col items-center gap-0.5 min-w-[48px] py-1 px-1 rounded-xl transition-all',
                 isActive ? 'text-accent-green' : 'text-text-muted hover:text-text-secondary'
               )}
             >
