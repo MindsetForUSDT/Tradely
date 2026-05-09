@@ -200,4 +200,12 @@ export function Icon({ name, size = 20, className = '' }: IconProps) {
   );
 }
 
-/* ✅ Исправлено: кастомная система иконок, все эмодзи заменены на SVG */
+export function WalletIcon() {
+  return <Icon name="wallet" />;
+}
+export function ChartIcon() {
+  return <Icon name="chart" />;
+}
+export function TradesIcon() {
+  return <Icon name="trades" />;
+}
