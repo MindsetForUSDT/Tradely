@@ -30,29 +30,29 @@ interface WalletFormData {
   label: string;
 }
 
-const NETWORKS: { value: Network; label: string }[] = [
-  { value: 'ethereum', label: 'Ethereum' },
-  { value: 'solana', label: 'Solana' },
-  { value: 'polygon', label: 'Polygon' },
-  { value: 'bsc', label: 'BSC' },
-  { value: 'arbitrum', label: 'Arbitrum' },
-  { value: 'optimism', label: 'Optimism' },
-  { value: 'avalanche', label: 'Avalanche' },
-  { value: 'base', label: 'Base' },
+const NETWORKS = [
+  { value: 'ethereum' as Network, label: 'Ethereum' },
+  { value: 'solana' as Network, label: 'Solana' },
+  { value: 'polygon' as Network, label: 'Polygon' },
+  { value: 'bsc' as Network, label: 'BSC' },
+  { value: 'arbitrum' as Network, label: 'Arbitrum' },
+  { value: 'optimism' as Network, label: 'Optimism' },
+  { value: 'avalanche' as Network, label: 'Avalanche' },
+  { value: 'base' as Network, label: 'Base' },
 ];
 
-const WEB3_PROVIDERS: { value: Web3Provider; label: string; icon: string }[] = [
-  { value: 'metamask', label: 'MetaMask', icon: 'metamask' },
-  { value: 'walletconnect', label: 'WalletConnect', icon: 'trustwallet' },
-  { value: 'coinbase', label: 'Coinbase Wallet', icon: 'binance' },
-  { value: 'brave', label: 'Brave Wallet', icon: 'shield' },
+const WEB3_PROVIDERS = [
+  { value: 'metamask' as Web3Provider, label: 'MetaMask', icon: 'metamask' as const },
+  { value: 'walletconnect' as Web3Provider, label: 'WalletConnect', icon: 'trustwallet' as const },
+  { value: 'coinbase' as Web3Provider, label: 'Coinbase Wallet', icon: 'binance' as const },
+  { value: 'brave' as Web3Provider, label: 'Brave Wallet', icon: 'shield' as const },
 ];
 
-const CEX_PROVIDERS: { value: CEXProvider; label: string; icon: string }[] = [
-  { value: 'binance', label: 'Binance', icon: 'binance' },
-  { value: 'bybit', label: 'Bybit', icon: 'bybit' },
-  { value: 'okx', label: 'OKX', icon: 'okx' },
-  { value: 'kucoin', label: 'KuCoin', icon: 'pro' },
+const CEX_PROVIDERS = [
+  { value: 'binance' as CEXProvider, label: 'Binance', icon: 'binance' as const },
+  { value: 'bybit' as CEXProvider, label: 'Bybit', icon: 'bybit' as const },
+  { value: 'okx' as CEXProvider, label: 'OKX', icon: 'okx' as const },
+  { value: 'kucoin' as CEXProvider, label: 'KuCoin', icon: 'pro' as const },
 ];
 
 const INITIAL_FORM: WalletFormData = {
@@ -68,11 +68,10 @@ const INITIAL_FORM: WalletFormData = {
 
 export function WalletConnect() {
   const [wallets, setWallets] = useState<any[]>([]);
-  const [step, setStep] = useState<'select' | 'details' | 'verify' | 'done'>('select');
+  const [step, setStep] = useState<'select' | 'details'>('select');
   const [form, setForm] = useState<WalletFormData>(INITIAL_FORM);
   const [adding, setAdding] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [syncProgress, setSyncProgress] = useState<Record<string, number>>({});
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -108,19 +107,10 @@ export function WalletConnect() {
     setStep('details');
   };
 
-  const handleSelectWeb3 = (provider: Web3Provider) => {
-    setForm({ ...form, web3Provider: provider });
-  };
-
-  const handleSelectCEX = (provider: CEXProvider) => {
-    setForm({ ...form, cexProvider: provider });
-  };
-
   const handleVerify = async () => {
     setVerifying(true);
     await new Promise((r) => setTimeout(r, 1500));
     setVerifying(false);
-    setStep('done');
     toast.success('Подключение проверено');
   };
 
@@ -130,7 +120,6 @@ export function WalletConnect() {
       toast.error('Не авторизован');
       return;
     }
-
     setAdding(true);
     try {
       const walletData = {
@@ -143,22 +132,18 @@ export function WalletConnect() {
               : form.address || 'manual',
         chain: form.network,
         label: form.label || form.web3Provider || form.cexProvider || form.type || 'Кошелёк',
-        processing_status: 'completed',
       };
-
       const { error } = await supabase.from('wallets').insert(walletData);
       if (error) {
         toast.error('Ошибка: ' + error.message);
         setAdding(false);
         return;
       }
-
       toast.success('Кошелёк добавлен!');
       setForm(INITIAL_FORM);
       setStep('select');
       loadWallets();
       queryClient.invalidateQueries({ queryKey: ['trades'] });
-      queryClient.invalidateQueries({ queryKey: ['analytics'] });
     } catch {
       toast.error('Сетевая ошибка');
     }
@@ -171,28 +156,13 @@ export function WalletConnect() {
     toast.success('Кошелёк удалён');
   };
 
-  const getWalletIcon = (w: any): string => {
-    if (w.chain === 'exchange' || w.address?.includes(':')) return 'binance';
-    if (w.label?.toLowerCase().includes('meta')) return 'metamask';
-    if (w.label?.toLowerCase().includes('trust')) return 'trustwallet';
+  const getWalletIcon = (w: any): 'metamask' | 'trustwallet' | 'binance' | 'wallet' => {
+    const lbl = (w.label || '').toLowerCase();
+    if (lbl.includes('meta')) return 'metamask';
+    if (lbl.includes('trust')) return 'trustwallet';
+    if (lbl.includes('binance') || lbl.includes('bybit') || lbl.includes('okx')) return 'binance';
     return 'wallet';
   };
-
-  const getNetworkColor = (network: string): string => {
-    const colors: Record<string, string> = {
-      ethereum: 'border-blue-400/30',
-      solana: 'border-purple-400/30',
-      polygon: 'border-purple-500/30',
-      bsc: 'border-yellow-400/30',
-      arbitrum: 'border-blue-500/30',
-      optimism: 'border-red-400/30',
-      avalanche: 'border-red-500/30',
-      base: 'border-blue-600/30',
-    };
-    return colors[network] || 'border-surface-border';
-  };
-
-  const currentProgress = adding ? 50 : verifying ? 75 : 0;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
@@ -206,34 +176,18 @@ export function WalletConnect() {
           </p>
         </div>
         <button
-          type="button"
           onClick={() => {
             setStep('select');
             setForm(INITIAL_FORM);
           }}
-          className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold cursor-pointer hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-1.5"
+          className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-1.5"
         >
-          <Icon name="wallet-add" size={16} />
-          Подключить
+          <Icon name="wallet-add" size={16} /> Подключить
         </button>
       </div>
 
-      {/* Прогресс-бар */}
-      {currentProgress > 0 && (
-        <div className="w-full bg-surface-border rounded-full h-1.5 overflow-hidden">
-          <div
-            className="bg-accent-green h-1.5 rounded-full transition-all duration-500"
-            style={{ width: `${currentProgress}%` }}
-          />
-        </div>
-      )}
-
-      {/* Шаг 1: Выбор типа */}
       {step === 'select' && (
-        <Card
-          padding="lg"
-          className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
-        >
+        <Card padding="lg" className="space-y-4">
           <h3 className="text-base font-semibold">Выберите тип подключения</h3>
           <div className="grid grid-cols-2 gap-3">
             {[
@@ -287,97 +241,55 @@ export function WalletConnect() {
               </button>
             ))}
           </div>
-          <button
-            onClick={() => setStep('select')}
-            className="w-full py-2 text-sm text-text-muted hover:text-text-primary transition-colors"
-          >
-            Отмена
-          </button>
         </Card>
       )}
 
-      {/* Шаг 2: Детали */}
       {step === 'details' && (
-        <Card
-          padding="md"
-          className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300"
-        >
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => setStep('select')}
-              className="text-text-muted hover:text-text-primary text-sm inline-flex items-center gap-1 transition-colors"
-            >
-              <Icon name="back" size={14} /> Назад
-            </button>
-            <span className="text-xs text-text-muted">Шаг 2 из 3</span>
-          </div>
+        <Card padding="md" className="space-y-4">
+          <button
+            onClick={() => setStep('select')}
+            className="text-text-muted hover:text-text-primary text-sm inline-flex items-center gap-1 transition-colors"
+          >
+            <Icon name="back" size={14} /> Назад
+          </button>
 
-          {/* Web3 */}
           {form.type === 'web3' && (
-            <div className="space-y-4">
-              <p className="text-sm text-text-secondary">Выберите Web3-провайдер</p>
-              <div className="grid grid-cols-2 gap-3">
-                {WEB3_PROVIDERS.map((p) => (
-                  <button
-                    key={p.value}
-                    onClick={() => handleSelectWeb3(p.value)}
-                    className={cn(
-                      'p-3 rounded-xl border text-left transition-all duration-200',
-                      form.web3Provider === p.value
-                        ? 'border-accent-green bg-accent-green/5'
-                        : 'border-surface-border bg-surface-elevated hover:border-accent-green/30'
-                    )}
-                  >
-                    <div className="flex items-center gap-2">
-                      <Icon
-                        name={p.icon}
-                        size={20}
-                        className={
-                          form.web3Provider === p.value
-                            ? 'text-accent-green'
-                            : 'text-text-secondary'
-                        }
-                      />
-                      <span className="text-sm font-medium">{p.label}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-              {form.web3Provider === 'metamask' && (
+            <div className="grid grid-cols-2 gap-3">
+              {WEB3_PROVIDERS.map((p) => (
                 <button
-                  onClick={async () => {
-                    try {
-                      const w = window as any;
-                      if (!w.ethereum) {
-                        toast.error('MetaMask не установлен');
-                        return;
-                      }
-                      const accounts = await w.ethereum.request({ method: 'eth_requestAccounts' });
-                      setForm({ ...form, address: accounts[0] });
-                      toast.success('Кошелёк подключен!');
-                    } catch {
-                      toast.error('Ошибка подключения к MetaMask');
-                    }
-                  }}
-                  className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98]"
+                  key={p.value}
+                  onClick={() => setForm({ ...form, web3Provider: p.value })}
+                  className={cn(
+                    'p-3 rounded-xl border transition-all',
+                    form.web3Provider === p.value
+                      ? 'border-accent-green bg-accent-green/5'
+                      : 'border-surface-border bg-surface-elevated hover:border-accent-green/30'
+                  )}
                 >
-                  Подключить MetaMask
+                  <div className="flex items-center gap-2">
+                    <Icon
+                      name={p.icon}
+                      size={20}
+                      className={
+                        form.web3Provider === p.value ? 'text-accent-green' : 'text-text-secondary'
+                      }
+                    />
+                    <span className="text-sm font-medium">{p.label}</span>
+                  </div>
                 </button>
-              )}
+              ))}
             </div>
           )}
 
-          {/* CEX */}
           {form.type === 'cex' && (
-            <div className="space-y-4">
-              <p className="text-sm text-text-secondary">Выберите биржу</p>
+            <>
               <div className="grid grid-cols-2 gap-3">
                 {CEX_PROVIDERS.map((p) => (
                   <button
                     key={p.value}
-                    onClick={() => handleSelectCEX(p.value)}
+                    onClick={() => setForm({ ...form, cexProvider: p.value })}
                     className={cn(
-                      'p-3 rounded-xl border text-left transition-all duration-200',
+                      'p-3 rounded-xl border transition-all',
                       form.cexProvider === p.value
                         ? 'border-accent-green bg-accent-green/5'
                         : 'border-surface-border bg-surface-elevated hover:border-accent-green/30'
@@ -422,117 +334,95 @@ export function WalletConnect() {
                   />
                   <button
                     onClick={handleVerify}
-                    disabled={verifying || !form.apiKey || !form.apiSecret}
-                    className="w-full py-2.5 border border-accent-green/30 text-accent-green rounded-xl text-sm font-medium hover:bg-accent-green/5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    disabled={verifying}
+                    className="w-full py-2.5 border border-accent-green/30 text-accent-green rounded-xl text-sm font-medium hover:bg-accent-green/5 transition-all disabled:opacity-50"
                   >
                     {verifying ? 'Проверка...' : 'Проверить подключение'}
                   </button>
                 </>
               )}
-            </div>
+            </>
           )}
 
-          {/* Watch-only */}
           {form.type === 'watch-only' && (
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-text-muted block mb-1">Сеть</label>
-                <select
-                  value={form.network}
-                  onChange={(e) => setForm({ ...form, network: e.target.value as Network })}
-                  className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-                >
-                  {NETWORKS.map((n) => (
-                    <option key={n.value} value={n.value}>
-                      {n.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-xs text-text-muted block mb-1">Адрес кошелька</label>
-                <input
-                  type="text"
-                  placeholder="0x... или Solana адрес"
-                  value={form.address}
-                  onChange={(e) => setForm({ ...form, address: e.target.value })}
-                  className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-                />
-              </div>
-            </div>
+            <>
+              <select
+                value={form.network}
+                onChange={(e) => setForm({ ...form, network: e.target.value as Network })}
+                className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white"
+              >
+                {NETWORKS.map((n) => (
+                  <option key={n.value} value={n.value}>
+                    {n.label}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                placeholder="0x..."
+                value={form.address}
+                onChange={(e) => setForm({ ...form, address: e.target.value })}
+                className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono"
+              />
+            </>
           )}
 
-          {/* Import */}
           {form.type === 'import' && (
-            <div className="space-y-4 text-center py-8">
+            <div className="text-center py-8">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
                 <Icon name="import" size={28} className="text-accent-green" />
               </div>
               <p className="text-text-secondary text-sm">Перетащите файл или нажмите для выбора</p>
-              <p className="text-text-muted text-xs">Поддерживаются CSV, JSON, Excel</p>
+              <p className="text-text-muted text-xs">CSV, JSON, Excel</p>
               <input
                 type="file"
                 accept=".csv,.json,.xlsx,.xls"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) toast.success(`Файл "${file.name}" загружен`);
-                }}
-                className="mt-4 text-xs text-text-muted file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-medium file:bg-accent-green/10 file:text-accent-green hover:file:bg-accent-green/20 file:transition-colors file:cursor-pointer"
+                className="mt-4 text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-medium file:bg-accent-green/10 file:text-accent-green"
               />
             </div>
           )}
 
-          {/* Hardware */}
           {form.type === 'hardware' && (
-            <div className="space-y-4 text-center py-8">
+            <div className="text-center py-8">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
                 <Icon name="risk" size={28} className="text-accent-green" />
               </div>
-              <p className="text-text-secondary text-sm">Поддержка Ledger и Trezor</p>
-              <p className="text-text-muted text-xs">Подключите устройство и нажмите кнопку ниже</p>
-              <button className="px-6 py-2.5 bg-accent-green text-surface rounded-xl text-sm font-semibold hover:bg-accent-green-dim transition-all duration-200">
+              <p className="text-text-secondary text-sm">Ledger и Trezor</p>
+              <button className="px-6 py-2.5 bg-accent-green text-surface rounded-xl text-sm font-semibold hover:bg-accent-green-dim mt-4">
                 Обнаружить устройство
               </button>
             </div>
           )}
 
-          {/* QR */}
           {form.type === 'qr' && (
-            <div className="space-y-4 text-center py-8">
+            <div className="text-center py-8">
               <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
                 <Icon name="export-csv" size={28} className="text-accent-green" />
               </div>
               <p className="text-text-secondary text-sm">QR-сканер</p>
-              <p className="text-text-muted text-xs">Наведите камеру на QR-код адреса</p>
               <div className="w-48 h-48 mx-auto rounded-xl border-2 border-dashed border-surface-border flex items-center justify-center">
                 <Icon name="import" size={48} className="text-text-muted opacity-30" />
               </div>
             </div>
           )}
 
-          {/* Общие поля */}
-          <div>
-            <label className="text-xs text-text-muted block mb-1">Название (опционально)</label>
-            <input
-              type="text"
-              placeholder="Мой кошелёк"
-              value={form.label}
-              onChange={(e) => setForm({ ...form, label: e.target.value })}
-              className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-            />
-          </div>
-
+          <input
+            type="text"
+            placeholder="Название"
+            value={form.label}
+            onChange={(e) => setForm({ ...form, label: e.target.value })}
+            className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white"
+          />
           <button
             onClick={handleAdd}
             disabled={adding}
-            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 cursor-pointer hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98]"
+            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 hover:bg-accent-green-dim transition-all active:scale-[0.98]"
           >
             {adding ? 'Добавление...' : 'Добавить'}
           </button>
         </Card>
       )}
 
-      {/* Список кошельков */}
       {step === 'select' && wallets.length === 0 && (
         <Card padding="lg">
           <div className="text-center py-8">
@@ -549,7 +439,7 @@ export function WalletConnect() {
       {step === 'select' && wallets.length > 0 && (
         <div className="space-y-3">
           {wallets.map((w: any) => (
-            <Card key={w.id} padding="md" className={cn('border-l-2', getNetworkColor(w.chain))}>
+            <Card key={w.id} padding="md">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center">
@@ -581,14 +471,6 @@ export function WalletConnect() {
                   </button>
                 </div>
               </div>
-              {syncProgress[w.id] !== undefined && syncProgress[w.id] < 100 && (
-                <div className="mt-2 w-full bg-surface-border rounded-full h-1 overflow-hidden">
-                  <div
-                    className="bg-accent-green h-1 rounded-full transition-all duration-300"
-                    style={{ width: `${syncProgress[w.id]}%` }}
-                  />
-                </div>
-              )}
             </Card>
           ))}
         </div>
@@ -596,5 +478,3 @@ export function WalletConnect() {
     </div>
   );
 }
-
-/* ✅ Исправлено: полный визард с 6 типами подключений, прогресс-бар, 8 сетей, 4 Web3-провайдера, 4 CEX, watch-only, import, hardware, QR, сетевые статусы, удаление, анимации */

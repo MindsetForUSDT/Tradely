@@ -71,7 +71,7 @@ export function AlertSettings() {
         />
         <input
           type="email"
-          placeholder="Email для уведомлений"
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full px-4 py-2 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
@@ -79,7 +79,7 @@ export function AlertSettings() {
         <button
           onClick={saveAlerts}
           disabled={saving}
-          className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98]"
+          className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 hover:bg-accent-green-dim transition-all active:scale-[0.98]"
         >
           {saving ? 'Сохранение...' : 'Сохранить алерты'}
         </button>
@@ -87,5 +87,3 @@ export function AlertSettings() {
     </Card>
   );
 }
-
-/* ✅ Исправлено: эмодзи заменён на Icon(alert), добавлены transition */

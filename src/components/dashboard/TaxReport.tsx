@@ -75,11 +75,8 @@ export function TaxReport() {
         onClick={() => window.print()}
         className="mt-4 w-full py-2 text-xs rounded-lg bg-surface-overlay text-text-secondary hover:text-text-primary transition-colors inline-flex items-center justify-center gap-1.5"
       >
-        <Icon name="export-pdf" size={14} />
-        Печать / PDF
+        <Icon name="export-pdf" size={14} /> Печать / PDF
       </button>
     </Card>
   );
 }
-
-/* ✅ Исправлено: эмодзи заменены на Icon(tax), Icon(export-pdf), добавлены transition */

@@ -25,5 +25,3 @@ export function RequireWallet() {
     </div>
   );
 }
-
-/* ✅ Исправлено: SVG заменён на Icon, добавлены transition */

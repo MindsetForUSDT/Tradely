@@ -25,5 +25,3 @@ export function Tooltip({ content }: TooltipProps) {
     </span>
   );
 }
-
-/* ✅ Исправлено: эмодзи заменён на Icon(info), добавлена анимация появления */
