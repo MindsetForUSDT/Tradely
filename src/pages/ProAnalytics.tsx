@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { PnLChart } from '@/components/dashboard/PnLChart';
 import { VolumeByTokenChart } from '@/components/dashboard/VolumeByTokenChart';
@@ -25,12 +26,35 @@ export function ProAnalytics() {
     : '0';
   const totalPnl = pnlData.reduce((s, d) => s + d.pnl, 0);
 
-  const tabs = [
-    { key: 'pnl' as const, label: 'P&L' },
-    { key: 'volume' as const, label: 'Объёмы' },
-    { key: 'weekday' as const, label: 'По дням' },
-    { key: 'equity' as const, label: 'Equity' },
-    { key: 'heatmap' as const, label: 'Тепловая карта' },
+  const proMetrics = [
+    { label: 'Win Rate', tooltip: 'Процент прибыльных сделок за 90 дней.', value: `${winRate}%` },
+    {
+      label: 'Sharpe',
+      tooltip: 'Коэффициент Шарпа: доходность на единицу риска. >1 — хорошо.',
+      value: sharpeRatio.toFixed(2),
+    },
+    {
+      label: 'Sortino',
+      tooltip: 'Коэффициент Сортино: как Sharpe, но только downside-волатильность.',
+      value: sortinoRatio.toFixed(2),
+    },
+    {
+      label: 'Годовая дох.',
+      tooltip: 'Аннуализированная доходность в процентах.',
+      value: `${annualizedReturn}%`,
+    },
+    { label: 'Всего сделок', tooltip: 'Общее количество сделок за 90 дней.', value: totalTrades },
+    {
+      label: 'Общий P&L',
+      tooltip: 'Суммарная прибыль/убыток за 90 дней.',
+      value: formatUSD(totalPnl),
+      color: totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red',
+    },
+    {
+      label: 'Общий объём',
+      tooltip: 'Суммарный объём всех сделок в USD.',
+      value: formatUSD(totalVolume),
+    },
   ];
 
   return (
@@ -40,23 +64,13 @@ export function ProAnalytics() {
         <p className="text-text-muted text-sm">Расширенная статистика</p>
       </div>
 
-      {/* Ключевые метрики */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {[
-          { label: 'Win Rate', value: `${winRate}%` },
-          { label: 'Sharpe', value: sharpeRatio.toFixed(2) },
-          { label: 'Sortino', value: sortinoRatio.toFixed(2) },
-          { label: 'Годовая дох.', value: `${annualizedReturn}%` },
-          { label: 'Всего сделок', value: totalTrades },
-          {
-            label: 'Общий P&L',
-            value: formatUSD(totalPnl),
-            color: totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red',
-          },
-          { label: 'Общий объём', value: formatUSD(totalVolume) },
-        ].map((m) => (
+        {proMetrics.map((m) => (
           <Card key={m.label} padding="md">
-            <p className="text-xs text-text-muted mb-1">{m.label}</p>
+            <p className="text-xs text-text-muted mb-1 flex items-center">
+              {m.label}
+              <Tooltip content={m.tooltip} />
+            </p>
             <p className={`text-xl font-bold font-mono ${m.color || 'text-text-primary'}`}>
               {m.value}
             </p>
@@ -64,9 +78,14 @@ export function ProAnalytics() {
         ))}
       </div>
 
-      {/* Переключатель графиков */}
       <div className="flex gap-2 flex-wrap">
-        {tabs.map((tab) => (
+        {[
+          { key: 'pnl' as const, label: 'P&L' },
+          { key: 'volume' as const, label: 'Объёмы' },
+          { key: 'weekday' as const, label: 'По дням' },
+          { key: 'equity' as const, label: 'Equity' },
+          { key: 'heatmap' as const, label: 'Тепловая карта' },
+        ].map((tab) => (
           <button
             key={tab.key}
             onClick={() => setActiveTab(tab.key)}
@@ -77,17 +96,13 @@ export function ProAnalytics() {
         ))}
       </div>
 
-      {/* Графики */}
       {activeTab === 'pnl' && <PnLChart data={pnlData} />}
       {activeTab === 'volume' && <VolumeByTokenChart data={tokenVolumes} />}
       {activeTab === 'weekday' && <WeekdayPerformanceChart data={weekdayPerformance} />}
       {activeTab === 'equity' && <EquityCurveChart data={pnlData} />}
       {activeTab === 'heatmap' && <HeatmapChart trades={trades} />}
 
-      {/* AI Инсайты */}
       <AIInsights />
-
-      {/* Экспорт */}
       <ExportPanel />
     </div>
   );

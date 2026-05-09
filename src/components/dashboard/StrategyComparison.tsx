@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { formatUSD } from '@/lib/utils';
 import { calculateProfitFactor, calculateExpectancy, calculateStreakAnalysis } from '@/lib/metrics';
@@ -9,7 +10,6 @@ export function StrategyComparison() {
   const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 365 });
   const [selectedStrategies, setSelectedStrategies] = useState<Set<string>>(new Set());
 
-  // Извлекаем уникальные стратегии из сделок
   const strategies = useMemo(() => {
     const tags = new Set<string>();
     trades.forEach((t: any) => {
@@ -18,32 +18,26 @@ export function StrategyComparison() {
     return Array.from(tags);
   }, [trades]);
 
-  // Статистика по каждой стратегии
   const strategyStats = useMemo(() => {
     return strategies
       .map((strategy) => {
-        const strategyTrades = trades.filter((t: any) => t.strategy_tag === strategy);
-        const winners = strategyTrades.filter((t: any) => (t.pnl_realized || 0) > 0);
-        const losers = strategyTrades.filter((t: any) => (t.pnl_realized || 0) < 0);
-        const totalPnl = strategyTrades.reduce((s, t: any) => s + (t.pnl_realized || 0), 0);
-        const winRate = strategyTrades.length ? (winners.length / strategyTrades.length) * 100 : 0;
-        const profitFactor = calculateProfitFactor(strategyTrades);
-        const expectancy = calculateExpectancy(strategyTrades);
-        const { maxWinStreak, maxLossStreak } = calculateStreakAnalysis(strategyTrades);
-
+        const sTrades = trades.filter((t: any) => t.strategy_tag === strategy);
+        const winners = sTrades.filter((t: any) => (t.pnl_realized || 0) > 0);
+        const losers = sTrades.filter((t: any) => (t.pnl_realized || 0) < 0);
+        const totalPnl = sTrades.reduce((s, t: any) => s + (t.pnl_realized || 0), 0);
+        const winRate = sTrades.length ? (winners.length / sTrades.length) * 100 : 0;
+        const profitFactor = calculateProfitFactor(sTrades);
+        const expectancy = calculateExpectancy(sTrades);
+        const { maxWinStreak, maxLossStreak } = calculateStreakAnalysis(sTrades);
         return {
           strategy,
-          trades: strategyTrades.length,
+          trades: sTrades.length,
           winRate,
           totalPnl,
           profitFactor,
           expectancy,
           maxWinStreak,
           maxLossStreak,
-          avgVolume: strategyTrades.length
-            ? strategyTrades.reduce((s, t: any) => s + (t.value_usd || 0), 0) /
-              strategyTrades.length
-            : 0,
         };
       })
       .sort((a, b) => b.totalPnl - a.totalPnl);
@@ -56,14 +50,23 @@ export function StrategyComparison() {
     setSelectedStrategies(next);
   };
 
+  const headers = [
+    { label: 'Стратегия', tooltip: 'Название стратегии из тегов сделок.' },
+    { label: 'Сделок', tooltip: 'Количество сделок по этой стратегии.' },
+    { label: 'Win Rate', tooltip: 'Процент прибыльных сделок.' },
+    { label: 'P&L', tooltip: 'Суммарная прибыль/убыток.' },
+    { label: 'Profit Factor', tooltip: 'Отношение прибыли к убыткам.' },
+    { label: 'Expectancy', tooltip: 'Ожидаемая прибыль на сделку.' },
+    { label: 'Max Win', tooltip: 'Максимальная серия прибыльных сделок.' },
+    { label: 'Max Loss', tooltip: 'Максимальная серия убыточных сделок.' },
+  ];
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div>
         <h2 className="text-xl font-bold">Сравнение стратегий</h2>
         <p className="text-sm text-text-muted mt-1">Выберите стратегии для сравнения</p>
       </div>
-
-      {/* Выбор стратегий */}
       <div className="flex flex-wrap gap-2">
         {strategies.map((s) => (
           <button
@@ -81,26 +84,22 @@ export function StrategyComparison() {
           </button>
         ))}
         {strategies.length === 0 && (
-          <p className="text-text-muted text-sm">
-            Нет сделок с тегами стратегий. Добавьте теги в журнале.
-          </p>
+          <p className="text-text-muted text-sm">Нет сделок с тегами стратегий.</p>
         )}
       </div>
-
-      {/* Таблица сравнения */}
       {selectedStrategies.size > 0 && (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-surface-border text-text-muted text-xs">
-                <th className="text-left py-3 px-4">Стратегия</th>
-                <th className="text-right py-3 px-4">Сделок</th>
-                <th className="text-right py-3 px-4">Win Rate</th>
-                <th className="text-right py-3 px-4">P&L</th>
-                <th className="text-right py-3 px-4">Profit Factor</th>
-                <th className="text-right py-3 px-4">Expectancy</th>
-                <th className="text-right py-3 px-4">Max Win Streak</th>
-                <th className="text-right py-3 px-4">Max Loss Streak</th>
+                {headers.map((h) => (
+                  <th key={h.label} className="text-right py-3 px-4">
+                    <span className="flex items-center justify-end gap-0.5">
+                      {h.label}
+                      <Tooltip content={h.tooltip} />
+                    </span>
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
@@ -134,8 +133,6 @@ export function StrategyComparison() {
           </table>
         </div>
       )}
-
-      {/* Итоговая карточка лучшей стратегии */}
       {strategyStats.length > 0 && (
         <Card padding="md" className="max-w-md">
           <h3 className="text-sm font-semibold mb-2">🏆 Лучшая стратегия</h3>
