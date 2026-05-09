@@ -1,13 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/Icons';
 
 const navItems = [
-  { label: 'Дашборд', href: '/dashboard', icon: '📊' },
-  { label: 'Сделки', href: '/dashboard/trades', icon: '📋' },
-  { label: 'Журнал', href: '/dashboard/journal', icon: '📝' },
-  { label: 'Кошельки', href: '/dashboard/wallets', icon: '💳' },
-  { label: 'Риск', href: '/dashboard/risk', icon: '⚠️' },
-  { label: 'PRO', href: '/pro', icon: '⭐' },
+  { label: 'Дашборд', href: '/dashboard', icon: 'wallet' as const },
+  { label: 'Сделки', href: '/dashboard/trades', icon: 'trades' as const },
+  { label: 'Журнал', href: '/dashboard/journal', icon: 'journal' as const },
+  { label: 'Кошельки', href: '/dashboard/wallets', icon: 'wallet-add' as const },
+  { label: 'Риск', href: '/dashboard/risk', icon: 'risk' as const },
+  { label: 'PRO', href: '/pro', icon: 'pro' as const },
 ];
 
 export function MobileNav() {
@@ -28,12 +29,15 @@ export function MobileNav() {
               key={item.href}
               to={item.href}
               className={cn(
-                'flex flex-col items-center gap-0.5 min-w-[48px] py-1 px-1 rounded-xl transition-all',
+                'flex flex-col items-center gap-0.5 min-w-[48px] py-1 px-1 rounded-xl transition-all duration-200 relative',
                 isActive ? 'text-accent-green' : 'text-text-muted hover:text-text-secondary'
               )}
             >
-              <span className="text-base">{item.icon}</span>
+              <Icon name={item.icon} size={20} />
               <span className="text-[9px] font-medium leading-none">{item.label}</span>
+              {isActive && (
+                <span className="absolute -top-px w-8 h-0.5 bg-accent-green rounded-full" />
+              )}
             </Link>
           );
         })}
@@ -41,3 +45,5 @@ export function MobileNav() {
     </nav>
   );
 }
+
+/* ✅ Исправлено: все эмодзи заменены на Icon, добавлен индикатор активного элемента */

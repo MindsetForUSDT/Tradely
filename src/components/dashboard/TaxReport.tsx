@@ -2,13 +2,11 @@ import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { formatUSD } from '@/lib/utils';
+import { Icon } from '@/components/ui/Icons';
 import type { Trade } from '@/types';
 
 export function TaxReport() {
-  const { trades } = useTradesOptimized({
-    limit: 5000,
-    daysAgo: 365,
-  });
+  const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 365 });
   const [year, setYear] = useState(new Date().getFullYear());
 
   const report = useMemo(() => {
@@ -22,23 +20,19 @@ export function TaxReport() {
     const net = totalProceeds - totalCostBasis;
     const taxRate = net > 5_000_000 ? 15 : 13;
     const tax = net > 0 ? net * (taxRate / 100) : 0;
-    return {
-      totalProceeds,
-      totalCostBasis,
-      net,
-      taxRate,
-      tax,
-      count: yearTrades.length,
-    };
+    return { totalProceeds, totalCostBasis, net, taxRate, tax, count: yearTrades.length };
   }, [trades, year]);
 
   return (
     <Card padding="md" className="max-w-lg">
-      <h3 className="text-sm font-semibold mb-4">📊 Налоговый отчёт (РФ)</h3>
+      <h3 className="text-sm font-semibold mb-4 inline-flex items-center gap-1.5">
+        <Icon name="tax" size={18} className="text-accent-green" />
+        Налоговый отчёт (РФ)
+      </h3>
       <select
         value={year}
         onChange={(e) => setYear(+e.target.value)}
-        className="w-full px-4 py-2 mb-4 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white"
+        className="w-full px-4 py-2 mb-4 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
       >
         {[2024, 2025, 2026].map((y) => (
           <option key={y} value={y}>
@@ -79,10 +73,13 @@ export function TaxReport() {
       </p>
       <button
         onClick={() => window.print()}
-        className="mt-4 w-full py-2 text-xs rounded-lg bg-surface-overlay text-text-secondary hover:text-text-primary"
+        className="mt-4 w-full py-2 text-xs rounded-lg bg-surface-overlay text-text-secondary hover:text-text-primary transition-colors inline-flex items-center justify-center gap-1.5"
       >
-        📄 Печать / PDF
+        <Icon name="export-pdf" size={14} />
+        Печать / PDF
       </button>
     </Card>
   );
 }
+
+/* ✅ Исправлено: эмодзи заменены на Icon(tax), Icon(export-pdf), добавлены transition */

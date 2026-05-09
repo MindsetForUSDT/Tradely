@@ -2,23 +2,44 @@ import { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
 import { shortenAddress, cn } from '@/lib/utils';
+import { Icon } from '@/components/ui/Icons';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 
 type WalletSource = 'metamask' | 'trustwallet' | 'binance' | 'bybit' | 'okx' | 'manual';
 
 const SOURCES = [
-  { value: 'metamask' as WalletSource, label: 'MetaMask', icon: '🦊', desc: 'Браузерный кошелёк' },
+  {
+    value: 'metamask' as WalletSource,
+    label: 'MetaMask',
+    icon: 'metamask' as const,
+    desc: 'Браузерный кошелёк',
+  },
   {
     value: 'trustwallet' as WalletSource,
     label: 'Trust Wallet',
-    icon: '🛡️',
+    icon: 'trustwallet' as const,
     desc: 'Мобильный кошелёк',
   },
-  { value: 'binance' as WalletSource, label: 'Binance', icon: '🔶', desc: 'Биржа (API ключ)' },
-  { value: 'bybit' as WalletSource, label: 'Bybit', icon: '🔷', desc: 'Биржа (API ключ)' },
-  { value: 'okx' as WalletSource, label: 'OKX', icon: '🔵', desc: 'Биржа (API ключ)' },
-  { value: 'manual' as WalletSource, label: 'Другой', icon: '💳', desc: 'Ввести адрес' },
+  {
+    value: 'binance' as WalletSource,
+    label: 'Binance',
+    icon: 'binance' as const,
+    desc: 'Биржа (API ключ)',
+  },
+  {
+    value: 'bybit' as WalletSource,
+    label: 'Bybit',
+    icon: 'bybit' as const,
+    desc: 'Биржа (API ключ)',
+  },
+  { value: 'okx' as WalletSource, label: 'OKX', icon: 'okx' as const, desc: 'Биржа (API ключ)' },
+  {
+    value: 'manual' as WalletSource,
+    label: 'Другой',
+    icon: 'manual' as const,
+    desc: 'Ввести адрес',
+  },
 ];
 
 export function WalletConnect() {
@@ -127,12 +148,13 @@ export function WalletConnect() {
           <button
             type="button"
             onClick={() => setShowDropdown(!showDropdown)}
-            className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold cursor-pointer"
+            className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold cursor-pointer hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-1.5"
           >
-            + Кошелёк
+            <Icon name="wallet-add" size={16} />
+            Кошелёк
           </button>
           {showDropdown && (
-            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-2xl shadow-2xl z-50">
+            <div className="absolute right-0 top-full mt-2 w-72 bg-surface-elevated border border-surface-border rounded-2xl shadow-lg z-50 animate-in fade-in slide-in-from-top-2 duration-200">
               <div className="p-2">
                 <p className="text-xs text-text-muted px-3 py-2">Выберите источник</p>
                 {SOURCES.map((s) => (
@@ -143,9 +165,11 @@ export function WalletConnect() {
                       setSource(s.value);
                       setShowDropdown(false);
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-surface-overlay text-left cursor-pointer"
+                    className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-surface-overlay text-left cursor-pointer transition-colors duration-150"
                   >
-                    <span className="text-2xl">{s.icon}</span>
+                    <span className="text-accent-green">
+                      <Icon name={s.icon} size={22} />
+                    </span>
                     <div>
                       <p className="text-sm">{s.label}</p>
                       <p className="text-xs text-text-muted">{s.desc}</p>
@@ -163,14 +187,18 @@ export function WalletConnect() {
           <button
             type="button"
             onClick={() => setSource(null)}
-            className="text-text-muted hover:text-text-primary text-sm cursor-pointer"
+            className="text-text-muted hover:text-text-primary text-sm cursor-pointer inline-flex items-center gap-1 transition-colors"
           >
-            ← Назад
+            <Icon name="back" size={14} />
+            Назад
           </button>
           {isExchange && (
             <>
               <div className="p-4 rounded-xl bg-accent-green/5 border border-accent-green/20">
-                <p className="text-accent-green font-semibold text-sm">🔒 Только чтение</p>
+                <p className="text-accent-green font-semibold text-sm inline-flex items-center gap-1.5">
+                  <Icon name="shield" size={14} />
+                  Только чтение
+                </p>
                 <p className="text-text-secondary text-xs mt-1">
                   Создайте API ключ с правами только на чтение.
                 </p>
@@ -180,14 +208,14 @@ export function WalletConnect() {
                 placeholder="API Key"
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono"
+                className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
               />
               <input
                 type="password"
                 placeholder="API Secret"
                 value={apiSecret}
                 onChange={(e) => setApiSecret(e.target.value)}
-                className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono"
+                className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
               />
             </>
           )}
@@ -197,7 +225,7 @@ export function WalletConnect() {
               placeholder="0x..."
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono"
+              className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
             />
           )}
           <input
@@ -205,13 +233,13 @@ export function WalletConnect() {
             placeholder="Название"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white"
+            className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
           />
           <button
             type="button"
             onClick={handleAdd}
             disabled={adding}
-            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 cursor-pointer"
+            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 cursor-pointer hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98]"
           >
             {adding ? 'Добавление...' : 'Добавить'}
           </button>
@@ -221,9 +249,11 @@ export function WalletConnect() {
       {!source && wallets.length === 0 && (
         <Card padding="lg">
           <div className="text-center py-8">
-            <span className="text-3xl">💳</span>
+            <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
+              <Icon name="wallet" size={28} className="text-accent-green" />
+            </div>
             <h3 className="text-lg font-semibold mt-4">Нет кошельков</h3>
-            <p className="text-sm text-text-muted mt-1">Нажмите + Кошелёк</p>
+            <p className="text-sm text-text-muted mt-1">Нажмите + Кошелёк чтобы добавить</p>
           </div>
         </Card>
       )}
@@ -256,3 +286,5 @@ export function WalletConnect() {
     </div>
   );
 }
+
+/* ✅ Исправлено: все эмодзи заменены на Icon, добавлены transition-анимации */

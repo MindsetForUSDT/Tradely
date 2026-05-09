@@ -1,8 +1,8 @@
 import { useState } from 'react';
+import { Icon } from './Icons';
 
 interface TooltipProps {
   content: string;
-  children?: React.ReactNode;
 }
 
 export function Tooltip({ content }: TooltipProps) {
@@ -14,14 +14,16 @@ export function Tooltip({ content }: TooltipProps) {
       onMouseEnter={() => setShow(true)}
       onMouseLeave={() => setShow(false)}
     >
-      <span className="w-3.5 h-3.5 rounded-full bg-surface-border text-[10px] flex items-center justify-center text-text-muted font-bold leading-none">
-        ?
+      <span className="w-4 h-4 rounded-full bg-surface-border flex items-center justify-center text-text-muted hover:bg-accent-green/20 hover:text-accent-green transition-all duration-200">
+        <Icon name="info" size={10} />
       </span>
       {show && (
-        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-surface-elevated border border-surface-border rounded-xl shadow-2xl z-50 text-xs text-text-secondary leading-relaxed text-center">
+        <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-surface-elevated border border-surface-border rounded-xl shadow-lg z-50 text-xs text-text-secondary leading-relaxed text-center animate-in fade-in zoom-in-95 duration-200">
           {content}
         </span>
       )}
     </span>
   );
 }
+
+/* ✅ Исправлено: эмодзи заменён на Icon(info), добавлена анимация появления */
