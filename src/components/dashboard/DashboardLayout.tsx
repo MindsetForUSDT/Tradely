@@ -11,12 +11,15 @@ import { useStore } from '@/store/useStore';
 
 export function DashboardLayout() {
   const { wallets, isLoading: walletsLoading } = useWallets();
-  if (walletsLoading)
+
+  if (walletsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-surface">
         <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
       </div>
     );
+  }
+
   if (!wallets?.length) return <RequireWallet />;
   return <DashboardContent />;
 }
@@ -58,3 +61,5 @@ function DashboardContent() {
     </div>
   );
 }
+
+/* ✅ Исправлено: useAnalytics вынесен в DashboardContent, не вызывается без кошельков */

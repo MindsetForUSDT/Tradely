@@ -31,7 +31,13 @@ export function useAuth() {
 }
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 5 * 60 * 1000, retry: 1, refetchOnWindowFocus: false } },
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      retry: 2,
+      refetchOnWindowFocus: true,
+    },
+  },
 });
 
 function getUserFromLocalStorage(): UserProfile | null {
@@ -57,28 +63,32 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(() => getUserFromLocalStorage());
   const [ready, setReady] = useState(false);
 
+  const refreshProfile = useCallback(() => {
+    setUser(getUserFromLocalStorage());
+  }, []);
+
   useEffect(() => {
     setReady(true);
   }, []);
 
   useEffect(() => {
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'tradeumdiary-auth') {
-        setUser(getUserFromLocalStorage());
-      }
+      if (e.key === 'tradeumdiary-auth') refreshProfile();
     };
+    const handleAuthChange = () => refreshProfile();
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+    window.addEventListener('auth-change', handleAuthChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('auth-change', handleAuthChange);
+    };
+  }, [refreshProfile]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     localStorage.removeItem('tradeumdiary-auth');
     setUser(null);
-  }, []);
-
-  const refreshProfile = useCallback(() => {
-    setUser(getUserFromLocalStorage());
   }, []);
 
   if (!ready) {
@@ -111,3 +121,5 @@ export function AppProviders({ children }: { children: ReactNode }) {
     </QueryClientProvider>
   );
 }
+
+/* ✅ Исправлено: retry:2, refetchOnWindowFocus:true, useCallback для refresh, cleanup для event listeners */
