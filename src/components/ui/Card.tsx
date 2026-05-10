@@ -13,6 +13,7 @@ interface CardProps {
   glow?: 'cyan' | 'magenta' | 'green' | 'red' | 'none';
   interactive?: boolean;
   scanLine?: boolean;
+  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
 
 const paddingMap: Record<CardPadding, string> = {
@@ -46,6 +47,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       glow = 'none',
       interactive = false,
       scanLine = false,
+      onClick,
     },
     ref
   ) => {
@@ -58,6 +60,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
           paddingMap[padding],
           glow !== 'none' && glowMap[glow],
           scanLine && 'scan-line-overlay',
+          onClick && 'cursor-pointer',
           className
         )}
         whileHover={
@@ -71,6 +74,7 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
             : undefined
         }
         whileTap={interactive ? { scale: 0.99 } : undefined}
+        onClick={onClick}
         role="article"
       >
         {children}
