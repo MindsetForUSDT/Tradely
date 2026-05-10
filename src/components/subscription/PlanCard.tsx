@@ -1,10 +1,10 @@
+import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 
 interface PlanFeature {
   text: string;
   included: boolean;
 }
-
 interface PlanCardProps {
   title: string;
   price: string;
@@ -27,16 +27,11 @@ export function PlanCard({
   return (
     <div className="relative group h-full">
       {isPopular && (
-        <div
-          className="absolute -inset-px bg-gradient-to-b from-accent-green/30 via-accent-green/5 to-transparent rounded-2xl opacity-50"
-          aria-hidden="true"
-        />
+        <div className="absolute -inset-px bg-gradient-to-b from-accent-green/30 via-accent-green/5 to-transparent rounded-2xl opacity-50 group-hover:opacity-80 transition-opacity duration-500" />
       )}
-      <div
-        className={cn(
-          'relative h-full glass-card p-6 md:p-8 flex flex-col',
-          isPopular && 'border-accent-green/20'
-        )}
+      <Card
+        padding="lg"
+        className={cn('h-full flex flex-col relative', isPopular && 'border-accent-green/20')}
       >
         {isPopular && (
           <div className="absolute -top-3 left-1/2 -translate-x-1/2">
@@ -57,8 +52,10 @@ export function PlanCard({
           {features.map((f, i) => (
             <li key={i} className="flex items-start gap-3">
               <span
-                className={cn('text-lg', f.included ? 'text-accent-green' : 'text-text-muted')}
-                aria-hidden="true"
+                className={cn(
+                  'text-lg mt-0.5',
+                  f.included ? 'text-accent-green' : 'text-text-muted'
+                )}
               >
                 {f.included ? '✓' : '✗'}
               </span>
@@ -69,7 +66,7 @@ export function PlanCard({
           ))}
         </ul>
         <div className="mt-auto">{action}</div>
-      </div>
+      </Card>
     </div>
   );
 }

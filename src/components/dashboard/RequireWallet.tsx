@@ -16,7 +16,7 @@ export function RequireWallet() {
         </div>
         <button
           onClick={() => (window.location.href = '/dashboard/wallets')}
-          className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] inline-flex items-center justify-center gap-2"
+          className="btn-primary w-full inline-flex items-center justify-center gap-2"
         >
           <Icon name="wallet-add" size={18} />
           Подключить кошелёк

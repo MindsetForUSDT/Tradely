@@ -45,16 +45,12 @@ export function ManualTradeForm({ trade, onSave, onCancel }: ManualTradeFormProp
             value={symbol}
             onChange={(e) => setSymbol(e.target.value)}
             placeholder="ETH/USDT"
-            className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+            className="input-field"
           />
         </div>
         <div>
           <span className="text-xs text-text-muted block mb-1">Тип</span>
-          <select
-            value={side}
-            onChange={(e) => setSide(e.target.value)}
-            className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
-          >
+          <select value={side} onChange={(e) => setSide(e.target.value)} className="input-field">
             <option value="buy">Покупка</option>
             <option value="sell">Продажа</option>
           </select>
@@ -66,7 +62,7 @@ export function ManualTradeForm({ trade, onSave, onCancel }: ManualTradeFormProp
             onChange={(e) => setAmount(e.target.value)}
             type="number"
             step="any"
-            className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+            className="input-field"
           />
         </div>
         <div>
@@ -76,7 +72,7 @@ export function ManualTradeForm({ trade, onSave, onCancel }: ManualTradeFormProp
             onChange={(e) => setPrice(e.target.value)}
             type="number"
             step="any"
-            className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+            className="input-field"
           />
         </div>
         <div>
@@ -86,7 +82,7 @@ export function ManualTradeForm({ trade, onSave, onCancel }: ManualTradeFormProp
             onChange={(e) => setCommission(e.target.value)}
             type="number"
             step="any"
-            className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+            className="input-field"
           />
         </div>
         <div>
@@ -95,7 +91,7 @@ export function ManualTradeForm({ trade, onSave, onCancel }: ManualTradeFormProp
             value={timeframe}
             onChange={(e) => setTimeframe(e.target.value)}
             placeholder="1H"
-            className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+            className="input-field"
           />
         </div>
         <div className="col-span-2">
@@ -104,7 +100,7 @@ export function ManualTradeForm({ trade, onSave, onCancel }: ManualTradeFormProp
             value={strategy}
             onChange={(e) => setStrategy(e.target.value)}
             placeholder="Тренд / Контр-тренд / Скальпинг"
-            className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+            className="input-field"
           />
         </div>
         <div className="col-span-2">
@@ -113,7 +109,7 @@ export function ManualTradeForm({ trade, onSave, onCancel }: ManualTradeFormProp
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
-            className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white resize-none"
+            className="input-field resize-none"
           />
         </div>
       </div>

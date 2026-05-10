@@ -1,5 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/Card';
+import { StaggerContainer } from '@/components/ui/StaggerContainer';
+import { ScrollReveal } from '@/components/ui/ScrollReveal';
 import { formatUSD, formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { Trade } from '@/types';
@@ -15,18 +17,17 @@ export function TradeList({ trades = [], isLoading = false, compact = false }: T
   const [search, setSearch] = useState('');
 
   const filtered = useMemo(() => {
-    let result = [...trades];
-    if (filter === 'buy') result = result.filter((t) => t.side === 'buy');
-    if (filter === 'sell') result = result.filter((t) => t.side === 'sell');
-    if (filter === 'profit') result = result.filter((t) => (t.pnl_realized || 0) > 0);
-    if (filter === 'loss') result = result.filter((t) => (t.pnl_realized || 0) < 0);
-    if (search)
-      result = result.filter((t) => (t.symbol || '').toLowerCase().includes(search.toLowerCase()));
-    return result;
+    let r = [...trades];
+    if (filter === 'buy') r = r.filter((t) => t.side === 'buy');
+    if (filter === 'sell') r = r.filter((t) => t.side === 'sell');
+    if (filter === 'profit') r = r.filter((t) => (t as any).pnl_realized > 0);
+    if (filter === 'loss') r = r.filter((t) => (t as any).pnl_realized < 0);
+    if (search) r = r.filter((t) => (t.symbol || '').toLowerCase().includes(search.toLowerCase()));
+    return r;
   }, [trades, filter, search]);
 
   const display = compact ? filtered.slice(0, 5) : filtered;
-  const totalPnl = filtered.reduce((s, t) => s + (t.pnl_realized || 0), 0);
+  const totalPnl = filtered.reduce((s, t: any) => s + (t.pnl_realized || 0), 0);
 
   if (isLoading)
     return (
@@ -51,7 +52,7 @@ export function TradeList({ trades = [], isLoading = false, compact = false }: T
               placeholder="Поиск..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="px-3 py-1.5 text-xs bg-surface-elevated border border-surface-border rounded-lg text-white w-36"
+              className="input-field w-36"
             />
           )}
         </div>
@@ -64,7 +65,7 @@ export function TradeList({ trades = [], isLoading = false, compact = false }: T
                 'px-3 py-1 text-[11px] rounded-lg font-medium',
                 filter === f
                   ? 'bg-accent-green text-surface'
-                  : 'bg-surface-overlay text-text-secondary'
+                  : 'bg-surface-overlay text-text-secondary hover:text-text-primary'
               )}
             >
               {f === 'all'
@@ -96,46 +97,45 @@ export function TradeList({ trades = [], isLoading = false, compact = false }: T
       {!display.length ? (
         <div className="text-center py-8 text-text-muted text-sm">Нет сделок</div>
       ) : (
-        <div className="space-y-2">
-          {display.map((trade, i) => {
+        <StaggerContainer className="space-y-2" staggerDelay={0.03}>
+          {display.map((trade: any, i: number) => {
             const pnl = trade.pnl_realized || 0;
             return (
-              <div
-                key={trade.id || i}
-                className="flex items-center justify-between px-4 py-3 rounded-xl hover:bg-surface-overlay"
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={cn(
-                      'w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold',
-                      trade.side === 'buy'
-                        ? 'bg-accent-green/10 text-accent-green'
-                        : 'bg-accent-red/10 text-accent-red'
-                    )}
-                  >
-                    {trade.side === 'buy' ? 'BUY' : 'SELL'}
+              <ScrollReveal key={trade.id || i} delay={i * 0.02} direction="up">
+                <Card interactive padding="sm" className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={cn(
+                        'w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold',
+                        trade.side === 'buy'
+                          ? 'bg-accent-green/10 text-accent-green'
+                          : 'bg-accent-red/10 text-accent-red'
+                      )}
+                    >
+                      {trade.side === 'buy' ? 'BUY' : 'SELL'}
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{trade.symbol}</p>
+                      <p className="text-[11px] text-text-muted">{formatDate(trade.timestamp)}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm font-semibold">{trade.symbol}</p>
-                    <p className="text-[11px] text-text-muted">{formatDate(trade.timestamp)}</p>
+                  <div className="text-right">
+                    <p className="text-sm font-bold font-mono">{formatUSD(trade.value_usd)}</p>
+                    <p
+                      className={cn(
+                        'text-[11px]',
+                        pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
+                      )}
+                    >
+                      {pnl >= 0 ? '+' : ''}
+                      {formatUSD(pnl)}
+                    </p>
                   </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-bold font-mono">{formatUSD(trade.value_usd)}</p>
-                  <p
-                    className={cn(
-                      'text-[11px]',
-                      pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
-                    )}
-                  >
-                    {pnl >= 0 ? '+' : ''}
-                    {formatUSD(pnl)}
-                  </p>
-                </div>
-              </div>
+                </Card>
+              </ScrollReveal>
             );
           })}
-        </div>
+        </StaggerContainer>
       )}
     </Card>
   );

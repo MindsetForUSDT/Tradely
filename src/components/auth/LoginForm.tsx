@@ -23,23 +23,16 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
       return;
     }
     setLoading(true);
-
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
-
       if (error) {
-        toast.error(
-          error.message === 'Invalid login credentials'
-            ? 'Неверный email или пароль'
-            : 'Ошибка входа. Попробуйте позже.'
-        );
+        toast.error('Неверный email или пароль');
         setLoading(false);
         return;
       }
-
       if (data?.session) {
         localStorage.setItem(
           'tradeumdiary-auth',
@@ -53,68 +46,67 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         window.location.replace('/dashboard');
       }
     } catch {
-      toast.error('Сетевая ошибка. Проверьте подключение.');
-      setLoading(false);
+      toast.error('Сетевая ошибка');
     }
+    setLoading(false);
   };
 
   return (
     <div className="space-y-4">
-      <div>
-        <label htmlFor="login-email" className="sr-only">
-          Email
-        </label>
-        <input
-          id="login-email"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          autoFocus
-          className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-        />
-      </div>
-      <div>
-        <label htmlFor="login-password" className="sr-only">
-          Пароль
-        </label>
-        <input
-          id="login-password"
-          type="password"
-          placeholder="Пароль"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-        />
-      </div>
-      <button
-        onClick={handleLogin}
-        disabled={loading}
-        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {loading ? 'Вход...' : 'Войти'}
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        autoComplete="email"
+        className="input-field"
+      />
+      <input
+        type="password"
+        placeholder="Пароль"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        autoComplete="current-password"
+        className="input-field"
+      />
+      <button onClick={handleLogin} disabled={loading} className="btn-primary w-full">
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            Вход...
+          </span>
+        ) : (
+          'Войти'
+        )}
       </button>
       <div className="text-right">
         <button
           onClick={onSwitchToReset}
-          className="text-xs text-text-muted hover:text-accent-green transition-colors"
+          className="text-xs text-text-muted hover:text-neon-cyan transition-colors"
         >
           Забыли пароль?
         </button>
       </div>
       <p className="text-center text-sm text-text-muted">
         Нет аккаунта?{' '}
-        <button
-          onClick={onSwitchToRegister}
-          className="text-accent-green font-medium hover:underline"
-        >
+        <button onClick={onSwitchToRegister} className="text-neon-cyan font-medium hover:underline">
           Регистрация
         </button>
       </p>
     </div>
   );
 }
-
-/* ✅ Исправлено: добавлены try/catch, label, autoFocus, trim email, disabled cursor, hover underline */

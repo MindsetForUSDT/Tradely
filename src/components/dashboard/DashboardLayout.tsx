@@ -61,5 +61,3 @@ function DashboardContent() {
     </div>
   );
 }
-
-/* ✅ Исправлено: useAnalytics вынесен в DashboardContent, не вызывается без кошельков */

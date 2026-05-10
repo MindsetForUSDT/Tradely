@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { Button } from '@/components/ui/Button';
+import { GlowButton } from '@/components/ui/GlowButton';
+import { Icon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
@@ -26,14 +27,17 @@ export function Header() {
       className={cn(
         'fixed top-0 left-0 right-0 z-50 transition-all duration-300',
         isScrolled
-          ? 'bg-surface/80 backdrop-blur-xl border-b border-surface-border/50'
+          ? 'bg-cyber-950/90 backdrop-blur-xl border-b border-cyber-700/50'
           : 'bg-transparent'
       )}
     >
       <div className="max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex items-center justify-between h-16 md:h-20">
-          <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-accent-green/10 border border-accent-green/20 flex items-center justify-center">
+          <Link
+            to={isAuthenticated ? '/dashboard' : '/'}
+            className="flex items-center gap-2.5 group"
+          >
+            <div className="w-8 h-8 rounded-lg bg-neon-cyan/10 border border-neon-cyan/20 flex items-center justify-center group-hover:border-neon-cyan/40 transition-colors">
               <svg
                 width="18"
                 height="18"
@@ -41,13 +45,13 @@ export function Header() {
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
-                className="text-accent-green"
+                className="text-neon-cyan"
               >
                 <path d="M3 17l4-8 4 6 6-10 3 4" />
               </svg>
             </div>
-            <span className="text-lg font-bold">
-              Tradeum<span className="text-accent-green">Diary</span>
+            <span className="text-lg font-bold font-display tracking-tight">
+              Tradeum<span className="text-neon-cyan">Diary</span>
             </span>
           </Link>
 
@@ -57,32 +61,21 @@ export function Header() {
                 <Link
                   to="/dashboard"
                   className={cn(
-                    'text-xs px-2 py-1 rounded-lg transition-colors',
+                    'text-sm px-3 py-2 rounded-lg transition-colors',
                     location.pathname === '/dashboard'
-                      ? 'text-accent-green bg-accent-green/5'
-                      : 'text-text-secondary hover:text-text-primary'
+                      ? 'text-neon-cyan bg-neon-cyan/5'
+                      : 'text-text-secondary hover:text-white'
                   )}
                 >
                   Дашборд
                 </Link>
                 <Link
-                  to="/dashboard/trades"
-                  className={cn(
-                    'text-xs px-2 py-1 rounded-lg transition-colors',
-                    location.pathname.includes('/trades')
-                      ? 'text-accent-green bg-accent-green/5'
-                      : 'text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  Сделки
-                </Link>
-                <Link
                   to="/dashboard/journal"
                   className={cn(
-                    'text-xs px-2 py-1 rounded-lg transition-colors',
+                    'text-sm px-3 py-2 rounded-lg transition-colors',
                     location.pathname.includes('/journal')
-                      ? 'text-accent-green bg-accent-green/5'
-                      : 'text-text-secondary hover:text-text-primary'
+                      ? 'text-neon-cyan bg-neon-cyan/5'
+                      : 'text-text-secondary hover:text-white'
                   )}
                 >
                   Журнал
@@ -90,56 +83,37 @@ export function Header() {
                 <Link
                   to="/dashboard/wallets"
                   className={cn(
-                    'text-xs px-2 py-1 rounded-lg transition-colors',
+                    'text-sm px-3 py-2 rounded-lg transition-colors',
                     location.pathname.includes('/wallets')
-                      ? 'text-accent-green bg-accent-green/5'
-                      : 'text-text-secondary hover:text-text-primary'
+                      ? 'text-neon-cyan bg-neon-cyan/5'
+                      : 'text-text-secondary hover:text-white'
                   )}
                 >
                   Кошельки
                 </Link>
                 <Link
-                  to="/dashboard/risk"
-                  className={cn(
-                    'text-xs px-2 py-1 rounded-lg transition-colors',
-                    location.pathname.includes('/risk')
-                      ? 'text-accent-green bg-accent-green/5'
-                      : 'text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  Риск
-                </Link>
-                <Link
-                  to="/dashboard/strategies"
-                  className={cn(
-                    'text-xs px-2 py-1 rounded-lg transition-colors',
-                    location.pathname.includes('/strategies')
-                      ? 'text-accent-green bg-accent-green/5'
-                      : 'text-text-secondary hover:text-text-primary'
-                  )}
-                >
-                  Стратегии
-                </Link>
-                <Link
                   to="/pro"
-                  className="text-xs text-accent-green font-medium px-2 py-1 rounded-lg hover:bg-accent-green/5 transition-colors"
+                  className="text-sm text-neon-cyan font-medium px-3 py-2 rounded-lg hover:bg-neon-cyan/5 transition-colors"
                 >
                   PRO
                 </Link>
-                <Button variant="ghost" size="sm" onClick={handleSignOut}>
+                <button
+                  onClick={handleSignOut}
+                  className="text-sm text-text-muted hover:text-white px-3 py-2 rounded-lg transition-colors"
+                >
                   Выйти
-                </Button>
+                </button>
               </>
             ) : (
               <>
                 <Link
                   to="/subscribe"
-                  className="text-sm text-text-secondary hover:text-text-primary transition-colors"
+                  className="text-sm text-text-secondary hover:text-white transition-colors px-3 py-2"
                 >
                   Тарифы
                 </Link>
-                <Link to="/" className="text-sm text-accent-green font-medium">
-                  Войти
+                <Link to="/">
+                  <GlowButton size="sm">Войти</GlowButton>
                 </Link>
               </>
             )}

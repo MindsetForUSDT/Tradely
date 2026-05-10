@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion';
 import { Card } from '@/components/ui/Card';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
 import { WalletIcon, ChartIcon, TradesIcon } from '@/components/ui/Icons';
@@ -31,7 +30,7 @@ export function StatsOverview({ balance, pnl, trades, isLoading = false }: Stats
   const items = [
     {
       label: 'Общий баланс',
-      tooltip: 'Сумма объёмов всех сделок в USD за выбранный период.',
+      tooltip: 'Сумма объёмов всех сделок в USD.',
       value: balance,
       format: (v: number) => formatUSD(v),
       icon: <WalletIcon />,
@@ -40,7 +39,7 @@ export function StatsOverview({ balance, pnl, trades, isLoading = false }: Stats
     },
     {
       label: 'P&L за сегодня',
-      tooltip: 'Реализованная прибыль/убыток за текущий день.',
+      tooltip: 'Реализованная прибыль/убыток за сегодня.',
       value: pnl,
       format: (v: number) => `${v >= 0 ? '+' : ''}${formatUSD(v)}`,
       icon: <ChartIcon />,
@@ -49,7 +48,7 @@ export function StatsOverview({ balance, pnl, trades, isLoading = false }: Stats
     },
     {
       label: 'Сделок сегодня',
-      tooltip: 'Количество сделок за текущий день.',
+      tooltip: 'Количество сделок за сегодня.',
       value: trades,
       format: (v: number) => v.toString(),
       icon: <TradesIcon />,
@@ -59,33 +58,23 @@ export function StatsOverview({ balance, pnl, trades, isLoading = false }: Stats
   ];
 
   return (
-    <motion.div
-      initial="hidden"
-      animate="visible"
-      variants={{ visible: { transition: { staggerChildren: 0.1 } } }}
-      className="grid grid-cols-1 md:grid-cols-3 gap-4"
-    >
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {items.map((item) => (
-        <motion.div
-          key={item.label}
-          variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
-        >
-          <Card padding="md">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-text-muted tracking-wide uppercase flex items-center">
-                {item.label}
-                <Tooltip content={item.tooltip} />
-              </span>
-              <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', item.bg)}>
-                <span className={item.color}>{item.icon}</span>
-              </div>
+        <Card key={item.label} interactive padding="md">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-medium text-text-muted uppercase flex items-center gap-1">
+              {item.label}
+              <Tooltip content={item.tooltip} />
+            </span>
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', item.bg)}>
+              <span className={item.color}>{item.icon}</span>
             </div>
-            <div className={cn('text-2xl font-bold font-mono tracking-tight', item.color)}>
-              <AnimatedCounter value={item.value} formatter={item.format} duration={1000} />
-            </div>
-          </Card>
-        </motion.div>
+          </div>
+          <div className={cn('text-2xl font-bold font-mono tracking-tight', item.color)}>
+            <AnimatedCounter value={item.value} formatter={item.format} duration={800} />
+          </div>
+        </Card>
       ))}
-    </motion.div>
+    </div>
   );
 }

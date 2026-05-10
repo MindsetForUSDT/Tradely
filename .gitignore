@@ -24,12 +24,23 @@ build/
 Thumbs.db
 
 # Editor files
+node_modules/
+dist/
+build/
+*.css.map
+.env
+.env.local
+*.env.*
 .vscode/
 .idea/
 *.swp
 *.swo
 
 # Python
+*.log
+coverage/
+htmlcov/
+.coverage
 __pycache__/
 *.pyc
 *.pyo
@@ -47,3 +58,40 @@ htmlcov/
 *.temp
 *.bak
 ```
+*.egg-info/
+.eggs/
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+.DS_Store
+Thumbs.db
+*.tmp
+*.temp
+.mypy_cache/
+.pytest_cache/
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
