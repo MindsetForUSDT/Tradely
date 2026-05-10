@@ -1,7 +1,8 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
+import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger';
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -12,23 +13,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   rightIcon?: React.ReactNode;
 }
 
-const variantStyles: Record<ButtonVariant, string> = {
-  primary:
-    'bg-accent-green text-surface font-semibold shadow-glow-green hover:bg-accent-green-dim hover:shadow-glow-green-strong active:scale-[0.97]',
-  secondary:
-    'bg-surface-overlay text-text-primary font-medium border border-surface-border hover:bg-surface-highlight hover:border-surface-border/70 active:scale-[0.97]',
-  outline:
-    'bg-transparent text-accent-green border border-accent-green/30 hover:border-accent-green hover:bg-accent-green/5 active:scale-[0.97]',
+const variantMap: Record<ButtonVariant, string> = {
+  primary: 'hud-button-primary',
+  secondary: 'hud-button',
   ghost:
-    'bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay/50 active:scale-[0.97]',
+    'bg-transparent text-text-secondary hover:text-neon-cyan hover:bg-surface-overlay/50 px-4 py-2 text-xs uppercase tracking-wider',
   danger:
-    'bg-accent-red text-white font-semibold shadow-glow-red hover:bg-accent-red-dim active:scale-[0.97]',
+    'bg-neon-red/10 border border-neon-red/30 text-neon-red hover:bg-neon-red/20 hover:border-neon-red/50 px-4 py-2 text-xs uppercase tracking-wider',
 };
 
-const sizeStyles: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-sm rounded-lg gap-1.5',
-  md: 'px-5 py-2.5 text-sm rounded-xl gap-2',
-  lg: 'px-8 py-3.5 text-base rounded-xl gap-2.5',
+const sizeMap: Record<ButtonSize, string> = {
+  sm: 'text-[10px] px-3 py-1.5 gap-1.5',
+  md: 'text-xs px-5 py-2.5 gap-2',
+  lg: 'text-sm px-8 py-3.5 gap-2.5',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -36,7 +33,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     {
       variant = 'primary',
       size = 'md',
-      isLoading = false,
+      isLoading,
       leftIcon,
       rightIcon,
       children,
@@ -47,16 +44,19 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     ref
   ) => {
     return (
-      <button
+      <motion.button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center font-medium transition-all duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100',
-          variantStyles[variant],
-          sizeStyles[size],
+          'inline-flex items-center justify-center font-mono transition-all duration-200',
+          'focus-visible:outline-2 focus-visible:outline-neon-cyan',
+          'disabled:opacity-40 disabled:cursor-not-allowed',
+          variantMap[variant],
+          sizeMap[size],
           className
         )}
         disabled={disabled || isLoading}
-        aria-busy={isLoading || undefined}
+        whileHover={!disabled ? { scale: 1.02 } : undefined}
+        whileTap={!disabled ? { scale: 0.98 } : undefined}
         {...props}
       >
         {isLoading ? (
@@ -77,20 +77,10 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
           </svg>
         ) : (
           <>
-            {leftIcon && (
-              <span className="shrink-0" aria-hidden="true">
-                {leftIcon}
-              </span>
-            )}
-            {children}
-            {rightIcon && (
-              <span className="shrink-0" aria-hidden="true">
-                {rightIcon}
-              </span>
-            )}
+            {leftIcon} {children} {rightIcon}
           </>
         )}
-      </button>
+      </motion.button>
     );
   }
 );

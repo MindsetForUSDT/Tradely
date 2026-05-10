@@ -1,220 +1,105 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { AuthPage } from '@/components/auth/AuthPage';
 
-interface HeroSectionProps {
-  children: React.ReactNode;
-}
-
-export function HeroSection({ children }: HeroSectionProps) {
+export function HeroSection() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const sectionRef = useRef<HTMLElement>(null);
-  const animationIdRef = useRef<number>(0);
-  const timeRef = useRef<number>(0);
-  const [isMobile, setIsMobile] = useState(true);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(max-width: 768px)');
-    const handleChange = (e: MediaQueryListEvent | MediaQueryList) => setIsMobile(e.matches);
-    handleChange(mediaQuery);
-    mediaQuery.addEventListener('change', handleChange);
-    return () => {
-      if (mediaQuery.removeEventListener) mediaQuery.removeEventListener('change', handleChange);
-    };
-  }, []);
-
-  const startAnimation = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return () => {};
-    const ctx = canvas.getContext('2d', { alpha: true });
-    if (!ctx) return () => {};
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-    const resize = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const rect = canvas.getBoundingClientRect();
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
-      ctx.scale(dpr, dpr);
-      canvas.style.width = `${rect.width}px`;
-      canvas.style.height = `${rect.height}px`;
-    };
-    resize();
-
+    let time = 0;
     const animate = () => {
-      timeRef.current += 0.003;
+      time += 0.005;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const width = canvas.width / (window.devicePixelRatio || 1);
-      const height = canvas.height / (window.devicePixelRatio || 1);
+      const w = canvas.width;
+      const h = canvas.height;
 
-      const spots = [
-        {
-          x: width * 0.3 + Math.sin(timeRef.current * 1.3) * 100,
-          y: height * 0.4 + Math.cos(timeRef.current * 0.7) * 80,
-          radius: 300 + Math.sin(timeRef.current * 0.5) * 50,
-          color: 'rgba(0, 255, 163, 0.04)',
-        },
-        {
-          x: width * 0.7 + Math.cos(timeRef.current * 0.9) * 120,
-          y: height * 0.3 + Math.sin(timeRef.current * 1.1) * 100,
-          radius: 250 + Math.cos(timeRef.current * 0.6) * 40,
-          color: 'rgba(0, 255, 163, 0.03)',
-        },
-        {
-          x: width * 0.5 + Math.sin(timeRef.current * 0.8) * 150,
-          y: height * 0.6 + Math.cos(timeRef.current * 0.4) * 60,
-          radius: 350,
-          color: 'rgba(0, 200, 150, 0.02)',
-        },
-      ];
+      // HUD grid
+      ctx.strokeStyle = 'rgba(0, 245, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
 
-      spots.forEach((spot) => {
-        const gradient = ctx.createRadialGradient(spot.x, spot.y, 0, spot.x, spot.y, spot.radius);
-        gradient.addColorStop(0, spot.color);
-        gradient.addColorStop(0.5, 'rgba(0, 255, 163, 0.01)');
-        gradient.addColorStop(1, 'transparent');
-        ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, width, height);
-      });
+      // Data particles
+      for (let i = 0; i < 20; i++) {
+        const px = (Math.sin(time + i) * w) / 2 + w / 2;
+        const py = (Math.cos(time * 0.7 + i) * h) / 2 + h / 2;
+        ctx.fillStyle = `rgba(0, 245, 255, ${0.3 + Math.sin(time + i) * 0.2})`;
+        ctx.beginPath();
+        ctx.arc(px, py, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
 
-      animationIdRef.current = requestAnimationFrame(animate);
+      requestAnimationFrame(animate);
     };
 
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
     animate();
 
-    const handleResize = () => resize();
+    const handleResize = () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    };
     window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (animationIdRef.current) {
-        cancelAnimationFrame(animationIdRef.current);
-        animationIdRef.current = 0;
-      }
-    };
+    return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  const stopAnimation = useCallback(() => {
-    if (animationIdRef.current) {
-      cancelAnimationFrame(animationIdRef.current);
-      animationIdRef.current = 0;
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isMobile) {
-      stopAnimation();
-      return;
-    }
-    const section = sectionRef.current;
-    if (!section) return;
-    let cleanup: (() => void) | undefined;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting && !animationIdRef.current) cleanup = startAnimation();
-        else if (!entry.isIntersecting) {
-          stopAnimation();
-          cleanup?.();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(section);
-
-    return () => {
-      observer.disconnect();
-      stopAnimation();
-      cleanup?.();
-    };
-  }, [isMobile, startAnimation, stopAnimation]);
 
   return (
-    <section
-      ref={sectionRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden"
-      aria-label="Главная секция"
-    >
-      {!isMobile && (
-        <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-hidden="true" />
-      )}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-6 py-20 md:py-32">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
+    <section className="relative min-h-screen flex items-center overflow-hidden bg-surface">
+      <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-hidden="true" />
+
+      <div className="relative z-10 w-full max-w-7xl mx-auto px-4 py-20">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            initial={{ opacity: 0, x: -40 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-            className="text-center lg:text-left"
+            transition={{ duration: 0.8, ease: 'easeOut' }}
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent-green/5 border border-accent-green/10 mb-8">
-              <span
-                className="w-2 h-2 rounded-full bg-accent-green animate-glow-pulse"
-                aria-hidden="true"
-              />
-              <span className="text-xs font-medium text-accent-green tracking-wide uppercase">
-                Бета-версия
-              </span>
-            </div>
-            <h1 className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-extrabold leading-[1.05] tracking-tight mb-6">
-              Ваши сделки
-              <br />
-              <span className="text-gradient">под контролем</span>
-            </h1>
-            <p className="text-base md:text-lg text-text-secondary max-w-xl mx-auto lg:mx-0 leading-relaxed mb-8">
-              TradeumDiary автоматически импортирует историю сделок из блокчейна, анализирует
-              прибыльность и строит графики. Больше никаких Excel-таблиц.
+            <p className="hud-text mb-6 text-neon-cyan animate-neon-pulse">
+              ● TRADING TERMINAL v2.0
             </p>
-            <div
-              className="flex items-center gap-8 justify-center lg:justify-start text-sm text-text-muted"
-              aria-label="Статистика платформы"
-            >
-              <div className="flex items-center gap-2">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-accent-green"
-                  aria-hidden="true"
-                >
-                  <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                <span>100K+ сделок</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <svg
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  className="text-accent-green"
-                  aria-hidden="true"
-                >
-                  <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" />
-                  <circle cx="9" cy="7" r="4" />
-                  <path d="M23 21v-2a4 4 0 00-3-3.87" />
-                  <path d="M16 3.13a4 4 0 010 7.75" />
-                </svg>
-                <span>500+ трейдеров</span>
-              </div>
+            <h1 className="font-display text-5xl md:text-7xl font-bold leading-none tracking-tight mb-6">
+              <span className="text-text-primary">Ваши сделки</span>
+              <br />
+              <span className="text-neon-cyan text-glow-cyan">под контролем</span>
+            </h1>
+            <p className="font-mono text-text-secondary text-sm leading-relaxed mb-8 max-w-md border-l-2 border-neon-cyan/30 pl-4">
+              TradeumDiary — терминал для профессионального анализа торговых сделок. Автоматический
+              импорт, real-time метрики, алгоритмические инсайты.
+            </p>
+            <div className="flex gap-4 font-mono text-xs text-text-muted">
+              <span className="text-neon-cyan">● 100K+ сделок</span>
+              <span className="text-neon-magenta">◆ 500+ трейдеров</span>
+              <span>▼ онлайн</span>
             </div>
           </motion.div>
+
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: 0.8, delay: 0.3 }}
           >
-            {children}
+            <AuthPage />
           </motion.div>
         </div>
       </div>
-      <div
-        className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-accent-green/20 to-transparent"
-        aria-hidden="true"
-      />
+
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-neon-cyan/20 to-transparent" />
     </section>
   );
 }
