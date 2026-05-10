@@ -2,13 +2,31 @@ import { forwardRef } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
+type CardVariant = 'default' | 'glass' | 'accent';
+type CardPadding = 'none' | 'sm' | 'md' | 'lg';
+
 interface CardProps {
   children: React.ReactNode;
   className?: string;
+  variant?: CardVariant;
+  padding?: CardPadding;
   glow?: 'cyan' | 'magenta' | 'green' | 'red' | 'none';
   interactive?: boolean;
   scanLine?: boolean;
 }
+
+const paddingMap: Record<CardPadding, string> = {
+  none: 'p-0',
+  sm: 'p-4',
+  md: 'p-6',
+  lg: 'p-8',
+};
+
+const variantMap: Record<CardVariant, string> = {
+  default: 'bg-surface-overlay border border-surface-border',
+  glass: 'bg-surface-overlay/60 backdrop-blur-xl border border-white/5',
+  accent: 'bg-surface-overlay border border-neon-cyan/20 shadow-hud',
+};
 
 const glowMap: Record<string, string> = {
   cyan: 'border-neon-cyan/20 shadow-hud',
@@ -19,15 +37,27 @@ const glowMap: Record<string, string> = {
 };
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
-  ({ children, className, glow = 'none', interactive = false, scanLine = false }, ref) => {
+  (
+    {
+      children,
+      className,
+      variant = 'default',
+      padding = 'md',
+      glow = 'none',
+      interactive = false,
+      scanLine = false,
+    },
+    ref
+  ) => {
     return (
       <motion.div
         ref={ref}
         className={cn(
-          'terminal-card',
+          'transition-all duration-300',
+          variantMap[variant],
+          paddingMap[padding],
           glow !== 'none' && glowMap[glow],
           scanLine && 'scan-line-overlay',
-          'transition-all duration-300',
           className
         )}
         whileHover={
