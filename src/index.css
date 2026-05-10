@@ -2,11 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: 'Space Grotesk';
-  src: url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap');
-}
-
 @layer base {
   * {
     -webkit-tap-highlight-color: transparent;
@@ -16,127 +11,98 @@
   html {
     scroll-behavior: smooth;
     scrollbar-width: thin;
-    scrollbar-color: #1a1a2e transparent;
+    scrollbar-color: #2a2a2a transparent;
   }
 
   body {
-    @apply bg-surface text-text-primary font-body;
-    background-image:
-      linear-gradient(rgba(0, 245, 255, 0.02) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 245, 255, 0.02) 1px, transparent 1px);
-    background-size: 40px 40px;
+    @apply bg-surface text-text-primary font-sans;
+    background: radial-gradient(
+      ellipse 80% 50% at 50% -20%,
+      rgba(0, 255, 163, 0.06) 0%,
+      transparent 60%
+    );
+    background-attachment: fixed;
     min-height: 100dvh;
   }
 
   ::-webkit-scrollbar {
     width: 4px;
-    height: 4px;
   }
   ::-webkit-scrollbar-track {
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-surface-border rounded-none;
+    @apply bg-surface-border rounded-full;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-neon-cyan/40;
+    @apply bg-accent-green/30;
   }
 
   ::selection {
-    @apply bg-neon-cyan/30 text-neon-cyan;
+    @apply bg-accent-green/20 text-accent-green;
   }
-
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-neon-cyan;
-    outline-style: solid;
+    @apply outline-2 outline-offset-2 outline-accent-green rounded-lg;
   }
 }
 
 @layer components {
-  .terminal-card {
-    @apply bg-surface-overlay border border-surface-border;
-    box-shadow: 0 0 0 1px rgba(0, 245, 255, 0.1);
+  .glass-card {
+    @apply bg-surface-elevated/70 backdrop-blur-xl border border-surface-border/40 rounded-2xl shadow-card;
+    transition: all 0.3s ease;
   }
 
-  .terminal-card:hover {
-    border-color: rgba(0, 245, 255, 0.3);
-    box-shadow:
-      0 0 0 1px rgba(0, 245, 255, 0.3),
-      0 0 30px rgba(0, 245, 255, 0.1);
+  .glass-card:hover {
+    @apply border-surface-border/60 shadow-card-hover;
   }
 
-  .hud-text {
-    @apply font-mono text-neon-cyan text-xs uppercase tracking-widest;
+  .btn-primary {
+    @apply bg-accent-green text-surface font-semibold px-5 py-2.5 rounded-xl;
+    @apply hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98];
   }
 
-  .data-value {
-    @apply font-mono font-medium tabular-nums;
+  .btn-secondary {
+    @apply bg-surface-overlay text-text-primary font-medium px-5 py-2.5 rounded-xl border border-surface-border;
+    @apply hover:bg-surface-highlight transition-all duration-200 active:scale-[0.98];
   }
 
-  .data-value-profit {
-    @apply data-value text-neon-green;
-  }
-  .data-value-loss {
-    @apply data-value text-neon-red;
+  .btn-ghost {
+    @apply text-text-secondary font-medium px-4 py-2 rounded-xl;
+    @apply hover:text-text-primary hover:bg-surface-overlay/50 transition-all duration-200;
   }
 
-  .hud-button {
-    @apply font-mono text-xs uppercase tracking-wider px-4 py-2;
-    @apply bg-surface-overlay border border-surface-border text-neon-cyan;
-    @apply hover:border-neon-cyan/50 hover:shadow-hud transition-all duration-200;
-    @apply active:scale-[0.98];
+  .input-field {
+    @apply w-full bg-surface-elevated border border-surface-border rounded-xl px-4 py-3;
+    @apply text-sm text-text-primary placeholder-text-muted;
+    @apply focus:outline-none focus:ring-2 focus:ring-accent-green/30 focus:border-accent-green/30 transition-all duration-200;
   }
 
-  .hud-button-primary {
-    @apply hud-button bg-neon-cyan/10 border-neon-cyan/30 text-neon-cyan;
-    @apply hover:bg-neon-cyan/20 hover:shadow-hud-strong;
-  }
-
-  .hud-input {
-    @apply w-full bg-surface border border-surface-border px-4 py-3;
-    @apply font-mono text-sm text-text-primary placeholder-text-muted;
-    @apply focus:outline-none focus:border-neon-cyan/50 focus:shadow-hud transition-all duration-200;
-  }
-
-  .glitch-hover:hover {
-    animation: glitch 0.3s ease-in-out;
-  }
-
-  .scan-line-overlay {
-    position: relative;
-    overflow: hidden;
-  }
-
-  .scan-line-overlay::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 2px;
-    background: rgba(0, 245, 255, 0.1);
-    animation: scanLine 8s linear infinite;
-    pointer-events: none;
-    z-index: 10;
+  .counter-value {
+    @apply font-mono tabular-nums;
   }
 }
 
 @layer utilities {
-  .text-glow-cyan {
-    text-shadow:
-      0 0 10px rgba(0, 245, 255, 0.5),
-      0 0 30px rgba(0, 245, 255, 0.2);
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-green to-accent-green/60;
   }
+}
 
-  .text-glow-magenta {
-    text-shadow:
-      0 0 10px rgba(255, 0, 255, 0.5),
-      0 0 30px rgba(255, 0, 255, 0.2);
+@keyframes scanLine {
+  0% {
+    transform: translateY(-100%);
   }
+  100% {
+    transform: translateY(100%);
+  }
+}
 
-  .border-glow {
-    box-shadow:
-      0 0 0 1px rgba(0, 245, 255, 0.2),
-      0 0 15px rgba(0, 245, 255, 0.1);
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
