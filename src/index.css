@@ -13,18 +13,31 @@
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: #2a2a2a transparent;
+    scrollbar-color: #27272a transparent;
   }
 
   body {
     @apply bg-surface text-text-primary font-sans;
     touch-action: manipulation;
-    background: radial-gradient(
-      ellipse 80% 50% at 50% -20%,
-      rgba(0, 255, 163, 0.08) 0%,
-      rgba(0, 255, 163, 0.03) 30%,
-      rgba(10, 10, 10, 1) 70%
-    );
+    background:
+      radial-gradient(
+        ellipse 80% 50% at 50% -20%,
+        rgba(0, 255, 163, 0.08) 0%,
+        rgba(0, 255, 163, 0.03) 30%,
+        rgba(10, 10, 11, 1) 70%
+      ),
+      radial-gradient(
+        ellipse 60% 40% at 80% 20%,
+        rgba(168, 85, 247, 0.04) 0%,
+        rgba(168, 85, 247, 0.02) 40%,
+        transparent 70%
+      ),
+      radial-gradient(
+        ellipse 50% 30% at 20% 80%,
+        rgba(59, 130, 246, 0.04) 0%,
+        rgba(59, 130, 246, 0.02) 40%,
+        transparent 70%
+      );
     background-attachment: fixed;
     min-height: 100vh;
     min-height: 100dvh;
@@ -41,10 +54,11 @@
 
   ::-webkit-scrollbar-thumb {
     @apply bg-surface-border rounded-full;
+    transition: background 0.2s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-text-muted;
+    @apply bg-accent-green/40;
   }
 
   ::selection {
@@ -52,21 +66,50 @@
   }
 
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-accent-green rounded;
+    @apply outline-2 outline-offset-2 outline-accent-green rounded-lg;
   }
 }
 
 @layer components {
   .glass-card {
-    @apply bg-surface-elevated/70 backdrop-blur-xl border border-surface-border/50 rounded-2xl shadow-card;
+    @apply bg-surface-elevated/60 backdrop-blur-xl border border-surface-border/50 rounded-2xl shadow-card;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .glass-card:hover {
+    @apply bg-surface-elevated/70 border-surface-border/70 shadow-card-elevated;
+  }
+
+  .glass-card-elevated {
+    @apply bg-surface-elevated/80 backdrop-blur-2xl border border-surface-border/60 rounded-2xl shadow-card-elevated;
   }
 
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-green to-accent-green/60;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-green via-accent-green to-accent-green/60;
+  }
+
+  .text-gradient-purple {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-purple via-accent-purple to-accent-purple/60;
+  }
+
+  .text-gradient-blue {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-accent-blue via-accent-blue to-accent-blue/60;
+  }
+
+  .btn-primary {
+    @apply bg-accent-green text-surface font-semibold px-6 py-2.5 rounded-xl btn-tactile shadow-glow-green hover:bg-accent-green-dim hover:shadow-glow-green-strong;
+  }
+
+  .btn-secondary {
+    @apply bg-surface-overlay text-text-primary font-medium px-6 py-2.5 rounded-xl border border-surface-border btn-tactile hover:bg-surface-highlight hover:border-surface-border/70;
+  }
+
+  .btn-ghost {
+    @apply text-text-secondary font-medium px-4 py-2 rounded-xl btn-tactile hover:text-text-primary hover:bg-surface-overlay/50;
   }
 
   .btn-tactile {
-    @apply transition-all duration-200 ease-out active:scale-[0.98] hover:scale-[1.02];
+    @apply transition-all duration-200 ease-out active:scale-[0.97] hover:scale-[1.02];
   }
 
   .divider {
@@ -79,6 +122,34 @@
 
   .counter-value {
     @apply font-mono tabular-nums;
+  }
+
+  .card-hover {
+    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-card-elevated;
+  }
+
+  .input-field {
+    @apply w-full bg-surface-overlay/50 border border-surface-border rounded-xl px-4 py-3 text-text-primary placeholder-text-muted focus:outline-none focus:border-accent-green/50 focus:ring-2 focus:ring-accent-green/10 transition-all duration-200;
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-success {
+    @apply badge bg-accent-green/10 text-accent-green border border-accent-green/20;
+  }
+
+  .badge-warning {
+    @apply badge bg-yellow-500/10 text-yellow-500 border border-yellow-500/20;
+  }
+
+  .badge-error {
+    @apply badge bg-accent-red/10 text-accent-red border border-accent-red/20;
+  }
+
+  .badge-info {
+    @apply badge bg-accent-blue/10 text-accent-blue border border-accent-blue/20;
   }
 }
 
@@ -98,6 +169,12 @@
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .animate-shimmer {
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+    background-size: 1000px 100%;
+    animation: shimmer 2s infinite;
   }
 }
 
