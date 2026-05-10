@@ -23,23 +23,20 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
       return;
     }
     setLoading(true);
-
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
-
       if (error) {
         toast.error(
           error.message === 'Invalid login credentials'
             ? 'Неверный email или пароль'
-            : 'Ошибка входа. Попробуйте позже.'
+            : 'Ошибка входа'
         );
         setLoading(false);
         return;
       }
-
       if (data?.session) {
         localStorage.setItem(
           'tradeumdiary-auth',
@@ -53,47 +50,30 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         window.location.replace('/dashboard');
       }
     } catch {
-      toast.error('Сетевая ошибка. Проверьте подключение.');
+      toast.error('Сетевая ошибка');
       setLoading(false);
     }
   };
 
   return (
     <div className="space-y-4">
-      <div>
-        <label htmlFor="login-email" className="sr-only">
-          Email
-        </label>
-        <input
-          id="login-email"
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          autoComplete="email"
-          autoFocus
-          className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-        />
-      </div>
-      <div>
-        <label htmlFor="login-password" className="sr-only">
-          Пароль
-        </label>
-        <input
-          id="login-password"
-          type="password"
-          placeholder="Пароль"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          autoComplete="current-password"
-          className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-        />
-      </div>
-      <button
-        onClick={handleLogin}
-        disabled={loading}
-        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
-      >
+      <input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        autoComplete="email"
+        className="input-field"
+      />
+      <input
+        type="password"
+        placeholder="Пароль"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        autoComplete="current-password"
+        className="input-field"
+      />
+      <button onClick={handleLogin} disabled={loading} className="btn-primary w-full">
         {loading ? 'Вход...' : 'Войти'}
       </button>
       <div className="text-right">
@@ -116,5 +96,3 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
     </div>
   );
 }
-
-/* ✅ Исправлено: добавлены try/catch, label, autoFocus, trim email, disabled cursor, hover underline */

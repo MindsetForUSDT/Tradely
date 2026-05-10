@@ -25,7 +25,6 @@ export function RiskManager() {
   const [risk, setRisk] = useState('2');
   const [calcResult, setCalcResult] = useState<any>(null);
 
-  // Проверка лимитов
   const todayPnl = trades
     .filter((t: any) => {
       const d = new Date(t.timestamp);
@@ -34,7 +33,7 @@ export function RiskManager() {
     })
     .reduce((s: number, t: any) => s + (t.pnl_realized || 0), 0);
 
-  const { dailyBreached, weeklyBreached } = checkRiskLimits(
+  const { dailyBreached } = checkRiskLimits(
     todayPnl,
     limits.daily_loss_limit,
     limits.weekly_loss_limit
@@ -78,7 +77,6 @@ export function RiskManager() {
     <div className="space-y-6 max-w-4xl mx-auto">
       <h2 className="text-xl font-bold">Риск-менеджмент</h2>
 
-      {/* Статус лимитов */}
       <div className="grid grid-cols-2 gap-3">
         <Card padding="md" className={cn(dailyBreached && 'border-accent-red/50')}>
           <p className="text-xs text-text-muted">P&L сегодня</p>
@@ -100,7 +98,6 @@ export function RiskManager() {
         </Card>
       </div>
 
-      {/* Калькулятор позиции */}
       <Card padding="md" className="space-y-4">
         <h3 className="text-sm font-semibold">Калькулятор размера позиции</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -110,7 +107,7 @@ export function RiskManager() {
               value={balance}
               onChange={(e) => setBalance(e.target.value)}
               type="number"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
           <div>
@@ -120,7 +117,7 @@ export function RiskManager() {
               onChange={(e) => setRisk(e.target.value)}
               type="number"
               step="0.1"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
           <div>
@@ -130,7 +127,7 @@ export function RiskManager() {
               onChange={(e) => setEntry(e.target.value)}
               type="number"
               step="any"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
           <div>
@@ -140,7 +137,7 @@ export function RiskManager() {
               onChange={(e) => setStop(e.target.value)}
               type="number"
               step="any"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
         </div>
@@ -165,7 +162,6 @@ export function RiskManager() {
         )}
       </Card>
 
-      {/* Настройки лимитов */}
       <Card padding="md" className="space-y-4">
         <h3 className="text-sm font-semibold">Настройки лимитов</h3>
         <div className="grid grid-cols-2 gap-3">
@@ -175,7 +171,7 @@ export function RiskManager() {
               value={dl}
               onChange={(e) => setDl(parseFloat(e.target.value) || 0)}
               type="number"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
           <div>
@@ -184,7 +180,7 @@ export function RiskManager() {
               value={wl}
               onChange={(e) => setWl(parseFloat(e.target.value) || 0)}
               type="number"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
           <div>
@@ -194,7 +190,7 @@ export function RiskManager() {
               onChange={(e) => setPs(parseFloat(e.target.value) || 2)}
               type="number"
               step="0.1"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
           <div>
@@ -204,7 +200,7 @@ export function RiskManager() {
               onChange={(e) => setMl(parseFloat(e.target.value) || 1)}
               type="number"
               step="0.1"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
         </div>
@@ -219,7 +215,7 @@ export function RiskManager() {
               value={aem}
               onChange={(e) => setAem(e.target.value)}
               type="email"
-              className="w-full px-3 py-2 bg-surface-elevated border border-surface-border rounded-lg text-sm text-white"
+              className="input-field"
             />
           </div>
         )}

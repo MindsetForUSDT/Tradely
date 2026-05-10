@@ -24,13 +24,11 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
       return;
     }
     setLoading(true);
-
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username } },
     });
-
     if (error) {
       toast.error(error.message);
       setLoading(false);
@@ -46,7 +44,6 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
         })
       );
       toast.success('Аккаунт создан!');
-      window.dispatchEvent(new Event('auth-change'));
       window.location.replace('/subscribe');
     }
   };
@@ -59,7 +56,7 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
         value={username}
         onChange={(e) => setUsername(e.target.value)}
         autoComplete="username"
-        className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
+        className="input-field"
       />
       <input
         type="email"
@@ -70,7 +67,7 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
           onEmailChange(e.target.value);
         }}
         autoComplete="email"
-        className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
+        className="input-field"
       />
       <input
         type="password"
@@ -78,18 +75,14 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
         value={password}
         onChange={(e) => setPassword(e.target.value)}
         autoComplete="new-password"
-        className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-green/30"
+        className="input-field"
       />
-      <button
-        onClick={handleRegister}
-        disabled={loading}
-        className="w-full py-3 rounded-xl bg-accent-green text-surface font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
-      >
+      <button onClick={handleRegister} disabled={loading} className="btn-primary w-full">
         {loading ? 'Регистрация...' : 'Создать аккаунт'}
       </button>
       <p className="text-center text-sm text-text-muted">
         Уже есть аккаунт?{' '}
-        <button onClick={onSwitchToLogin} className="text-accent-green font-medium">
+        <button onClick={onSwitchToLogin} className="text-accent-green font-medium hover:underline">
           Войти
         </button>
       </p>

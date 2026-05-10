@@ -13,13 +13,16 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
-  primary: 'bg-accent-green text-surface font-semibold hover:bg-accent-green-dim',
+  primary:
+    'bg-accent-green text-surface font-semibold shadow-glow-green hover:bg-accent-green-dim hover:shadow-glow-green-strong active:scale-[0.97]',
   secondary:
-    'bg-surface-elevated text-text-primary border border-surface-border hover:bg-surface-overlay',
+    'bg-surface-overlay text-text-primary font-medium border border-surface-border hover:bg-surface-highlight hover:border-surface-border/70 active:scale-[0.97]',
   outline:
-    'bg-transparent text-accent-green border border-accent-green/30 hover:border-accent-green hover:bg-accent-green/5',
-  ghost: 'bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay',
-  danger: 'bg-accent-red text-white font-semibold hover:bg-accent-red-dim',
+    'bg-transparent text-accent-green border border-accent-green/30 hover:border-accent-green hover:bg-accent-green/5 active:scale-[0.97]',
+  ghost:
+    'bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay/50 active:scale-[0.97]',
+  danger:
+    'bg-accent-red text-white font-semibold shadow-glow-red hover:bg-accent-red-dim active:scale-[0.97]',
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
@@ -47,7 +50,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
       <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center font-medium transition-all duration-200 ease-out active:scale-[0.98] hover:scale-[1.02] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100',
+          'inline-flex items-center justify-center font-medium transition-all duration-200 ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-green disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:active:scale-100',
           variantStyles[variant],
           sizeStyles[size],
           className
