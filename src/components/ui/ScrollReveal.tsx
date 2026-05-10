@@ -8,8 +8,6 @@ interface ScrollRevealProps {
   once?: boolean;
 }
 
-const offsets = { up: { y: 24 }, down: { y: -24 }, left: { x: 24 }, right: { x: -24 } };
-
 export function ScrollReveal({
   children,
   className = '',
@@ -17,16 +15,38 @@ export function ScrollReveal({
   direction = 'up',
   once = true,
 }: ScrollRevealProps) {
-  const o = offsets[direction];
+  const getOffset = () => {
+    switch (direction) {
+      case 'up':
+        return { y: 24 };
+      case 'down':
+        return { y: -24 };
+      case 'left':
+        return { x: 24 };
+      case 'right':
+        return { x: -24 };
+    }
+  };
+
+  const offset = getOffset();
+
   const variants: Variants = {
-    hidden: { opacity: 0, x: o.x || 0, y: o.y || 0 },
+    hidden: {
+      opacity: 0,
+      ...(offset as { x?: number; y?: number }),
+    },
     visible: {
       opacity: 1,
       x: 0,
       y: 0,
-      transition: { duration: 0.4, delay, ease: [0.25, 0.1, 0.25, 1] },
+      transition: {
+        duration: 0.4,
+        delay,
+        ease: [0.25, 0.1, 0.25, 1],
+      },
     },
   };
+
   return (
     <motion.div
       variants={variants}
