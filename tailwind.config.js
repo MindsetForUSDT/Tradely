@@ -8,7 +8,6 @@ export default {
           elevated: '#111111',
           overlay: '#1A1A1A',
           border: '#2A2A2A',
-          highlight: '#222222',
         },
         accent: {
           green: '#00FFA3',
@@ -28,25 +27,17 @@ export default {
       },
       boxShadow: {
         card: '0 4px 24px rgba(0, 0, 0, 0.4)',
-        'card-hover': '0 8px 32px rgba(0, 0, 0, 0.5)',
         'glow-green': '0 0 20px rgba(0, 255, 163, 0.15)',
         'glow-red': '0 0 20px rgba(255, 59, 92, 0.15)',
       },
       animation: {
-        'fade-in': 'fadeIn 0.4s ease-out',
-        'slide-up': 'slideUp 0.4s ease-out',
+        'glow-pulse': 'glowPulse 3s ease-in-out infinite',
       },
       keyframes: {
-        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
-        slideUp: {
-          '0%': { opacity: '0', transform: 'translateY(12px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+        glowPulse: {
+          '0%, 100%': { opacity: '0.4' },
+          '50%': { opacity: '0.8' },
         },
-      },
-      borderRadius: {
-        '2xl': '16px',
-        '3xl': '20px',
-        '4xl': '24px',
       },
     },
   },
