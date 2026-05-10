@@ -62,7 +62,12 @@ export function StatsOverview({ balance, pnl, trades, isLoading = false }: Stats
     <StaggerContainer className="grid grid-cols-1 md:grid-cols-3 gap-4">
       {items.map((item, i) => (
         <ScrollReveal key={item.label} delay={i * 0.08}>
-          <Card interactive glow={i === 1} glowColor={pnl >= 0 ? 'green' : 'red'} padding="md">
+          <Card
+            interactive
+            glow={i === 1 ? (pnl >= 0 ? 'green' : 'red') : 'none'}
+            glowColor={pnl >= 0 ? 'green' : 'red'}
+            padding="md"
+          >
             <div className="flex items-center justify-between mb-2">
               <span className="text-xs font-medium text-text-muted uppercase flex items-center">
                 {item.label}
