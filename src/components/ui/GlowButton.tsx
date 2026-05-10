@@ -1,5 +1,4 @@
 import { forwardRef, type ButtonHTMLAttributes } from 'react';
-import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
 type GlowButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
@@ -11,14 +10,12 @@ interface GlowButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   isLoading?: boolean;
   leftIcon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  magnetic?: boolean;
 }
 
 const variantMap: Record<GlowButtonVariant, string> = {
   primary:
     'bg-accent-green text-black font-semibold shadow-glow-green hover:shadow-glow-green hover:bg-accent-green-dim',
-  secondary:
-    'bg-cyber-900 text-white border border-cyber-700 hover:border-neon-cyan/50 hover:shadow-hud',
+  secondary: 'bg-cyber-900 text-white border border-cyber-700 hover:border-neon-cyan/50',
   outline:
     'bg-transparent text-neon-cyan border border-neon-cyan/30 hover:bg-neon-cyan/10 hover:border-neon-cyan/50',
   ghost: 'bg-transparent text-text-secondary hover:text-white hover:bg-cyber-800',
@@ -41,29 +38,23 @@ export const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
       children,
       className,
       disabled,
-      magnetic = false,
       ...props
     },
     ref
   ) => {
     return (
-      <motion.button
+      <button
         ref={ref}
         className={cn(
-          'inline-flex items-center justify-center font-medium transition-all duration-300',
+          'inline-flex items-center justify-center font-medium transition-all duration-200',
           'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neon-cyan',
           'disabled:opacity-50 disabled:cursor-not-allowed',
+          'hover:scale-[1.02] active:scale-[0.98]',
           variantMap[variant],
           sizeMap[size],
           className
         )}
         disabled={disabled || isLoading}
-        whileHover={
-          magnetic
-            ? { scale: 1.05, transition: { type: 'spring', stiffness: 400, damping: 25 } }
-            : { scale: 1.02 }
-        }
-        whileTap={{ scale: 0.97 }}
         {...props}
       >
         {isLoading ? (
@@ -89,7 +80,7 @@ export const GlowButton = forwardRef<HTMLButtonElement, GlowButtonProps>(
             {rightIcon && <span className="shrink-0">{rightIcon}</span>}
           </>
         )}
-      </motion.button>
+      </button>
     );
   }
 );
