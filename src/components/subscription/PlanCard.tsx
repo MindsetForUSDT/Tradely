@@ -30,7 +30,6 @@ export function PlanCard({
         <div className="absolute -inset-px bg-gradient-to-b from-accent-green/30 via-accent-green/5 to-transparent rounded-2xl opacity-50 group-hover:opacity-80 transition-opacity duration-500" />
       )}
       <Card
-        variant="glass"
         padding="lg"
         className={cn('h-full flex flex-col relative', isPopular && 'border-accent-green/20')}
       >

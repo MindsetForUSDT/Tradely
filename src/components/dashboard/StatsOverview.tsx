@@ -18,8 +18,8 @@ export function StatsOverview({ balance, pnl, trades, isLoading = false }: Stats
         {[1, 2, 3].map((i) => (
           <Card key={i} padding="md">
             <div className="animate-pulse space-y-3">
-              <div className="h-3 w-20 bg-surface-border" />
-              <div className="h-7 w-32 bg-surface-border" />
+              <div className="h-3 w-20 bg-surface-border rounded" />
+              <div className="h-7 w-32 bg-surface-border rounded" />
             </div>
           </Card>
         ))}
@@ -29,54 +29,44 @@ export function StatsOverview({ balance, pnl, trades, isLoading = false }: Stats
 
   const items = [
     {
-      label: 'ОБЩИЙ БАЛАНС',
+      label: 'Общий баланс',
       tooltip: 'Сумма объёмов всех сделок в USD.',
       value: balance,
       format: (v: number) => formatUSD(v),
       icon: <WalletIcon />,
       color: 'text-text-primary',
-      bg: 'bg-surface-elevated',
+      bg: 'bg-surface-overlay',
     },
     {
-      label: 'P&L ЗА СЕГОДНЯ',
+      label: 'P&L за сегодня',
       tooltip: 'Реализованная прибыль/убыток за сегодня.',
       value: pnl,
       format: (v: number) => `${v >= 0 ? '+' : ''}${formatUSD(v)}`,
       icon: <ChartIcon />,
-      color: pnl >= 0 ? 'text-neon-green' : 'text-neon-red',
-      bg: pnl >= 0 ? 'bg-neon-green/5' : 'bg-neon-red/5',
+      color: pnl >= 0 ? 'text-accent-green' : 'text-accent-red',
+      bg: pnl >= 0 ? 'bg-accent-green/5' : 'bg-accent-red/5',
     },
     {
-      label: 'СДЕЛОК СЕГОДНЯ',
+      label: 'Сделок сегодня',
       tooltip: 'Количество сделок за сегодня.',
       value: trades,
       format: (v: number) => v.toString(),
       icon: <TradesIcon />,
       color: 'text-text-primary',
-      bg: 'bg-surface-elevated',
+      bg: 'bg-surface-overlay',
     },
   ];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {items.map((item, i) => (
-        <Card
-          key={item.label}
-          interactive
-          glow={i === 1 ? (pnl >= 0 ? 'green' : 'red') : 'none'}
-          padding="md"
-        >
+      {items.map((item) => (
+        <Card key={item.label} interactive padding="md">
           <div className="flex items-center justify-between mb-2">
-            <span className="hud-text flex items-center gap-1">
+            <span className="text-xs font-medium text-text-muted uppercase flex items-center gap-1">
               {item.label}
               <Tooltip content={item.tooltip} />
             </span>
-            <div
-              className={cn(
-                'w-8 h-8 flex items-center justify-center border border-surface-border',
-                item.bg
-              )}
-            >
+            <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center', item.bg)}>
               <span className={item.color}>{item.icon}</span>
             </div>
           </div>
