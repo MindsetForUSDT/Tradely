@@ -29,11 +29,7 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         password,
       });
       if (error) {
-        toast.error(
-          error.message === 'Invalid login credentials'
-            ? 'Неверный email или пароль'
-            : 'Ошибка входа'
-        );
+        toast.error('Неверный email или пароль');
         setLoading(false);
         return;
       }
@@ -51,8 +47,8 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
       }
     } catch {
       toast.error('Сетевая ошибка');
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   return (
@@ -74,22 +70,40 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         className="input-field"
       />
       <button onClick={handleLogin} disabled={loading} className="btn-primary w-full">
-        {loading ? 'Вход...' : 'Войти'}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            Вход...
+          </span>
+        ) : (
+          'Войти'
+        )}
       </button>
       <div className="text-right">
         <button
           onClick={onSwitchToReset}
-          className="text-xs text-text-muted hover:text-accent-green transition-colors"
+          className="text-xs text-text-muted hover:text-neon-cyan transition-colors"
         >
           Забыли пароль?
         </button>
       </div>
       <p className="text-center text-sm text-text-muted">
         Нет аккаунта?{' '}
-        <button
-          onClick={onSwitchToRegister}
-          className="text-accent-green font-medium hover:underline"
-        >
+        <button onClick={onSwitchToRegister} className="text-neon-cyan font-medium hover:underline">
           Регистрация
         </button>
       </p>

@@ -12,6 +12,7 @@
     scroll-behavior: smooth;
     scrollbar-width: thin;
     scrollbar-color: #2a2a2a transparent;
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -43,6 +44,16 @@
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-accent-green rounded-lg;
+  }
+
+  @media (max-width: 768px) {
+    button,
+    a,
+    input,
+    select,
+    textarea {
+      min-height: 44px;
+    }
   }
 }
 
