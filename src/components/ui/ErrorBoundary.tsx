@@ -1,4 +1,4 @@
-// components/ui/ErrorBoundary.tsx — С ЛОГИРОВАНИЕМ
+// components/ui/ErrorBoundary.tsx — С ЛОГИРОВАНИЕМ (УЛУЧШЕННАЯ ВЕРСИЯ)
 import { Component, type ReactNode } from 'react';
 import { Card } from './Card';
 import { Button } from './Button';
@@ -43,9 +43,18 @@ export class ErrorBoundary extends Component<Props, State> {
 
   private async logError(error: Error, errorInfo: React.ErrorInfo): Promise<string | null> {
     try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      // Если нет ключей — не пытаемся логировать
+      if (!supabaseUrl || !supabaseKey) {
+        console.warn('Supabase not configured, skipping error log');
+        return null;
+      }
+
       const errorPayload = {
-        message: error.message,
-        stack: error.stack?.substring(0, 1000), // Ограничиваем размер
+        message: error.message?.substring(0, 1000),
+        stack: error.stack?.substring(0, 1000),
         component_stack: errorInfo.componentStack?.substring(0, 1000),
         url: window.location.href,
         user_agent: navigator.userAgent,
@@ -56,7 +65,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
       return data?.id || null;
     } catch (e) {
-      console.error('Failed to log error:', e);
+      // Тихо игнорируем ошибки логирования
+      console.warn('Failed to log error:', e);
       return null;
     }
   }
