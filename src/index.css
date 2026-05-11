@@ -11,31 +11,19 @@
 
   html {
     scroll-behavior: smooth;
-    -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
-    scrollbar-color: #2a2a2a transparent;
+    scrollbar-color: #2a2e39 transparent;
   }
 
   body {
-    @apply bg-cyber-950 text-text-primary font-body;
-    touch-action: manipulation;
-    background:
-      radial-gradient(
-        ellipse 80% 50% at 50% -20%,
-        rgba(0, 245, 255, 0.08) 0%,
-        rgba(0, 245, 255, 0.03) 30%,
-        transparent 70%
-      ),
-      radial-gradient(ellipse 60% 40% at 80% 80%, rgba(255, 0, 255, 0.05) 0%, transparent 50%),
-      linear-gradient(180deg, #0a0a0f 0%, #0f0f1a 100%);
-    background-attachment: fixed;
     min-height: 100vh;
     min-height: 100dvh;
+    background: linear-gradient(180deg, #0a0a0f 0%, #111318 100%);
   }
 
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -43,44 +31,113 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-cyber-700 rounded-full;
-    border: 2px solid transparent;
-    background-clip: content-box;
+    @apply bg-surface-border rounded-full;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-cyber-600;
+    @apply bg-surface-borderHover;
   }
 
   ::selection {
-    @apply bg-neon-cyan/20 text-neon-cyan;
+    @apply bg-accent-indigo/20 text-accent-indigo;
   }
 
   :focus-visible {
-    @apply outline-2 outline-offset-2 outline-neon-cyan rounded-lg;
-  }
-
-  /* Glass morphism for iOS */
-  @supports (backdrop-filter: blur(10px)) {
-    .glass {
-      background: rgba(26, 26, 46, 0.7);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-    }
+    @apply outline-2 outline-offset-2 outline-accent-indigo rounded;
   }
 }
 
 @layer components {
+  .card {
+    background-color: #161920;
+    border: 1px solid #2a2e39;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    transition: all 150ms;
+  }
+
+  .card-hover {
+    @apply card;
+    border-color: #3a3f4d;
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.4),
+      0 2px 4px -2px rgba(0, 0, 0, 0.4);
+  }
+
+  .btn-primary {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background-color: #6366f1;
+    color: white;
+    font-weight: 500;
+    transition: all 150ms;
+  }
+
+  .btn-primary:hover {
+    background-color: #818cf8;
+  }
+
+  .btn-primary:active {
+    transform: scale(0.98);
+  }
+
+  .btn-primary:focus-visible {
+    outline: 2px solid #6366f1;
+    outline-offset: 2px;
+  }
+
+  .btn-secondary {
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    background-color: #1c1f26;
+    color: #e6e6e8;
+    border: 1px solid #2a2e39;
+    transition: all 150ms;
+  }
+
+  .btn-secondary:hover {
+    background-color: #232730;
+    border-color: #3a3f4d;
+  }
+
+  .btn-secondary:active {
+    transform: scale(0.98);
+  }
+
+  .input {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    background-color: #161920;
+    border: 1px solid #2a2e39;
+    border-radius: 8px;
+    color: #e6e6e8;
+    transition: all 150ms;
+  }
+
+  .input:focus {
+    border-color: #6366f1;
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    outline: none;
+  }
+
+  .text-gradient {
+    background-clip: text;
+    color: transparent;
+    background-image: linear-gradient(to right, #6366f1, #818cf8);
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Сохраняем старые классы для обратной совместимости */
   .glass-card {
     @apply bg-cyber-800/60 backdrop-blur-xl border border-cyber-700/50 rounded-2xl shadow-2xl;
   }
 
   .glass-card-hover {
     @apply glass-card transition-all duration-300 hover:bg-cyber-800/80 hover:border-neon-cyan/20 hover:shadow-neon-cyan/10;
-  }
-
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-yellow;
   }
 
   .text-gradient-cyan {
@@ -123,10 +180,6 @@
 
   .input-field:focus {
     outline: none;
-  }
-
-  .card-hover {
-    @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-neon-cyan/10;
   }
 
   .badge {
