@@ -25,22 +25,22 @@ export function TradeJournal() {
           <h1 className="text-2xl font-bold">Журнал сделок</h1>
           <p className="text-sm text-text-muted mt-1">{trades.length} сделок</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setView('list')}
-            className={`px-3 py-1 rounded-lg text-xs ${view === 'list' ? 'bg-accent-green text-surface' : 'bg-surface-overlay'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${view === 'list' ? 'bg-accent-green text-surface' : 'bg-surface-overlay text-text-secondary hover:text-text-primary'}`}
           >
             Список
           </button>
           <button
             onClick={() => setView('calendar')}
-            className={`px-3 py-1 rounded-lg text-xs ${view === 'calendar' ? 'bg-accent-green text-surface' : 'bg-surface-overlay'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${view === 'calendar' ? 'bg-accent-green text-surface' : 'bg-surface-overlay text-text-secondary hover:text-text-primary'}`}
           >
             Календарь
           </button>
           <button
             onClick={() => setView('metrics')}
-            className={`px-3 py-1 rounded-lg text-xs ${view === 'metrics' ? 'bg-accent-green text-surface' : 'bg-surface-overlay'}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${view === 'metrics' ? 'bg-accent-green text-surface' : 'bg-surface-overlay text-text-secondary hover:text-text-primary'}`}
           >
             Метрики
           </button>

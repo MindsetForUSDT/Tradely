@@ -133,7 +133,13 @@ export function useWallets() {
           body: { walletId, priority: 'high' },
         });
 
-        if (fnError) throw fnError;
+        if (fnError) {
+          const msg = fnError.message || String(fnError);
+          if (msg.includes('Failed to fetch') || msg.includes('Edge Function')) {
+            throw new Error('Сервер синхронизации временно недоступен. Попробуйте позже.');
+          }
+          throw fnError;
+        }
 
         setSyncStatuses((prev) => ({
           ...prev,

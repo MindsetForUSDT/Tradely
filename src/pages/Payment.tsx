@@ -5,33 +5,44 @@ import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
+function getErrorMessage(err: any): string {
+  const msg = err?.message || String(err);
+  if (
+    msg.includes('Failed to fetch') ||
+    msg.includes('NetworkError') ||
+    msg.includes('Edge Function')
+  ) {
+    return 'Ошибка соединения с платёжным сервисом. Попробуйте позже.';
+  }
+  return msg;
+}
+
 export function Payment() {
   const [loading, setLoading] = useState(false);
 
   const handlePayment = async () => {
     setLoading(true);
 
-    // Вызов Edge Function для создания платежа
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    const token = session?.access_token;
+    try {
+      const { data, error } = await supabase.functions.invoke('create-payment', {
+        body: { amount: 500, currency: 'RUB' },
+      });
 
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-payment`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ amount: 500, currency: 'RUB' }),
-    });
+      if (error) {
+        toast.error(getErrorMessage(error));
+        setLoading(false);
+        return;
+      }
 
-    const data = await res.json();
-    if (data.confirmation_url) {
-      window.location.href = data.confirmation_url;
-    } else {
-      toast.error(data.error || 'Ошибка создания платежа');
+      if (data?.confirmation_url) {
+        window.location.href = data.confirmation_url;
+      } else {
+        toast.error(data?.error || 'Ошибка создания платежа');
+      }
+    } catch (e: any) {
+      toast.error(getErrorMessage(e));
     }
+
     setLoading(false);
   };
 

@@ -123,19 +123,19 @@ export function TradeList({ trades, isLoading = false, onTradeClick, compact }: 
       <div
         ref={containerRef}
         onScroll={handleScroll}
-        className="overflow-auto"
-        style={{ height: Math.min(600, totalHeight), maxHeight: '70vh' }}
+        className="overflow-auto rounded-xl"
+        style={{ height: Math.min(600, Math.max(totalHeight, 200)), maxHeight: '70vh' }}
       >
-        <div style={{ height: totalHeight, position: 'relative' }}>
-          <div style={{ transform: `translateY(${offsetY}px)` }}>
-            {visibleTrades.map((trade) => (
-              <TradeRow key={trade.id} trade={trade} onClick={() => onTradeClick?.(trade)} />
-            ))}
+        {filteredTrades.length > 0 ? (
+          <div style={{ height: totalHeight, position: 'relative' }}>
+            <div style={{ transform: `translateY(${offsetY}px)` }}>
+              {visibleTrades.map((trade) => (
+                <TradeRow key={trade.id} trade={trade} onClick={() => onTradeClick?.(trade)} />
+              ))}
+            </div>
           </div>
-        </div>
-
-        {filteredTrades.length === 0 && (
-          <div className="text-center py-8 text-text-muted">
+        ) : (
+          <div className="flex items-center justify-center h-48 text-text-muted">
             {search ? 'Сделки не найдены' : 'Нет сделок'}
           </div>
         )}

@@ -1,8 +1,9 @@
 import { useRef, useEffect, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { GlowButton } from '@/components/ui/GlowButton';
 import { Icon } from '@/components/ui/Icons';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/providers/AppProviders';
 
 interface NewHeroSectionProps {
   onOpenContacts?: () => void;
@@ -13,6 +14,8 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const featuresRef = useRef<HTMLDivElement>(null);
   const authRef = useRef<HTMLDivElement>(null);
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -185,12 +188,13 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
 
             {/* CTA кнопки */}
             <div className="flex flex-wrap items-center gap-4">
-              <Link to="/subscribe">
-                <button className="px-8 py-4 rounded-xl bg-white text-black font-semibold hover:bg-gray-100 transition-all hover:scale-105 active:scale-95 flex items-center gap-3">
-                  <Icon name="wallet-add" size={20} />
-                  Начать бесплатно
-                </button>
-              </Link>
+              <button
+                onClick={() => navigate(isAuthenticated ? '/dashboard' : '/register')}
+                className="px-8 py-4 rounded-xl bg-white text-black font-semibold hover:bg-gray-100 transition-all hover:scale-105 active:scale-95 flex items-center gap-3"
+              >
+                <Icon name="wallet-add" size={20} />
+                Начать бесплатно
+              </button>
               <GlowButton variant="outline" size="lg" onClick={handleScrollToFeatures}>
                 <Icon name="chart" size={20} />
                 Возможности

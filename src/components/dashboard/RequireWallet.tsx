@@ -1,7 +1,10 @@
+import { useNavigate } from 'react-router-dom';
 import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icons';
 
 export function RequireWallet() {
+  const navigate = useNavigate();
+
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-4">
       <Card padding="lg" className="max-w-md w-full text-center space-y-6">
@@ -15,7 +18,7 @@ export function RequireWallet() {
           </p>
         </div>
         <button
-          onClick={() => (window.location.href = '/dashboard/wallets')}
+          onClick={() => navigate('/dashboard/wallets')}
           className="btn-primary w-full inline-flex items-center justify-center gap-2"
         >
           <Icon name="wallet-add" size={18} />

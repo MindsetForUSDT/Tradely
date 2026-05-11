@@ -49,37 +49,54 @@ export function AlertSettings() {
   };
 
   return (
-    <Card padding="md" className="max-w-md">
-      <h3 className="text-sm font-semibold mb-4 inline-flex items-center gap-1.5">
-        <Icon name="alert" size={18} className="text-accent-green" />
-        Настройка алертов
-      </h3>
-      <div className="space-y-4">
-        <input
-          type="number"
-          placeholder="Цель P&L ($)"
-          value={pnlTarget}
-          onChange={(e) => setPnlTarget(e.target.value)}
-          className="input-field"
-        />
-        <input
-          type="number"
-          placeholder="Лимит просадки ($)"
-          value={drawdownLimit}
-          onChange={(e) => setDrawdownLimit(e.target.value)}
-          className="input-field"
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="input-field"
-        />
-        <button onClick={saveAlerts} disabled={saving} className="btn-primary w-full">
-          {saving ? 'Сохранение...' : 'Сохранить алерты'}
-        </button>
-      </div>
-    </Card>
+    <div className="max-w-md mx-auto px-4 py-6">
+      <Card padding="lg" className="space-y-5">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-9 h-9 rounded-xl bg-accent-green/10 flex items-center justify-center">
+            <Icon name="alert" size={18} className="text-accent-green" />
+          </div>
+          <h3 className="text-base font-semibold">Настройка алертов</h3>
+        </div>
+        <div className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-xs text-text-muted font-medium">Цель P&L ($)</label>
+            <input
+              type="number"
+              placeholder="Например, 1000"
+              value={pnlTarget}
+              onChange={(e) => setPnlTarget(e.target.value)}
+              className="w-full px-4 py-3 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-text-muted font-medium">Лимит просадки ($)</label>
+            <input
+              type="number"
+              placeholder="Например, 500"
+              value={drawdownLimit}
+              onChange={(e) => setDrawdownLimit(e.target.value)}
+              className="w-full px-4 py-3 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-xs text-text-muted font-medium">Email для уведомлений</label>
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full px-4 py-3 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
+            />
+          </div>
+          <button
+            onClick={saveAlerts}
+            disabled={saving}
+            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 hover:bg-accent-green-dim transition-all active:scale-[0.98]"
+          >
+            {saving ? 'Сохранение...' : 'Сохранить алерты'}
+          </button>
+        </div>
+      </Card>
+    </div>
   );
 }

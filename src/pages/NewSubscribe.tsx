@@ -31,7 +31,7 @@ export function NewSubscribe() {
         { text: 'Безлимитная история', included: false },
       ],
       cta: user ? 'Перейти в дашборд' : 'Начать бесплатно',
-      onClick: () => navigate(user ? '/dashboard' : '/'),
+      onClick: () => navigate(user ? '/dashboard' : '/register'),
     },
     {
       id: 'pro' as const,
@@ -52,7 +52,7 @@ export function NewSubscribe() {
         { text: 'Кастомные дашборды', included: true },
       ],
       cta: user ? 'Оформить PRO' : 'Начать бесплатно',
-      onClick: () => navigate(user ? '/payment' : '/'),
+      onClick: () => navigate(user ? '/payment' : '/register'),
     },
   ];
 

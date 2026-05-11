@@ -31,7 +31,7 @@ export function Layout() {
         className={cn(
           'flex-1 relative z-10 transition-opacity duration-300',
           isLoading && 'opacity-50',
-          isLanding ? '' : 'pt-20 md:pt-24',
+          isLanding ? 'pt-16 md:pt-20' : 'pt-20 md:pt-24',
           isAuthenticated ? 'pb-20 md:pb-0' : ''
         )}
       >

@@ -97,7 +97,7 @@ export function Header() {
           >
             Тарифы
           </Link>
-          <Link to="/">
+          <Link to="/login">
             <GlowButton size={isMobile ? 'lg' : 'sm'} className="w-full">
               Войти
             </GlowButton>

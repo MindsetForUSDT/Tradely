@@ -208,12 +208,12 @@ export function Icon({ name, size = 20, className = '' }: IconProps) {
   );
 }
 
-export function WalletIcon() {
-  return <Icon name="wallet" />;
+export function WalletIcon({ size = 18, className = '' }: { size?: number; className?: string }) {
+  return <Icon name="wallet" size={size} className={className} />;
 }
-export function ChartIcon() {
-  return <Icon name="chart" />;
+export function ChartIcon({ size = 18, className = '' }: { size?: number; className?: string }) {
+  return <Icon name="chart" size={size} className={className} />;
 }
-export function TradesIcon() {
-  return <Icon name="trades" />;
+export function TradesIcon({ size = 18, className = '' }: { size?: number; className?: string }) {
+  return <Icon name="trades" size={size} className={className} />;
 }
