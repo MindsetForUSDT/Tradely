@@ -1,13 +1,11 @@
-import { HeroSection } from '@/components/landing/HeroSection';
-import { FeaturesSection } from '@/components/landing/FeaturesSection';
-import { FAQSection } from '@/components/landing/FAQSection';
+import { NewHeroSection } from '@/components/landing/NewHeroSection';
+import { NewFeaturesSection } from '@/components/landing/NewFeaturesSection';
 
 export function Landing() {
   return (
     <div className="min-h-screen">
-      <HeroSection />
-      <FeaturesSection />
-      <FAQSection />
+      <NewHeroSection />
+      <NewFeaturesSection />
     </div>
   );
 }
