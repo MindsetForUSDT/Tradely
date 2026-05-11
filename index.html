@@ -52,11 +52,16 @@
   <body class="bg-bg-default text-text-primary font-inter antialiased">
     <div id="root"></div>
     <script>
-      // Регистрация Service Worker
+      // Регистрация Service Worker с принудительным обновлением
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('[SW] Registered:', reg.scope))
+          // Сначала регистрируем с параметром cacheBust
+          navigator.serviceWorker.register('/sw.js?v=2')
+            .then(reg => {
+              console.log('[SW] Registered:', reg.scope);
+              // Принудительно обновляем
+              reg.update();
+            })
             .catch(err => console.error('[SW] Registration failed:', err));
         });
       }

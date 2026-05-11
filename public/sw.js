@@ -1,5 +1,5 @@
-// public/sw.js - ИСПРАВЛЕННАЯ ВЕРСИЯ
-const CACHE_NAME = 'tradeumdiary-v1';
+// public/sw.js - ИСПРАВЛЕННАЯ ВЕРСИЯ v2
+const CACHE_NAME = 'tradeumdiary-v2';
 const STATIC_ASSETS = ['/', '/index.html', '/manifest.json', '/favicon.svg'];
 
 // Fallback страница для оффлайн
