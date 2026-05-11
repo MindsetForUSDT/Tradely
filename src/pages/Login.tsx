@@ -4,6 +4,23 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+function getErrorMessage(err: any): string {
+  const msg = err?.message || String(err);
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+    return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
+  }
+  if (msg.includes('Invalid login credentials')) {
+    return 'Неверный email или пароль';
+  }
+  if (msg.includes('Email not confirmed')) {
+    return 'Email не подтверждён. Проверьте почту.';
+  }
+  return msg;
+}
+
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -19,6 +36,11 @@ export function Login() {
       return;
     }
 
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      setError('Сервис авторизации временно недоступен. Не настроены параметры подключения.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -29,16 +51,15 @@ export function Login() {
       });
 
       if (error) {
-        setError(error.message);
+        setError(getErrorMessage(error));
         return;
       }
 
       if (data.session) {
-        // Пользователь вошёл, отправляем на тарифы или дашборд
         navigate('/subscribe');
       }
     } catch (err: any) {
-      setError(err.message || 'Ошибка входа');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

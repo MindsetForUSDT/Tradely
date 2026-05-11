@@ -4,6 +4,23 @@ import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+function getErrorMessage(err: any): string {
+  const msg = err?.message || String(err);
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+    return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
+  }
+  if (msg.includes('User already registered')) {
+    return 'Пользователь с таким email уже зарегистрирован';
+  }
+  if (msg.includes('Password should be')) {
+    return 'Пароль слишком простой. Используйте не менее 6 символов.';
+  }
+  return msg;
+}
+
 export function Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,6 +41,11 @@ export function Register() {
       return;
     }
 
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      setError('Сервис регистрации временно недоступен. Не настроены параметры подключения.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
@@ -37,16 +59,15 @@ export function Register() {
       });
 
       if (error) {
-        setError(error.message);
+        setError(getErrorMessage(error));
         return;
       }
 
       if (data.user) {
-        // Пользователь создан, отправляем на тарифы
         navigate('/subscribe');
       }
     } catch (err: any) {
-      setError(err.message || 'Ошибка регистрации');
+      setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

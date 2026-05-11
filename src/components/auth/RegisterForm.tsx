@@ -10,6 +10,23 @@ interface RegisterFormProps {
   onEmailChange: (email: string) => void;
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+function getErrorMessage(err: any): string {
+  const msg = err?.message || String(err);
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+    return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
+  }
+  if (msg.includes('User already registered')) {
+    return 'Пользователь с таким email уже зарегистрирован';
+  }
+  if (msg.includes('Password should be')) {
+    return 'Пароль слишком простой. Используйте не менее 6 символов.';
+  }
+  return msg;
+}
+
 export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: RegisterFormProps) {
   const navigate = useNavigate();
   const { setUser } = useAuth();
@@ -28,51 +45,57 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
       return;
     }
 
-    setLoading(true);
-    console.log('[RegisterForm] Attempting registration for:', email);
-
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { username } },
-    });
-
-    if (error) {
-      console.error('[RegisterForm] Registration error:', error);
-      toast.error(error.message);
-      setLoading(false);
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      toast.error('Сервис регистрации временно недоступен. Не настроены параметры подключения.');
       return;
     }
 
-    console.log('[RegisterForm] Registration result:', {
-      userId: data?.user?.id,
-      email: data?.user?.email,
-      hasSession: !!data?.session,
-    });
+    setLoading(true);
+    console.log('[RegisterForm] Attempting registration for:', email);
 
-    if (data?.session) {
-      console.log('[RegisterForm] Updating AuthContext with user:', data.session.user.id);
-
-      // Обновляем локальное состояние auth
-      setUser?.({
-        id: data.session.user.id,
-        username: username,
-        email: data.session.user.email,
-        subscription_tier: 'free',
-        created_at: data.session.user.created_at,
+    try {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { data: { username } },
       });
 
-      toast.success('Аккаунт создан!');
+      if (error) {
+        console.error('[RegisterForm] Registration error:', error);
+        toast.error(getErrorMessage(error));
+        setLoading(false);
+        return;
+      }
 
-      // Используем navigate вместо window.location
-      navigate('/subscribe', { replace: true });
-    } else {
-      // Если нет сессии, значит нужна email подтверждение
-      console.log('[RegisterForm] No session - email confirmation may be required');
-      toast.success('Проверьте email для подтверждения аккаунта');
+      console.log('[RegisterForm] Registration result:', {
+        userId: data?.user?.id,
+        email: data?.user?.email,
+        hasSession: !!data?.session,
+      });
+
+      if (data?.session) {
+        console.log('[RegisterForm] Updating AuthContext with user:', data.session.user.id);
+
+        setUser?.({
+          id: data.session.user.id,
+          username: username,
+          email: data.session.user.email,
+          subscription_tier: 'free',
+          created_at: data.session.user.created_at,
+        });
+
+        toast.success('Аккаунт создан!');
+        navigate('/subscribe', { replace: true });
+      } else {
+        console.log('[RegisterForm] No session - email confirmation may be required');
+        toast.success('Проверьте email для подтверждения аккаунта');
+      }
+    } catch (err) {
+      console.error('[RegisterForm] Unexpected error:', err);
+      toast.error(getErrorMessage(err));
+    } finally {
+      setLoading(false);
     }
-
-    setLoading(false);
   };
 
   return (

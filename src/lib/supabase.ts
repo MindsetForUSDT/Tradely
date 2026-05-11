@@ -80,10 +80,7 @@ const options: SupabaseClientOptions<'public'> = {
     },
     fetch: async (url, options = {}) => {
       try {
-        const response = await fetch(url, {
-          ...options,
-          credentials: 'include',
-        });
+        const response = await fetch(url, options);
 
         if (!response.ok) {
           console.error('[Supabase API] Error:', {

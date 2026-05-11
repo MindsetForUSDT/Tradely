@@ -10,6 +10,23 @@ interface LoginFormProps {
   onSwitchToReset: () => void;
 }
 
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+function getErrorMessage(err: any): string {
+  const msg = err?.message || String(err);
+  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+    return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
+  }
+  if (msg.includes('Invalid login credentials')) {
+    return 'Неверный email или пароль';
+  }
+  if (msg.includes('Email not confirmed')) {
+    return 'Email не подтверждён. Проверьте почту.';
+  }
+  return msg;
+}
+
 export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: LoginFormProps) {
   const navigate = useNavigate();
   const { setUser } = useAuth();
@@ -27,6 +44,11 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
       return;
     }
 
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+      toast.error('Сервис авторизации временно недоступен. Не настроены параметры подключения.');
+      return;
+    }
+
     setLoading(true);
     console.log('[LoginForm] Attempting login for:', email.trim());
 
@@ -38,7 +60,7 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
 
       if (error) {
         console.error('[LoginForm] Login error:', error);
-        toast.error('Неверный email или пароль');
+        toast.error(getErrorMessage(error));
         setLoading(false);
         return;
       }
@@ -52,7 +74,6 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
       if (data?.session) {
         console.log('[LoginForm] Updating AuthContext with user:', data.session.user.id);
 
-        // Обновляем локальное состояние auth
         setUser?.({
           id: data.session.user.id,
           username: data.session.user.email || 'User',
@@ -62,13 +83,6 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         });
 
         toast.success('Вход выполнен!');
-
-        // Проверяем состояние после обновления
-        setTimeout(() => {
-          console.log('[LoginForm] After setUser, checking current location...');
-        }, 100);
-
-        // Используем navigate вместо window.location
         navigate('/dashboard', { replace: true });
       } else {
         console.error('[LoginForm] No session returned from login');
@@ -76,7 +90,7 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
       }
     } catch (err) {
       console.error('[LoginForm] Unexpected error:', err);
-      toast.error('Сетевая ошибка');
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -245,7 +245,7 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
             </motion.div>
           </motion.div>
 
-          {/* Правая часть - форма */}
+          {/* Правая часть - карточки с кнопками */}
           <motion.div
             ref={authRef}
             id="auth-section"
@@ -258,37 +258,28 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
               {/* Карточка */}
               <div className="relative rounded-2xl bg-white/5 border border-white/10 p-8 backdrop-blur-xl">
                 <div className="text-center mb-6">
-                  <h2 className="text-2xl font-bold text-white mb-2">Добро пожаловать</h2>
-                  <p className="text-sm text-gray-400">Войдите или создайте аккаунт</p>
+                  <h2 className="text-2xl font-bold text-white mb-2">Начните сейчас</h2>
+                  <p className="text-sm text-gray-400">Создайте аккаунт за пару минут</p>
                 </div>
 
                 <div className="space-y-4">
-                  <input
-                    type="email"
-                    placeholder="Email"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                    aria-label="Email"
-                    readOnly
-                  />
-                  <input
-                    type="password"
-                    placeholder="Пароль"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
-                    aria-label="Пароль"
-                    readOnly
-                  />
+                  <Link to="/register">
+                    <button className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all flex items-center justify-center gap-2">
+                      <Icon name="wallet-add" size={20} />
+                      Зарегистрироваться
+                    </button>
+                  </Link>
                   <Link to="/login">
-                    <button className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all">
+                    <button className="w-full px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-all flex items-center justify-center gap-2">
+                      <Icon name="wallet" size={20} />
                       Войти
                     </button>
                   </Link>
-                  <p className="text-center text-sm text-gray-400">
-                    Нет аккаунта?{' '}
-                    <Link to="/register" className="text-emerald-400 font-medium hover:underline">
-                      Зарегистрироваться
-                    </Link>
-                  </p>
                 </div>
+
+                <p className="text-center text-xs text-gray-500 mt-6">
+                  Быстро • Безопасно • Бесплатно
+                </p>
               </div>
             </div>
           </motion.div>
