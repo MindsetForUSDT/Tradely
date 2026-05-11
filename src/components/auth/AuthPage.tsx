@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { LoginForm } from './LoginForm';
 import { RegisterForm } from './RegisterForm';
 import { PasswordReset } from './PasswordReset';
+import { Icon } from '@/components/ui/Icons';
 
 type AuthView = 'login' | 'register' | 'reset';
 
@@ -9,58 +11,100 @@ export function AuthPage() {
   const [view, setView] = useState<AuthView>('login');
   const [savedEmail, setSavedEmail] = useState('');
 
-  return (
-    <div className="w-full max-w-md mx-auto">
-      <div className="glass-card p-0.5 rounded-2xl">
-        <div className="bg-surface/90 rounded-2xl p-6 md:p-8">
-          <div className="text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-accent-green/10 border border-accent-green/20 flex items-center justify-center mx-auto mb-4">
-              <svg
-                width="22"
-                height="22"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-accent-green"
-              >
-                <path d="M3 17l4-8 4 6 6-10 3 4" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold">
-              {view === 'login' && 'Войти в TradeumDiary'}
-              {view === 'register' && 'Создать аккаунт'}
-              {view === 'reset' && 'Восстановление пароля'}
-            </h2>
-            <p className="text-sm text-text-muted mt-1">
-              {view === 'login' && 'Анализируйте свои сделки как профессионал'}
-              {view === 'register' && 'Начните вести дневник сделок бесплатно'}
-              {view === 'reset' && 'Отправим ссылку для сброса пароля'}
-            </p>
-          </div>
+  const fadeIn = {
+    initial: { opacity: 0, y: 10 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, y: -10 },
+    transition: { duration: 0.2 },
+  };
 
-          {view === 'login' && (
-            <LoginForm
-              savedEmail={savedEmail}
-              onSwitchToRegister={() => setView('register')}
-              onSwitchToReset={() => setView('reset')}
-            />
-          )}
-          {view === 'register' && (
-            <RegisterForm
-              savedEmail={savedEmail}
-              onSwitchToLogin={() => setView('login')}
-              onEmailChange={setSavedEmail}
-            />
-          )}
-          {view === 'reset' && (
-            <PasswordReset savedEmail={savedEmail} onSwitchToLogin={() => setView('login')} />
-          )}
+  return (
+    <div className="w-full max-w-lg mx-auto">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="relative"
+      >
+        {/* Декоративное свечение */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-neon-cyan via-neon-magenta to-neon-cyan rounded-3xl blur-xl opacity-30 animate-pulse" />
+
+        <div className="relative glass-card rounded-2xl p-1">
+          <div className="bg-cyber-900/95 backdrop-blur-xl rounded-2xl p-6 md:p-8 border border-cyber-700/50">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                className="w-16 h-16 rounded-2xl bg-gradient-to-br from-neon-cyan/20 to-neon-magenta/20 border border-neon-cyan/30 flex items-center justify-center mx-auto mb-4 shadow-neon-cyan"
+              >
+                <Icon name="chart" size={28} className="text-neon-cyan" />
+              </motion.div>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={view}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    {view === 'login' && 'Добро пожаловать'}
+                    {view === 'register' && 'Создать аккаунт'}
+                    {view === 'reset' && 'Восстановление пароля'}
+                  </h2>
+                  <p className="text-sm text-text-muted">
+                    {view === 'login' && 'Войдите чтобы продолжить анализ сделок'}
+                    {view === 'register' && 'Начните вести дневник трейдера бесплатно'}
+                    {view === 'reset' && 'Мы отправим ссылку для сброса пароля'}
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+
+            {/* Forms */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={view}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.2 }}
+              >
+                {view === 'login' && (
+                  <LoginForm
+                    savedEmail={savedEmail}
+                    onSwitchToRegister={() => setView('register')}
+                    onSwitchToReset={() => setView('reset')}
+                  />
+                )}
+                {view === 'register' && (
+                  <RegisterForm
+                    savedEmail={savedEmail}
+                    onSwitchToLogin={() => setView('login')}
+                    onEmailChange={setSavedEmail}
+                  />
+                )}
+                {view === 'reset' && (
+                  <PasswordReset savedEmail={savedEmail} onSwitchToLogin={() => setView('login')} />
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Security badge */}
+            <div className="mt-6 pt-6 border-t border-cyber-700/30">
+              <div className="flex items-center justify-center gap-2 text-xs text-text-muted">
+                <div className="w-4 h-4 rounded-full bg-neon-green/10 border border-neon-green/30 flex items-center justify-center">
+                  <Icon name="shield" size={10} className="text-neon-green" />
+                </div>
+                <span>Защищено сквозным шифрованием</span>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <p className="text-center text-xs text-text-muted mt-4">
-        Защищено сквозным шифрованием. Ваши данные только у вас.
-      </p>
+      </motion.div>
     </div>
   );
 }

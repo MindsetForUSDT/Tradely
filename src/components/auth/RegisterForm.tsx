@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AppProviders';
 import toast from 'react-hot-toast';
 
 interface RegisterFormProps {
@@ -9,6 +11,8 @@ interface RegisterFormProps {
 }
 
 export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: RegisterFormProps) {
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState('');
@@ -35,17 +39,20 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
       return;
     }
     if (data?.session) {
-      localStorage.setItem(
-        'tradeumdiary-auth',
-        JSON.stringify({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
-          user: data.session.user,
-        })
-      );
+      // Обновляем локальное состояние auth
+      setUser?.({
+        id: data.session.user.id,
+        username: username,
+        email: data.session.user.email,
+        subscription_tier: 'free',
+        created_at: data.session.user.created_at,
+      });
+
       toast.success('Аккаунт создан!');
-      window.location.replace('/subscribe');
+      // Используем navigate вместо window.location
+      navigate('/subscribe', { replace: true });
     }
+    setLoading(false);
   };
 
   return (

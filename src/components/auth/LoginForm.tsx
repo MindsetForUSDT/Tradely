@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AppProviders';
 import toast from 'react-hot-toast';
 
 interface LoginFormProps {
@@ -9,6 +11,8 @@ interface LoginFormProps {
 }
 
 export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: LoginFormProps) {
+  const navigate = useNavigate();
+  const { setUser } = useAuth();
   const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,21 +38,25 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         return;
       }
       if (data?.session) {
-        localStorage.setItem(
-          'tradeumdiary-auth',
-          JSON.stringify({
-            access_token: data.session.access_token,
-            refresh_token: data.session.refresh_token,
-            user: data.session.user,
-          })
-        );
+        // Обновляем локальное состояние auth
+        setUser?.({
+          id: data.session.user.id,
+          username: data.session.user.email || 'User',
+          email: data.session.user.email,
+          subscription_tier: 'free',
+          created_at: data.session.user.created_at,
+        });
+
         toast.success('Вход выполнен!');
-        window.location.replace('/dashboard');
+        // Используем navigate вместо window.location
+        navigate('/dashboard', { replace: true });
       }
-    } catch {
+    } catch (err) {
+      console.error('Login error:', err);
       toast.error('Сетевая ошибка');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

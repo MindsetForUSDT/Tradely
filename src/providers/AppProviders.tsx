@@ -42,6 +42,7 @@ interface AuthContextType {
   isLoading: boolean;
   subscriptionTier: 'free' | 'pro';
   signOut: () => Promise<void>;
+  setUser: (user: UserProfile | null) => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -51,6 +52,7 @@ export const AuthContext = createContext<AuthContextType>({
   isLoading: true,
   subscriptionTier: 'free',
   signOut: async () => {},
+  setUser: () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -63,7 +65,16 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const storeSetUser = useStore((s) => s.setUser);
   const setOnline = useStore((s) => s.setOnline);
 
+  // Функция для ручного обновления пользователя (из форм регистрации/входа)
+  const setUser = (newUser: UserProfile | null) => {
+    setUserState(newUser);
+    if (newUser) {
+      storeSetUser(newUser);
+    }
+  };
+
   useEffect(() => {
+    // Проверяем существующую сессию
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUserId(session.user.id);
@@ -79,9 +90,12 @@ function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
     });
 
+    // Подписываемся на изменения состояния auth
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('Auth state changed:', event, session?.user?.id);
+
       if (session?.user) {
         setUserId(session.user.id);
         const userProfile: UserProfile = {
@@ -127,6 +141,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         subscriptionTier: user?.subscription_tier || 'free',
         signOut,
+        setUser,
       }}
     >
       {children}
