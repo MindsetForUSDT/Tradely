@@ -48,21 +48,26 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     
     <title>TradeumDiary — Профессиональный Дневник Трейдера</title>
-    <script type="module" crossorigin src="/assets/index-Ci_rkuCD.js"></script>
+    <script type="module" crossorigin src="/assets/index-CdHffhG4.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-BrWjOnGQ.js">
     <link rel="modulepreload" crossorigin href="/assets/query-CE1RoFMN.js">
     <link rel="modulepreload" crossorigin href="/assets/charts-BRCvM3py.js">
     <link rel="modulepreload" crossorigin href="/assets/animations-BStTOWm2.js">
-    <link rel="stylesheet" crossorigin href="/assets/index-sDN-_7X9.css">
+    <link rel="stylesheet" crossorigin href="/assets/index-DKRnkVVW.css">
   </head>
   <body class="bg-bg-default text-text-primary font-inter antialiased">
     <div id="root"></div>
     <script>
-      // Регистрация Service Worker
+      // Регистрация Service Worker с принудительным обновлением
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js')
-            .then(reg => console.log('[SW] Registered:', reg.scope))
+          // Сначала регистрируем с параметром cacheBust
+          navigator.serviceWorker.register('/sw.js?v=2')
+            .then(reg => {
+              console.log('[SW] Registered:', reg.scope);
+              // Принудительно обновляем
+              reg.update();
+            })
             .catch(err => console.error('[SW] Registration failed:', err));
         });
       }
