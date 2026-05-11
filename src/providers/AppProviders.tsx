@@ -67,6 +67,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
   // Функция для ручного обновления пользователя (из форм регистрации/входа)
   const setUser = (newUser: UserProfile | null) => {
+    console.log('[AuthProvider] setUser called:', newUser?.id || null);
     setUserState(newUser);
     if (newUser) {
       storeSetUser(newUser);
@@ -74,9 +75,27 @@ function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    console.log('[AuthProvider] Initializing auth...');
+
     // Проверяем существующую сессию
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error('[AuthProvider] getSession error:', error);
+        setIsLoading(false);
+        return;
+      }
+
+      console.log(
+        '[AuthProvider] getSession result:',
+        session ? '✅ session found' : '❌ no session'
+      );
+
       if (session?.user) {
+        console.log('[AuthProvider] User logged in:', {
+          id: session.user.id,
+          email: session.user.email,
+        });
+
         setUserId(session.user.id);
         const userProfile: UserProfile = {
           id: session.user.id,
@@ -94,9 +113,14 @@ function AuthProvider({ children }: { children: ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('Auth state changed:', event, session?.user?.id);
+      console.log('[AuthProvider] onAuthStateChange:', {
+        event,
+        userId: session?.user?.id,
+        hasSession: !!session,
+      });
 
       if (session?.user) {
+        console.log('[AuthProvider] Session created/updated for user:', session.user.id);
         setUserId(session.user.id);
         const userProfile: UserProfile = {
           id: session.user.id,
@@ -106,7 +130,8 @@ function AuthProvider({ children }: { children: ReactNode }) {
         };
         setUserState(userProfile);
         storeSetUser(userProfile);
-      } else {
+      } else if (event === 'SIGNED_OUT') {
+        console.log('[AuthProvider] User signed out');
         setUserId(null);
         setUserState(null);
         storeSetUser(null);
@@ -119,6 +144,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener('offline', handleOffline);
 
     return () => {
+      console.log('[AuthProvider] Cleanup');
       subscription.unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -126,10 +152,16 @@ function AuthProvider({ children }: { children: ReactNode }) {
   }, [storeSetUser, setOnline]);
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUserId(null);
-    setUserState(null);
-    storeSetUser(null);
+    console.log('[AuthProvider] Signing out...');
+    try {
+      await supabase.auth.signOut();
+      setUserId(null);
+      setUserState(null);
+      storeSetUser(null);
+      console.log('[AuthProvider] Signed out successfully');
+    } catch (error) {
+      console.error('[AuthProvider] Sign out error:', error);
+    }
   };
 
   return (

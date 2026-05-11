@@ -27,18 +27,32 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
       toast.error('Пароль минимум 6 символов');
       return;
     }
+
     setLoading(true);
+    console.log('[RegisterForm] Attempting registration for:', email);
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: { data: { username } },
     });
+
     if (error) {
+      console.error('[RegisterForm] Registration error:', error);
       toast.error(error.message);
       setLoading(false);
       return;
     }
+
+    console.log('[RegisterForm] Registration result:', {
+      userId: data?.user?.id,
+      email: data?.user?.email,
+      hasSession: !!data?.session,
+    });
+
     if (data?.session) {
+      console.log('[RegisterForm] Updating AuthContext with user:', data.session.user.id);
+
       // Обновляем локальное состояние auth
       setUser?.({
         id: data.session.user.id,
@@ -49,9 +63,15 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
       });
 
       toast.success('Аккаунт создан!');
+
       // Используем navigate вместо window.location
       navigate('/subscribe', { replace: true });
+    } else {
+      // Если нет сессии, значит нужна email подтверждение
+      console.log('[RegisterForm] No session - email confirmation may be required');
+      toast.success('Проверьте email для подтверждения аккаунта');
     }
+
     setLoading(false);
   };
 

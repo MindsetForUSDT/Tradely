@@ -26,18 +26,32 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
       toast.error('Введите пароль');
       return;
     }
+
     setLoading(true);
+    console.log('[LoginForm] Attempting login for:', email.trim());
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
       });
+
       if (error) {
+        console.error('[LoginForm] Login error:', error);
         toast.error('Неверный email или пароль');
         setLoading(false);
         return;
       }
+
+      console.log('[LoginForm] Login successful:', {
+        userId: data?.user?.id,
+        email: data?.user?.email,
+        hasSession: !!data?.session,
+      });
+
       if (data?.session) {
+        console.log('[LoginForm] Updating AuthContext with user:', data.session.user.id);
+
         // Обновляем локальное состояние auth
         setUser?.({
           id: data.session.user.id,
@@ -48,11 +62,20 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         });
 
         toast.success('Вход выполнен!');
+
+        // Проверяем состояние после обновления
+        setTimeout(() => {
+          console.log('[LoginForm] After setUser, checking current location...');
+        }, 100);
+
         // Используем navigate вместо window.location
         navigate('/dashboard', { replace: true });
+      } else {
+        console.error('[LoginForm] No session returned from login');
+        toast.error('Ошибка: сессия не создана');
       }
     } catch (err) {
-      console.error('Login error:', err);
+      console.error('[LoginForm] Unexpected error:', err);
       toast.error('Сетевая ошибка');
     } finally {
       setLoading(false);
