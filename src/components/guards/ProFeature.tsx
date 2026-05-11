@@ -1,4 +1,5 @@
-import { useAuth } from '@/hooks/useAuth';
+// components/guards/ProFeature.tsx — ИСПРАВЛЕННАЯ ВЕРСИЯ
+import { useAuth } from '@/providers/AppProviders'; // ✅ Исправленный импорт
 import { Link } from 'react-router-dom';
 import { ReactNode } from 'react';
 

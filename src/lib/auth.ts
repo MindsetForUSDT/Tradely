@@ -1,16 +1,41 @@
+// lib/auth.ts
+import { supabase } from './supabase';
+
 /**
- * Извлекает ID пользователя из localStorage.
- * Не делает сетевых запросов — работает синхронно.
+ * Асинхронно получает ID пользователя через Supabase Auth.
  */
-export function getUserId(): string | null {
+export async function getUserIdAsync(): Promise<string | null> {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error || !session?.user) {
+    console.warn('Auth session not found:', error?.message);
+    return null;
+  }
+  return session.user.id;
+}
+
+/**
+ * Синхронная версия из кэша.
+ */
+export function getUserIdFromCache(): string | null {
   try {
-    const raw = localStorage.getItem('tradeumdiary-auth');
-    if (!raw) return null;
-    const p = JSON.parse(raw);
-    return (
-      p?.user?.id || (p?.access_token ? JSON.parse(atob(p.access_token.split('.')[1])).sub : null)
-    );
+    // Используем supabase.auth.getSession() синхронно из кэша
+    const storageKey = Object.keys(localStorage).find((k) => k.includes('auth-token'));
+    if (!storageKey) return null;
+
+    const sessionStr = localStorage.getItem(storageKey);
+    if (!sessionStr) return null;
+
+    const session = JSON.parse(sessionStr);
+    return session?.user?.id || null;
   } catch {
     return null;
   }
+}
+
+// Совместимость со старым кодом
+export function getUserId(): string | null {
+  return getUserIdFromCache();
 }

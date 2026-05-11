@@ -1,11 +1,15 @@
-import { useState, useEffect, useCallback } from 'react';
+// components/dashboard/WalletConnect.tsx — ФИНАЛЬНАЯ БЕЗОПАСНАЯ ВЕРСИЯ
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
-import { shortenAddress, cn } from '@/lib/utils';
+import { shortenAddress, cn, validateWalletAddress, isValidEVMAddress } from '@/lib/utils';
 import { Icon } from '@/components/ui/Icons';
 import { useQueryClient } from '@tanstack/react-query';
+import { getUserIdFromCache } from '@/lib/auth';
 import toast from 'react-hot-toast';
+import { encryptApiCredentials } from '@/lib/encryption';
 
+// Типы
 type WalletType = 'web3' | 'cex' | 'watch-only' | 'import' | 'hardware' | 'qr';
 type Web3Provider = 'metamask' | 'walletconnect' | 'coinbase' | 'brave';
 type CEXProvider = 'binance' | 'bybit' | 'okx' | 'kucoin';
@@ -68,81 +72,142 @@ const INITIAL_FORM: WalletFormData = {
 
 export function WalletConnect() {
   const [wallets, setWallets] = useState<any[]>([]);
-  const [step, setStep] = useState<'select' | 'details'>('select');
+  const [step, setStep] = useState<'select' | 'details' | 'verify'>('select');
   const [form, setForm] = useState<WalletFormData>(INITIAL_FORM);
   const [adding, setAdding] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const queryClient = useQueryClient();
+  const addressInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadWallets();
   }, []);
 
-  const getUserId = useCallback(() => {
-    const raw = localStorage.getItem('tradeumdiary-auth');
-    if (!raw) return null;
-    try {
-      const p = JSON.parse(raw);
-      return (
-        p?.user?.id || (p?.access_token ? JSON.parse(atob(p.access_token.split('.')[1])).sub : null)
-      );
-    } catch {
-      return null;
-    }
-  }, []);
-
   const loadWallets = async () => {
-    const uid = getUserId();
+    const uid = getUserIdFromCache();
     if (!uid) return;
-    const { data } = await supabase
+
+    const { data, error } = await supabase
       .from('wallets')
       .select('*')
       .eq('user_id', uid)
       .order('added_at', { ascending: false });
+
+    if (error) {
+      toast.error('Ошибка загрузки кошельков');
+      return;
+    }
+
     if (data) setWallets(data);
   };
+
+  // Валидация формы
+  const validateForm = useCallback((): boolean => {
+    const errors: Record<string, string> = {};
+
+    if (form.type === 'web3' && !form.web3Provider) {
+      errors.web3Provider = 'Выберите провайдера';
+    }
+
+    if (form.type === 'cex') {
+      if (!form.cexProvider) errors.cexProvider = 'Выберите биржу';
+      if (!form.apiKey.trim()) errors.apiKey = 'Введите API ключ';
+      if (!form.apiSecret.trim()) errors.apiSecret = 'Введите API секрет';
+
+      if (form.apiKey && !/^[a-zA-Z0-9]{16,}$/.test(form.apiKey)) {
+        errors.apiKey = 'Неверный формат API ключа';
+      }
+    }
+
+    if ((form.type === 'watch-only' || form.type === 'qr') && form.address) {
+      const validation = validateWalletAddress(form.address, form.network);
+      if (!validation.valid) {
+        errors.address = validation.error || 'Неверный адрес';
+      }
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [form]);
 
   const handleSelectType = (type: WalletType) => {
     setForm({ ...INITIAL_FORM, type });
     setStep('details');
+    setValidationErrors({});
   };
 
   const handleVerify = async () => {
+    if (!validateForm()) return;
+
     setVerifying(true);
-    await new Promise((r) => setTimeout(r, 1500));
+    try {
+      const { data, error } = await supabase.functions.invoke('verify-exchange-connection', {
+        body: {
+          exchange: form.cexProvider,
+          apiKey: form.apiKey,
+          apiSecret: form.apiSecret,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.success) {
+        toast.success('Подключение проверено успешно');
+        setStep('details');
+      } else {
+        toast.error(data?.error || 'Ошибка проверки');
+      }
+    } catch (e: any) {
+      toast.error('Ошибка: ' + e.message);
+    }
     setVerifying(false);
-    toast.success('Подключение проверено');
   };
 
   const handleAdd = async () => {
-    const uid = getUserId();
+    if (!validateForm()) return;
+
+    const uid = getUserIdFromCache();
     if (!uid) {
       toast.error('Не авторизован');
       return;
     }
+
     setAdding(true);
     try {
+      let encryptedData = null;
+      if (form.type === 'cex' && form.apiKey && form.apiSecret) {
+        encryptedData = await encryptApiCredentials(form.apiKey, form.apiSecret);
+      }
+
       const walletData = {
         user_id: uid,
         address:
           form.type === 'web3'
             ? `${form.web3Provider}:connected`
             : form.type === 'cex'
-              ? `${form.cexProvider}:${form.apiKey.slice(0, 8)}***`
+              ? `${form.cexProvider}:${form.apiKey.slice(0, 4)}...${form.apiKey.slice(-4)}`
               : form.address || 'manual',
         chain: form.network,
         label: form.label || form.web3Provider || form.cexProvider || form.type || 'Кошелёк',
+        encrypted_credentials: encryptedData?.encrypted_data || null,
+        credentials_iv: encryptedData?.iv || null,
+        credentials_tag: encryptedData?.tag || null,
+        processing_status: 'pending',
       };
+
       const { error } = await supabase.from('wallets').insert(walletData);
       if (error) {
         toast.error('Ошибка: ' + error.message);
         setAdding(false);
         return;
       }
-      toast.success('Кошелёк добавлен!');
+
+      toast.success('Кошелёк добавлен! Начинаем синхронизацию...');
       setForm(INITIAL_FORM);
       setStep('select');
-      loadWallets();
+      setValidationErrors({});
+      await loadWallets();
       queryClient.invalidateQueries({ queryKey: ['trades'] });
     } catch {
       toast.error('Сетевая ошибка');
@@ -151,8 +216,15 @@ export function WalletConnect() {
   };
 
   const handleDelete = async (id: string) => {
-    await supabase.from('wallets').delete().eq('id', id);
-    loadWallets();
+    const confirmed = window.confirm('Удалить кошелёк и все связанные сделки?');
+    if (!confirmed) return;
+
+    const { error } = await supabase.from('wallets').delete().eq('id', id);
+    if (error) {
+      toast.error('Ошибка удаления');
+      return;
+    }
+    await loadWallets();
     toast.success('Кошелёк удалён');
   };
 
@@ -179,6 +251,7 @@ export function WalletConnect() {
           onClick={() => {
             setStep('select');
             setForm(INITIAL_FORM);
+            setValidationErrors({});
           }}
           className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-1.5"
         >
@@ -244,10 +317,13 @@ export function WalletConnect() {
         </Card>
       )}
 
-      {step === 'details' && (
+      {(step === 'details' || step === 'verify') && (
         <Card padding="md" className="space-y-4">
           <button
-            onClick={() => setStep('select')}
+            onClick={() => {
+              setStep('select');
+              setValidationErrors({});
+            }}
             className="text-text-muted hover:text-text-primary text-sm inline-flex items-center gap-1 transition-colors"
           >
             <Icon name="back" size={14} /> Назад
@@ -258,7 +334,10 @@ export function WalletConnect() {
               {WEB3_PROVIDERS.map((p) => (
                 <button
                   key={p.value}
-                  onClick={() => setForm({ ...form, web3Provider: p.value })}
+                  onClick={() => {
+                    setForm({ ...form, web3Provider: p.value });
+                    setValidationErrors({});
+                  }}
                   className={cn(
                     'p-3 rounded-xl border transition-all',
                     form.web3Provider === p.value
@@ -287,7 +366,10 @@ export function WalletConnect() {
                 {CEX_PROVIDERS.map((p) => (
                   <button
                     key={p.value}
-                    onClick={() => setForm({ ...form, cexProvider: p.value })}
+                    onClick={() => {
+                      setForm({ ...form, cexProvider: p.value });
+                      setValidationErrors({});
+                    }}
                     className={cn(
                       'p-3 rounded-xl border transition-all',
                       form.cexProvider === p.value
@@ -318,20 +400,40 @@ export function WalletConnect() {
                       Создайте API ключ с правами только на чтение. Ваши средства в безопасности.
                     </p>
                   </div>
-                  <input
-                    type="password"
-                    placeholder="API Key"
-                    value={form.apiKey}
-                    onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-                  />
-                  <input
-                    type="password"
-                    placeholder="API Secret"
-                    value={form.apiSecret}
-                    onChange={(e) => setForm({ ...form, apiSecret: e.target.value })}
-                    className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
-                  />
+                  <div>
+                    <input
+                      type="password"
+                      placeholder="API Key"
+                      value={form.apiKey}
+                      onChange={(e) => setForm({ ...form, apiKey: e.target.value })}
+                      className={cn(
+                        'w-full px-4 py-2.5 bg-surface-elevated border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 transition-all',
+                        validationErrors.apiKey
+                          ? 'border-accent-red focus:ring-accent-red/30'
+                          : 'border-surface-border focus:ring-accent-green/30'
+                      )}
+                    />
+                    {validationErrors.apiKey && (
+                      <p className="text-xs text-accent-red mt-1">{validationErrors.apiKey}</p>
+                    )}
+                  </div>
+                  <div>
+                    <input
+                      type="password"
+                      placeholder="API Secret"
+                      value={form.apiSecret}
+                      onChange={(e) => setForm({ ...form, apiSecret: e.target.value })}
+                      className={cn(
+                        'w-full px-4 py-2.5 bg-surface-elevated border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 transition-all',
+                        validationErrors.apiSecret
+                          ? 'border-accent-red focus:ring-accent-red/30'
+                          : 'border-surface-border focus:ring-accent-green/30'
+                      )}
+                    />
+                    {validationErrors.apiSecret && (
+                      <p className="text-xs text-accent-red mt-1">{validationErrors.apiSecret}</p>
+                    )}
+                  </div>
                   <button
                     onClick={handleVerify}
                     disabled={verifying}
@@ -344,7 +446,7 @@ export function WalletConnect() {
             </>
           )}
 
-          {form.type === 'watch-only' && (
+          {(form.type === 'watch-only' || form.type === 'qr') && (
             <>
               <select
                 value={form.network}
@@ -357,62 +459,37 @@ export function WalletConnect() {
                   </option>
                 ))}
               </select>
-              <input
-                type="text"
-                placeholder="0x..."
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white font-mono"
-              />
+              <div>
+                <input
+                  ref={addressInputRef}
+                  type="text"
+                  placeholder={form.network === 'solana' ? 'Solana адрес...' : '0x...'}
+                  value={form.address}
+                  onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  className={cn(
+                    'w-full px-4 py-2.5 bg-surface-elevated border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 transition-all',
+                    validationErrors.address
+                      ? 'border-accent-red focus:ring-accent-red/30'
+                      : 'border-surface-border focus:ring-accent-green/30'
+                  )}
+                />
+                {validationErrors.address && (
+                  <p className="text-xs text-accent-red mt-1">{validationErrors.address}</p>
+                )}
+              </div>
             </>
           )}
 
-          {form.type === 'import' && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
-                <Icon name="import" size={28} className="text-accent-green" />
-              </div>
-              <p className="text-text-secondary text-sm">Перетащите файл или нажмите для выбора</p>
-              <p className="text-text-muted text-xs">CSV, JSON, Excel</p>
-              <input
-                type="file"
-                accept=".csv,.json,.xlsx,.xls"
-                className="mt-4 text-xs file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-medium file:bg-accent-green/10 file:text-accent-green"
-              />
-            </div>
-          )}
+          <div>
+            <input
+              type="text"
+              placeholder="Название (например, Основной кошелёк)"
+              value={form.label}
+              onChange={(e) => setForm({ ...form, label: e.target.value })}
+              className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
+            />
+          </div>
 
-          {form.type === 'hardware' && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
-                <Icon name="risk" size={28} className="text-accent-green" />
-              </div>
-              <p className="text-text-secondary text-sm">Ledger и Trezor</p>
-              <button className="px-6 py-2.5 bg-accent-green text-surface rounded-xl text-sm font-semibold hover:bg-accent-green-dim mt-4">
-                Обнаружить устройство
-              </button>
-            </div>
-          )}
-
-          {form.type === 'qr' && (
-            <div className="text-center py-8">
-              <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
-                <Icon name="export-csv" size={28} className="text-accent-green" />
-              </div>
-              <p className="text-text-secondary text-sm">QR-сканер</p>
-              <div className="w-48 h-48 mx-auto rounded-xl border-2 border-dashed border-surface-border flex items-center justify-center">
-                <Icon name="import" size={48} className="text-text-muted opacity-30" />
-              </div>
-            </div>
-          )}
-
-          <input
-            type="text"
-            placeholder="Название"
-            value={form.label}
-            onChange={(e) => setForm({ ...form, label: e.target.value })}
-            className="w-full px-4 py-2.5 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white"
-          />
           <button
             onClick={handleAdd}
             disabled={adding}
@@ -436,6 +513,7 @@ export function WalletConnect() {
           </div>
         </Card>
       )}
+
       {step === 'select' && wallets.length > 0 && (
         <div className="space-y-3">
           {wallets.map((w: any) => (
@@ -461,7 +539,9 @@ export function WalletConnect() {
                         : 'text-yellow-400 bg-yellow-400/5'
                     )}
                   >
-                    {w.processing_status === 'completed' ? 'Готово' : w.processing_status}
+                    {w.processing_status === 'completed'
+                      ? 'Готово'
+                      : w.processing_status || 'Обработка'}
                   </span>
                   <button
                     onClick={() => handleDelete(w.id)}

@@ -1,7 +1,8 @@
+// hooks/useMultiAccounts.ts — ИСПРАВЛЕННАЯ ВЕРСИЯ
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { getUserId } from '@/lib/auth';
-import { useAuth } from '@/hooks/useAuth';
+import { getUserIdFromCache } from '@/lib/auth'; // ✅ Безопасный метод
+import { useAuth } from '@/providers/AppProviders'; // ✅ Правильный импорт
 
 interface AggregatedStats {
   totalVolume: number;
@@ -37,7 +38,7 @@ export function useMultiAccounts() {
   }, [selectedAccounts]);
 
   const loadAccounts = async () => {
-    const uid = getUserId();
+    const uid = getUserIdFromCache(); // ✅ Безопасный метод
     if (!uid) {
       setLoading(false);
       return;

@@ -1,112 +1,132 @@
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+// providers/AppProviders.tsx
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { BrowserRouter } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
-import type { ReactNode } from 'react';
+import { useStore } from '@/store/useStore';
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
 
-interface UserProfile {
-  id: string;
-  email?: string;
-  subscription_tier: 'free' | 'pro';
-  subscription_expires_at: string | null;
-}
-
-interface AuthContextType {
-  user: UserProfile | null;
-  isLoading: boolean;
-  isAuthenticated: boolean;
-  signOut: () => Promise<void>;
-  refreshProfile: () => void;
-}
-
-export const AuthContext = createContext<AuthContextType>({
-  user: null,
-  isLoading: false,
-  isAuthenticated: false,
-  signOut: async () => {},
-  refreshProfile: () => {},
-});
-
-export function useAuth() {
-  return useContext(AuthContext);
-}
-
+// QueryClient с оптимальными настройками
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
+      staleTime: 30_000,
+      gcTime: 5 * 60_000, // В v5 заменили cacheTime на gcTime
       retry: 2,
-      refetchOnWindowFocus: true,
+      refetchOnWindowFocus: false,
+      refetchOnReconnect: true,
+    },
+    mutations: {
+      retry: 1,
     },
   },
 });
 
-function getUserFromLocalStorage(): UserProfile | null {
-  try {
-    const raw = localStorage.getItem('tradeumdiary-auth');
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    const token = parsed?.access_token;
-    if (!token) return null;
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    return {
-      id: payload.sub,
-      email: payload.email,
-      subscription_tier: parsed.user?.subscription_tier || 'free',
-      subscription_expires_at: parsed.user?.subscription_expires_at || null,
-    };
-  } catch {
-    return null;
-  }
+// Типы
+interface UserProfile {
+  id: string;
+  username: string;
+  email?: string;
+  subscription_tier: 'free' | 'pro';
+  subscription_expires_at?: string; // ✅ Добавлено
+  avatar_url?: string;
+  created_at?: string;
 }
 
+interface AuthContextType {
+  userId: string | null;
+  user: UserProfile | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  subscriptionTier: 'free' | 'pro';
+  signOut: () => Promise<void>;
+}
+
+export const AuthContext = createContext<AuthContextType>({
+  userId: null,
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  subscriptionTier: 'free',
+  signOut: async () => {},
+});
+
+export const useAuth = () => useContext(AuthContext);
+
+// Провайдер аутентификации
 function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(() => getUserFromLocalStorage());
-  const [ready, setReady] = useState(false);
-
-  const refreshProfile = useCallback(() => {
-    setUser(getUserFromLocalStorage());
-  }, []);
-
-  useEffect(() => {
-    setReady(true);
-  }, []);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [user, setUserState] = useState<UserProfile | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const storeSetUser = useStore((s) => s.setUser);
+  const setOnline = useStore((s) => s.setOnline);
 
   useEffect(() => {
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'tradeumdiary-auth') refreshProfile();
-    };
-    const handleAuthChange = () => refreshProfile();
-    window.addEventListener('storage', handleStorage);
-    window.addEventListener('auth-change', handleAuthChange);
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+        const userProfile: UserProfile = {
+          id: session.user.id,
+          username: session.user.email || 'User',
+          subscription_tier: 'free',
+          created_at: session.user.created_at,
+        };
+        setUserState(userProfile);
+        storeSetUser(userProfile);
+      }
+      setIsLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user) {
+        setUserId(session.user.id);
+        const userProfile: UserProfile = {
+          id: session.user.id,
+          username: session.user.email || 'User',
+          subscription_tier: 'free',
+          created_at: session.user.created_at,
+        };
+        setUserState(userProfile);
+        storeSetUser(userProfile);
+      } else {
+        setUserId(null);
+        setUserState(null);
+        storeSetUser(null);
+      }
+    });
+
+    const handleOnline = () => setOnline(true);
+    const handleOffline = () => setOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     return () => {
-      window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('auth-change', handleAuthChange);
+      subscription.unsubscribe();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
-  }, [refreshProfile]);
+  }, [storeSetUser, setOnline]);
 
-  const signOut = useCallback(async () => {
+  const signOut = async () => {
     await supabase.auth.signOut();
-    localStorage.removeItem('tradeumdiary-auth');
-    setUser(null);
-  }, []);
-
-  if (!ready) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-surface">
-        <div className="w-10 h-10 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
-      </div>
-    );
-  }
+    setUserId(null);
+    setUserState(null);
+    storeSetUser(null);
+  };
 
   return (
     <AuthContext.Provider
       value={{
+        userId,
         user,
-        isLoading: false,
-        isAuthenticated: !!user,
+        isAuthenticated: !!userId,
+        isLoading,
+        subscriptionTier: user?.subscription_tier || 'free',
         signOut,
-        refreshProfile,
       }}
     >
       {children}
@@ -114,12 +134,37 @@ function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// Главный провайдер
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>{children}</AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AuthProvider>
+            <OfflineBanner />
+            {children}
+            <Toaster
+              position="bottom-right"
+              toastOptions={{
+                duration: 4000,
+                style: {
+                  background: '#1A1A1A',
+                  color: '#FFFFFF',
+                  border: '1px solid #2A2A2A',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                },
+                success: {
+                  iconTheme: { primary: '#00FFA3', secondary: '#1A1A1A' },
+                },
+                error: {
+                  iconTheme: { primary: '#FF3B5C', secondary: '#1A1A1A' },
+                },
+              }}
+            />
+          </AuthProvider>
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
-
-/* ✅ Исправлено: retry:2, refetchOnWindowFocus:true, useCallback для refresh, cleanup для event listeners */

@@ -1,82 +1,250 @@
-import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
+// hooks/useTradesOptimized.ts
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { getUserId } from '@/lib/auth';
-import type { Trade, PnLDataPoint, TokenVolume, WeekdayPerformance } from '@/types';
+import { getUserIdFromCache } from '@/lib/auth';
+import type { Trade } from '@/types';
 
 interface UseTradesOptions {
   limit?: number;
   daysAgo?: number;
+  offset?: number;
+  orderBy?: 'timestamp' | 'pnl_realized' | 'value_usd';
+  ascending?: boolean;
+  filters?: {
+    symbol?: string;
+    side?: 'buy' | 'sell';
+    dateFrom?: string;
+    dateTo?: string;
+    walletId?: string;
+  };
 }
 
-export function useTradesOptimized(options?: UseTradesOptions) {
-  const { limit = 50, daysAgo = 30 } = options || {};
+// ✅ Добавлены дополнительные поля для совместимости
+interface UseTradesResult {
+  trades: Trade[];
+  totalCount: number;
+  isLoading: boolean;
+  isFetchingMore: boolean;
+  error: string | null;
+  hasMore: boolean;
+  loadMore: () => Promise<void>;
+  refresh: () => Promise<void>;
+  optimisticUpdate: (tradeId: string, updates: Partial<Trade>) => void;
+  // ✅ Дополнительные поля для графиков и аналитики
+  pnlData: Array<{ date: string; pnl: number; cumulativePnl: number }>;
+  tokenVolumes: Array<{ token: string; volume: number; percentage: number }>;
+  totalVolume: number;
+  totalTrades: number;
+}
 
-  const { data: trades = [], isLoading } = useQuery({
-    queryKey: ['trades', { limit, daysAgo }],
-    queryFn: async () => {
-      const uid = getUserId();
-      if (!uid) return [] as Trade[];
-      const since = new Date();
-      since.setDate(since.getDate() - daysAgo);
-      const { data, error } = await supabase
-        .from('trades')
-        .select('*')
-        .eq('user_id', uid)
-        .order('timestamp', { ascending: false })
-        .gte('timestamp', since.toISOString())
-        .limit(limit);
-      if (error) throw error;
-      return (data || []) as Trade[];
+export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesResult {
+  const { limit = 50, daysAgo, orderBy = 'timestamp', ascending = false, filters = {} } = options;
+
+  const [trades, setTrades] = useState<Trade[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
+
+  const offsetRef = useRef(0);
+  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Автоматически вычисляем dateFrom из daysAgo
+  const computedFilters = useMemo(() => {
+    const f = { ...filters };
+    if (daysAgo && !f.dateFrom) {
+      const d = new Date();
+      d.setDate(d.getDate() - daysAgo);
+      f.dateFrom = d.toISOString();
+    }
+    return f;
+  }, [filters, daysAgo]);
+
+  // Построение запроса
+  const buildQuery = useCallback(() => {
+    const uid = getUserIdFromCache();
+    if (!uid) return null;
+
+    let query = supabase.from('trades').select('*', { count: 'exact' }).eq('user_id', uid);
+
+    if (computedFilters.symbol) query = query.ilike('symbol', `%${computedFilters.symbol}%`);
+    if (computedFilters.side) query = query.eq('side', computedFilters.side);
+    if (computedFilters.dateFrom) query = query.gte('timestamp', computedFilters.dateFrom);
+    if (computedFilters.dateTo) query = query.lte('timestamp', computedFilters.dateTo);
+    if (computedFilters.walletId) query = query.eq('wallet_id', computedFilters.walletId);
+
+    return query;
+  }, [computedFilters]);
+
+  // Загрузка данных
+  const fetchTrades = useCallback(
+    async (append = false) => {
+      const query = buildQuery();
+      if (!query) {
+        setIsLoading(false);
+        return;
+      }
+
+      if (append) {
+        setIsFetchingMore(true);
+      } else {
+        setIsLoading(true);
+      }
+      setError(null);
+
+      try {
+        const offset = append ? offsetRef.current : 0;
+
+        const {
+          data,
+          error: fetchError,
+          count,
+        } = await query.order(orderBy, { ascending }).range(offset, offset + limit - 1);
+
+        if (fetchError) throw fetchError;
+
+        if (append) {
+          setTrades((prev) => [...prev, ...(data || [])]);
+        } else {
+          setTrades(data || []);
+        }
+
+        setTotalCount(count || 0);
+        offsetRef.current = offset + (data?.length || 0);
+        setHasMore((data?.length || 0) === limit);
+      } catch (e: any) {
+        setError(e.message || 'Ошибка загрузки сделок');
+      } finally {
+        setIsLoading(false);
+        setIsFetchingMore(false);
+      }
     },
-    staleTime: 2 * 60 * 1000,
-  });
+    [buildQuery, orderBy, ascending, limit]
+  );
 
-  const pnlData: PnLDataPoint[] = useMemo(() => {
-    const sorted = [...trades].sort(
-      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
-    let cum = 0;
-    return sorted.map((t) => {
-      const pnl = t.pnl_realized || 0;
-      cum += pnl;
-      return { date: new Date(t.timestamp).toISOString().split('T')[0], pnl, cumulativePnl: cum };
-    });
+  // Подписка на real-time обновления
+  useEffect(() => {
+    const uid = getUserIdFromCache();
+    if (!uid) return;
+
+    fetchTrades();
+
+    subscriptionRef.current = supabase
+      .channel('trades-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'trades',
+          filter: `user_id=eq.${uid}`,
+        },
+        (payload) => {
+          const newTrade = payload.new as Trade;
+          setTrades((prev) => [newTrade, ...prev]);
+          setTotalCount((prev) => prev + 1);
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'trades',
+          filter: `user_id=eq.${uid}`,
+        },
+        (payload) => {
+          const updated = payload.new as Trade;
+          setTrades((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      subscriptionRef.current?.unsubscribe();
+    };
+  }, [fetchTrades]);
+
+  // Пагинация
+  const loadMore = useCallback(async () => {
+    if (!hasMore || isFetchingMore) return;
+    await fetchTrades(true);
+  }, [hasMore, isFetchingMore, fetchTrades]);
+
+  // Полное обновление
+  const refresh = useCallback(async () => {
+    offsetRef.current = 0;
+    await fetchTrades(false);
+  }, [fetchTrades]);
+
+  // Оптимистичное обновление
+  const optimisticUpdate = useCallback(
+    (tradeId: string, updates: Partial<Trade>) => {
+      setTrades((prev) => prev.map((t) => (t.id === tradeId ? { ...t, ...updates } : t)));
+
+      supabase
+        .from('trades')
+        .update(updates)
+        .eq('id', tradeId)
+        .then(({ error }) => {
+          if (error) {
+            refresh();
+          }
+        });
+    },
+    [refresh]
+  );
+
+  // ✅ Производные данные для графиков и аналитики
+  const pnlData = useMemo(() => {
+    let cumulative = 0;
+    return [...trades]
+      .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+      .map((t) => {
+        cumulative += t.pnl_realized || 0;
+        return {
+          date: t.timestamp,
+          pnl: t.pnl_realized || 0,
+          cumulativePnl: cumulative,
+        };
+      });
   }, [trades]);
 
-  const tokenVolumes: TokenVolume[] = useMemo(() => {
+  const tokenVolumes = useMemo(() => {
     const map = new Map<string, number>();
-    for (const t of trades) {
-      const s = t.symbol || '?';
-      const base = s.split('/')[0];
-      map.set(base, (map.get(base) || 0) + (t.value_usd || 0));
-    }
-    const total = trades.reduce((s, t) => s + (t.value_usd || 0), 0);
-    const r: TokenVolume[] = [];
-    map.forEach((vol, tok) =>
-      r.push({ token: tok, volume: vol, percentage: total ? (vol / total) * 100 : 0 })
-    );
-    return r.sort((a, b) => b.volume - a.volume).slice(0, 8);
+    trades.forEach((t) => {
+      const token = t.symbol?.split('/')[0] || 'Unknown';
+      map.set(token, (map.get(token) || 0) + (t.value_usd || 0));
+    });
+    const total = Array.from(map.values()).reduce((s, v) => s + v, 0);
+    return Array.from(map.entries())
+      .map(([token, volume]) => ({
+        token,
+        volume,
+        percentage: total > 0 ? (volume / total) * 100 : 0,
+      }))
+      .sort((a, b) => b.volume - a.volume);
   }, [trades]);
 
-  const weekdayPerformance: WeekdayPerformance[] = useMemo(() => {
-    const days = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-    const buckets = days.map((d) => ({ day: d, profit: 0, trades: 0 }));
-    for (const t of trades) {
-      const i = new Date(t.timestamp).getDay();
-      buckets[i].profit += t.pnl_realized || 0;
-      buckets[i].trades++;
-    }
-    return buckets;
-  }, [trades]);
+  const totalVolume = useMemo(() => trades.reduce((s, t) => s + (t.value_usd || 0), 0), [trades]);
+
+  const totalTrades = trades.length;
 
   return {
     trades,
+    totalCount,
     isLoading,
+    isFetchingMore,
+    error,
+    hasMore,
+    loadMore,
+    refresh,
+    optimisticUpdate,
+    // ✅ Новые поля
     pnlData,
     tokenVolumes,
-    weekdayPerformance,
-    totalVolume: trades.reduce((s, t) => s + (t.value_usd || 0), 0),
-    totalTrades: trades.length,
+    totalVolume,
+    totalTrades,
   };
 }

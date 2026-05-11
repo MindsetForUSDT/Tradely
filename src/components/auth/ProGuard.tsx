@@ -1,5 +1,6 @@
+// components/auth/ProGuard.tsx — ИСПРАВЛЕННАЯ ВЕРСИЯ
 import { Navigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/providers/AppProviders'; // ✅ Исправленный импорт
 
 interface ProGuardProps {
   children: React.ReactNode;

@@ -1,3 +1,4 @@
+// components/dashboard/DashboardLayout.tsx
 import { useEffect } from 'react';
 import { StatsOverview } from './StatsOverview';
 import { PnLChart } from './PnLChart';
@@ -33,6 +34,7 @@ function DashboardContent() {
     totalTrades,
     isLoading: tradesLoading,
   } = useTradesOptimized({ limit: 100, daysAgo: 30 });
+
   const { todayAnalytics, isLoading: analyticsLoading } = useAnalytics();
   const setStats = useStore((s) => s.setStats);
 
@@ -40,7 +42,7 @@ function DashboardContent() {
     setStats({
       totalBalance: totalVolume,
       dailyPnl: todayAnalytics?.realized_pnl_usd ?? 0,
-      dailyTrades: todayAnalytics?.total_trades ?? totalTrades,
+      totalTrades: todayAnalytics?.total_trades ?? totalTrades,
       isLoading: tradesLoading || analyticsLoading,
     });
   }, [totalVolume, todayAnalytics, totalTrades, tradesLoading, analyticsLoading, setStats]);
@@ -57,7 +59,7 @@ function DashboardContent() {
         <PnLChart data={pnlData} isLoading={tradesLoading} />
         <VolumeByTokenChart data={tokenVolumes} isLoading={tradesLoading} />
       </div>
-      <TradeList trades={trades} isLoading={tradesLoading} compact />
+      <TradeList trades={trades} isLoading={tradesLoading} />
     </div>
   );
 }

@@ -1,68 +1,27 @@
-// ============================================================
-// TradeumDiary — Централизованные типы
-// ============================================================
-
-export type SubscriptionTier = 'free' | 'pro';
-export type BlockchainNetwork = 'ethereum' | 'solana' | 'polygon' | 'bsc' | 'arbitrum' | 'optimism';
-export type WalletProcessingStatus = 'pending' | 'processing' | 'completed' | 'failed';
-
-export interface Profile {
-  id: string;
-  username: string;
-  avatar_url: string | null;
-  subscription_tier: SubscriptionTier;
-  subscription_expires_at: string | null;
-  trial_started_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Wallet {
-  id: string;
-  user_id: string;
-  address: string;
-  chain: BlockchainNetwork;
-  label: string | null;
-  processing_status: WalletProcessingStatus;
-  is_verified: boolean;
-  last_synced_at: string | null;
-  error_message: string | null;
-  added_at: string;
-}
-
+// types/index.ts — ОБНОВЛЕННЫЕ ТИПЫ
 export interface Trade {
   id: string;
-  wallet_id: string;
   user_id: string;
-  transaction_hash: string;
+  wallet_id?: string;
   symbol: string;
   side: 'buy' | 'sell';
   amount: number;
   price: number;
   value_usd: number;
-  timestamp: string;
-  pnl_realized: number | null;
   fee: number;
-  fee_currency: string;
-  status: 'open' | 'closed' | 'cancelled';
-  leverage: number;
-  pnl_percent: number | null;
-  notes: string | null;
-  exchange: string | null;
-  created_at: string;
-}
-
-export interface DailyAnalytics {
-  id: string;
-  user_id: string;
-  date: string;
-  total_volume_usd: number;
-  total_trades: number;
-  realized_pnl_usd: number;
-  win_rate: number;
-  best_trade_usd: number;
-  worst_trade_usd: number;
-  updated_at: string;
+  fee_token?: string;
+  status: 'open' | 'closed' | 'pending';
+  exchange?: string;
+  chain?: string;
+  tx_hash?: string;
+  block_number?: number;
+  pnl_realized?: number;
+  pnl_percent?: number;
+  strategy_tag?: string;
+  tags?: string[];
+  notes?: string;
+  timestamp: string;
+  created_at?: string;
 }
 
 export interface PnLDataPoint {
@@ -81,4 +40,37 @@ export interface WeekdayPerformance {
   day: string;
   profit: number;
   trades: number;
+}
+
+export interface Wallet {
+  id: string;
+  user_id: string;
+  address: string;
+  chain: string;
+  chain_id?: number;
+  label?: string;
+  processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  last_synced_at?: string;
+  last_processed_block?: number;
+  error_message?: string;
+  added_at: string;
+}
+
+export interface Analytics {
+  id: string;
+  user_id: string;
+  date: string;
+  realized_pnl_usd: number;
+  total_trades: number;
+  win_rate: number;
+  total_volume: number;
+}
+
+// Тип для статистики стора
+export interface StatsState {
+  totalBalance: number;
+  dailyPnl: number;
+  dailyTrades: number;
+  isLoading: boolean;
+  error: string | null;
 }

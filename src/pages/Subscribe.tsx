@@ -1,7 +1,8 @@
+// pages/Subscribe.tsx — ИСПРАВЛЕННАЯ ВЕРСИЯ
 import { useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { PlanCard } from '@/components/subscription/PlanCard';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/providers/AppProviders'; // ✅ Исправленный импорт
 import { Button } from '@/components/ui/Button';
 
 export function Subscribe() {

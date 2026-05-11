@@ -1,5 +1,6 @@
+// components/layout/Header.tsx — ИСПРАВЛЕННАЯ ВЕРСИЯ
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/providers/AppProviders'; // ✅ Исправленный импорт
 import { GlowButton } from '@/components/ui/GlowButton';
 import { Icon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
