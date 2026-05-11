@@ -266,26 +266,25 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
                   <input
                     type="email"
                     placeholder="Email"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                     aria-label="Email"
-                    disabled
+                    readOnly
                   />
                   <input
                     type="password"
                     placeholder="Пароль"
-                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
+                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                     aria-label="Пароль"
-                    disabled
+                    readOnly
                   />
-                  <button
-                    className="w-full px-6 py-3 rounded-xl bg-white text-black font-semibold hover:bg-gray-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled
-                  >
-                    Войти
-                  </button>
-                  <p className="text-center text-sm text-gray-500">
+                  <Link to="/login">
+                    <button className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all">
+                      Войти
+                    </button>
+                  </Link>
+                  <p className="text-center text-sm text-gray-400">
                     Нет аккаунта?{' '}
-                    <Link to="/subscribe" className="text-emerald-400 font-medium hover:underline">
+                    <Link to="/register" className="text-emerald-400 font-medium hover:underline">
                       Зарегистрироваться
                     </Link>
                   </p>

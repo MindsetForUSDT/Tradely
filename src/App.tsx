@@ -7,28 +7,19 @@ import { Dashboard } from '@/pages/Dashboard';
 import { ProAnalytics } from '@/pages/ProAnalytics';
 import { Terms } from '@/pages/Terms';
 import { Privacy } from '@/pages/Privacy';
+import { Register } from '@/pages/Register';
+import { Login } from '@/pages/Login';
 import { NotFound } from '@/pages/NotFound';
 import { useAuth } from '@/providers/AppProviders';
-
-// Обертка для переадресации новых пользователей на тарифы
-function SubscribeWrapper() {
-  const { user } = useAuth();
-
-  // Если пользователь только что зарегистрировался (нет подписки)
-  // перенаправляем на страницу тарифов
-  if (user && user.subscription_tier === 'free') {
-    return <Subscribe />;
-  }
-
-  return <Subscribe />;
-}
 
 export default function App() {
   return (
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Landing />} />
-        <Route path="/subscribe" element={<SubscribeWrapper />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/subscribe" element={<Subscribe />} />
         <Route path="/payment" element={<Payment />} />
         <Route path="/dashboard/*" element={<Dashboard />} />
         <Route path="/pro/*" element={<ProAnalytics />} />
