@@ -3,7 +3,11 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import { GlowButton } from '@/components/ui/GlowButton';
 import { Icon } from '@/components/ui/Icons';
 
-export function NewHeroSection() {
+interface NewHeroSectionProps {
+  onOpenContacts?: () => void;
+}
+
+export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
@@ -120,6 +124,10 @@ export function NewHeroSection() {
     document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  const handleScrollToFeatures = () => {
+    document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section className="relative min-h-screen flex items-center overflow-hidden bg-cyber-950">
       <canvas ref={canvasRef} className="absolute inset-0 w-full h-full" aria-hidden="true" />
@@ -178,14 +186,18 @@ export function NewHeroSection() {
                 <Icon name="wallet-add" size={20} />
                 Начать бесплатно
               </GlowButton>
-              <GlowButton
-                variant="outline"
-                size="lg"
-                onClick={() => window.open('#features', '_self')}
-              >
+              <GlowButton variant="outline" size="lg" onClick={handleScrollToFeatures}>
                 <Icon name="chart" size={20} />
-                Узнать больше
+                Возможности
               </GlowButton>
+              {onOpenContacts && (
+                <button
+                  onClick={onOpenContacts}
+                  className="px-6 py-3 rounded-xl border border-surface-border text-text-secondary font-medium hover:bg-surface-elevated hover:text-white transition-all duration-150 active:scale-[0.98]"
+                >
+                  Контакты
+                </button>
+              )}
             </div>
 
             {/* Статистика */}
