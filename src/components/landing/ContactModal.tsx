@@ -68,11 +68,21 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     <p className="text-text-primary font-medium">Telegram</p>
                     <p className="text-text-muted text-xs">@tradeumdiary_support</p>
                   </div>
-                  <Icon
-                    name="import"
-                    size={16}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     className="text-text-muted group-hover:text-accent-indigo transition-colors"
-                  />
+                  >
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
                 </a>
 
                 {/* Email */}
@@ -87,11 +97,21 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     <p className="text-text-primary font-medium">Email</p>
                     <p className="text-text-muted text-xs">support@tradeumdiary.com</p>
                   </div>
-                  <Icon
-                    name="import"
-                    size={16}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     className="text-text-muted group-hover:text-accent-indigo transition-colors"
-                  />
+                  >
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
                 </a>
 
                 {/* WhatsApp (опционально) */}
@@ -113,11 +133,21 @@ export function ContactModal({ isOpen, onClose }: ContactModalProps) {
                     <p className="text-text-primary font-medium">WhatsApp</p>
                     <p className="text-text-muted text-xs">+7 (900) 000-00-00</p>
                   </div>
-                  <Icon
-                    name="import"
-                    size={16}
+                  <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     className="text-text-muted group-hover:text-accent-indigo transition-colors"
-                  />
+                  >
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
                 </a>
               </div>
 

@@ -121,10 +121,12 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
   }, []);
 
   const handleScrollToAuth = () => {
+    console.log('[Hero] Scrolling to auth section');
     document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' });
   };
 
   const handleScrollToFeatures = () => {
+    console.log('[Hero] Scrolling to features section');
     document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
   };
 
@@ -192,7 +194,10 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
               </GlowButton>
               {onOpenContacts && (
                 <button
-                  onClick={onOpenContacts}
+                  onClick={() => {
+                    console.log('[Hero] Opening contacts modal');
+                    onOpenContacts();
+                  }}
                   className="px-6 py-3 rounded-xl border border-surface-border text-text-secondary font-medium hover:bg-surface-elevated hover:text-white transition-all duration-150 active:scale-[0.98]"
                 >
                   Контакты
