@@ -297,14 +297,14 @@ export function NewSubscribe() {
                 <div className="space-y-3">
                   <button
                     onClick={() => handlePeriodSelect('month')}
-                    className="w-full p-4 rounded-xl bg-cyber-800/50 border border-cyber-700 hover:border-neon-cyan/50 hover:bg-cyber-800 transition-all text-left group"
+                    className="w-full p-4 rounded-xl bg-cyber-800/80 border-2 border-cyber-600 hover:border-neon-cyan/70 hover:bg-cyber-800 transition-all text-left group"
                   >
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="font-semibold text-white">Ежемесячно</p>
                         <p className="text-sm text-text-muted">499 ₽ / месяц</p>
                       </div>
-                      <div className="w-6 h-6 rounded-full border-2 border-cyber-600 group-hover:border-neon-cyan flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full border-2 border-cyber-500 group-hover:border-neon-cyan flex items-center justify-center">
                         <div className="w-2.5 h-2.5 rounded-full bg-neon-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
@@ -312,20 +312,20 @@ export function NewSubscribe() {
 
                   <button
                     onClick={() => handlePeriodSelect('year')}
-                    className="w-full p-4 rounded-xl bg-gradient-to-r from-neon-magenta/10 to-neon-cyan/10 border border-neon-magenta/30 hover:border-neon-magenta/50 transition-all text-left group relative overflow-hidden"
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-neon-magenta/20 to-neon-cyan/20 border-2 border-neon-magenta/50 hover:border-neon-magenta/70 transition-all text-left group relative overflow-hidden"
                   >
-                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-neon-magenta/20 text-neon-magenta text-[10px] font-bold uppercase">
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-neon-magenta/30 text-neon-magenta text-[10px] font-bold uppercase">
                       Экономия 20%
                     </div>
                     <div className="flex items-center justify-between mt-4">
                       <div>
                         <p className="font-semibold text-white">Ежегодно</p>
                         <p className="text-sm text-text-muted">
-                          <span className="line-through text-cyber-600 mr-1">5 988 ₽</span>
+                          <span className="line-through text-cyber-500 mr-1">5 988 ₽</span>
                           <span className="text-neon-cyan font-semibold">4 790 ₽ / год</span>
                         </p>
                       </div>
-                      <div className="w-6 h-6 rounded-full border-2 border-neon-magenta/50 group-hover:border-neon-magenta flex items-center justify-center">
+                      <div className="w-6 h-6 rounded-full border-2 border-neon-magenta/70 group-hover:border-neon-magenta flex items-center justify-center">
                         <div className="w-2.5 h-2.5 rounded-full bg-neon-magenta opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>

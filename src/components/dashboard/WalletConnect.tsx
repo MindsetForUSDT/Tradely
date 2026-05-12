@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { shortenAddress, cn, validateWalletAddress, isValidEVMAddress } from '@/lib/utils';
 import { Icon } from '@/components/ui/Icons';
 import { useQueryClient } from '@tanstack/react-query';
-import { getUserIdFromCache } from '@/lib/auth';
+import { getUserIdFromCache, getUserIdFromCacheAsync } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import { encryptApiCredentials } from '@/lib/encryption';
 
@@ -48,15 +48,15 @@ const NETWORKS = [
 const WEB3_PROVIDERS = [
   { value: 'metamask' as Web3Provider, label: 'MetaMask', icon: 'metamask' as const },
   { value: 'walletconnect' as Web3Provider, label: 'WalletConnect', icon: 'trustwallet' as const },
-  { value: 'coinbase' as Web3Provider, label: 'Coinbase Wallet', icon: 'binance' as const },
-  { value: 'brave' as Web3Provider, label: 'Brave Wallet', icon: 'shield' as const },
+  { value: 'coinbase' as Web3Provider, label: 'Coinbase Wallet', icon: 'coinbase' as const },
+  { value: 'brave' as Web3Provider, label: 'Brave Wallet', icon: 'brave' as const },
 ];
 
 const CEX_PROVIDERS = [
   { value: 'binance' as CEXProvider, label: 'Binance', icon: 'binance' as const },
   { value: 'bybit' as CEXProvider, label: 'Bybit', icon: 'bybit' as const },
   { value: 'okx' as CEXProvider, label: 'OKX', icon: 'okx' as const },
-  { value: 'kucoin' as CEXProvider, label: 'KuCoin', icon: 'pro' as const },
+  { value: 'kucoin' as CEXProvider, label: 'KuCoin', icon: 'kucoin' as const },
 ];
 
 const INITIAL_FORM: WalletFormData = {
@@ -85,7 +85,7 @@ export function WalletConnect() {
   }, []);
 
   const loadWallets = async () => {
-    const uid = getUserIdFromCache();
+    const uid = await getUserIdFromCacheAsync();
     if (!uid) return;
 
     const { data, error } = await supabase
@@ -162,9 +162,9 @@ export function WalletConnect() {
   const handleAdd = async () => {
     if (!validateForm()) return;
 
-    const uid = getUserIdFromCache();
+    const uid = await getUserIdFromCacheAsync();
     if (!uid) {
-      toast.error('Не авторизован');
+      toast.error('Не авторизован. Пожалуйста, войдите в систему.');
       return;
     }
 
@@ -223,11 +223,20 @@ export function WalletConnect() {
     toast.success('Кошелёк удалён');
   };
 
-  const getWalletIcon = (w: any): 'metamask' | 'trustwallet' | 'binance' | 'wallet' => {
+  const getWalletIcon = (
+    w: any
+  ): 'metamask' | 'trustwallet' | 'binance' | 'coinbase' | 'wallet' => {
     const lbl = (w.label || '').toLowerCase();
     if (lbl.includes('meta')) return 'metamask';
     if (lbl.includes('trust')) return 'trustwallet';
-    if (lbl.includes('binance') || lbl.includes('bybit') || lbl.includes('okx')) return 'binance';
+    if (
+      lbl.includes('binance') ||
+      lbl.includes('bybit') ||
+      lbl.includes('okx') ||
+      lbl.includes('kucoin')
+    )
+      return 'binance';
+    if (lbl.includes('coinbase')) return 'coinbase';
     return 'wallet';
   };
 
@@ -442,7 +451,7 @@ export function WalletConnect() {
                   <button
                     onClick={handleVerify}
                     disabled={verifying}
-                    className="w-full py-3 border border-accent-green/30 text-accent-green rounded-xl text-sm font-medium hover:bg-accent-green/5 transition-all disabled:opacity-50"
+                    className="w-full py-3 border-2 border-accent-green/70 text-accent-green rounded-xl text-sm font-semibold hover:bg-accent-green/10 hover:border-accent-green transition-all disabled:opacity-50"
                   >
                     {verifying ? 'Проверка...' : 'Проверить подключение'}
                   </button>

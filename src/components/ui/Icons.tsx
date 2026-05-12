@@ -13,6 +13,9 @@ interface IconProps {
     | 'binance'
     | 'bybit'
     | 'okx'
+    | 'coinbase'
+    | 'brave'
+    | 'kucoin'
     | 'manual'
     | 'shield'
     | 'journal'
@@ -59,22 +62,57 @@ export function Icon({ name, size = 20, className = '' }: IconProps) {
       </>
     ),
     metamask: (
-      <path d="M12 2l4 3-1 4-3-1-3 1-1-4 4-3zM5 10l2 5-3 2 1-7zM19 10l-3 7 3 2-1-7zM8 17l1 5h6l1-5-4-2-4 2z" />
+      <path d="M12 2l-1.5 3L7 3 5 7l2 10 3 2 2-3 2 3 3-2 2-10-2-4-3.5 2L12 2zM8 14l1.5 4h5L14 14l-2 2-2-2z" />
     ),
     trustwallet: (
       <>
-        <rect x="3" y="3" width="18" height="18" rx="4" />
-        <path d="M8 12l4 4 4-4M12 8v8" />
+        <path d="M12 2L4 5v6c0 5.5 3.5 10.5 8 12 4.5-1.5 8-6.5 8-12V5l-8-3z" />
+        <path d="M12 6v12M8 12l4 4 4-4" />
       </>
     ),
-    binance: <circle cx="12" cy="12" r="9" />,
-    bybit: <rect x="3" y="5" width="18" height="14" rx="3" />,
+    binance: (
+      <>
+        <path d="M12 2l5 5-2 2-3-3-3 3-2-2 5-5z" />
+        <path d="M12 22l-5-5 2-2 3 3 3-3 2 2-5 5z" />
+        <path d="M2 12l5-5 2 2-3 3 3 3-2 2-5-5z" />
+        <path d="M22 12l-5 5-2-2 3-3-3-3 2-2 5 5z" />
+      </>
+    ),
+    bybit: (
+      <>
+        <rect x="3" y="4" width="18" height="16" rx="2" />
+        <circle cx="9" cy="12" r="2.5" />
+        <circle cx="15" cy="12" r="2.5" />
+        <path d="M8 17l2.5-2 2.5 2 2.5-2 2.5 2" />
+      </>
+    ),
     okx: (
       <>
-        <circle cx="12" cy="7" r="3" />
-        <circle cx="12" cy="17" r="3" />
-        <circle cx="7" cy="12" r="3" />
-        <circle cx="17" cy="12" r="3" />
+        <path d="M12 2l3.5 2-1 4-5-1-5 1-1-4L12 2z" />
+        <path d="M3 8l4 5-2 5-2-3-3 2 1-6 2-3z" />
+        <path d="M21 8l-4 5 2 5 2-3 3 2-1-6-2-3z" />
+        <path d="M7 14l5 3 5-3" />
+      </>
+    ),
+    coinbase: (
+      <>
+        <circle cx="12" cy="12" r="9" />
+        <path d="M8 12c0-2.5 2-4.5 4.5-4.5S17 9.5 17 12" />
+        <path d="M8 16c0-2.5 2-4.5 4.5-4.5S17 13.5 17 16" />
+      </>
+    ),
+    brave: (
+      <>
+        <path d="M12 2l4 3-1 4-3-1-3 1-1-4 4-3z" />
+        <path d="M5 10l2 5-3 2 1-7z" />
+        <path d="M19 10l-3 7 3 2-1-7z" />
+        <path d="M8 17l1 5h6l1-5-4-2-4 2z" />
+      </>
+    ),
+    kucoin: (
+      <>
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <path d="M7 8h4v8H7zM13 8h4v8h-4z" />
       </>
     ),
     manual: (

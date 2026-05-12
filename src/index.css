@@ -69,14 +69,16 @@
   .btn-primary {
     padding: 0.5rem 1rem;
     border-radius: 8px;
-    background-color: #6366f1;
+    background-color: #10b981;
     color: white;
-    font-weight: 500;
+    font-weight: 600;
     transition: all 150ms;
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.25);
   }
 
   .btn-primary:hover {
-    background-color: #818cf8;
+    background-color: #34d399;
+    box-shadow: 0 0 30px rgba(16, 185, 129, 0.4);
   }
 
   .btn-primary:active {
@@ -84,7 +86,7 @@
   }
 
   .btn-primary:focus-visible {
-    outline: 2px solid #6366f1;
+    outline: 2px solid #10b981;
     outline-offset: 2px;
   }
 
@@ -93,13 +95,13 @@
     border-radius: 8px;
     background-color: #1c1f26;
     color: #e6e6e8;
-    border: 1px solid #2a2e39;
+    border: 2px solid #3a3f4d;
     transition: all 150ms;
   }
 
   .btn-secondary:hover {
     background-color: #232730;
-    border-color: #3a3f4d;
+    border-color: #6366f1;
   }
 
   .btn-secondary:active {

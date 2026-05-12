@@ -17,10 +17,11 @@ const variantMap: Record<GlowButtonVariant, string> = {
   primary:
     'bg-gradient-to-r from-neon-cyan to-neon-cyan-dim text-cyber-950 font-bold shadow-glow-cyan hover:shadow-glow-cyan-lg',
   secondary:
-    'bg-cyber-800 text-white border border-cyber-600 hover:border-neon-cyan/50 hover:bg-cyber-750',
+    'bg-cyber-800 text-white border-2 border-cyber-500 hover:border-neon-cyan/70 hover:bg-cyber-750 hover:shadow-glow-cyan',
   outline:
-    'bg-transparent text-neon-cyan border border-neon-cyan/40 hover:bg-neon-cyan/10 hover:border-neon-cyan/70',
-  ghost: 'bg-transparent text-text-secondary hover:text-white hover:bg-cyber-800/50',
+    'bg-cyber-900/80 text-neon-cyan border-2 border-neon-cyan/60 hover:bg-neon-cyan/15 hover:border-neon-cyan hover:shadow-glow-cyan',
+  ghost:
+    'bg-cyber-800/50 text-text-primary border border-cyber-600 hover:text-white hover:bg-cyber-750 hover:border-cyber-500',
   danger:
     'bg-gradient-to-r from-accent-red to-accent-red-dim text-white font-semibold shadow-glow-red',
 };

@@ -21,14 +21,44 @@ export async function getUserIdAsync(): Promise<string | null> {
  */
 export function getUserIdFromCache(): string | null {
   try {
-    // Используем supabase.auth.getSession() синхронно из кэша
-    const storageKey = Object.keys(localStorage).find((k) => k.includes('auth-token'));
-    if (!storageKey) return null;
+    // Пробуем несколько вариантов ключей localStorage для Supabase
+    const possibleKeys = [
+      ...Object.keys(localStorage).filter((k) => k.includes('supabase')),
+      ...Object.keys(localStorage).filter((k) => k.includes('auth')),
+    ];
 
-    const sessionStr = localStorage.getItem(storageKey);
-    if (!sessionStr) return null;
+    for (const key of possibleKeys) {
+      const sessionStr = localStorage.getItem(key);
+      if (!sessionStr) continue;
 
-    const session = JSON.parse(sessionStr);
+      try {
+        const session = JSON.parse(sessionStr);
+        // Пробуем разные структуры сессии
+        const userId = session?.user?.id || session?.data?.user?.id || session?.user_id;
+        if (userId) return userId;
+      } catch {
+        continue;
+      }
+    }
+
+    // Фолбэк: асинхронно получаем сессию
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Асинхронная версия с фолбэком на getSession.
+ */
+export async function getUserIdFromCacheAsync(): Promise<string | null> {
+  const syncId = getUserIdFromCache();
+  if (syncId) return syncId;
+
+  try {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     return session?.user?.id || null;
   } catch {
     return null;

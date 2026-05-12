@@ -15,10 +15,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 const variantMap: Record<ButtonVariant, string> = {
   primary: 'bg-accent-green text-surface font-semibold hover:bg-accent-green-dim shadow-glow-green',
   secondary:
-    'bg-surface-elevated text-text-primary border border-surface-border hover:bg-surface-overlay',
+    'bg-surface-elevated text-text-primary border-2 border-surface-border hover:bg-surface-overlay hover:border-surface-borderHover',
   outline:
-    'bg-transparent text-accent-green border border-accent-green/30 hover:border-accent-green hover:bg-accent-green/5',
-  ghost: 'bg-transparent text-text-secondary hover:text-text-primary hover:bg-surface-overlay',
+    'bg-surface-DEFAULT text-accent-green border-2 border-accent-green/50 hover:border-accent-green hover:bg-accent-green/10 hover:shadow-glow-green',
+  ghost:
+    'bg-surface-overlay text-text-primary border border-surface-border hover:text-white hover:bg-surface-elevoid hover:border-surface-borderHover',
   danger: 'bg-accent-red text-white font-semibold hover:bg-accent-red-dim',
 };
 
