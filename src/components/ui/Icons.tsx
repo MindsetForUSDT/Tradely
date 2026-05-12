@@ -31,7 +31,9 @@ interface IconProps {
     | 'delete'
     | 'star'
     | 'calendar'
-    | 'import';
+    | 'import'
+    | 'chevron-down'
+    | 'search';
   size?: number;
   className?: string;
 }
@@ -186,6 +188,13 @@ export function Icon({ name, size = 20, className = '' }: IconProps) {
         <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
         <polyline points="17 8 12 3 7 8" />
         <line x1="12" y1="3" x2="12" y2="15" />
+      </>
+    ),
+    'chevron-down': <polyline points="6 9 12 15 18 9" />,
+    search: (
+      <>
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </>
     ),
   };

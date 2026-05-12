@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -7,18 +7,38 @@ import { Icon } from '@/components/ui/Icons';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
+interface ValidationErrors {
+  email?: string;
+  password?: string;
+}
+
 function getErrorMessage(err: any): string {
   const msg = err?.message || String(err);
   if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
     return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
   }
   if (msg.includes('User already registered')) {
-    return 'Пользователь с таким email уже зарегистрирован';
+    return 'Этот email уже зарегистрирован. Попробуйте войти или восстановить пароль.';
   }
   if (msg.includes('Password should be')) {
     return 'Пароль слишком простой. Используйте не менее 6 символов.';
   }
+  if (msg.includes('Invalid email')) {
+    return 'Некорректный формат email';
+  }
   return msg;
+}
+
+function validateEmail(email: string): string | undefined {
+  if (!email) return 'Введите email';
+  const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!re.test(email)) return 'Некорректный формат email (пример: user@mail.com)';
+}
+
+function validatePassword(password: string): string | undefined {
+  if (!password) return 'Введите пароль';
+  if (password.length < 6) return 'Минимум 6 символов';
+  if (password.length < 8) return 'Рекомендуется 8+ символов для надёжности';
 }
 
 export function Register() {
@@ -26,18 +46,54 @@ export function Register() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<ValidationErrors>({});
+  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
   const navigate = useNavigate();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const validateField = useCallback((name: 'email' | 'password', value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      setFieldErrors((prev) => ({
+        ...prev,
+        [name]: name === 'email' ? validateEmail(value) : validatePassword(value),
+      }));
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  const handleEmailChange = (value: string) => {
+    setEmail(value);
+    setError('');
+    if (touched.email) validateField('email', value);
+  };
+
+  const handlePasswordChange = (value: string) => {
+    setPassword(value);
+    setError('');
+    if (touched.password) validateField('password', value);
+  };
+
+  const handleBlur = (field: 'email' | 'password') => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    validateField(field, field === 'email' ? email : password);
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
-      setError('Введите email и пароль');
-      return;
-    }
+    const emailErr = validateEmail(email);
+    const passwordErr = validatePassword(password);
+    setFieldErrors({ email: emailErr, password: passwordErr });
+    setTouched({ email: true, password: true });
 
-    if (password.length < 6) {
-      setError('Пароль должен быть не менее 6 символов');
+    if (emailErr || passwordErr) {
+      setError('Проверьте введённые данные');
       return;
     }
 
@@ -60,6 +116,7 @@ export function Register() {
 
       if (error) {
         setError(getErrorMessage(error));
+        setLoading(false);
         return;
       }
 
@@ -112,18 +169,30 @@ export function Register() {
           </div>
 
           {/* Форма */}
-          <form onSubmit={handleRegister} className="space-y-4">
+          <form onSubmit={handleRegister} className="space-y-4" aria-live="polite">
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                onBlur={() => handleBlur('email')}
                 placeholder="your@email.com"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all ${
+                  fieldErrors.email && touched.email
+                    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/30'
+                    : 'border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/30'
+                }`}
                 disabled={loading}
+                aria-invalid={!!fieldErrors.email && touched.email}
+                aria-describedby={fieldErrors.email && touched.email ? 'email-error' : undefined}
               />
+              {fieldErrors.email && touched.email && (
+                <p id="email-error" className="text-xs text-red-400 mt-1.5 flex items-center gap-1">
+                  <span>⚠</span> {fieldErrors.email}
+                </p>
+              )}
             </div>
 
             {/* Пароль */}
@@ -132,16 +201,36 @@ export function Register() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => handlePasswordChange(e.target.value)}
+                onBlur={() => handleBlur('password')}
                 placeholder="Минимум 6 символов"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
+                className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all ${
+                  fieldErrors.password && touched.password
+                    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/30'
+                    : 'border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/30'
+                }`}
                 disabled={loading}
+                aria-invalid={!!fieldErrors.password && touched.password}
+                aria-describedby={
+                  fieldErrors.password && touched.password ? 'password-error' : undefined
+                }
               />
+              {fieldErrors.password && touched.password && (
+                <p
+                  id="password-error"
+                  className="text-xs text-red-400 mt-1.5 flex items-center gap-1"
+                >
+                  <span>⚠</span> {fieldErrors.password}
+                </p>
+              )}
             </div>
 
-            {/* Ошибка */}
+            {/* Ошибка сервера */}
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+              <div
+                className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm"
+                role="alert"
+              >
                 {error}
               </div>
             )}

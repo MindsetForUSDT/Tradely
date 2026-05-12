@@ -24,17 +24,18 @@ services:
       - key: NODE_ENV
         value: "production"
 
-  - name: tradeumdiary-api
-    type: web
+  - name: tradeumdiary-cron
+    type: cron
     runtime: node
     region: frankfurt
     rootDir: backend
-    buildCommand: npm install && npx prisma generate && npm run build
-    startCommand: npm start
+    buildCommand: npm install
+    startCommand: node scripts/daily-sync.js
+    schedule: "0 2 * * *"
     envVars:
-      - key: DATABASE_URL
+      - key: SUPABASE_URL
+        value: "https://zfgeofskmgycojbzrznk.supabase.co"
+      - key: SUPABASE_SERVICE_ROLE_KEY
         sync: false
-      - key: JWT_SECRET
-        value: "tradeumdiary-jwt-secret-2026"
-      - key: NODE_VERSION
-        value: "20.20.2"
+      - key: NODE_ENV
+        value: "production"

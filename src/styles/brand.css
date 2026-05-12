@@ -1,0 +1,43 @@
+/* TradeumDiary Brand System */
+
+:root {
+  --brand-primary: #6366f1;
+  --brand-accent: #8b5cf6;
+  --brand-gradient: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
+  --brand-cyan: #00f5ff;
+  --brand-magenta: #ff00ff;
+}
+
+.brand {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.brand-primary {
+  color: var(--brand-primary);
+}
+
+.brand-accent {
+  color: var(--brand-accent);
+}
+
+.brand-gradient-text {
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Logo styling */
+.logo-text {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.logo-accent {
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--brand-cyan), var(--brand-magenta));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}

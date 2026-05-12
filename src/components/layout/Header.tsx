@@ -6,6 +6,12 @@ import { Icon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 
+const PUBLIC_LINKS = [
+  { label: 'Возможности', href: '/features' },
+  { label: 'Тарифы', href: '/subscribe' },
+  { label: 'FAQ', href: '/#faq' },
+];
+
 export function Header() {
   const { isAuthenticated, signOut } = useAuth();
   const location = useLocation();
@@ -19,6 +25,10 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [location.pathname]);
+
   const handleSignOut = async () => {
     await signOut();
     navigate('/', { replace: true });
@@ -31,11 +41,11 @@ export function Header() {
           <Link
             to="/dashboard"
             className={cn(
-              'px-4 py-2 rounded-lg transition-all duration-200',
+              'px-4 py-2 rounded-lg transition-all duration-200 min-h-[44px] flex items-center',
               location.pathname === '/dashboard'
                 ? 'text-neon-cyan bg-neon-cyan/10 font-medium'
                 : 'text-text-secondary hover:text-white hover:bg-cyber-800',
-              isMobile && 'text-lg py-3'
+              isMobile && 'text-base py-3'
             )}
           >
             Дашборд
@@ -43,11 +53,11 @@ export function Header() {
           <Link
             to="/dashboard/journal"
             className={cn(
-              'px-4 py-2 rounded-lg transition-all duration-200',
+              'px-4 py-2 rounded-lg transition-all duration-200 min-h-[44px] flex items-center',
               location.pathname.includes('/journal')
                 ? 'text-neon-cyan bg-neon-cyan/10 font-medium'
                 : 'text-text-secondary hover:text-white hover:bg-cyber-800',
-              isMobile && 'text-lg py-3'
+              isMobile && 'text-base py-3'
             )}
           >
             Журнал
@@ -55,11 +65,11 @@ export function Header() {
           <Link
             to="/dashboard/wallets"
             className={cn(
-              'px-4 py-2 rounded-lg transition-all duration-200',
+              'px-4 py-2 rounded-lg transition-all duration-200 min-h-[44px] flex items-center',
               location.pathname.includes('/wallets')
                 ? 'text-neon-cyan bg-neon-cyan/10 font-medium'
                 : 'text-text-secondary hover:text-white hover:bg-cyber-800',
-              isMobile && 'text-lg py-3'
+              isMobile && 'text-base py-3'
             )}
           >
             Кошельки
@@ -67,9 +77,9 @@ export function Header() {
           <Link
             to="/pro"
             className={cn(
-              'px-4 py-2 rounded-lg transition-all duration-200',
+              'px-4 py-2 rounded-lg transition-all duration-200 min-h-[44px] flex items-center',
               'text-neon-magenta bg-neon-magenta/10 font-medium hover:bg-neon-magenta/20',
-              isMobile && 'text-lg py-3'
+              isMobile && 'text-base py-3'
             )}
           >
             PRO
@@ -77,9 +87,9 @@ export function Header() {
           <button
             onClick={handleSignOut}
             className={cn(
-              'px-4 py-2 rounded-lg transition-all duration-200',
+              'px-4 py-2 rounded-lg transition-all duration-200 min-h-[44px] flex items-center',
               'text-text-muted hover:text-white hover:bg-cyber-800',
-              isMobile && 'text-lg py-3 w-full text-left'
+              isMobile && 'text-base py-3 w-full text-left'
             )}
           >
             Выйти
@@ -87,21 +97,35 @@ export function Header() {
         </>
       ) : (
         <>
-          <Link
-            to="/subscribe"
-            className={cn(
-              'px-4 py-2 rounded-lg transition-all duration-200',
-              'text-text-secondary hover:text-white hover:bg-cyber-800',
-              isMobile && 'text-lg py-3 w-full text-left'
-            )}
-          >
-            Тарифы
-          </Link>
-          <Link to="/login">
-            <GlowButton size={isMobile ? 'lg' : 'sm'} className="w-full">
-              Войти
-            </GlowButton>
-          </Link>
+          {PUBLIC_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              to={link.href}
+              className={cn(
+                'px-4 py-2 rounded-lg transition-all duration-200 min-h-[44px] flex items-center',
+                'text-text-secondary hover:text-white hover:bg-cyber-800',
+                isMobile && 'text-base py-3 w-full text-left'
+              )}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <div className={cn('flex gap-3', isMobile && 'flex-col')}>
+            <Link to="/login" className={cn(isMobile && 'w-full')}>
+              <GlowButton
+                size={isMobile ? 'lg' : 'sm'}
+                variant="outline"
+                className={cn(isMobile && 'w-full')}
+              >
+                Войти
+              </GlowButton>
+            </Link>
+            <Link to="/register" className={cn(isMobile && 'w-full')}>
+              <GlowButton size={isMobile ? 'lg' : 'sm'} className={cn(isMobile && 'w-full')}>
+                Регистрация
+              </GlowButton>
+            </Link>
+          </div>
         </>
       )}
     </>
@@ -179,20 +203,44 @@ export function Header() {
           />
 
           {/* Menu Panel */}
-          <div className="absolute top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-cyber-900 border-l border-cyber-700 p-6 overflow-y-auto">
+          <div className="absolute top-0 right-0 bottom-0 w-80 max-w-[85vw] bg-cyber-900 border-l border-cyber-700 p-6 overflow-y-auto flex flex-col">
             <div className="flex items-center justify-between mb-8">
               <span className="text-lg font-semibold text-white">Меню</span>
               <button
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 rounded-lg hover:bg-cyber-800 transition-colors"
+                className="p-2 rounded-lg hover:bg-cyber-800 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
                 aria-label="Закрыть меню"
               >
                 <Icon name="close" size={20} className="text-text-muted" />
               </button>
             </div>
-            <nav className="space-y-1" role="navigation">
+            <nav className="space-y-1 flex-1" role="navigation" aria-label="Мобильное меню">
               <NavLinks isMobile />
             </nav>
+
+            {/* Demo preview for guests */}
+            {!isAuthenticated && (
+              <div className="mt-6 pt-6 border-t border-cyber-700">
+                <p className="text-xs text-text-muted mb-3">Пример работы</p>
+                <div className="rounded-xl bg-cyber-800/50 border border-cyber-700 p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs text-emerald-400 font-mono">+12.5%</span>
+                    <span className="text-xs text-text-muted">ETH/USDT</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500" />
+                    <span className="text-xs text-red-400 font-mono">-3.2%</span>
+                    <span className="text-xs text-text-muted">BTC/USDT</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-xs text-emerald-400 font-mono">+8.1%</span>
+                    <span className="text-xs text-text-muted">SOL/USDT</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -54,6 +54,12 @@ export default {
           'green-dim': '#00CC82',
         },
       },
+      spacing: {
+        'btn-gap': '0.75rem',
+        'card-gap': '1.5rem',
+        'section-pad': '3rem',
+        touch: '2.75rem',
+      },
       fontFamily: {
         inter: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],

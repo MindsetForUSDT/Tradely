@@ -183,9 +183,12 @@ export function Login() {
 
           {/* Забыли пароль */}
           <p className="text-center text-sm mt-4">
-            <button className="text-gray-400 hover:text-white transition-colors">
+            <Link
+              to="/forgot-password"
+              className="text-gray-400 hover:text-emerald-400 transition-colors"
+            >
               Забыли пароль?
-            </button>
+            </Link>
           </p>
         </div>
       </motion.div>

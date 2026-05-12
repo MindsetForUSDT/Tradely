@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { NewHeroSection } from '@/components/landing/NewHeroSection';
 import { NewFeaturesSection } from '@/components/landing/NewFeaturesSection';
+import { FAQSection } from '@/components/landing/FAQSection';
 import { ContactModal } from '@/components/landing/ContactModal';
 
 export function Landing() {
@@ -28,6 +29,7 @@ export function Landing() {
       <div ref={featuresRef}>
         <NewFeaturesSection />
       </div>
+      <FAQSection />
       <ContactModal isOpen={isContactModalOpen} onClose={closeContacts} />
     </div>
   );

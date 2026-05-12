@@ -1,5 +1,6 @@
-import { useNavigate, Navigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { useState } from 'react';
+import { useNavigate, Navigate, Link } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/providers/AppProviders';
 import { GlowButton } from '@/components/ui/GlowButton';
 import { Icon } from '@/components/ui/Icons';
@@ -8,8 +9,33 @@ import { cn } from '@/lib/utils';
 export function NewSubscribe() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [showPeriodModal, setShowPeriodModal] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<'free' | 'pro' | null>(null);
 
   if (user?.subscription_tier === 'pro') return <Navigate to="/dashboard" replace />;
+
+  const handlePlanClick = (planId: 'free' | 'pro') => {
+    if (!user) {
+      localStorage.setItem('selectedPlan', planId);
+      navigate('/register');
+      return;
+    }
+
+    if (planId === 'free') {
+      navigate('/dashboard');
+      return;
+    }
+
+    setSelectedPlan(planId);
+    setShowPeriodModal(true);
+  };
+
+  const handlePeriodSelect = (period: 'month' | 'year') => {
+    localStorage.setItem('selectedPlan', selectedPlan || 'pro');
+    localStorage.setItem('selectedPeriod', period);
+    setShowPeriodModal(false);
+    navigate('/payment');
+  };
 
   const plans = [
     {
@@ -31,7 +57,7 @@ export function NewSubscribe() {
         { text: 'Безлимитная история', included: false },
       ],
       cta: user ? 'Перейти в дашборд' : 'Начать бесплатно',
-      onClick: () => navigate(user ? '/dashboard' : '/register'),
+      onClick: () => handlePlanClick('free'),
     },
     {
       id: 'pro' as const,
@@ -51,8 +77,8 @@ export function NewSubscribe() {
         { text: 'Налоговые отчёты', included: true },
         { text: 'Кастомные дашборды', included: true },
       ],
-      cta: user ? 'Оформить PRO' : 'Начать бесплатно',
-      onClick: () => navigate(user ? '/payment' : '/register'),
+      cta: user ? 'Оформить подписку' : 'Начать бесплатно',
+      onClick: () => handlePlanClick('pro'),
     },
   ];
 
@@ -233,10 +259,87 @@ export function NewSubscribe() {
         >
           <p className="text-sm text-text-muted">
             Есть вопросы?{' '}
-            <button className="text-neon-cyan font-medium hover:underline">Свяжитесь с нами</button>
+            <Link to="/" className="text-neon-cyan font-medium hover:underline">
+              Свяжитесь с нами
+            </Link>
           </p>
         </motion.div>
       </div>
+
+      {/* Period Selection Modal */}
+      <AnimatePresence>
+        {showPeriodModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowPeriodModal(false)}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            >
+              <div className="relative w-full max-w-md bg-cyber-900 border border-cyber-700 rounded-2xl p-6 shadow-2xl">
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-white">Выберите период</h3>
+                  <button
+                    onClick={() => setShowPeriodModal(false)}
+                    className="p-2 rounded-lg hover:bg-cyber-800 transition-colors min-h-[44px] min-w-[44px]"
+                  >
+                    <Icon name="close" size={20} className="text-text-muted" />
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <button
+                    onClick={() => handlePeriodSelect('month')}
+                    className="w-full p-4 rounded-xl bg-cyber-800/50 border border-cyber-700 hover:border-neon-cyan/50 hover:bg-cyber-800 transition-all text-left group"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-semibold text-white">Ежемесячно</p>
+                        <p className="text-sm text-text-muted">499 ₽ / месяц</p>
+                      </div>
+                      <div className="w-6 h-6 rounded-full border-2 border-cyber-600 group-hover:border-neon-cyan flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-neon-cyan opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  </button>
+
+                  <button
+                    onClick={() => handlePeriodSelect('year')}
+                    className="w-full p-4 rounded-xl bg-gradient-to-r from-neon-magenta/10 to-neon-cyan/10 border border-neon-magenta/30 hover:border-neon-magenta/50 transition-all text-left group relative overflow-hidden"
+                  >
+                    <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-neon-magenta/20 text-neon-magenta text-[10px] font-bold uppercase">
+                      Экономия 20%
+                    </div>
+                    <div className="flex items-center justify-between mt-4">
+                      <div>
+                        <p className="font-semibold text-white">Ежегодно</p>
+                        <p className="text-sm text-text-muted">
+                          <span className="line-through text-cyber-600 mr-1">5 988 ₽</span>
+                          <span className="text-neon-cyan font-semibold">4 790 ₽ / год</span>
+                        </p>
+                      </div>
+                      <div className="w-6 h-6 rounded-full border-2 border-neon-magenta/50 group-hover:border-neon-magenta flex items-center justify-center">
+                        <div className="w-2.5 h-2.5 rounded-full bg-neon-magenta opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  </button>
+                </div>
+
+                <p className="text-xs text-text-muted text-center mt-4">
+                  Можно отменить в любой момент. Без скрытых платежей.
+                </p>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

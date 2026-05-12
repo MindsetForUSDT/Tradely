@@ -176,7 +176,7 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
                 </span>
                 <br />
                 <span className="text-4xl md:text-5xl lg:text-6xl text-gray-400">
-                  в одной платформе
+                  в едином интерфейсе
                 </span>
               </h1>
 
@@ -242,8 +242,8 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
                   <Icon name="shield" size={20} className="text-amber-400" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white font-mono">100%</p>
-                  <p className="text-xs text-gray-500">безопасность</p>
+                  <p className="text-2xl font-bold text-white font-mono">AES-256</p>
+                  <p className="text-xs text-gray-500">шифрование данных</p>
                 </div>
               </div>
             </motion.div>

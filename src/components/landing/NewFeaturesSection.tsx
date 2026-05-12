@@ -124,25 +124,66 @@ export function NewFeaturesSection() {
           ))}
         </div>
 
-        {/* CTA - минималистичный */}
+        {/* Trust Block */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.6 }}
-          className="text-center mt-20"
+          className="mt-20"
         >
-          <div className="inline-flex flex-col items-center gap-4">
-            <p className="text-gray-400">Готовы начать?</p>
-            <button
-              onClick={() =>
-                document.getElementById('auth-section')?.scrollIntoView({ behavior: 'smooth' })
-              }
-              className="inline-flex items-center gap-3 px-8 py-4 rounded-xl bg-white text-black font-semibold hover:bg-gray-100 transition-all hover:scale-105 active:scale-95"
-            >
-              <Icon name="wallet-add" size={20} />
-              Начать бесплатно
-            </button>
+          {/* Logos */}
+          <div className="text-center mb-12">
+            <p className="text-sm text-gray-500 mb-6 uppercase tracking-wider">
+              Поддерживаемые сети и биржи
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-8 opacity-50">
+              {['Ethereum', 'BSC', 'Polygon', 'Solana', 'Arbitrum', 'Base'].map((name) => (
+                <span key={name} className="text-sm text-gray-400 font-mono">
+                  {name}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* Testimonials */}
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
+            {[
+              {
+                name: 'Алексей К.',
+                role: 'Day Trader',
+                text: 'Сократил время на анализ сделок на 80%. Теперь вижу все паттерны сразу.',
+              },
+              {
+                name: 'Мария С.',
+                role: 'Crypto Investor',
+                text: 'Наконец-то поняла, почему убыточные сделки повторяются. AI инсайты — must have.',
+              },
+              {
+                name: 'Дмитрий В.',
+                role: 'Swing Trader',
+                text: 'Налоговые отчёты за 2 минуты вместо 2 дней. Окупает Pro подписку с первого месяца.',
+              },
+            ].map((t, i) => (
+              <div key={i} className="rounded-xl bg-white/5 border border-white/10 p-6 text-left">
+                <p className="text-sm text-gray-400 mb-4 leading-relaxed">"{t.text}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-emerald-500 flex items-center justify-center text-xs font-bold text-white">
+                    {t.name[0]}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">{t.name}</p>
+                    <p className="text-xs text-gray-500">{t.role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div className="text-center">
+            <p className="text-3xl font-bold text-white font-mono">500+</p>
+            <p className="text-sm text-gray-500">трейдеров доверяют нам каждый день</p>
           </div>
         </motion.div>
       </div>

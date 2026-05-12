@@ -1,0 +1,17 @@
+{
+  "name": "tradeumdiary-backend",
+  "version": "1.0.0",
+  "description": "Backend services for TradeumDiary",
+  "main": "scripts/daily-sync.js",
+  "scripts": {
+    "start": "node scripts/daily-sync.js",
+    "build": "echo 'No build step required'",
+    "cron:dry-run": "node scripts/daily-sync.js --dry-run"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
