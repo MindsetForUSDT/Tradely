@@ -18,15 +18,15 @@ DROP POLICY IF EXISTS "Enable delete for users based on user_id" ON public.trade
 -- Проверка результата
 -- ============================================
 SELECT 
-    tablename,
-    rowsecurity as rls_enabled,
-    COUNT(*) as policy_count,
-    array_agg(policyname) as policies
+    t.tablename,
+    t.rowsecurity as rls_enabled,
+    COUNT(p.policyname) as policy_count,
+    array_agg(p.policyname) as policies
 FROM pg_tables t
 LEFT JOIN pg_policies p ON t.tablename = p.tablename AND p.schemaname = 'public'
 WHERE t.schemaname = 'public' AND t.tablename IN ('profiles', 'wallets', 'trades', 'tags', 'trade_tags', 'daily_analytics', 'tax_reports', 'payment_logs')
-GROUP BY tablename, rowsecurity
-ORDER BY tablename;
+GROUP BY t.tablename, t.rowsecurity
+ORDER BY t.tablename;
 
 -- ============================================
 -- ТЕСТ: Проверка доступа
