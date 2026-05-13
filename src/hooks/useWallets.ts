@@ -1,7 +1,8 @@
-// hooks/useWallets.ts — РЕАЛЬНАЯ СИНХРОНИЗАЦИЯ
+// hooks/useWallets.ts — ОПТИМИЗИРОВАННЫЙ С КЭШИРОВАНИЕМ
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { getUserIdFromCache } from '@/lib/auth';
+import { walletsCache } from '@/lib/cache';
 
 interface SyncStatus {
   walletId: string;
@@ -31,7 +32,7 @@ export function useWallets() {
   const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
   const [error, setError] = useState<string | null>(null);
 
-  // Загрузка кошельков
+  // Загрузка кошельков с кэшированием
   const loadWallets = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -43,6 +44,14 @@ export function useWallets() {
         return;
       }
 
+      // 1. Сначала пробуем из кэша (для мгновенной загрузки)
+      const cached = walletsCache.getWallets(uid);
+      if (cached && !cached.expired) {
+        setWallets(cached.data as Wallet[]);
+        setIsLoading(false);
+      }
+
+      // 2. Загружаем из сети (параллельно)
       const { data, error: fetchError } = await supabase
         .from('wallets')
         .select('*')
@@ -51,13 +60,18 @@ export function useWallets() {
 
       if (fetchError) {
         console.error('[useWallets] Fetch error:', fetchError);
-        throw fetchError;
+        // Если есть кэш - используем его, если нет - показываем ошибку
+        if (!cached) {
+          throw fetchError;
+        }
+      } else {
+        const walletData = data || [];
+        setWallets(walletData);
+        walletsCache.setWallets(uid, walletData);
       }
 
-      const walletData = data || [];
-      setWallets(walletData);
-
       // Восстанавливаем статусы синхронизации
+      const walletData = data || (cached?.data as Wallet[]) || [];
       const statusMap: Record<string, SyncStatus> = {};
       walletData.forEach((w) => {
         statusMap[w.id] = {
@@ -71,13 +85,12 @@ export function useWallets() {
     } catch (e: any) {
       console.error('[useWallets] Error loading wallets:', e);
 
-      // Детализированное сообщение об ошибке
       let errorMessage = 'Ошибка загрузки кошельков';
       if (e.message?.includes('503')) {
         errorMessage = 'База данных временно недоступна. Попробуйте позже.';
       } else if (e.message?.includes('403')) {
         errorMessage = 'Нет доступа к данным. Проверьте настройки безопасности.';
-      } else if (e.message?.includes('timeout') || e.message?.includes('30 секунд')) {
+      } else if (e.message?.includes('timeout') || e.message?.includes('60 секунд')) {
         errorMessage = 'Превышено время ожидания ответа от сервера.';
       }
 
@@ -166,6 +179,12 @@ export function useWallets() {
             tradesFound: data?.imported || 0,
           },
         }));
+
+        // Инвалидируем кэш после успешной синхронизации
+        const uid = getUserIdFromCache();
+        if (uid) {
+          walletsCache.removeWallets(uid);
+        }
       } catch (e: any) {
         setSyncStatuses((prev) => ({
           ...prev,
