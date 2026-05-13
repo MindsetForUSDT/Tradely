@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
 import toast from 'react-hot-toast';
+import { useAuth } from '@/providers/AppProviders';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -18,7 +19,7 @@ function getErrorMessage(err: any): string {
   if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
     return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
   }
-  if (msg.includes('User already registered') || msg.includes('already registered')) {
+  if (msg.includes('already registered') || msg.includes('User already registered')) {
     return 'Пользователь с этим email уже существует. Пожалуйста, войдите.';
   }
   if (msg.includes('Password should be')) {
@@ -43,6 +44,7 @@ function validatePassword(password: string): string | undefined {
 }
 
 export function Register() {
+  const { isAuthenticated, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,6 +69,27 @@ export function Register() {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
   }, []);
+
+  // Загрузка последнего зарегистрированного email
+  useEffect(() => {
+    const lastEmail = localStorage.getItem('lastRegistrationEmail');
+    if (lastEmail && !email) {
+      setEmail(lastEmail);
+    }
+  }, []);
+
+  // Перенаправляем авторизованных пользователей
+  if (!isLoading && isAuthenticated) {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
+        <div className="w-10 h-10 rounded-full border-2 border-neon-cyan border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   const handleEmailChange = (value: string) => {
     setEmail(value.toLowerCase().trim());
@@ -166,14 +189,6 @@ export function Register() {
       setLoading(false);
     }
   };
-
-  // Загрузка последнего зарегистрированного email
-  useEffect(() => {
-    const lastEmail = localStorage.getItem('lastRegistrationEmail');
-    if (lastEmail && !email) {
-      setEmail(lastEmail);
-    }
-  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-[#0a0a0f]">

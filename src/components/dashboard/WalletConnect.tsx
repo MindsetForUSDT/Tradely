@@ -102,7 +102,7 @@ export function WalletConnect() {
     if (data) setWallets(data);
   };
 
-  // Валидация формы
+  // Валидация формы с проверкой адреса
   const validateForm = useCallback((): boolean => {
     const errors: Record<string, string> = {};
 
@@ -116,14 +116,37 @@ export function WalletConnect() {
       if (!form.apiSecret.trim()) errors.apiSecret = 'Введите API секрет';
 
       if (form.apiKey && !/^[a-zA-Z0-9]{16,}$/.test(form.apiKey)) {
-        errors.apiKey = 'Неверный формат API ключа';
+        errors.apiKey = 'Неверный формат API ключа (минимум 16 символов)';
+      }
+      if (form.apiSecret && !/^[a-zA-Z0-9]{16,}$/.test(form.apiSecret)) {
+        errors.apiSecret = 'Неверный формат API Secret (минимум 16 символов)';
       }
     }
 
     if ((form.type === 'watch-only' || form.type === 'qr') && form.address) {
       const validation = validateWalletAddress(form.address, form.network);
       if (!validation.valid) {
-        errors.address = validation.error || 'Неверный адрес';
+        errors.address = validation.error || 'Неверный адрес кошелька';
+      } else {
+        // Дополнительно проверяем формат адреса
+        if (
+          form.network === 'ethereum' ||
+          form.network === 'polygon' ||
+          form.network === 'bsc' ||
+          form.network === 'arbitrum' ||
+          form.network === 'optimism' ||
+          form.network === 'avalanche' ||
+          form.network === 'base'
+        ) {
+          if (!/^0x[a-fA-F0-9]{40}$/.test(form.address)) {
+            errors.address =
+              'Неверный EVM адрес (должен начинаться с 0x и содержать 40 шестнадцатеричных символов)';
+          }
+        } else if (form.network === 'solana') {
+          if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(form.address)) {
+            errors.address = 'Неверный адрес Solana (32-44 символа)';
+          }
+        }
       }
     }
 

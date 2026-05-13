@@ -1,37 +1,32 @@
 // supabase/functions/import-exchange-trades/index.ts
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-import { createHash, createCipheriv, randomBytes } from 'node:crypto';
-const ENCRYPTION_KEY = Deno.env.get('API_KEY_ENCRYPTION_KEY');
-if (!ENCRYPTION_KEY) {
-  throw new Error('FATAL: API_KEY_ENCRYPTION_KEY not set in environment');
-}
 
-if (!/^[0-9a-f]{64}$/i.test(ENCRYPTION_KEY)) {
-  throw new Error('FATAL: API_KEY_ENCRYPTION_KEY must be 64 hex characters');
-}
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Шифрование API-ключей перед сохранением
-function encryptApiCredentials(apiKey: string, apiSecret: string) {
-  const ENCRYPTION_KEY = Deno.env.get('API_KEY_ENCRYPTION_KEY')!;
-  const iv = randomBytes(16);
-  const cipher = createCipheriv('aes-256-gcm', Buffer.from(ENCRYPTION_KEY, 'hex'), iv);
+// Расшифровка через вызов decrypt-credentials функции
+async function decryptApiCredentials(encryptedData: string, iv: string) {
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY');
 
-  const encrypted = Buffer.concat([
-    cipher.update(JSON.stringify({ apiKey, apiSecret })),
-    cipher.final(),
-  ]);
-  const tag = cipher.getAuthTag();
+  const response = await fetch(`${supabaseUrl}/functions/v1/decrypt-credentials`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${supabaseAnonKey}`,
+    },
+    body: JSON.stringify({ encrypted_data: encryptedData, iv }),
+  });
 
-  return {
-    encrypted_data: encrypted.toString('base64'),
-    iv: iv.toString('base64'),
-    tag: tag.toString('base64'),
-  };
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ error: 'Decryption failed' }));
+    throw new Error(error.error || 'Failed to decrypt credentials');
+  }
+
+  return await response.json();
 }
 
 serve(async (req: Request) => {
@@ -64,32 +59,31 @@ serve(async (req: Request) => {
       });
     }
 
-    const { exchange, apiKey, apiSecret } = await req.json();
-    if (!exchange || !apiKey || !apiSecret) {
+    const { exchange, encrypted_credentials, iv } = await req.json();
+    if (!exchange || !encrypted_credentials || !iv) {
       return new Response(JSON.stringify({ error: 'Missing fields' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Шифруем и сохраняем ключи
-    const { encrypted_data, iv, tag } = encryptApiCredentials(apiKey, apiSecret);
+    // Расшифровываем ключи
+    const { apiKey, apiSecret } = await decryptApiCredentials(encrypted_credentials, iv);
 
-    const { error: insertError } = await supabase.from('exchange_connections').upsert({
-      user_id: user.id,
-      exchange,
-      encrypted_credentials: encrypted_data,
-      iv,
-      tag,
-      updated_at: new Date().toISOString(),
-    });
+    // Здесь будет логика импорта сделок с биржи
+    // Пример для Binance:
+    // const trades = await fetchBinanceTrades(apiKey, apiSecret);
 
-    if (insertError) throw insertError;
+    console.log(`[import-exchange-trades] Importing trades for ${exchange} user ${user.id}`);
 
     // Запускаем фоновый импорт
-    const { error: invokeError } = await supabase.functions.invoke('import-trades', {
-      body: { userId: user.id, exchange },
+    const { error: invokeError } = await supabase.functions.invoke('fetch-trade-history', {
+      body: { userId: user.id, exchange, apiKey, apiSecret },
     });
+
+    if (invokeError) {
+      console.error('[import-exchange-trades] Background import error:', invokeError);
+    }
 
     return new Response(
       JSON.stringify({
@@ -101,7 +95,7 @@ serve(async (req: Request) => {
       }
     );
   } catch (e: any) {
-    console.error('Import exchange error:', e.message); // Логируем только сообщение, не ключи
+    console.error('Import exchange error:', e.message);
     return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
