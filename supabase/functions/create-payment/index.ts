@@ -28,7 +28,7 @@ serve(async (req: Request) => {
 
     const token = authHeader.split(' ')[1];
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const supabaseKey = Deno.env.get('SERVICE_ROLE_KEY')!;
 
     if (!supabaseUrl || !supabaseKey) {
       return new Response(JSON.stringify({ error: 'Server configuration error' }), {
