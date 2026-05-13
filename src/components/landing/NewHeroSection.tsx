@@ -266,7 +266,7 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
                   <p className="text-sm text-gray-400">Создайте аккаунт за пару минут</p>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-6">
                   <Link to="/register">
                     <button className="w-full px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white font-semibold hover:from-emerald-600 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/25">
                       <Icon name="wallet-add" size={20} />

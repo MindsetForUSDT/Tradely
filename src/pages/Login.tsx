@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
+import toast from 'react-hot-toast';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -43,23 +44,40 @@ export function Login() {
 
     setLoading(true);
     setError('');
+    toast.loading('Входим в аккаунт...', { duration: 10000 });
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Добавляем timeout для запроса
+      const loginPromise = supabase.auth.signInWithPassword({
         email,
         password,
       });
 
+      const { data, error } = await Promise.race([
+        loginPromise,
+        new Promise<{ data: null; error: any }>((_, reject) =>
+          setTimeout(() => reject(new Error('Запрос превысил 15 секунд')), 15000)
+        ),
+      ]);
+
       if (error) {
+        toast.error(getErrorMessage(error));
         setError(getErrorMessage(error));
         return;
       }
 
-      if (data.session) {
-        navigate('/subscribe');
+      if (!data || !data.session) {
+        toast.error('Не удалось создать сессию. Попробуйте позже.');
+        setError('Не удалось создать сессию');
+        return;
       }
+
+      toast.success('Успешный вход!');
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
-      setError(getErrorMessage(err));
+      const errorMsg = err?.message || 'Произошла ошибка при входе';
+      toast.error(errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

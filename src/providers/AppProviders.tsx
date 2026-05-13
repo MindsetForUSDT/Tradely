@@ -76,38 +76,58 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     console.log('[AuthProvider] Initializing auth...');
+    let isMounted = true;
 
-    // Проверяем существующую сессию
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error('[AuthProvider] getSession error:', error);
+    // Быстрая проверка сессии с timeout
+    const checkSession = async () => {
+      try {
+        const {
+          data: { session },
+          error,
+        } = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise<{ data: { session: null }; error: any }>((resolve) =>
+            setTimeout(() => ({ data: { session: null }, error: null }), 5000)
+          ),
+        ]);
+
+        if (!isMounted) return;
+
+        if (error) {
+          console.error('[AuthProvider] getSession error:', error);
+          setIsLoading(false);
+          return;
+        }
+
+        console.log(
+          '[AuthProvider] getSession result:',
+          session ? '✅ session found' : '❌ no session'
+        );
+
+        if (session?.user) {
+          console.log('[AuthProvider] User logged in:', {
+            id: session.user.id,
+            email: session.user.email,
+          });
+
+          setUserId(session.user.id);
+          const userProfile: UserProfile = {
+            id: session.user.id,
+            username: session.user.email || 'User',
+            subscription_tier: 'free',
+            created_at: session.user.created_at,
+          };
+          setUserState(userProfile);
+          storeSetUser(userProfile);
+        }
         setIsLoading(false);
-        return;
+      } catch (err) {
+        console.error('[AuthProvider] Session check error:', err);
+        if (isMounted) setIsLoading(false);
       }
+    };
 
-      console.log(
-        '[AuthProvider] getSession result:',
-        session ? '✅ session found' : '❌ no session'
-      );
-
-      if (session?.user) {
-        console.log('[AuthProvider] User logged in:', {
-          id: session.user.id,
-          email: session.user.email,
-        });
-
-        setUserId(session.user.id);
-        const userProfile: UserProfile = {
-          id: session.user.id,
-          username: session.user.email || 'User',
-          subscription_tier: 'free',
-          created_at: session.user.created_at,
-        };
-        setUserState(userProfile);
-        storeSetUser(userProfile);
-      }
-      setIsLoading(false);
-    });
+    checkSession();
 
     // Подписываемся на изменения состояния auth
     const {
@@ -145,6 +165,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       console.log('[AuthProvider] Cleanup');
+      isMounted = false;
       subscription.unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);

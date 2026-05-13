@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
+import toast from 'react-hot-toast';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
@@ -104,9 +105,11 @@ export function Register() {
 
     setLoading(true);
     setError('');
+    toast.loading('Создаём аккаунт...', { duration: 15000 });
 
     try {
-      const { data, error } = await supabase.auth.signUp({
+      // Добавляем timeout для запроса
+      const registerPromise = supabase.auth.signUp({
         email,
         password,
         options: {
@@ -114,17 +117,33 @@ export function Register() {
         },
       });
 
+      const { data, error } = await Promise.race([
+        registerPromise,
+        new Promise<{ data: null; error: any }>((_, reject) =>
+          setTimeout(() => reject(new Error('Запрос превысил 20 секунд')), 20000)
+        ),
+      ]);
+
       if (error) {
+        toast.error(getErrorMessage(error));
         setError(getErrorMessage(error));
         setLoading(false);
         return;
       }
 
-      if (data.user) {
-        navigate('/subscribe');
+      if (!data || !data.user) {
+        toast.error('Не удалось создать аккаунт. Попробуйте позже.');
+        setError('Не удалось создать аккаунт');
+        setLoading(false);
+        return;
       }
+
+      toast.success('Аккаунт создан! Перенаправляем...');
+      navigate('/dashboard', { replace: true });
     } catch (err: any) {
-      setError(getErrorMessage(err));
+      const errorMsg = err?.message || 'Произошла ошибка при регистрации';
+      toast.error(errorMsg);
+      setError(errorMsg);
     } finally {
       setLoading(false);
     }

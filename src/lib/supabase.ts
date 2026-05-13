@@ -80,7 +80,16 @@ const options: SupabaseClientOptions<'public'> = {
     },
     fetch: async (url, options = {}) => {
       try {
-        const response = await fetch(url, options);
+        // Добавляем timeout для всех запросов
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 секунд timeout
+
+        const response = await fetch(url, {
+          ...options,
+          signal: controller.signal,
+        });
+
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
           console.error('[Supabase API] Error:', {
@@ -92,6 +101,10 @@ const options: SupabaseClientOptions<'public'> = {
 
         return response;
       } catch (error) {
+        if (error instanceof Error && error.name === 'AbortError') {
+          console.error('[Supabase API] Request timeout:', { url });
+          throw new Error('Запрос превысил 30 секунд. Проверьте подключение к интернету.');
+        }
         console.error('[Supabase API] Network error:', {
           url,
           error: error instanceof Error ? error.message : 'Unknown error',
