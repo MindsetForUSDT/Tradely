@@ -2,7 +2,7 @@ import { Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Landing } from '@/pages/Landing';
 import { Features } from '@/pages/Features';
-import { Subscribe } from '@/pages/Subscribe';
+import { NewSubscribe as Subscribe } from '@/pages/NewSubscribe';
 import { Payment } from '@/pages/Payment';
 import { Dashboard } from '@/pages/Dashboard';
 import { ProAnalytics } from '@/pages/ProAnalytics';
