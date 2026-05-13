@@ -82,7 +82,7 @@ const options: SupabaseClientOptions<'public'> = {
       try {
         // Добавляем timeout для всех запросов
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 секунд timeout
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 секунд timeout (увеличено для free tier)
 
         const response = await fetch(url, {
           ...options,
