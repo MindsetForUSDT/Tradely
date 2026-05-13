@@ -39,6 +39,7 @@ export function useWallets() {
       const uid = getUserIdFromCache();
       if (!uid) {
         setWallets([]);
+        setIsLoading(false);
         return;
       }
 
@@ -48,7 +49,10 @@ export function useWallets() {
         .eq('user_id', uid)
         .order('added_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      if (fetchError) {
+        console.error('[useWallets] Fetch error:', fetchError);
+        throw fetchError;
+      }
 
       const walletData = data || [];
       setWallets(walletData);
@@ -65,7 +69,19 @@ export function useWallets() {
       });
       setSyncStatuses(statusMap);
     } catch (e: any) {
-      setError(e.message || 'Ошибка загрузки кошельков');
+      console.error('[useWallets] Error loading wallets:', e);
+
+      // Детализированное сообщение об ошибке
+      let errorMessage = 'Ошибка загрузки кошельков';
+      if (e.message?.includes('503')) {
+        errorMessage = 'База данных временно недоступна. Попробуйте позже.';
+      } else if (e.message?.includes('403')) {
+        errorMessage = 'Нет доступа к данным. Проверьте настройки безопасности.';
+      } else if (e.message?.includes('timeout') || e.message?.includes('30 секунд')) {
+        errorMessage = 'Превышено время ожидания ответа от сервера.';
+      }
+
+      setError(errorMessage);
       setWallets([]);
     } finally {
       setIsLoading(false);
