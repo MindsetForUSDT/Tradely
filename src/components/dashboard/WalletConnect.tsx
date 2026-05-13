@@ -229,8 +229,10 @@ export function WalletConnect() {
       setValidationErrors({});
       await loadWallets();
       queryClient.invalidateQueries({ queryKey: ['trades'] });
-    } catch {
-      toast.error('Сетевая ошибка');
+    } catch (error: any) {
+      console.error('[WalletConnect] Add wallet error:', error);
+      const errorMsg = error?.message || 'Сетевая ошибка при добавлении кошелька';
+      toast.error(errorMsg);
     }
     setAdding(false);
   };
@@ -282,7 +284,7 @@ export function WalletConnect() {
             setForm(INITIAL_FORM);
             setValidationErrors({});
           }}
-          className="px-4 py-2 bg-accent-green text-surface rounded-xl text-sm font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-1.5"
+          className="px-4 py-2 bg-accent-green text-white rounded-xl text-sm font-semibold hover:bg-accent-green-dim transition-all duration-200 active:scale-[0.98] inline-flex items-center gap-1.5"
         >
           <Icon name="wallet-add" size={16} /> Подключить
         </button>
@@ -537,7 +539,7 @@ export function WalletConnect() {
           <button
             onClick={handleAdd}
             disabled={adding}
-            className="w-full py-3.5 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 hover:bg-accent-green-dim transition-all active:scale-[0.98]"
+            className="w-full py-3.5 bg-accent-green text-white rounded-xl font-semibold disabled:opacity-50 hover:bg-accent-green-dim transition-all active:scale-[0.98]"
           >
             {adding ? 'Добавление...' : 'Добавить кошелёк'}
           </button>

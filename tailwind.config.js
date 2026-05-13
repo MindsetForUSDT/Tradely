@@ -30,6 +30,8 @@ export default {
           indigoLight: '#818cf8',
           emerald: '#10b981',
           emeraldLight: '#34d399',
+          green: '#00FFA3',
+          'green-dim': '#00CC82',
           red: '#ef4444',
           redLight: '#f87171',
           yellow: '#f59e0b',

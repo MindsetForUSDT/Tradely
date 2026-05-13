@@ -130,6 +130,12 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
 
     fetchTrades();
 
+    // Если подписка уже есть, не создаём новую
+    if (subscriptionRef.current) {
+      console.log('[useTradesOptimized] Subscription already exists, skipping');
+      return;
+    }
+
     subscriptionRef.current = supabase
       .channel('trades-realtime')
       .on(
@@ -163,6 +169,7 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
 
     return () => {
       subscriptionRef.current?.unsubscribe();
+      subscriptionRef.current = null;
     };
   }, [fetchTrades]);
 
