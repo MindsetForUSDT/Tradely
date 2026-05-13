@@ -18,8 +18,8 @@ function getErrorMessage(err: any): string {
   if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
     return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
   }
-  if (msg.includes('User already registered')) {
-    return 'Пользователь с таким email уже зарегистрирован';
+  if (msg.includes('already registered') || msg.includes('User already registered')) {
+    return 'Пользователь с этим email уже существует. Пожалуйста, войдите.';
   }
   if (msg.includes('Password should be')) {
     return 'Пароль слишком простой. Используйте не менее 6 символов.';
@@ -54,15 +54,18 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
     console.log('[RegisterForm] Attempting registration for:', email);
 
     try {
+      const normalizedEmail = email.toLowerCase().trim();
+
       const { data, error } = await supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: { data: { username } },
       });
 
       if (error) {
         console.error('[RegisterForm] Registration error:', error);
-        toast.error(getErrorMessage(error));
+        const errorMsg = getErrorMessage(error);
+        toast.error(errorMsg);
         setLoading(false);
         return;
       }
@@ -85,10 +88,18 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
         });
 
         toast.success('Аккаунт создан!');
-        navigate('/subscribe', { replace: true });
+        localStorage.removeItem('lastRegistrationEmail');
+        navigate('/dashboard', { replace: true });
       } else {
         console.log('[RegisterForm] No session - email confirmation may be required');
-        toast.success('Проверьте email для подтверждения аккаунта');
+        toast.success(
+          'Письмо с подтверждением отправлено на ' +
+            normalizedEmail +
+            '. Проверьте почту и подтвердите аккаунт, затем войдите.'
+        );
+        // Сохраняем email для удобства входа
+        localStorage.setItem('lastRegistrationEmail', normalizedEmail);
+        onSwitchToLogin();
       }
     } catch (err) {
       console.error('[RegisterForm] Unexpected error:', err);

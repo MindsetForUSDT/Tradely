@@ -51,16 +51,20 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
 
     setLoading(true);
     console.log('[LoginForm] Attempting login for:', email.trim());
+    toast.loading('Входим в аккаунт...', { duration: 10000 });
 
     try {
+      const normalizedEmail = email.trim().toLowerCase();
+
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
       });
 
       if (error) {
         console.error('[LoginForm] Login error:', error);
-        toast.error(getErrorMessage(error));
+        const errorMsg = getErrorMessage(error);
+        toast.error(errorMsg);
         setLoading(false);
         return;
       }
@@ -71,23 +75,26 @@ export function LoginForm({ savedEmail, onSwitchToRegister, onSwitchToReset }: L
         hasSession: !!data?.session,
       });
 
-      if (data?.session) {
-        console.log('[LoginForm] Updating AuthContext with user:', data.session.user.id);
-
-        setUser?.({
-          id: data.session.user.id,
-          username: data.session.user.email || 'User',
-          email: data.session.user.email,
-          subscription_tier: 'free',
-          created_at: data.session.user.created_at,
-        });
-
-        toast.success('Вход выполнен!');
-        navigate('/dashboard', { replace: true });
-      } else {
+      if (!data?.session) {
         console.error('[LoginForm] No session returned from login');
         toast.error('Ошибка: сессия не создана');
+        setLoading(false);
+        return;
       }
+
+      console.log('[LoginForm] Updating AuthContext with user:', data.session.user.id);
+
+      setUser?.({
+        id: data.session.user.id,
+        username: data.session.user.email || 'User',
+        email: data.session.user.email,
+        subscription_tier: 'free',
+        created_at: data.session.user.created_at,
+      });
+
+      toast.success('Вход выполнен!');
+      localStorage.removeItem('lastRegistrationEmail');
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       console.error('[LoginForm] Unexpected error:', err);
       toast.error(getErrorMessage(err));

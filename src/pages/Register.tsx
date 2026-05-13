@@ -18,8 +18,8 @@ function getErrorMessage(err: any): string {
   if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
     return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
   }
-  if (msg.includes('User already registered')) {
-    return 'Этот email уже зарегистрирован. Попробуйте войти или восстановить пароль.';
+  if (msg.includes('User already registered') || msg.includes('already registered')) {
+    return 'Пользователь с этим email уже существует. Пожалуйста, войдите.';
   }
   if (msg.includes('Password should be')) {
     return 'Пароль слишком простой. Используйте не менее 6 символов.';
@@ -69,7 +69,7 @@ export function Register() {
   }, []);
 
   const handleEmailChange = (value: string) => {
-    setEmail(value);
+    setEmail(value.toLowerCase().trim());
     setError('');
     if (touched.email) validateField('email', value);
   };
@@ -108,9 +108,10 @@ export function Register() {
     toast.loading('Создаём аккаунт...', { duration: 15000 });
 
     try {
-      // Добавляем timeout для запроса
+      const normalizedEmail = email.toLowerCase().trim();
+
       const registerPromise = supabase.auth.signUp({
-        email,
+        email: normalizedEmail,
         password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth/callback`,
@@ -125,21 +126,38 @@ export function Register() {
       ]);
 
       if (error) {
-        toast.error(getErrorMessage(error));
-        setError(getErrorMessage(error));
+        const errorMsg = getErrorMessage(error);
+        toast.error(errorMsg);
+        setError(errorMsg);
         setLoading(false);
         return;
       }
 
-      if (!data || !data.user) {
+      console.log('[Register] Registration result:', {
+        userId: data?.user?.id,
+        email: data?.user?.email,
+        hasSession: !!data?.session,
+      });
+
+      if (data?.session) {
+        // Успешная регистрация с сессией
+        toast.success('Аккаунт создан успешно!');
+        navigate('/dashboard', { replace: true });
+      } else if (data?.user) {
+        // Регистрация успешна, но требуется подтверждение email
+        toast.success(
+          'Письмо с подтверждением отправлено на ' +
+            normalizedEmail +
+            '. Проверьте почту и подтвердите аккаунт, затем войдите.'
+        );
+        // Перенаправляем на вход с предзаполненным email
+        navigate('/login', { replace: true });
+        // Сохраняем email в localStorage для удобства
+        localStorage.setItem('lastRegistrationEmail', normalizedEmail);
+      } else {
         toast.error('Не удалось создать аккаунт. Попробуйте позже.');
         setError('Не удалось создать аккаунт');
-        setLoading(false);
-        return;
       }
-
-      toast.success('Аккаунт создан! Перенаправляем...');
-      navigate('/dashboard', { replace: true });
     } catch (err: any) {
       const errorMsg = err?.message || 'Произошла ошибка при регистрации';
       toast.error(errorMsg);
@@ -148,6 +166,14 @@ export function Register() {
       setLoading(false);
     }
   };
+
+  // Загрузка последнего зарегистрированного email
+  useEffect(() => {
+    const lastEmail = localStorage.getItem('lastRegistrationEmail');
+    if (lastEmail && !email) {
+      setEmail(lastEmail);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 bg-[#0a0a0f]">

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabase';
@@ -29,6 +29,14 @@ export function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
+  // Предзаполнить email из последней регистрации
+  useEffect(() => {
+    const lastEmail = localStorage.getItem('lastRegistrationEmail');
+    if (lastEmail && !email) {
+      setEmail(lastEmail);
+    }
+  }, []);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -47,9 +55,11 @@ export function Login() {
     toast.loading('Входим в аккаунт...', { duration: 10000 });
 
     try {
+      const normalizedEmail = email.toLowerCase().trim();
+
       // Добавляем timeout для запроса
       const loginPromise = supabase.auth.signInWithPassword({
-        email,
+        email: normalizedEmail,
         password,
       });
 
@@ -61,8 +71,9 @@ export function Login() {
       ]);
 
       if (error) {
-        toast.error(getErrorMessage(error));
-        setError(getErrorMessage(error));
+        const errorMsg = getErrorMessage(error);
+        toast.error(errorMsg);
+        setError(errorMsg);
         return;
       }
 
@@ -72,7 +83,16 @@ export function Login() {
         return;
       }
 
+      console.log('[Login] Login successful:', {
+        userId: data.user.id,
+        email: data.user.email,
+      });
+
       toast.success('Успешный вход!');
+
+      // Очищаем localStorage после успешного входа
+      localStorage.removeItem('lastRegistrationEmail');
+
       navigate('/dashboard', { replace: true });
     } catch (err: any) {
       const errorMsg = err?.message || 'Произошла ошибка при входе';
