@@ -7,11 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Валидные планы и цены
-const VALID_PLANS: Record<string, { price: number; currency: string }> = {
-  pro_monthly: { price: 29.99, currency: 'USD' },
-  pro_yearly: { price: 299.99, currency: 'USD' },
-  enterprise_monthly: { price: 99.99, currency: 'USD' },
+const VALID_PLANS: Record<string, { price: number; currency: string; duration_days: number }> = {
+  pro_monthly: { price: 499, currency: 'RUB', duration_days: 30 },
+  pro_yearly: { price: 4790, currency: 'RUB', duration_days: 365 },
 };
 
 serve(async (req: Request) => {
@@ -20,7 +18,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Проверка авторизации
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
       return new Response(JSON.stringify({ error: 'Unauthorized' }), {
@@ -32,9 +29,16 @@ serve(async (req: Request) => {
     const token = authHeader.split(' ')[1];
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+
+    if (!supabaseUrl || !supabaseKey) {
+      return new Response(JSON.stringify({ error: 'Server configuration error' }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Верификация JWT
     const {
       data: { user },
       error: authError,
@@ -46,10 +50,18 @@ serve(async (req: Request) => {
       });
     }
 
-    // Парсинг тела запроса
-    const { plan, provider = 'stripe' } = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
-    // Валидация плана
+    const { plan, provider = 'stripe' } = body;
+
     const planConfig = VALID_PLANS[plan];
     if (!planConfig) {
       return new Response(
@@ -64,63 +76,51 @@ serve(async (req: Request) => {
       );
     }
 
-    // Проверяем, нет ли уже активной подписки
-    const { data: existingSub } = await supabase
-      .from('user_subscriptions')
-      .select('tier, status, expires_at')
-      .eq('user_id', user.id)
-      .eq('status', 'active')
-      .maybeSingle();
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('subscription_tier, subscription_expires_at')
+      .eq('id', user.id)
+      .single();
 
-    if (existingSub) {
-      // Если подписка активна и пытаемся купить тот же уровень
-      if (existingSub.tier === 'pro' && plan.startsWith('pro')) {
-        return new Response(
-          JSON.stringify({
-            error: 'You already have an active Pro subscription',
-            expiresAt: existingSub.expires_at,
-          }),
-          {
-            status: 409,
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          }
-        );
-      }
+    if (profile?.subscription_tier === 'pro' && plan.startsWith('pro')) {
+      return new Response(
+        JSON.stringify({
+          error: 'У вас уже активна подписка Pro',
+          expiresAt: profile.subscription_expires_at,
+        }),
+        {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      );
     }
 
-    // Генерация идемпотентного ключа
-    const idempotencyKey = `${user.id}_${plan}_${Date.now()}`;
+    const paymentId = crypto.randomUUID();
+    const paymentUrl = `/payment/confirm?plan=${plan}&id=${paymentId}`;
 
-    // Создание платежа (заглушка — в реальности вызов Stripe/Crypto API)
-    const mockPaymentUrl = `https://payment.tradeumdiary.com/pay?plan=${plan}&userId=${user.id}&key=${idempotencyKey}`;
-
-    // Логируем создание платежа
-    await supabase.from('payment_attempts').insert({
+    await supabase.from('payment_logs').insert({
       user_id: user.id,
-      plan,
-      provider,
-      idempotency_key: idempotencyKey,
-      status: 'pending',
-      amount: planConfig.price,
-      currency: planConfig.currency,
+      event: 'payment_initiated',
+      data: { plan, provider, amount: planConfig.price, currency: planConfig.currency },
       created_at: new Date().toISOString(),
     });
 
     return new Response(
       JSON.stringify({
         success: true,
-        paymentUrl: mockPaymentUrl,
+        paymentUrl,
         amount: planConfig.price,
         currency: planConfig.currency,
         plan,
+        paymentId,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
   } catch (e: any) {
-    console.error('Create payment error:', e.message);
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
+    console.error('Create payment error:', e.message, e.stack);
+    return new Response(JSON.stringify({ error: 'Internal server error', details: e.message }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
