@@ -186,8 +186,10 @@ export function WalletConnect() {
         chain: form.network,
         label: form.label || form.web3Provider || form.cexProvider || form.type || 'Кошелёк',
         encrypted_credentials: encryptedData?.encrypted_data || null,
-        credentials_iv: encryptedData?.iv || null,
-        credentials_tag: encryptedData?.tag || null,
+        credentials_iv: encryptedData?.iv ? Buffer.from(encryptedData.iv, 'hex') : null,
+        credentials_tag: encryptedData?.tag ? Buffer.from(encryptedData.tag, 'hex') : null,
+        web3_provider: form.web3Provider || null,
+        cex_provider: form.cexProvider || null,
         processing_status: 'pending',
       };
 

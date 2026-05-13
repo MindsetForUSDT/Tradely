@@ -75,6 +75,13 @@ CREATE TABLE IF NOT EXISTS public.wallets (
     error_message TEXT,
     added_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
+    -- Колонки для шифрования API-ключей бирж
+    encrypted_credentials TEXT,
+    credentials_iv BYTEA,
+    credentials_tag BYTEA,
+    web3_provider TEXT,
+    cex_provider TEXT,
+
     -- Один пользователь не может добавить один и тот же адрес дважды
     CONSTRAINT unique_wallet_per_user UNIQUE (user_id, address, chain)
 );
@@ -84,6 +91,8 @@ CREATE INDEX IF NOT EXISTS idx_wallets_user_id ON public.wallets(user_id);
 CREATE INDEX IF NOT EXISTS idx_wallets_processing_status ON public.wallets(processing_status)
     WHERE processing_status IN ('pending', 'processing');
 CREATE INDEX IF NOT EXISTS idx_wallets_chain ON public.wallets(chain);
+CREATE INDEX IF NOT EXISTS idx_wallets_web3_provider ON public.wallets(web3_provider);
+CREATE INDEX IF NOT EXISTS idx_wallets_cex_provider ON public.wallets(cex_provider);
 
 COMMENT ON TABLE public.wallets IS 'Кошельки пользователей для автоматического импорта сделок';
 COMMENT ON COLUMN public.wallets.address IS 'Адрес кошелька, зашифрованный pgcrypto';
