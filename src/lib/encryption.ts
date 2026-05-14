@@ -1,5 +1,67 @@
 ﻿// lib/encryption.ts — СЕРВЕРНОЕ ШИФРОВАНИЕ ЧЕРЕЗ EDGE FUNCTION
+// Улучшенная версия с дополнительными мерами безопасности
 import { supabase } from '@/lib/supabase';
+
+// Константы валидации
+const MAX_API_KEY_LENGTH = 256;
+const MAX_API_SECRET_LENGTH = 512;
+const REQUEST_TIMEOUT_MS = 15000;
+
+/**
+ * Валидация входных данных перед шифрованием
+ */
+function validateCredentials(
+  apiKey: unknown,
+  apiSecret: unknown
+): {
+  valid: boolean;
+  error?: string;
+} {
+  if (typeof apiKey !== 'string' || typeof apiSecret !== 'string') {
+    return { valid: false, error: 'API key and secret must be strings' };
+  }
+
+  if (!apiKey.trim() || !apiSecret.trim()) {
+    return { valid: false, error: 'API key and secret cannot be empty' };
+  }
+
+  if (apiKey.length > MAX_API_KEY_LENGTH) {
+    return { valid: false, error: `API key exceeds maximum length of ${MAX_API_KEY_LENGTH}` };
+  }
+
+  if (apiSecret.length > MAX_API_SECRET_LENGTH) {
+    return { valid: false, error: `API secret exceeds maximum length of ${MAX_API_SECRET_LENGTH}` };
+  }
+
+  // Проверка на потенциально вредоносные символы
+  const suspiciousPatterns = [
+    /[\0\r\n]/, // Null bytes, carriage returns, newlines
+    /<script/i, // XSS attempts
+    /javascript:/i, // XSS protocol
+  ];
+
+  const combinedInput = apiKey + apiSecret;
+  for (const pattern of suspiciousPatterns) {
+    if (pattern.test(combinedInput)) {
+      return { valid: false, error: 'Invalid characters detected' };
+    }
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Безопасное логирование (без чувствительных данных)
+ */
+function secureLog(action: string, details?: Record<string, unknown>) {
+  const safeDetails = {
+    action,
+    timestamp: new Date().toISOString(),
+    ...details,
+  };
+  // Не логируем apiKey, apiSecret и другие чувствительные данные
+  console.log('[encryption]', JSON.stringify(safeDetails));
+}
 
 /**
  * Шифрует API-ключи биржи через серверную Edge Function
@@ -13,6 +75,17 @@ export async function encryptApiCredentials(
   iv: string;
   tag: string;
 }> {
+  // Валидация входных данных
+  const validation = validateCredentials(apiKey, apiSecret);
+  if (!validation.valid) {
+    secureLog('validation_failure', { reason: validation.error });
+    throw new Error(validation.error);
+  }
+
+  // Санитизация ввода
+  const sanitizedApiKey = apiKey.trim();
+  const sanitizedApiSecret = apiSecret.trim();
+
   try {
     const {
       data: { session },
@@ -20,29 +93,41 @@ export async function encryptApiCredentials(
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
     if (!supabaseUrl) {
+      secureLog('error', { issue: 'supabase_url_not_configured' });
       throw new Error('Supabase URL not configured');
     }
+
+    // Контроль таймаута запроса
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
     // Вызываем Edge Function для шифрования
     const response = await fetch(`${supabaseUrl}/functions/v1/encrypt-credentials`, {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         'x-api-key': session?.access_token || '',
       },
-      body: JSON.stringify({ apiKey, apiSecret }),
+      body: JSON.stringify({ apiKey: sanitizedApiKey, apiSecret: sanitizedApiSecret }),
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ error: 'Encryption failed' }));
-      console.error('[encryptApiCredentials] Server error:', errorData);
+      secureLog('encryption_failed', { status: response.status, error: 'server_rejected' });
 
       // Если функция недоступна, используем простое шифрование для тестирования
-      console.warn('[encryptApiCredentials] Falling back to client-side encryption');
+      secureLog('fallback', { reason: 'edge_function_unavailable' });
 
       const encoder = new TextEncoder();
-      const data = JSON.stringify({ apiKey, apiSecret, timestamp: Date.now() });
+      const data = JSON.stringify({
+        apiKey: sanitizedApiKey,
+        apiSecret: sanitizedApiSecret,
+        timestamp: Date.now(),
+      });
       const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
         'encrypt',
       ]);
@@ -61,15 +146,42 @@ export async function encryptApiCredentials(
       };
     }
 
-    const result = await response.json();
-
-    if (!result.encrypted_data || !result.iv) {
-      throw new Error('Invalid encryption response');
+    // Валидация ответа сервера
+    let result: unknown;
+    try {
+      result = await response.json();
+    } catch {
+      secureLog('parse_error', { error: 'invalid_json_response' });
+      throw new Error('Invalid server response');
     }
 
-    return result;
+    if (
+      typeof result !== 'object' ||
+      result === null ||
+      typeof (result as Record<string, unknown>).encrypted_data !== 'string' ||
+      typeof (result as Record<string, unknown>).iv !== 'string'
+    ) {
+      secureLog('validation_failure', { reason: 'invalid_response_structure' });
+      throw new Error('Invalid encryption response format');
+    }
+
+    secureLog('success', { action: 'credentials_encrypted' });
+
+    return result as {
+      encrypted_data: string;
+      iv: string;
+      tag: string;
+    };
   } catch (error) {
-    console.error('[encryptApiCredentials] Error:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      secureLog('timeout', { action: 'encrypt_api_credentials' });
+      throw new Error('Encryption request timed out');
+    }
+
+    secureLog('error', {
+      type: error instanceof Error ? error.name : 'UnknownError',
+      message: 'Failed to encrypt credentials',
+    });
     throw error;
   }
 }
@@ -81,30 +193,98 @@ export async function decryptApiCredentials(
   encryptedData: string,
   iv: string
 ): Promise<{ apiKey: string; apiSecret: string }> {
+  // Валидация входных данных
+  if (typeof encryptedData !== 'string' || typeof iv !== 'string') {
+    secureLog('validation_failure', { reason: 'invalid_input_type' });
+    throw new Error('Encrypted data and IV must be strings');
+  }
+
+  if (!encryptedData.trim() || !iv.trim()) {
+    secureLog('validation_failure', { reason: 'empty_input' });
+    throw new Error('Encrypted data and IV cannot be empty');
+  }
+
+  // Проверка формата base64
+  try {
+    const encryptedBytes = Uint8Array.from(atob(encryptedData), (c) => c.charCodeAt(0));
+    const ivBytes = Uint8Array.from(atob(iv), (c) => c.charCodeAt(0));
+
+    if (encryptedBytes.length < 32) {
+      secureLog('validation_failure', { reason: 'encrypted_data_too_short' });
+      throw new Error('Encrypted data too short');
+    }
+
+    if (ivBytes.length !== 12) {
+      secureLog('validation_failure', { reason: 'invalid_iv_length' });
+      throw new Error('Invalid IV length');
+    }
+  } catch {
+    secureLog('validation_failure', { reason: 'invalid_base64_encoding' });
+    throw new Error('Invalid encryption data format');
+  }
+
   try {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 
     if (!supabaseUrl) {
+      secureLog('error', { issue: 'supabase_url_not_configured' });
       throw new Error('Supabase URL not configured');
     }
 
+    // Контроль таймаута запроса
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
     const response = await fetch(`${supabaseUrl}/functions/v1/decrypt-credentials`, {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ encrypted_data: encryptedData, iv }),
+      body: JSON.stringify({ encrypted_data: encryptedData.trim(), iv: iv.trim() }),
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Decryption failed' }));
+      secureLog('decryption_failed', { status: response.status });
       throw new Error(error.error || `Server returned ${response.status}`);
     }
 
-    return await response.json();
+    // Валидация ответа
+    let result: unknown;
+    try {
+      result = await response.json();
+    } catch {
+      secureLog('parse_error', { error: 'invalid_json_response' });
+      throw new Error('Invalid server response');
+    }
+
+    if (
+      typeof result !== 'object' ||
+      result === null ||
+      typeof (result as Record<string, unknown>).apiKey !== 'string' ||
+      typeof (result as Record<string, unknown>).apiSecret !== 'string'
+    ) {
+      secureLog('validation_failure', { reason: 'invalid_response_structure' });
+      throw new Error('Invalid decryption response format');
+    }
+
+    secureLog('success', { action: 'credentials_decrypted' });
+
+    return result as { apiKey: string; apiSecret: string };
   } catch (error) {
-    console.error('[decryptApiCredentials] Error:', error);
+    if (error instanceof Error && error.name === 'AbortError') {
+      secureLog('timeout', { action: 'decrypt_api_credentials' });
+      throw new Error('Decryption request timed out');
+    }
+
+    secureLog('error', {
+      type: error instanceof Error ? error.name : 'UnknownError',
+      message: 'Failed to decrypt credentials',
+    });
     throw error;
   }
 }

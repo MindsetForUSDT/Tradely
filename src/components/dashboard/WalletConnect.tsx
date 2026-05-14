@@ -1,4 +1,4 @@
-// components/dashboard/WalletConnect.tsx — ФИНАЛЬНАЯ БЕЗОПАСНАЯ ВЕРСИЯ
+// components/dashboard/WalletConnect.tsx — Улучшенная версия с интеграцией ExchangeAdapter
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Card } from '@/components/ui/Card';
 import { supabase } from '@/lib/supabase';
@@ -12,7 +12,7 @@ import { encryptApiCredentials } from '@/lib/encryption';
 // Типы
 type WalletType = 'web3' | 'cex' | 'watch-only' | 'import' | 'hardware' | 'qr';
 type Web3Provider = 'metamask' | 'walletconnect' | 'coinbase' | 'brave';
-type CEXProvider = 'binance' | 'bybit' | 'okx' | 'kucoin';
+type CEXProvider = 'binance' | 'bybit' | 'okx' | 'kucoin' | 'kraken' | 'gateio';
 type Network =
   | 'ethereum'
   | 'solana'
@@ -31,7 +31,11 @@ interface WalletFormData {
   address: string;
   apiKey: string;
   apiSecret: string;
+  apiPassphrase: string; // Для OKX, Coinbase
   label: string;
+  startDate: string; // Дата начала импорта
+  autoSync: boolean; // Автосинхронизация
+  syncInterval: number; // Интервал синхронизации (минуты)
 }
 
 const NETWORKS = [
@@ -52,12 +56,43 @@ const WEB3_PROVIDERS = [
   { value: 'brave' as Web3Provider, label: 'Brave Wallet', icon: 'brave' as const },
 ];
 
-const CEX_PROVIDERS = [
-  { value: 'binance' as CEXProvider, label: 'Binance', icon: 'binance' as const },
-  { value: 'bybit' as CEXProvider, label: 'Bybit', icon: 'bybit' as const },
-  { value: 'okx' as CEXProvider, label: 'OKX', icon: 'okx' as const },
-  { value: 'kucoin' as CEXProvider, label: 'KuCoin', icon: 'kucoin' as const },
-];
+const CEX_PROVIDERS: Array<{ value: CEXProvider; label: string; icon: string; guideUrl?: string }> =
+  [
+    {
+      value: 'binance',
+      label: 'Binance',
+      icon: 'binance',
+      guideUrl: 'https://www.binance.com/en/my/settings/api-management',
+    },
+    { value: 'bybit', label: 'Bybit', icon: 'bybit', guideUrl: 'https://www.bybit.com/en-US/api/' },
+    { value: 'okx', label: 'OKX', icon: 'okx', guideUrl: 'https://www.okx.com/account/my-api' },
+    {
+      value: 'kucoin',
+      label: 'KuCoin',
+      icon: 'kucoin',
+      guideUrl: 'https://www.kucoin.com/account/api',
+    },
+    {
+      value: 'kraken',
+      label: 'Kraken',
+      icon: 'alert',
+      guideUrl: 'https://www.kraken.com/myaccount/api',
+    },
+    {
+      value: 'gateio',
+      label: 'Gate.io',
+      icon: 'alert',
+      guideUrl: 'https://www.gate.io/account/api',
+    },
+  ];
+
+// Приведение типа для иконок
+type CEXProviderIcon = 'binance' | 'bybit' | 'okx' | 'kucoin' | 'alert';
+
+const CEX_PROVIDERS_TYPED = CEX_PROVIDERS.map((p) => ({
+  ...p,
+  icon: p.icon as CEXProviderIcon,
+}));
 
 const INITIAL_FORM: WalletFormData = {
   type: null,
@@ -67,7 +102,11 @@ const INITIAL_FORM: WalletFormData = {
   address: '',
   apiKey: '',
   apiSecret: '',
+  apiPassphrase: '',
   label: '',
+  startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 дней назад
+  autoSync: true,
+  syncInterval: 60, // 1 час по умолчанию
 };
 
 export function WalletConnect() {
@@ -165,19 +204,36 @@ export function WalletConnect() {
 
     setVerifying(true);
     try {
-      // Локальная валидация API ключей без вызова edge function
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      // Шифруем ключи для тестового подключения
+      const encryptedData = await encryptApiCredentials(form.apiKey, form.apiSecret);
 
-      const keyValid = form.apiKey.length >= 16;
-      const secretValid = form.apiSecret.length >= 16;
+      // Вызываем Edge Function для тестирования подключения
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const response = await fetch(`${supabaseUrl}/functions/v1/test-exchange-connection`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          exchange: form.cexProvider,
+          encrypted_credentials: encryptedData.encrypted_data,
+          iv: encryptedData.iv,
+        }),
+      });
 
-      if (keyValid && secretValid) {
-        toast.success('Формат API ключей корректен');
-      } else {
-        toast.error('Неверный формат API ключей');
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || result.message || 'Connection failed');
       }
+
+      toast.success(
+        `${result.message || 'Подключение успешно!'} Найдено активов: ${Object.keys(result.balances?.total || {}).length}`
+      );
     } catch (e: any) {
-      toast.error('Ошибка: ' + e.message);
+      console.error('[WalletConnect] Verify error:', e);
+      toast.error('Ошибка подключения: ' + e.message);
     }
     setVerifying(false);
   };
@@ -214,6 +270,12 @@ export function WalletConnect() {
         web3_provider: form.web3Provider || null,
         cex_provider: form.cexProvider || null,
         processing_status: 'pending',
+        settings: JSON.stringify({
+          startDate: form.startDate,
+          autoSync: form.autoSync,
+          syncInterval: form.syncInterval,
+          ...(form.apiPassphrase && { passphrase: form.apiPassphrase }),
+        }),
       };
 
       const { error } = await supabase.from('wallets').insert(walletData);
@@ -224,6 +286,26 @@ export function WalletConnect() {
       }
 
       toast.success('Кошелёк добавлен! Начинаем синхронизацию...');
+
+      // Запускаем синхронизацию
+      const { data: wallets } = await supabase
+        .from('wallets')
+        .select('id')
+        .eq('user_id', uid)
+        .order('added_at', { ascending: false })
+        .limit(1);
+
+      if (wallets?.[0]?.id) {
+        // Запускаем синхронизацию в фоне
+        await supabase.functions.invoke('sync-wallet-trades', {
+          body: {
+            walletId: wallets[0].id,
+            forceFullSync: true,
+            startDate: form.startDate,
+          },
+        });
+      }
+
       setForm(INITIAL_FORM);
       setStep('select');
       setValidationErrors({});
@@ -398,7 +480,7 @@ export function WalletConnect() {
           {form.type === 'cex' && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-3">
-                {CEX_PROVIDERS.map((p) => (
+                {CEX_PROVIDERS_TYPED.map((p) => (
                   <button
                     key={p.value}
                     onClick={() => {
@@ -431,14 +513,30 @@ export function WalletConnect() {
               </div>
               {form.cexProvider && (
                 <div className="space-y-4 pt-2">
+                  {/* Инструкция по созданию API ключа */}
                   <div className="p-4 rounded-xl bg-accent-green/5 border border-accent-green/20">
-                    <p className="text-accent-green font-semibold text-sm inline-flex items-center gap-1.5">
-                      <Icon name="shield" size={14} /> Только чтение (Read-only)
+                    <p className="text-accent-green font-semibold text-sm inline-flex items-center gap-1.5 mb-2">
+                      <Icon name="wallet" size={14} /> Только чтение (Read-only)
                     </p>
-                    <p className="text-text-secondary text-xs mt-1.5 leading-relaxed">
+                    <p className="text-text-secondary text-xs leading-relaxed mb-3">
                       Создайте API ключ с правами только на чтение. Ваши средства в безопасности.
+                      Никогда не давайте права на торговлю или вывод средств!
                     </p>
+                    {CEX_PROVIDERS_TYPED.find((p) => p.value === form.cexProvider)?.guideUrl && (
+                      <a
+                        href={
+                          CEX_PROVIDERS_TYPED.find((p) => p.value === form.cexProvider)!.guideUrl!
+                        }
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-accent-green hover:underline"
+                      >
+                        Инструкция для{' '}
+                        {CEX_PROVIDERS_TYPED.find((p) => p.value === form.cexProvider)?.label}
+                      </a>
+                    )}
                   </div>
+
                   <div className="space-y-1">
                     <label className="text-xs text-text-muted font-medium">API Key</label>
                     <input
@@ -457,6 +555,7 @@ export function WalletConnect() {
                       <p className="text-xs text-accent-red mt-1">{validationErrors.apiKey}</p>
                     )}
                   </div>
+
                   <div className="space-y-1">
                     <label className="text-xs text-text-muted font-medium">API Secret</label>
                     <input
@@ -475,6 +574,89 @@ export function WalletConnect() {
                       <p className="text-xs text-accent-red mt-1">{validationErrors.apiSecret}</p>
                     )}
                   </div>
+
+                  {/* Passphrase для OKX */}
+                  {form.cexProvider === 'okx' && (
+                    <div className="space-y-1">
+                      <label className="text-xs text-text-muted font-medium">
+                        API Passphrase <span className="text-accent-green">*</span>
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="Введите Passphrase"
+                        value={form.apiPassphrase}
+                        onChange={(e) => setForm({ ...form, apiPassphrase: e.target.value })}
+                        className={cn(
+                          'w-full px-4 py-3 bg-surface-elevated border rounded-xl text-sm text-white font-mono focus:outline-none focus:ring-2 transition-all',
+                          validationErrors.apiPassphrase
+                            ? 'border-accent-red focus:ring-accent-red/30'
+                            : 'border-surface-border focus:ring-accent-green/30'
+                        )}
+                      />
+                      {validationErrors.apiPassphrase && (
+                        <p className="text-xs text-accent-red mt-1">
+                          {validationErrors.apiPassphrase}
+                        </p>
+                      )}
+                      <p className="text-xs text-text-muted mt-1">
+                        Требуется для OKX. Указывался при создании API ключа.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Настройки импорта */}
+                  <div className="p-4 rounded-xl bg-surface-elevated border border-surface-border space-y-3">
+                    <p className="text-sm font-semibold">Настройки импорта</p>
+
+                    <div className="space-y-1">
+                      <label className="text-xs text-text-muted font-medium">
+                        Импортировать сделки с
+                      </label>
+                      <input
+                        type="date"
+                        value={form.startDate}
+                        onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                        className="w-full px-3 py-2 bg-surface-overlay border border-surface-border rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        id="autoSync"
+                        checked={form.autoSync}
+                        onChange={(e) => setForm({ ...form, autoSync: e.target.checked })}
+                        className="w-4 h-4 rounded bg-surface-overlay border-surface-border text-accent-green focus:ring-accent-green"
+                      />
+                      <label htmlFor="autoSync" className="text-sm text-text-primary">
+                        Автосинхронизация
+                      </label>
+                    </div>
+
+                    {form.autoSync && (
+                      <div className="space-y-1">
+                        <label className="text-xs text-text-muted font-medium">
+                          Интервал синхронизации
+                        </label>
+                        <select
+                          value={form.syncInterval}
+                          onChange={(e) =>
+                            setForm({ ...form, syncInterval: parseInt(e.target.value) })
+                          }
+                          className="w-full px-3 py-2 bg-surface-overlay border border-surface-border rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
+                        >
+                          <option value={15}>Каждые 15 минут</option>
+                          <option value={30}>Каждые 30 минут</option>
+                          <option value={60}>Каждый час</option>
+                          <option value={180}>Каждые 3 часа</option>
+                          <option value={360}>Каждые 6 часов</option>
+                          <option value={720}>Каждые 12 часов</option>
+                          <option value={1440}>Ежедневно</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+
                   <button
                     onClick={handleVerify}
                     disabled={verifying}
