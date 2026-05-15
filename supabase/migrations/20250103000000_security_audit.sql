@@ -1,6 +1,6 @@
 -- ============================================
 -- TradeumDiary - Схема аудита безопасности
--- Версия: 1.0
+-- Версия: 1.1 (исправлено)
 -- Дата: 2025-01-03
 -- ============================================
 
@@ -69,21 +69,83 @@ CREATE INDEX IF NOT EXISTS idx_anomaly_alerts_user_id ON public.anomaly_alerts(u
 CREATE INDEX IF NOT EXISTS idx_anomaly_alerts_severity ON public.anomaly_alerts(severity) WHERE severity IN ('HIGH', 'CRITICAL');
 CREATE INDEX IF NOT EXISTS idx_anomaly_alerts_status ON public.anomaly_alerts(status) WHERE status = 'NEW';
 
--- 1.3 Счетчики для rate limiting
+-- 1.3 Счётчики для rate limiting (ИСПРАВЛЕНО: window -> time_window_ms)
 CREATE TABLE IF NOT EXISTS public.rate_limit_counts (
     id BIGSERIAL PRIMARY KEY,
     key TEXT NOT NULL UNIQUE,
-    window INTEGER NOT NULL,
+    time_window_ms INTEGER NOT NULL,
     count INTEGER NOT NULL DEFAULT 1,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-COMMENT ON TABLE public.rate_limit_counts IS 'Счетчики для rate limiting';
+COMMENT ON TABLE public.rate_limit_counts IS 'Счётчики для rate limiting';
 
 -- Индексы для rate_limit_counts
 CREATE INDEX IF NOT EXISTS idx_rate_limit_counts_key ON public.rate_limit_counts(key);
-CREATE INDEX IF NOT EXISTS idx_rate_limit_counts_window ON public.rate_limit_counts(window);
+CREATE INDEX IF NOT EXISTS idx_rate_limit_counts_window ON public.rate_limit_counts(time_window_ms);
+
+-- 1.4 Отслеживание неудачных попыток аутентификации
+CREATE TABLE IF NOT EXISTS public.auth_failures (
+    id BIGSERIAL PRIMARY KEY,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    ip_address INET,
+    
+    reason TEXT NOT NULL,
+    failure_count INTEGER NOT NULL DEFAULT 1,
+    
+    metadata JSONB DEFAULT '{}'
+);
+
+COMMENT ON TABLE public.auth_failures IS 'Отслеживание неудачных попыток аутентификации';
+
+-- Индексы для auth_failures
+CREATE INDEX IF NOT EXISTS idx_auth_failures_timestamp ON public.auth_failures(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_auth_failures_user_id ON public.auth_failures(user_id);
+CREATE INDEX IF NOT EXISTS idx_auth_failures_ip ON public.auth_failures(ip_address);
+
+-- 1.5 Отслеживание неудач расшифровки
+CREATE TABLE IF NOT EXISTS public.decryption_failures (
+    id BIGSERIAL PRIMARY KEY,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    
+    reason TEXT NOT NULL,
+    encrypted_data_hash TEXT,
+    
+    metadata JSONB DEFAULT '{}'
+);
+
+COMMENT ON TABLE public.decryption_failures IS 'Отслеживание неудачных попыток расшифровки';
+
+-- Индексы для decryption_failures
+CREATE INDEX IF NOT EXISTS idx_decryption_failures_timestamp ON public.decryption_failures(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_decryption_failures_user_id ON public.decryption_failures(user_id);
+
+-- 1.6 Отслеживание API запросов для анализа
+CREATE TABLE IF NOT EXISTS public.api_requests (
+    id BIGSERIAL PRIMARY KEY,
+    timestamp TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    user_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+    
+    endpoint TEXT NOT NULL,
+    method TEXT NOT NULL,
+    status_code INTEGER NOT NULL,
+    
+    response_time_ms INTEGER,
+    ip_address INET,
+    
+    metadata JSONB DEFAULT '{}'
+);
+
+COMMENT ON TABLE public.api_requests IS 'Лог API запросов для анализа и детекции аномалий';
+
+-- Индексы для api_requests
+CREATE INDEX IF NOT EXISTS idx_api_requests_timestamp ON public.api_requests(timestamp DESC);
+CREATE INDEX IF NOT EXISTS idx_api_requests_user_id ON public.api_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_api_requests_endpoint ON public.api_requests(endpoint);
+CREATE INDEX IF NOT EXISTS idx_api_requests_status ON public.api_requests(status_code) WHERE status_code >= 400;
 
 -- Очистка старых записей (старше 24 часов)
 CREATE OR REPLACE FUNCTION public.cleanup_old_rate_limits()
