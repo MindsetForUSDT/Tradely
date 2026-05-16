@@ -112,6 +112,7 @@ const INITIAL_FORM: WalletFormData = {
 
 export function WalletConnect() {
   const [wallets, setWallets] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [step, setStep] = useState<'select' | 'details' | 'verify'>('select');
   const [form, setForm] = useState<WalletFormData>(INITIAL_FORM);
   const [adding, setAdding] = useState(false);
@@ -127,8 +128,12 @@ export function WalletConnect() {
 
   const loadWallets = async () => {
     const uid = await getUserIdFromCacheAsync();
-    if (!uid) return;
+    if (!uid) {
+      setIsLoading(false);
+      return;
+    }
 
+    setIsLoading(true);
     try {
       const data = await retry(
         async () => {
@@ -146,7 +151,7 @@ export function WalletConnect() {
           clearTimeout(timeoutId);
           return result;
         },
-        { maxRetries: 1, initialDelay: 5000, maxDelay: 10000 }
+        { maxRetries: 2, initialDelay: 3000, maxDelay: 10000 }
       );
 
       if (data.error) {
@@ -166,7 +171,7 @@ export function WalletConnect() {
             loadWallets();
           }, 45000);
         } else {
-          toast.error('Ошибка загрузки кошельков');
+          toast.error('Ошибка загрузки кошельков: ' + data.error.message);
         }
         return;
       }
@@ -182,6 +187,8 @@ export function WalletConnect() {
       } else {
         toast.error('Ошибка загрузки кошельков: ' + (e.message || 'Неизвестная ошибка'));
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -334,6 +341,20 @@ export function WalletConnect() {
       return;
     }
 
+    // Проверка на дубликаты перед добавлением
+    if (form.type === 'cex' && form.cexProvider) {
+      const existingWallet = wallets.find(
+        (w) => w.cex_provider === form.cexProvider && w.user_id === uid
+      );
+
+      if (existingWallet) {
+        toast.error(
+          `Кошелёк ${form.cexProvider?.toUpperCase()} уже добавлен. Удалите его перед добавлением нового.`
+        );
+        return;
+      }
+    }
+
     setAdding(true);
     try {
       let encryptedData = null;
@@ -464,7 +485,16 @@ export function WalletConnect() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-      {databaseAwaking && (
+      {isLoading && (
+        <div className="p-4 rounded-xl bg-accent-green/5 border border-accent-green/20">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-accent-green border-t-transparent rounded-full animate-spin" />
+            <p className="text-accent-green font-semibold text-sm">Загрузка кошельков...</p>
+          </div>
+        </div>
+      )}
+
+      {databaseAwaking && !isLoading && (
         <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
           <div className="flex items-center gap-3">
             <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
