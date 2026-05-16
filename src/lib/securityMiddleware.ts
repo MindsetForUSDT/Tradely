@@ -6,11 +6,11 @@
  * Security headers конфигурация
  */
 export const securityHeaders = {
-  // Content Security Policy - обновлено для поддержки Supabase WebSocket и бирж
+  // Content Security Policy - обновлено для поддержки Google Fonts и Supabase WebSocket
   contentSecurityPolicy: `
     default-src 'self';
     script-src 'self' 'unsafe-inline' 'unsafe-eval';
-    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
     img-src 'self' data: https: blob:;
     font-src 'self' data: https://fonts.gstatic.com;
     connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.binance.com https://api.bybit.com;
