@@ -6,21 +6,38 @@ export interface RetryConfig {
   initialDelay?: number;
   maxDelay?: number;
   backoffMultiplier?: number;
+  timeout?: number;
 }
 
 export async function retry<T>(fn: () => Promise<T>, config: RetryConfig = {}): Promise<T> {
-  const { maxRetries = 3, initialDelay = 1000, maxDelay = 10000, backoffMultiplier = 2 } = config;
+  const {
+    maxRetries = 3,
+    initialDelay = 1000,
+    maxDelay = 10000,
+    backoffMultiplier = 2,
+    timeout = 30000,
+  } = config;
 
   let lastError: Error | null = null;
 
+  // Создаём timeout для всей операции
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    setTimeout(() => reject(new Error('Request timeout')), timeout);
+  });
+
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
-      return await fn();
+      const result = await Promise.race([fn(), timeoutPromise]);
+      return result as T;
     } catch (error: any) {
       lastError = error;
 
       // Не повторяем для определённых ошибок
-      if (error.name === 'AbortError' || error.message?.includes('404')) {
+      if (
+        error.name === 'AbortError' ||
+        error.message?.includes('404') ||
+        error.message?.includes('timeout')
+      ) {
         throw error;
       }
 
@@ -32,7 +49,9 @@ export async function retry<T>(fn: () => Promise<T>, config: RetryConfig = {}): 
       // Вычисляем задержку с экспоненциальным увеличением
       const delay = Math.min(initialDelay * Math.pow(backoffMultiplier, attempt), maxDelay);
 
-      console.log(`[retry] Attempt ${attempt + 1} failed, retrying in ${delay}ms...`);
+      console.log(
+        `[retry] Attempt ${attempt + 1} failed (${error.message}), retrying in ${delay}ms...`
+      );
 
       // Ждём перед повторной попыткой
       await new Promise((resolve) => setTimeout(resolve, delay));

@@ -117,6 +117,8 @@ async function testBybitConnection(
     const params = `api_key=${apiKey}&recv_window=${recvWindow}&sign_timestamp=${timestamp}`;
     const signature = await createHMACSHA256Signature(params, apiSecret);
 
+    console.log('[Bybit] Testing connection with timestamp:', timestamp);
+
     const response = await fetch(
       'https://api.bybit.com/v5/account/wallet-balance?accountType=UNIFIED',
       {
@@ -130,45 +132,61 @@ async function testBybitConnection(
       }
     );
 
-    if (response.status === 10020 || response.status === 10021 || response.status === 10001) {
-      return {
-        success: false,
-        message: 'Ошибка авторизации',
-        error: 'Неверный API ключ или секрет',
-      };
-    }
+    console.log('[Bybit] Response status:', response.status);
 
-    if (!response.ok) {
-      const error = await response.text();
-      return {
-        success: false,
-        message: 'Ошибка подключения',
-        error: error,
-      };
-    }
+    const responseText = await response.text();
+    console.log('[Bybit] Response body:', responseText);
 
-    const data = await response.json();
+    try {
+      const data = JSON.parse(responseText);
 
-    // Получаем баланс
-    const balances: BybitBalance = {};
-    if (data.retCode === 0 && data.result && data.result.list) {
-      data.result.list.forEach((account: any) => {
-        if (account.coin) {
-          account.coin.forEach((coin: any) => {
-            const walletBalance = parseFloat(coin.walletBalance || '0');
-            if (walletBalance > 0) {
-              balances[coin.coin] = walletBalance;
-            }
-          });
+      if (data.retCode && data.retCode !== 0) {
+        console.log('[Bybit] API error code:', data.retCode, 'message:', data.retMsg);
+
+        if (data.retCode === 10001 || data.retCode === 10020 || data.retCode === 10021) {
+          return {
+            success: false,
+            message: 'Ошибка авторизации',
+            error:
+              'Неверный API ключ или секрет. Проверьте что ключи созданы на Bybit, а не на Binance.',
+          };
         }
-      });
-    }
 
-    return {
-      success: true,
-      message: 'Подключение успешно',
-      balances,
-    };
+        return {
+          success: false,
+          message: 'Ошибка API Bybit',
+          error: `${data.retMsg || responseText}`,
+        };
+      }
+
+      // Получаем баланс
+      const balances: BybitBalance = {};
+      if (data.result && data.result.list) {
+        data.result.list.forEach((account: any) => {
+          if (account.coin) {
+            account.coin.forEach((coin: any) => {
+              const walletBalance = parseFloat(coin.walletBalance || '0');
+              if (walletBalance > 0) {
+                balances[coin.coin] = walletBalance;
+              }
+            });
+          }
+        });
+      }
+
+      return {
+        success: true,
+        message: 'Подключение успешно',
+        balances,
+      };
+    } catch (parseError) {
+      console.log('[Bybit] JSON parse error:', parseError);
+      return {
+        success: false,
+        message: 'Ошибка парсинга ответа',
+        error: responseText,
+      };
+    }
   } catch (error: any) {
     console.error('[Bybit] Error:', error);
     return {
