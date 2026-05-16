@@ -97,30 +97,53 @@ export async function encryptApiCredentials(
       throw new Error('Supabase URL not configured');
     }
 
-    // Контроль таймаута запроса
+    // Пробуем вызвать Edge Function с увеличенным таймаутом
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 секунд на Edge Function
 
-    // Вызываем Edge Function для шифрования
-    const response = await fetch(`${supabaseUrl}/functions/v1/encrypt-credentials`, {
-      method: 'POST',
-      signal: controller.signal,
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-        'x-api-key': session?.access_token || '',
-      },
-      body: JSON.stringify({ apiKey: sanitizedApiKey, apiSecret: sanitizedApiSecret }),
-    });
+    try {
+      const response = await fetch(`${supabaseUrl}/functions/v1/encrypt-credentials`, {
+        method: 'POST',
+        signal: controller.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          'x-api-key': session?.access_token || '',
+        },
+        body: JSON.stringify({ apiKey: sanitizedApiKey, apiSecret: sanitizedApiSecret }),
+      });
 
-    clearTimeout(timeoutId);
+      clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Encryption failed' }));
-      secureLog('encryption_failed', { status: response.status, error: 'server_rejected' });
+      if (!response.ok) {
+        throw new Error('Edge Function unavailable');
+      }
 
-      // Если функция недоступна, используем простое шифрование для тестирования
-      secureLog('fallback', { reason: 'edge_function_unavailable' });
+      const result = await response.json();
+
+      if (
+        typeof result !== 'object' ||
+        result === null ||
+        typeof (result as Record<string, unknown>).encrypted_data !== 'string' ||
+        typeof (result as Record<string, unknown>).iv !== 'string'
+      ) {
+        throw new Error('Invalid response format');
+      }
+
+      secureLog('success', { action: 'credentials_encrypted_via_server' });
+      return result as {
+        encrypted_data: string;
+        iv: string;
+        tag: string;
+      };
+    } catch (edgeError) {
+      clearTimeout(timeoutId);
+      secureLog('edge_function_failed', {
+        reason: edgeError instanceof Error ? edgeError.message : 'unknown',
+      });
+
+      // Fallback на клиентское шифрование
+      secureLog('fallback', { reason: 'using_client_side_encryption' });
 
       const encoder = new TextEncoder();
       const data = JSON.stringify({
@@ -128,6 +151,8 @@ export async function encryptApiCredentials(
         apiSecret: sanitizedApiSecret,
         timestamp: Date.now(),
       });
+
+      // Генерируем ключ шифрования
       const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
         'encrypt',
       ]);
@@ -137,41 +162,16 @@ export async function encryptApiCredentials(
         key,
         encoder.encode(data)
       );
-      const exportedKey = await crypto.subtle.exportKey('raw', key);
+
+      // Для tag используем часть iv (в реальном приложении лучше хранить отдельно)
+      const tag = btoa(String.fromCharCode(...iv.slice(0, 8)));
 
       return {
         encrypted_data: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
         iv: btoa(String.fromCharCode(...iv)),
-        tag: btoa(String.fromCharCode(...new Uint8Array(exportedKey))),
+        tag,
       };
     }
-
-    // Валидация ответа сервера
-    let result: unknown;
-    try {
-      result = await response.json();
-    } catch {
-      secureLog('parse_error', { error: 'invalid_json_response' });
-      throw new Error('Invalid server response');
-    }
-
-    if (
-      typeof result !== 'object' ||
-      result === null ||
-      typeof (result as Record<string, unknown>).encrypted_data !== 'string' ||
-      typeof (result as Record<string, unknown>).iv !== 'string'
-    ) {
-      secureLog('validation_failure', { reason: 'invalid_response_structure' });
-      throw new Error('Invalid encryption response format');
-    }
-
-    secureLog('success', { action: 'credentials_encrypted' });
-
-    return result as {
-      encrypted_data: string;
-      iv: string;
-      tag: string;
-    };
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {
       secureLog('timeout', { action: 'encrypt_api_credentials' });

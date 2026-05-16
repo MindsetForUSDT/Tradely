@@ -80,9 +80,9 @@ const options: SupabaseClientOptions<'public'> = {
     },
     fetch: async (url, options = {}) => {
       try {
-        // Добавляем timeout для всех запросов
+        // Увеличили timeout до 120 секунд для free tier (база "просыпается" долго)
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 секунд timeout (увеличено для free tier)
+        const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 минуты timeout
 
         const response = await fetch(url, {
           ...options,
@@ -103,7 +103,9 @@ const options: SupabaseClientOptions<'public'> = {
       } catch (error) {
         if (error instanceof Error && error.name === 'AbortError') {
           console.error('[Supabase API] Request timeout:', { url });
-          throw new Error('Запрос превысил 30 секунд. Проверьте подключение к интернету.');
+          throw new Error(
+            'Запрос превысил 2 минуты. База Supabase "просыпается". Пожалуйста, обновите страницу.'
+          );
         }
         console.error('[Supabase API] Network error:', {
           url,

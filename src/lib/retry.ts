@@ -11,11 +11,11 @@ export interface RetryConfig {
 
 export async function retry<T>(fn: () => Promise<T>, config: RetryConfig = {}): Promise<T> {
   const {
-    maxRetries = 3,
-    initialDelay = 1000,
-    maxDelay = 10000,
+    maxRetries = 2, // Уменьшили для free tier (база может не отвечать долго)
+    initialDelay = 3000,
+    maxDelay = 15000,
     backoffMultiplier = 2,
-    timeout = 30000,
+    timeout = 120000, // 2 минуты для free tier
   } = config;
 
   let lastError: Error | null = null;
