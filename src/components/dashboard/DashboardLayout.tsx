@@ -11,14 +11,38 @@ import { useWallets } from '@/hooks/useWallets';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { useAnalytics } from '@/hooks/useAnalytics';
 import { useStore } from '@/store/useStore';
+import { Icon } from '@/components/ui/Icons';
 
 export function DashboardLayout() {
-  const { wallets, isLoading: walletsLoading } = useWallets();
+  const { wallets, isLoading: walletsLoading, error: walletsError } = useWallets();
 
   if (walletsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0a0a0f] to-[#111318]">
-        <div className="w-10 h-10 rounded-full border-2 border-neon-cyan border-t-transparent animate-spin" />
+        <div className="text-center">
+          <div className="w-10 h-10 rounded-full border-2 border-neon-cyan border-t-transparent animate-spin mx-auto mb-4" />
+          <p className="text-text-muted text-sm">Загрузка дашборда...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (walletsError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0a0a0f] to-[#111318]">
+        <div className="text-center max-w-md mx-auto px-4">
+          <div className="w-16 h-16 rounded-full bg-accent-red/10 flex items-center justify-center mx-auto mb-4">
+            <Icon name="alert" size={28} className="text-accent-red" />
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">Ошибка загрузки</h2>
+          <p className="text-text-muted text-sm mb-4">{walletsError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-semibold hover:bg-accent-green-dim transition-all"
+          >
+            Обновить страницу
+          </button>
+        </div>
       </div>
     );
   }

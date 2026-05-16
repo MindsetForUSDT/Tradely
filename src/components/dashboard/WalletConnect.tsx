@@ -135,24 +135,18 @@ export function WalletConnect() {
 
     setIsLoading(true);
     try {
-      const data = await retry(
-        async () => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // Уменьшили до 15 секунд
 
-          const result = await supabase
-            .from('wallets')
-            .select('*')
-            .eq('user_id', uid)
-            .order('added_at', { ascending: false })
-            .limit(50)
-            .abortSignal(controller.signal);
+      const data = await supabase
+        .from('wallets')
+        .select('*')
+        .eq('user_id', uid)
+        .order('added_at', { ascending: false })
+        .limit(50)
+        .abortSignal(controller.signal);
 
-          clearTimeout(timeoutId);
-          return result;
-        },
-        { maxRetries: 2, initialDelay: 3000, maxDelay: 10000 }
-      );
+      clearTimeout(timeoutId);
 
       if (data.error) {
         console.error('[loadWallets] Error:', data.error);
@@ -164,12 +158,6 @@ export function WalletConnect() {
         ) {
           setDatabaseAwaking(true);
           toast.error('База данных "просыпается". Подождите 30-60 секунд и обновите страницу.');
-
-          // Автоматически пробуем снова через 45 секунд
-          setTimeout(() => {
-            setDatabaseAwaking(false);
-            loadWallets();
-          }, 45000);
         } else {
           toast.error('Ошибка загрузки кошельков: ' + data.error.message);
         }
@@ -179,7 +167,7 @@ export function WalletConnect() {
       setDatabaseAwaking(false);
       if (data.data) setWallets(data.data);
     } catch (e: any) {
-      console.error('[loadWallets] Error after retries:', e);
+      console.error('[loadWallets] Error:', e);
 
       if (e.message?.includes('timeout')) {
         setDatabaseAwaking(true);

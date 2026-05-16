@@ -51,12 +51,18 @@ export function useWallets() {
         setIsLoading(false);
       }
 
-      // 2. Загружаем из сети (параллельно)
+      // 2. Загружаем из сети с timeout (параллельно)
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд timeout
+
       const { data, error: fetchError } = await supabase
         .from('wallets')
         .select('*')
         .eq('user_id', uid)
-        .order('added_at', { ascending: false });
+        .order('added_at', { ascending: false })
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeoutId);
 
       if (fetchError) {
         console.error('[useWallets] Fetch error:', fetchError);
@@ -86,11 +92,11 @@ export function useWallets() {
       console.error('[useWallets] Error loading wallets:', e);
 
       let errorMessage = 'Ошибка загрузки кошельков';
-      if (e.message?.includes('503')) {
-        errorMessage = 'База данных временно недоступна. Попробуйте позже.';
+      if (e.message?.includes('503') || e.message?.includes('Connection reset')) {
+        errorMessage = 'База данных "просыпается". Подождите 30 секунд и обновите страницу.';
       } else if (e.message?.includes('403')) {
         errorMessage = 'Нет доступа к данным. Проверьте настройки безопасности.';
-      } else if (e.message?.includes('timeout') || e.message?.includes('60 секунд')) {
+      } else if (e.message?.includes('timeout')) {
         errorMessage = 'Превышено время ожидания ответа от сервера.';
       }
 
