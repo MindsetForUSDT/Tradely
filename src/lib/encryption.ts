@@ -108,7 +108,6 @@ export async function encryptApiCredentials(
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          'x-api-key': session?.access_token || '',
         },
         body: JSON.stringify({ apiKey: sanitizedApiKey, apiSecret: sanitizedApiSecret }),
       });

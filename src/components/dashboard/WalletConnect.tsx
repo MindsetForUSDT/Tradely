@@ -117,6 +117,7 @@ export function WalletConnect() {
   const [adding, setAdding] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [databaseAwaking, setDatabaseAwaking] = useState(false);
   const queryClient = useQueryClient();
   const addressInputRef = useRef<HTMLInputElement>(null);
 
@@ -129,11 +130,10 @@ export function WalletConnect() {
     if (!uid) return;
 
     try {
-      // Используем retry с таймаутом
       const data = await retry(
         async () => {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 10000);
+          const timeoutId = setTimeout(() => controller.abort(), 30000);
 
           const result = await supabase
             .from('wallets')
@@ -146,21 +146,39 @@ export function WalletConnect() {
           clearTimeout(timeoutId);
           return result;
         },
-        { maxRetries: 2, initialDelay: 2000, maxDelay: 5000 }
+        { maxRetries: 1, initialDelay: 5000, maxDelay: 10000 }
       );
 
       if (data.error) {
         console.error('[loadWallets] Error:', data.error);
-        toast.error('Ошибка загрузки кошельков (попробуйте обновить страницу)');
+
+        if (
+          data.error.message?.includes('503') ||
+          data.error.message?.includes('Connection reset') ||
+          data.error.message?.includes('HTTP2_PING')
+        ) {
+          setDatabaseAwaking(true);
+          toast.error('База данных "просыпается". Подождите 30-60 секунд и обновите страницу.');
+
+          // Автоматически пробуем снова через 45 секунд
+          setTimeout(() => {
+            setDatabaseAwaking(false);
+            loadWallets();
+          }, 45000);
+        } else {
+          toast.error('Ошибка загрузки кошельков');
+        }
         return;
       }
 
+      setDatabaseAwaking(false);
       if (data.data) setWallets(data.data);
     } catch (e: any) {
       console.error('[loadWallets] Error after retries:', e);
 
-      if (e.name === 'AbortError') {
-        toast.error('Запрос кошельков превысил время ожидания. Проверьте подключение к интернету.');
+      if (e.message?.includes('timeout')) {
+        setDatabaseAwaking(true);
+        toast.error('База данных "просыпается". Подождите 30-60 секунд и обновите страницу.');
       } else {
         toast.error('Ошибка загрузки кошельков: ' + (e.message || 'Неизвестная ошибка'));
       }
@@ -420,6 +438,20 @@ export function WalletConnect() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+      {databaseAwaking && (
+        <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+          <div className="flex items-center gap-3">
+            <div className="w-5 h-5 border-2 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+            <div>
+              <p className="text-yellow-500 font-semibold text-sm">База данных "просыпается"</p>
+              <p className="text-yellow-500/70 text-xs">
+                Подождите 30-60 секунд и обновите страницу
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Кошельки и биржи</h1>
