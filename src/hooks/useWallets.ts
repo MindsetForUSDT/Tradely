@@ -29,6 +29,7 @@ interface Wallet {
 export function useWallets() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDatabaseAwake, setIsDatabaseAwake] = useState<boolean | null>(null);
   const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -44,6 +45,11 @@ export function useWallets() {
         return;
       }
 
+      // "Разбудить" базу если нужно
+      if (isDatabaseAwake === null) {
+        setIsDatabaseAwake(false);
+      }
+
       // 1. Сначала пробуем из кэша (для мгновенной загрузки)
       const cached = walletsCache.getWallets(uid);
       if (cached && !cached.expired) {
@@ -53,8 +59,9 @@ export function useWallets() {
 
       // 2. Загружаем из сети с timeout (параллельно)
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд timeout
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
 
+      const startTime = Date.now();
       const { data, error: fetchError } = await supabase
         .from('wallets')
         .select('*')
@@ -62,11 +69,17 @@ export function useWallets() {
         .order('added_at', { ascending: false })
         .abortSignal(controller.signal);
 
+      const duration = Date.now() - startTime;
       clearTimeout(timeoutId);
+
+      // Если запрос занял больше 5 секунд - база была "спящей"
+      if (duration > 5000) {
+        console.log(`[useWallets] Database woke up in ${duration}ms`);
+        setIsDatabaseAwake(true);
+      }
 
       if (fetchError) {
         console.error('[useWallets] Fetch error:', fetchError);
-        // Если есть кэш - используем его, если нет - показываем ошибку
         if (!cached) {
           throw fetchError;
         }
@@ -95,9 +108,9 @@ export function useWallets() {
       if (e.message?.includes('503') || e.message?.includes('Connection reset')) {
         errorMessage = 'База данных "просыпается". Подождите 30 секунд и обновите страницу.';
       } else if (e.message?.includes('403')) {
-        errorMessage = 'Нет доступа к данным. Проверьте настройки безопасности.';
+        errorMessage = 'Нет доступа к данным.';
       } else if (e.message?.includes('timeout')) {
-        errorMessage = 'Превышено время ожидания ответа от сервера.';
+        errorMessage = 'Превышено время ожидания.';
       }
 
       setError(errorMessage);
@@ -105,7 +118,7 @@ export function useWallets() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [isDatabaseAwake]);
 
   // Подписка на изменения в реальном времени
   useEffect(() => {
@@ -230,14 +243,32 @@ export function useWallets() {
     loadWallets();
   }, [loadWallets]);
 
+  const manuallyWakeUpDatabase = useCallback(async () => {
+    setIsLoading(true);
+    setIsDatabaseAwake(false);
+    try {
+      const { error } = await supabase.rpc('wake_up_database');
+      if (error) throw error;
+      setIsDatabaseAwake(true);
+      await loadWallets();
+    } catch (e: any) {
+      console.error('[useWallets] Wake-up error:', e);
+      setError('Не удалось пробудить базу. Попробуйте обновить страницу.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [loadWallets]);
+
   return {
     wallets,
     isLoading,
+    isDatabaseAwake,
     error,
     syncStatuses,
     refresh,
     startSync,
     syncAll,
+    manuallyWakeUpDatabase,
   };
 }
 

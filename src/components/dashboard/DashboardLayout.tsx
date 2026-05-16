@@ -14,14 +14,30 @@ import { useStore } from '@/store/useStore';
 import { Icon } from '@/components/ui/Icons';
 
 export function DashboardLayout() {
-  const { wallets, isLoading: walletsLoading, error: walletsError } = useWallets();
+  const {
+    wallets,
+    isLoading: walletsLoading,
+    error: walletsError,
+    isDatabaseAwake,
+    manuallyWakeUpDatabase,
+  } = useWallets();
 
   if (walletsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0a0a0f] to-[#111318]">
-        <div className="text-center">
+        <div className="text-center max-w-md mx-auto px-4">
           <div className="w-10 h-10 rounded-full border-2 border-neon-cyan border-t-transparent animate-spin mx-auto mb-4" />
-          <p className="text-text-muted text-sm">Загрузка дашборда...</p>
+          <p className="text-text-muted text-sm mb-2">
+            {isDatabaseAwake === false ? 'База данных "просыпается"...' : 'Загрузка дашборда...'}
+          </p>
+          {isDatabaseAwake === false && (
+            <button
+              onClick={manuallyWakeUpDatabase}
+              className="mt-4 px-4 py-2 bg-accent-green/20 text-accent-green rounded-lg text-xs font-semibold hover:bg-accent-green/30 transition-all border border-accent-green/30"
+            >
+              Пробудить базу вручную
+            </button>
+          )}
         </div>
       </div>
     );
