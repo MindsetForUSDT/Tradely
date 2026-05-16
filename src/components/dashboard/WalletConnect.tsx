@@ -8,6 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getUserIdFromCache, getUserIdFromCacheAsync } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import { encryptApiCredentials } from '@/lib/encryption';
+import { retry } from '@/lib/retry';
 
 // Типы
 type WalletType = 'web3' | 'cex' | 'watch-only' | 'import' | 'hardware' | 'qr';
@@ -127,18 +128,43 @@ export function WalletConnect() {
     const uid = await getUserIdFromCacheAsync();
     if (!uid) return;
 
-    const { data, error } = await supabase
-      .from('wallets')
-      .select('*')
-      .eq('user_id', uid)
-      .order('added_at', { ascending: false });
+    try {
+      // Используем retry с таймаутом
+      const data = await retry(
+        async () => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    if (error) {
-      toast.error('Ошибка загрузки кошельков');
-      return;
+          const result = await supabase
+            .from('wallets')
+            .select('*')
+            .eq('user_id', uid)
+            .order('added_at', { ascending: false })
+            .limit(50)
+            .abortSignal(controller.signal);
+
+          clearTimeout(timeoutId);
+          return result;
+        },
+        { maxRetries: 2, initialDelay: 2000, maxDelay: 5000 }
+      );
+
+      if (data.error) {
+        console.error('[loadWallets] Error:', data.error);
+        toast.error('Ошибка загрузки кошельков (попробуйте обновить страницу)');
+        return;
+      }
+
+      if (data.data) setWallets(data.data);
+    } catch (e: any) {
+      console.error('[loadWallets] Error after retries:', e);
+
+      if (e.name === 'AbortError') {
+        toast.error('Запрос кошельков превысил время ожидания. Проверьте подключение к интернету.');
+      } else {
+        toast.error('Ошибка загрузки кошельков: ' + (e.message || 'Неизвестная ошибка'));
+      }
     }
-
-    if (data) setWallets(data);
   };
 
   // Валидация формы с проверкой адреса
