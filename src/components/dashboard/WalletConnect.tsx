@@ -406,17 +406,43 @@ export function WalletConnect() {
     setAdding(false);
   };
 
+  const handleManualSync = async (walletId: string) => {
+    toast.success('Запуск синхронизации...');
+
+    // Пробуем вызвать Edge Function
+    try {
+      await supabase.functions.invoke('sync-wallet-trades', {
+        body: {
+          walletId,
+          forceFullSync: true,
+        },
+      });
+      toast.success('Синхронизация запущена!');
+    } catch (error: any) {
+      console.error('[handleManualSync] Error:', error);
+      toast.error('Edge Function недоступна. Синхронизация будет выполнена позже.');
+    }
+  };
+
   const handleDelete = async (id: string) => {
-    const confirmed = window.confirm('Удалить кошелёк и все связанные сделки?');
+    const confirmed = window.confirm(
+      'Удалить кошелёк и все связанные сделки? Это действие нельзя отменить.'
+    );
     if (!confirmed) return;
 
-    const { error } = await supabase.from('wallets').delete().eq('id', id);
-    if (error) {
-      toast.error('Ошибка удаления');
-      return;
+    try {
+      const { error } = await supabase.from('wallets').delete().eq('id', id);
+      if (error) {
+        console.error('[handleDelete] Error:', error);
+        toast.error('Ошибка удаления: ' + error.message);
+        return;
+      }
+      await loadWallets();
+      toast.success('Кошелёк удалён');
+    } catch (error: any) {
+      console.error('[handleDelete] Exception:', error);
+      toast.error('Ошибка удаления: ' + (error.message || 'Неизвестная ошибка'));
     }
-    await loadWallets();
-    toast.success('Кошелёк удалён');
   };
 
   const getWalletIcon = (
@@ -852,29 +878,47 @@ export function WalletConnect() {
                   <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center">
                     <Icon name={getWalletIcon(w)} size={20} className="text-accent-green" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium">{w.label || shortenAddress(w.address, 8)}</p>
-                    <p className="text-xs text-text-muted font-mono">
-                      {shortenAddress(w.address, 12)}
-                    </p>
+                    <p className="text-xs text-text-muted font-mono truncate">{w.address}</p>
+                    {w.cex_provider && (
+                      <p className="text-xs text-accent-green mt-0.5 font-semibold">
+                        {w.cex_provider.toUpperCase()}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      'text-[10px] px-2 py-0.5 rounded-full',
-                      w.processing_status === 'completed'
-                        ? 'text-accent-green bg-accent-green/5'
-                        : 'text-yellow-400 bg-yellow-400/5'
+                  <div className="text-right">
+                    <span
+                      className={cn(
+                        'text-[10px] px-2 py-0.5 rounded-full block mb-1',
+                        w.processing_status === 'completed'
+                          ? 'text-accent-green bg-accent-green/5'
+                          : w.processing_status === 'pending'
+                            ? 'text-yellow-400 bg-yellow-400/5'
+                            : 'text-text-muted bg-surface-border'
+                      )}
+                    >
+                      {w.processing_status === 'completed'
+                        ? 'Готово'
+                        : w.processing_status === 'pending'
+                          ? 'Ожидает синхронизации'
+                          : 'Обработка'}
+                    </span>
+                    {w.processing_status === 'pending' && (
+                      <button
+                        onClick={() => handleManualSync(w.id)}
+                        className="text-xs text-accent-green hover:underline"
+                      >
+                        Запустить
+                      </button>
                     )}
-                  >
-                    {w.processing_status === 'completed'
-                      ? 'Готово'
-                      : w.processing_status || 'Обработка'}
-                  </span>
+                  </div>
                   <button
                     onClick={() => handleDelete(w.id)}
                     className="text-text-muted hover:text-accent-red transition-colors p-1 rounded-lg hover:bg-accent-red/5"
+                    title="Удалить кошелёк"
                   >
                     <Icon name="delete" size={14} />
                   </button>
