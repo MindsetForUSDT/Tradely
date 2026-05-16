@@ -163,3 +163,29 @@ export function sanitizeUserInput(input: unknown): string | null {
 export function getUserId(): string | null {
   return getUserIdFromCache();
 }
+
+/**
+ * Выход из аккаунта
+ */
+export async function logout(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error('[auth] Logout error:', error);
+      return { success: false, error: error.message };
+    }
+
+    // Очистка локального кэша
+    const keysToRemove = Object.keys(localStorage).filter(
+      (k) => k.includes('supabase') || k.includes('auth')
+    );
+    keysToRemove.forEach((key) => localStorage.removeItem(key));
+
+    console.log('[auth] Logout successful');
+    return { success: true };
+  } catch (error: any) {
+    console.error('[auth] Logout exception:', error);
+    return { success: false, error: error.message || 'Ошибка выхода' };
+  }
+}

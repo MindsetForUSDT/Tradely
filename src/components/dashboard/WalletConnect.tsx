@@ -8,7 +8,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getUserIdFromCache, getUserIdFromCacheAsync } from '@/lib/auth';
 import toast from 'react-hot-toast';
 import { encryptApiCredentials } from '@/lib/encryption';
-import { retry } from '@/lib/retry';
+import { showError, withTimeout } from '@/lib/error-handler';
 
 // Типы
 type WalletType = 'web3' | 'cex' | 'watch-only' | 'import' | 'hardware' | 'qr';
@@ -136,9 +136,9 @@ export function WalletConnect() {
     setIsLoading(true);
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // Уменьшили до 15 секунд
+      const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-      const data = await supabase
+      const { data, error } = await supabase
         .from('wallets')
         .select('*')
         .eq('user_id', uid)
@@ -148,33 +148,17 @@ export function WalletConnect() {
 
       clearTimeout(timeoutId);
 
-      if (data.error) {
-        console.error('[loadWallets] Error:', data.error);
-
-        if (
-          data.error.message?.includes('503') ||
-          data.error.message?.includes('Connection reset') ||
-          data.error.message?.includes('HTTP2_PING')
-        ) {
-          setDatabaseAwaking(true);
-          toast.error('База данных "просыпается". Подождите 30-60 секунд и обновите страницу.');
-        } else {
-          toast.error('Ошибка загрузки кошельков: ' + data.error.message);
-        }
+      if (error) {
+        console.error('[loadWallets] Error:', error);
+        showError(error, 'Ошибка загрузки кошельков');
         return;
       }
 
       setDatabaseAwaking(false);
-      if (data.data) setWallets(data.data);
+      if (data) setWallets(data);
     } catch (e: any) {
       console.error('[loadWallets] Error:', e);
-
-      if (e.message?.includes('timeout')) {
-        setDatabaseAwaking(true);
-        toast.error('База данных "просыпается". Подождите 30-60 секунд и обновите страницу.');
-      } else {
-        toast.error('Ошибка загрузки кошельков: ' + (e.message || 'Неизвестная ошибка'));
-      }
+      showError(e, 'Ошибка загрузки кошельков');
     } finally {
       setIsLoading(false);
     }
@@ -440,17 +424,28 @@ export function WalletConnect() {
     if (!confirmed) return;
 
     try {
-      const { error } = await supabase.from('wallets').delete().eq('id', id);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const { error } = await supabase
+        .from('wallets')
+        .delete()
+        .eq('id', id)
+        .abortSignal(controller.signal);
+
+      clearTimeout(timeoutId);
+
       if (error) {
         console.error('[handleDelete] Error:', error);
-        toast.error('Ошибка удаления: ' + error.message);
+        showError(error, 'Ошибка удаления кошелька');
         return;
       }
+
       await loadWallets();
       toast.success('Кошелёк удалён');
     } catch (error: any) {
       console.error('[handleDelete] Exception:', error);
-      toast.error('Ошибка удаления: ' + (error.message || 'Неизвестная ошибка'));
+      showError(error, 'Ошибка удаления кошелька');
     }
   };
 

@@ -1,9 +1,10 @@
 // providers/AppProviders.tsx
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { Toaster } from 'react-hot-toast';
 import { supabase } from '@/lib/supabase';
+import toast from 'react-hot-toast';
+import { Toaster } from 'react-hot-toast';
 import { useStore } from '@/store/useStore';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
@@ -175,13 +176,21 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     console.log('[AuthProvider] Signing out...');
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        console.error('[AuthProvider] Sign out error:', error);
+        toast.error('Ошибка выхода: ' + error.message);
+        return;
+      }
+
       setUserId(null);
       setUserState(null);
-      storeSetUser(null);
-      console.log('[AuthProvider] Signed out successfully');
-    } catch (error) {
-      console.error('[AuthProvider] Sign out error:', error);
+      toast.success('Вы вышли из аккаунта');
+      console.log('[AuthProvider] Sign out complete');
+    } catch (error: any) {
+      console.error('[AuthProvider] Sign out exception:', error);
+      toast.error('Ошибка выхода: ' + (error.message || 'Неизвестная ошибка'));
     }
   };
 
