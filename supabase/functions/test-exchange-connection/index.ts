@@ -2,43 +2,225 @@
 // Edge Function для тестирования подключения к бирже
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0';
-import { ExchangeFactory, ExchangeConfig } from '../lib/exchange-adapter.ts';
-import { getSecurityAuditor } from '../lib/security-audit.ts';
+
+// ============================================
+// Вспомогательные функции для HMAC подписи
+// ============================================
+
+async function createHMACSHA256Signature(message: string, secret: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const keyData = encoder.encode(secret);
+  const messageData = encoder.encode(message);
+
+  const key = await crypto.subtle.importKey(
+    'raw',
+    keyData,
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+
+  const signature = await crypto.subtle.sign('HMAC', key, messageData);
+  return Array.from(new Uint8Array(signature))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
+// ============================================
+// Binance API тестирование
+// ============================================
+
+interface BinanceBalance {
+  [key: string]: number;
+}
+
+async function testBinanceConnection(
+  apiKey: string,
+  apiSecret: string
+): Promise<{ success: boolean; message: string; balances?: BinanceBalance; error?: string }> {
+  try {
+    const timestamp = Date.now();
+    const query = `timestamp=${timestamp}`;
+    const signature = await createHMACSHA256Signature(query, apiSecret);
+
+    const response = await fetch(
+      `https://api.binance.com/api/v3/account?${query}&signature=${signature}`,
+      {
+        headers: {
+          'X-MBX-APIKEY': apiKey,
+        },
+      }
+    );
+
+    if (response.status === 401) {
+      return {
+        success: false,
+        message: 'Ошибка авторизации',
+        error: 'Неверный API ключ или секрет',
+      };
+    }
+
+    if (!response.ok) {
+      const error = await response.text();
+      return {
+        success: false,
+        message: 'Ошибка подключения',
+        error: error,
+      };
+    }
+
+    const data = await response.json();
+
+    // Получаем баланс
+    const balances: BinanceBalance = {};
+    if (data.balances) {
+      data.balances.forEach((b: any) => {
+        const free = parseFloat(b.free) || 0;
+        const locked = parseFloat(b.locked) || 0;
+        if (free > 0 || locked > 0) {
+          balances[b.asset] = free + locked;
+        }
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Подключение успешно',
+      balances,
+    };
+  } catch (error: any) {
+    console.error('[Binance] Error:', error);
+    return {
+      success: false,
+      message: 'Ошибка подключения',
+      error: error.message,
+    };
+  }
+}
+
+// ============================================
+// Bybit API тестирование
+// ============================================
+
+interface BybitBalance {
+  [key: string]: number;
+}
+
+async function testBybitConnection(
+  apiKey: string,
+  apiSecret: string
+): Promise<{ success: boolean; message: string; balances?: BybitBalance; error?: string }> {
+  try {
+    const timestamp = Date.now().toString();
+    const recvWindow = '5000';
+
+    const params = `api_key=${apiKey}&recv_window=${recvWindow}&sign_timestamp=${timestamp}`;
+    const signature = await createHMACSHA256Signature(params, apiSecret);
+
+    const response = await fetch(
+      'https://api.bybit.com/v5/account/wallet-balance?accountType=UNIFIED',
+      {
+        method: 'GET',
+        headers: {
+          'X-BAPI-API-KEY': apiKey,
+          'X-BAPI-SIGN': signature,
+          'X-BAPI-TIMESTAMP': timestamp,
+          'X-BAPI-RECV-WINDOW': recvWindow,
+        },
+      }
+    );
+
+    if (response.status === 10020 || response.status === 10021 || response.status === 10001) {
+      return {
+        success: false,
+        message: 'Ошибка авторизации',
+        error: 'Неверный API ключ или секрет',
+      };
+    }
+
+    if (!response.ok) {
+      const error = await response.text();
+      return {
+        success: false,
+        message: 'Ошибка подключения',
+        error: error,
+      };
+    }
+
+    const data = await response.json();
+
+    // Получаем баланс
+    const balances: BybitBalance = {};
+    if (data.retCode === 0 && data.result && data.result.list) {
+      data.result.list.forEach((account: any) => {
+        if (account.coin) {
+          account.coin.forEach((coin: any) => {
+            const walletBalance = parseFloat(coin.walletBalance || '0');
+            if (walletBalance > 0) {
+              balances[coin.coin] = walletBalance;
+            }
+          });
+        }
+      });
+    }
+
+    return {
+      success: true,
+      message: 'Подключение успешно',
+      balances,
+    };
+  } catch (error: any) {
+    console.error('[Bybit] Error:', error);
+    return {
+      success: false,
+      message: 'Ошибка подключения',
+      error: error.message,
+    };
+  }
+}
+
+// ============================================
+// Фабрика тестирования
+// ============================================
+
+interface ExchangeConfig {
+  exchangeId: string;
+  apiKey: string;
+  secret: string;
+}
+
+async function testConnection(config: ExchangeConfig): Promise<{
+  success: boolean;
+  message: string;
+  balances?: any;
+  error?: string;
+}> {
+  switch (config.exchangeId) {
+    case 'binance':
+      return testBinanceConnection(config.apiKey, config.secret);
+    case 'bybit':
+      return testBybitConnection(config.apiKey, config.secret);
+    default:
+      return {
+        success: false,
+        message: 'Биржа не поддерживается',
+        error: `Exchange "${config.exchangeId}" пока не поддерживается. Поддерживаются: binance, bybit`,
+      };
+  }
+}
+
+// ============================================
+// CORS заголовки
+// ============================================
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-  'Content-Security-Policy': "default-src 'none'",
-  'X-Content-Type-Options': 'nosniff',
-  'X-Frame-Options': 'DENY',
 };
 
-/**
- * Расшифровка API ключей
- */
-async function decryptCredentials(
-  encryptedData: string,
-  iv: string,
-  supabaseUrl: string,
-  supabaseKey: string
-): Promise<{ apiKey: string; apiSecret: string }> {
-  const response = await fetch(`${supabaseUrl}/functions/v1/decrypt-credentials`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${supabaseKey}`,
-    },
-    body: JSON.stringify({ encrypted_data: encryptedData, iv }),
-  });
-
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Decryption failed' }));
-    throw new Error(error.error || 'Failed to decrypt credentials');
-  }
-
-  return await response.json();
-}
+// ============================================
+// Основной обработчик
+// ============================================
 
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -46,10 +228,6 @@ serve(async (req: Request) => {
   }
 
   try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const auditor = getSecurityAuditor(supabaseUrl, supabaseKey);
-
     // Проверка авторизации
     const authHeader = req.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -59,23 +237,8 @@ serve(async (req: Request) => {
       });
     }
 
-    const token = authHeader.split(' ')[1];
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    const {
-      data: { user },
-      error: authError,
-    } = await supabase.auth.getUser(token);
-
-    if (authError || !user) {
-      await auditor.logAuthFailure(req, 'invalid_token', 1, undefined);
-      return new Response(JSON.stringify({ error: 'Invalid token' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     // Парсинг запроса
-    let body: { exchange: string; encrypted_credentials: string; iv: string };
+    let body: { exchange: string; api_key: string; api_secret: string };
     try {
       body = await req.json();
     } catch {
@@ -85,68 +248,28 @@ serve(async (req: Request) => {
       });
     }
 
-    const { exchange, encrypted_credentials, iv } = body;
+    const { exchange, api_key, api_secret } = body;
 
-    if (!exchange || !encrypted_credentials || !iv) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Расшифровка ключей
-    let apiKey: string, apiSecret: string;
-    try {
-      const credentials = await decryptCredentials(
-        encrypted_credentials,
-        iv,
-        supabaseUrl,
-        supabaseKey
+    if (!exchange || !api_key || !api_secret) {
+      return new Response(
+        JSON.stringify({
+          error: 'Missing required fields: exchange, api_key, api_secret',
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
       );
-      apiKey = credentials.apiKey;
-      apiSecret = credentials.apiSecret;
-    } catch (error: any) {
-      await auditor.logDecryptionOperation(req, user.id, false, error.message);
-      return new Response(JSON.stringify({ error: 'Failed to decrypt credentials' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
     }
 
-    await auditor.logDecryptionOperation(req, user.id, true);
+    // Тестирование подключения к бирже
+    const exchangeConfig: ExchangeConfig = {
+      exchangeId: exchange,
+      apiKey: api_key,
+      secret: api_secret,
+    };
 
-    // Создание экземпляра биржи
-    let exchangeInstance;
-    try {
-      const exchangeConfig: ExchangeConfig = {
-        exchangeId: exchange,
-        apiKey,
-        secret: apiSecret,
-      };
-
-      exchangeInstance = ExchangeFactory.create(exchangeConfig);
-    } catch (error: any) {
-      return new Response(JSON.stringify({ error: error.message }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Тестирование подключения
-    const result = await exchangeInstance.testConnection();
-
-    // Логирование результата
-    await auditor.logEvent(
-      result.success ? 'AUTH_SUCCESS' : 'AUTH_FAILURE',
-      req,
-      {
-        action: 'test_exchange_connection',
-        exchange,
-        success: result.success,
-        error: result.error,
-      },
-      user.id
-    );
+    const result = await testConnection(exchangeConfig);
 
     return new Response(
       JSON.stringify({
@@ -163,9 +286,15 @@ serve(async (req: Request) => {
   } catch (error: any) {
     console.error('[test-exchange-connection] Error:', error);
 
-    return new Response(JSON.stringify({ error: 'Internal server error' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Internal server error',
+        details: error.message,
+      }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      }
+    );
   }
 });

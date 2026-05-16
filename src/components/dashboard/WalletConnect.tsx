@@ -204,36 +204,79 @@ export function WalletConnect() {
 
     setVerifying(true);
     try {
-      // Шифруем ключи для тестового подключения
-      const encryptedData = await encryptApiCredentials(form.apiKey, form.apiSecret);
-
       // Вызываем Edge Function для тестирования подключения
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      console.log(
+        '[WalletConnect] Calling Edge Function:',
+        `${supabaseUrl}/functions/v1/test-exchange-connection`
+      );
+      console.log('[WalletConnect] Payload:', {
+        exchange: form.cexProvider,
+        api_key: form.apiKey.slice(0, 4) + '...' + form.apiKey.slice(-4),
+        api_secret: form.apiSecret.slice(0, 4) + '...' + form.apiSecret.slice(-4),
+      });
+
       const response = await fetch(`${supabaseUrl}/functions/v1/test-exchange-connection`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          Authorization: `Bearer ${anonKey}`,
         },
         body: JSON.stringify({
           exchange: form.cexProvider,
-          encrypted_credentials: encryptedData.encrypted_data,
-          iv: encryptedData.iv,
+          api_key: form.apiKey,
+          api_secret: form.apiSecret,
         }),
       });
 
-      const result = await response.json();
+      console.log('[WalletConnect] Response status:', response.status);
+      console.log(
+        '[WalletConnect] Response headers:',
+        Object.fromEntries(response.headers.entries())
+      );
 
+      // Проверяем статус ответа
       if (!response.ok) {
-        throw new Error(result.error || result.message || 'Connection failed');
+        const errorText = await response.text();
+        console.error('[WalletConnect] Response error:', response.status, errorText);
+
+        // Если функция не развернута
+        if (response.status === 404) {
+          throw new Error(
+            'Edge Function "test-exchange-connection" не развёрнута. Пожалуйста, разверните её через Supabase Dashboard (https://app.supabase.com/functions).'
+          );
+        }
+
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || result.message || `Ошибка сервера: ${response.status}`);
       }
 
+      const result = await response.json();
+      console.log('[WalletConnect] Success:', result);
+
       toast.success(
-        `${result.message || 'Подключение успешно!'} Найдено активов: ${Object.keys(result.balances?.total || {}).length}`
+        `${result.message || 'Подключение успешно!'} Найдено активов: ${Object.keys(result.balances || {}).length}`
       );
     } catch (e: any) {
       console.error('[WalletConnect] Verify error:', e);
-      toast.error('Ошибка подключения: ' + e.message);
+
+      // Более подробное сообщение об ошибке
+      let errorMsg = e.message;
+
+      if (e.message.includes('Failed to fetch')) {
+        errorMsg = `Не удалось подключиться к Edge Function. Проверьте:
+1) Функция развернута: https://app.supabase.com/project/TradeumD/functions
+2) URL Supabase в .env: ${import.meta.env.VITE_SUPABASE_URL}
+3) CORS заголовки в функции`;
+      } else if (e.message.includes('NetworkError')) {
+        errorMsg = 'Сетевая ошибка. Проверьте подключение к интернету.';
+      } else if (e.message.includes('404')) {
+        errorMsg = 'Edge Function не найдена. Разверните её через Supabase Dashboard.';
+      }
+
+      toast.error('Ошибка подключения: ' + errorMsg);
     }
     setVerifying(false);
   };
