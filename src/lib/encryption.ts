@@ -54,12 +54,29 @@ function validateCredentials(
  * Безопасное логирование (без чувствительных данных)
  */
 function secureLog(action: string, details?: Record<string, unknown>) {
+  // Явно исключаем чувствительные поля из логов
+  const sensitiveFields = [
+    'apiKey',
+    'apiSecret',
+    'userId',
+    'email',
+    'iv',
+    'tag',
+    'encrypted_data',
+    'passphrase',
+    'secret',
+    'password',
+    'token',
+    'authorization',
+  ];
+
   const safeDetails = {
     action,
     timestamp: new Date().toISOString(),
-    ...details,
+    ...Object.fromEntries(
+      Object.entries(details || {}).filter(([key]) => !sensitiveFields.includes(key))
+    ),
   };
-  // Не логируем apiKey, apiSecret и другие чувствительные данные
   console.log('[encryption]', JSON.stringify(safeDetails));
 }
 
@@ -141,35 +158,12 @@ export async function encryptApiCredentials(
         reason: edgeError instanceof Error ? edgeError.message : 'unknown',
       });
 
-      // Fallback на клиентское шифрование
-      secureLog('fallback', { reason: 'using_client_side_encryption' });
-
-      const encoder = new TextEncoder();
-      const data = JSON.stringify({
-        apiKey: sanitizedApiKey,
-        apiSecret: sanitizedApiSecret,
-        timestamp: Date.now(),
-      });
-
-      // Генерируем ключ шифрования
-      const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, [
-        'encrypt',
-      ]);
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encrypted = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv },
-        key,
-        encoder.encode(data)
+      // НЕТ Fallback на клиентское шифрование - данные будут бесполезны после перезагрузки
+      // Вместо этого выбрасываем ошибку с рекомендацией повторить попытку
+      throw new Error(
+        'Сервис шифрования временно недоступен. Пожалуйста, подождите несколько секунд и попробуйте снова. ' +
+          'Если ошибка повторяется, обратитесь в поддержку.'
       );
-
-      // Для tag используем часть iv (в реальном приложении лучше хранить отдельно)
-      const tag = btoa(String.fromCharCode(...iv.slice(0, 8)));
-
-      return {
-        encrypted_data: btoa(String.fromCharCode(...new Uint8Array(encrypted))),
-        iv: btoa(String.fromCharCode(...iv)),
-        tag,
-      };
     }
   } catch (error) {
     if (error instanceof Error && error.name === 'AbortError') {

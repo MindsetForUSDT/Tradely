@@ -102,7 +102,10 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
           count,
         } = await query.order(orderBy, { ascending }).range(offset, offset + limit - 1);
 
-        if (fetchError) throw fetchError;
+        if (fetchError) {
+          console.error('[useTradesOptimized] Fetch error:', fetchError);
+          throw fetchError;
+        }
 
         if (append) {
           setTrades((prev) => [...prev, ...(data || [])]);
@@ -114,7 +117,9 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
         offsetRef.current = offset + (data?.length || 0);
         setHasMore((data?.length || 0) === limit);
       } catch (e: any) {
+        console.error('[useTradesOptimized] Error:', e);
         setError(e.message || 'Ошибка загрузки сделок');
+        setTrades([]); // Очистить данные при ошибке
       } finally {
         setIsLoading(false);
         setIsFetchingMore(false);

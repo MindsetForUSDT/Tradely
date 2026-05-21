@@ -13,14 +13,18 @@ import { OfflineBanner } from '@/components/ui/OfflineBanner';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
-      gcTime: 5 * 60_000, // В v5 заменили cacheTime на gcTime
+      staleTime: 5 * 60_000, // 5 минут — данные актуальны
+      gcTime: 30 * 60_000, // 30 минут — удерживаем в памяти
       retry: 2,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Экспоненциальная задержка
     },
     mutations: {
       retry: 1,
+      onError: (error) => {
+        console.error('[Mutation Error]', error);
+      },
     },
   },
 });
@@ -139,6 +143,8 @@ function AuthProvider({ children }: { children: ReactNode }) {
         userId: session?.user?.id,
         hasSession: !!session,
       });
+
+      if (!isMounted) return; // Защита от update после unmount
 
       if (session?.user) {
         console.log('[AuthProvider] Session created/updated for user:', session.user.id);

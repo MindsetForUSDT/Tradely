@@ -117,6 +117,7 @@ export function WalletConnect() {
   const [form, setForm] = useState<WalletFormData>(INITIAL_FORM);
   const [adding, setAdding] = useState(false);
   const [verifying, setVerifying] = useState(false);
+  const [syncingWalletId, setSyncingWalletId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [databaseAwaking, setDatabaseAwaking] = useState(false);
   const queryClient = useQueryClient();
@@ -400,9 +401,15 @@ export function WalletConnect() {
   };
 
   const handleManualSync = async (walletId: string) => {
+    // Защита от повторных нажатий
+    if (syncingWalletId) {
+      toast.error('Синхронизация уже запущена');
+      return;
+    }
+
+    setSyncingWalletId(walletId);
     toast.success('Запуск синхронизации...');
 
-    // Пробуем вызвать Edge Function
     try {
       await supabase.functions.invoke('sync-wallet-trades', {
         body: {
@@ -414,6 +421,8 @@ export function WalletConnect() {
     } catch (error: any) {
       console.error('[handleManualSync] Error:', error);
       toast.error('Edge Function недоступна. Синхронизация будет выполнена позже.');
+    } finally {
+      setSyncingWalletId(null);
     }
   };
 
@@ -860,8 +869,8 @@ export function WalletConnect() {
 
           <button
             onClick={handleAdd}
-            disabled={adding}
-            className="w-full py-3.5 bg-accent-green text-white rounded-xl font-semibold disabled:opacity-50 hover:bg-accent-green-dim transition-all active:scale-[0.98]"
+            disabled={adding || syncingWalletId !== null}
+            className="w-full py-3.5 bg-accent-green text-white rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed hover:bg-accent-green-dim transition-all active:scale-[0.98]"
           >
             {adding ? 'Добавление...' : 'Добавить кошелёк'}
           </button>
@@ -922,9 +931,10 @@ export function WalletConnect() {
                     {w.processing_status === 'pending' && (
                       <button
                         onClick={() => handleManualSync(w.id)}
-                        className="text-xs text-accent-green hover:underline"
+                        disabled={syncingWalletId === w.id}
+                        className="text-xs text-accent-green hover:underline disabled:text-text-muted disabled:no-underline"
                       >
-                        Запустить
+                        {syncingWalletId === w.id ? 'Запуск...' : 'Запустить'}
                       </button>
                     )}
                   </div>

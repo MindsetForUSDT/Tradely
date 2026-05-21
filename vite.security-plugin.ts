@@ -155,7 +155,8 @@ function buildContentSecurityPolicy(options: {
   if (options.allowInlineScripts) {
     scriptSources.push("'unsafe-inline'");
   }
-  // В production лучше использовать nonce или hashes вместо 'unsafe-inline'
+  // Добавляем blob: для Service Worker
+  scriptSources.push('blob:');
   directives.push(`script-src ${scriptSources.join(' ')}`);
 
   // Style-src
@@ -163,16 +164,24 @@ function buildContentSecurityPolicy(options: {
   if (options.allowInlineStyles) {
     styleSources.push("'unsafe-inline'");
   }
+  // Добавляем Google Fonts
+  styleSources.push('https://fonts.googleapis.com');
+  styleSources.push('https://fonts.gstatic.com');
   directives.push(`style-src ${styleSources.join(' ')}`);
 
   // Img-src
-  directives.push("img-src 'self' data: https:");
+  directives.push("img-src 'self' data: https: blob:");
 
   // Font-src
-  directives.push("font-src 'self' data:");
+  directives.push("font-src 'self' data: https://fonts.gstatic.com");
 
-  // Connect-src
-  directives.push("connect-src 'self' https://*.supabase.co");
+  // Connect-src - добавляем WebSocket для Supabase
+  const connectSources = ["'self'", 'https://*.supabase.co', 'wss://*.supabase.co'];
+  // Добавляем API бирж
+  connectSources.push('https://api.binance.com');
+  connectSources.push('https://api.bybit.com');
+  connectSources.push('https://www.googleapis.com');
+  directives.push(`connect-src ${connectSources.join(' ')}`);
 
   // Frame-ancestors
   directives.push("frame-ancestors 'none'");
@@ -182,6 +191,9 @@ function buildContentSecurityPolicy(options: {
 
   // Form-action
   directives.push("form-action 'self'");
+
+  // Worker-src - для Service Worker
+  directives.push("worker-src 'self' blob:");
 
   // Report-uri (если указано)
   if (options.reportUri) {

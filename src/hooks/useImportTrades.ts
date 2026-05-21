@@ -33,12 +33,17 @@ export function useImportTrades() {
 
     try {
       // Сохраняем источник
-      await supabase.from('import_sources').insert({
+      const { error: insertError } = await supabase.from('import_sources').insert({
         user_id: uid,
         source_type: exchange,
         api_key_encrypted: apiKey.slice(0, 8) + '***',
         api_secret_encrypted: apiSecret.slice(0, 8) + '***',
       });
+
+      if (insertError) {
+        console.error('[useImportTrades] Failed to save import source:', insertError);
+        // Не прерываем, продолжаем импорт
+      }
 
       setProgress(30);
 
@@ -50,6 +55,7 @@ export function useImportTrades() {
       setProgress(70);
 
       if (error) {
+        console.error('[useImportTrades] Edge Function error:', error);
         toast.error(getErrorMessage(error));
         setProgress(0);
         setImporting(false);
@@ -58,16 +64,19 @@ export function useImportTrades() {
 
       if (data?.success) {
         toast.success(`Импортировано ${data.imported} сделок`);
+        setProgress(100);
       } else {
+        console.error('[useImportTrades] Import failed:', data?.error);
         toast.error(data?.error || 'Ошибка импорта');
+        setProgress(0);
       }
-
-      setProgress(100);
     } catch (e: any) {
+      console.error('[useImportTrades] Exception:', e);
       toast.error(getErrorMessage(e));
       setProgress(0);
+    } finally {
+      setImporting(false);
     }
-    setImporting(false);
   };
 
   return { importFromExchange, importing, progress };
