@@ -1,5 +1,5 @@
 // components/dashboard/DashboardLayout.tsx
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { StatsOverview } from './StatsOverview';
 import { PnLChart } from './PnLChart';
@@ -22,7 +22,15 @@ export function DashboardLayout() {
     manuallyWakeUpDatabase,
   } = useWallets();
 
-  if (walletsLoading) {
+  const [isRetrying, setIsRetrying] = useState(false);
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    await manuallyWakeUpDatabase();
+    setIsRetrying(false);
+  };
+
+  if (walletsLoading || isRetrying) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-[#0a0a0f] to-[#111318]">
         <div className="text-center max-w-md mx-auto px-4">
@@ -32,10 +40,11 @@ export function DashboardLayout() {
           </p>
           {isDatabaseAwake === false && (
             <button
-              onClick={manuallyWakeUpDatabase}
-              className="mt-4 px-4 py-2 bg-accent-green/20 text-accent-green rounded-lg text-xs font-semibold hover:bg-accent-green/30 transition-all border border-accent-green/30"
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className="mt-4 px-4 py-2 bg-accent-green/20 text-accent-green rounded-lg text-xs font-semibold hover:bg-accent-green/30 transition-all border border-accent-green/30 disabled:opacity-50"
             >
-              Пробудить базу вручную
+              {isRetrying ? 'Пробуждение...' : 'Пробудить базу вручную'}
             </button>
           )}
         </div>
@@ -52,12 +61,21 @@ export function DashboardLayout() {
           </div>
           <h2 className="text-xl font-bold text-white mb-2">Ошибка загрузки</h2>
           <p className="text-text-muted text-sm mb-4">{walletsError}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-semibold hover:bg-accent-green-dim transition-all"
-          >
-            Обновить страницу
-          </button>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className="px-4 py-2 bg-accent-green text-white rounded-lg text-sm font-semibold hover:bg-accent-green-dim transition-all disabled:opacity-50"
+            >
+              {isRetrying ? 'Повтор...' : 'Попробовать снова'}
+            </button>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-surface-elevated text-white rounded-lg text-sm font-semibold hover:bg-surface-overlay transition-all"
+            >
+              Обновить страницу
+            </button>
+          </div>
         </div>
       </div>
     );

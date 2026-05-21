@@ -11,11 +11,7 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';
 
   return {
-    plugins: [
-      react(),
-      // Добавляем security headers plugin
-      isProduction ? productionSecurityHeaders() : developmentSecurityHeaders(),
-    ],
+    plugins: [react(), isProduction ? productionSecurityHeaders() : developmentSecurityHeaders()],
     resolve: {
       alias: { '@': path.resolve(__dirname, './src') },
     },
@@ -23,7 +19,6 @@ export default defineConfig(({ mode }) => {
       target: 'es2022',
       minify: 'esbuild',
       cssMinify: true,
-      // Включить source maps для production (для отладки безопасности)
       sourcemap: false,
       rollupOptions: {
         output: {

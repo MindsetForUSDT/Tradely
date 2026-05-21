@@ -8,24 +8,20 @@
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     
-    <!-- Theme Color (современный подход) -->
     <meta name="theme-color" content="#0A0A0F" media="(prefers-color-scheme: dark)" />
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     
-    <!-- PWA Meta-теги -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="TradeumDiary" />
 
-    <!-- SEO Meta -->
     <meta name="description" content="TradeumDiary — профессиональный дневник трейдера. Автоматический импорт сделок из кошельков и бирж. Глубокая аналитика, P&L в реальном времени, налоговые отчёты." />
     <meta name="keywords" content="трейдинг, дневник трейдера, анализ сделок, крипто трейдинг, биржевой журнал, trading journal, crypto analytics" />
     <meta name="author" content="TradeumDiary Team" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://tradeumdiary.com" />
 
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://tradeumdiary.com/" />
     <meta property="og:title" content="TradeumDiary — Профессиональный Трейдинг Терминал" />
@@ -35,14 +31,12 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="TradeumDiary" />
 
-    <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:url" content="https://tradeumdiary.com" />
     <meta name="twitter:title" content="TradeumDiary — Трейдинг Терминал" />
     <meta name="twitter:description" content="Автоматический импорт сделок, real-time аналитика, алгоритмические инсайты." />
     <meta name="twitter:image" content="/og-image.png" />
 
-    <!-- Fonts preload -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
@@ -51,21 +45,6 @@
   </head>
   <body class="bg-bg-default text-text-primary font-inter antialiased">
     <div id="root"></div>
-    <script>
-      // Регистрация Service Worker с принудительным обновлением
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          // Сначала регистрируем с параметром cacheBust
-          navigator.serviceWorker.register('/sw.js?v=2')
-            .then(reg => {
-              console.log('[SW] Registered:', reg.scope);
-              // Принудительно обновляем
-              reg.update();
-            })
-            .catch(err => console.error('[SW] Registration failed:', err));
-        });
-      }
-    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

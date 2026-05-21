@@ -6,12 +6,10 @@ import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { wakeUpDatabase, startDatabaseKeepAlive } from '@/lib/database-wake';
 import './index.css';
 
-// "Разбудить" базу при загрузке страницы
 wakeUpDatabase().then(() => {
   console.log('[Main] Database is ready');
 });
 
-// Автоматически поддерживаем базу "проснувшейся"
 startDatabaseKeepAlive();
 
 const rootElement = document.getElementById('root');

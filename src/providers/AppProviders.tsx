@@ -1,5 +1,5 @@
 // providers/AppProviders.tsx
-import { useEffect, useState, createContext, useContext, ReactNode } from 'react';
+import { useEffect, useState, createContext, useContext, ReactNode, useCallback } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
@@ -70,20 +70,33 @@ function AuthProvider({ children }: { children: ReactNode }) {
   const storeSetUser = useStore((s) => s.setUser);
   const setOnline = useStore((s) => s.setOnline);
 
-  // Функция для ручного обновления пользователя (из форм регистрации/входа)
   const setUser = (newUser: UserProfile | null) => {
-    console.log('[AuthProvider] setUser called:', newUser?.id || null);
     setUserState(newUser);
     if (newUser) {
       storeSetUser(newUser);
     }
   };
 
+  // Загрузка профиля из таблицы profiles
+  const loadUserProfile = useCallback(async (userId: string, email?: string) => {
+    try {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+
+      if (error) {
+        console.error('[AuthProvider] Profile load error:', error);
+        return null;
+      }
+
+      return data;
+    } catch (err) {
+      console.error('[AuthProvider] Profile load exception:', err);
+      return null;
+    }
+  }, []);
+
   useEffect(() => {
-    console.log('[AuthProvider] Initializing auth...');
     let isMounted = true;
 
-    // Быстрая проверка сессии с timeout
     const checkSession = async () => {
       try {
         const {
@@ -92,7 +105,7 @@ function AuthProvider({ children }: { children: ReactNode }) {
         } = await Promise.race([
           supabase.auth.getSession(),
           new Promise<{ data: { session: null }; error: any }>((resolve) =>
-            setTimeout(() => ({ data: { session: null }, error: null }), 5000)
+            setTimeout(() => resolve({ data: { session: null }, error: null }), 10000)
           ),
         ]);
 
@@ -104,22 +117,19 @@ function AuthProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        console.log(
-          '[AuthProvider] getSession result:',
-          session ? '✅ session found' : '❌ no session'
-        );
-
         if (session?.user) {
-          console.log('[AuthProvider] User logged in:', {
-            id: session.user.id,
-            email: session.user.email,
-          });
+          const profile = await loadUserProfile(session.user.id, session.user.email || undefined);
+
+          if (!isMounted) return;
 
           setUserId(session.user.id);
           const userProfile: UserProfile = {
             id: session.user.id,
-            username: session.user.email || 'User',
-            subscription_tier: 'free',
+            username: profile?.username || session.user.email || 'User',
+            email: session.user.email,
+            subscription_tier: profile?.subscription_tier || 'free',
+            subscription_expires_at: profile?.subscription_expires_at,
+            avatar_url: profile?.avatar_url,
             created_at: session.user.created_at,
           };
           setUserState(userProfile);
@@ -134,31 +144,29 @@ function AuthProvider({ children }: { children: ReactNode }) {
 
     checkSession();
 
-    // Подписываемся на изменения состояния auth
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[AuthProvider] onAuthStateChange:', {
-        event,
-        userId: session?.user?.id,
-        hasSession: !!session,
-      });
-
-      if (!isMounted) return; // Защита от update после unmount
+    } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
 
       if (session?.user) {
-        console.log('[AuthProvider] Session created/updated for user:', session.user.id);
+        const profile = await loadUserProfile(session.user.id, session.user.email || undefined);
+
+        if (!isMounted) return;
+
         setUserId(session.user.id);
         const userProfile: UserProfile = {
           id: session.user.id,
-          username: session.user.email || 'User',
-          subscription_tier: 'free',
+          username: profile?.username || session.user.email || 'User',
+          email: session.user.email,
+          subscription_tier: profile?.subscription_tier || 'free',
+          subscription_expires_at: profile?.subscription_expires_at,
+          avatar_url: profile?.avatar_url,
           created_at: session.user.created_at,
         };
         setUserState(userProfile);
         storeSetUser(userProfile);
       } else if (event === 'SIGNED_OUT') {
-        console.log('[AuthProvider] User signed out');
         setUserId(null);
         setUserState(null);
         storeSetUser(null);
@@ -171,16 +179,14 @@ function AuthProvider({ children }: { children: ReactNode }) {
     window.addEventListener('offline', handleOffline);
 
     return () => {
-      console.log('[AuthProvider] Cleanup');
       isMounted = false;
       subscription.unsubscribe();
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [storeSetUser, setOnline]);
+  }, [storeSetUser, setOnline, loadUserProfile]);
 
   const signOut = async () => {
-    console.log('[AuthProvider] Signing out...');
     try {
       const { error } = await supabase.auth.signOut();
 
@@ -190,10 +196,24 @@ function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
 
+      // Очистка состояния
       setUserId(null);
       setUserState(null);
+      storeSetUser(null);
+
+      // Очистка кэша запросов
+      queryClient.clear();
+
+      // Очистка localStorage (кроме критичных данных)
+      const keysToRemove = Object.keys(localStorage).filter(
+        (key) =>
+          key.startsWith('tradeumdiary-') ||
+          key.startsWith('supabase.auth.token') ||
+          key.startsWith('sb-')
+      );
+      keysToRemove.forEach((key) => localStorage.removeItem(key));
+
       toast.success('Вы вышли из аккаунта');
-      console.log('[AuthProvider] Sign out complete');
     } catch (error: any) {
       console.error('[AuthProvider] Sign out exception:', error);
       toast.error('Ошибка выхода: ' + (error.message || 'Неизвестная ошибка'));

@@ -96,11 +96,19 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
       try {
         const offset = append ? offsetRef.current : 0;
 
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 сек таймаут
+
         const {
           data,
           error: fetchError,
           count,
-        } = await query.order(orderBy, { ascending }).range(offset, offset + limit - 1);
+        } = await query
+          .order(orderBy, { ascending })
+          .range(offset, offset + limit - 1)
+          .abortSignal(controller.signal);
+
+        clearTimeout(timeoutId);
 
         if (fetchError) {
           console.error('[useTradesOptimized] Fetch error:', fetchError);
@@ -119,7 +127,7 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
       } catch (e: any) {
         console.error('[useTradesOptimized] Error:', e);
         setError(e.message || 'Ошибка загрузки сделок');
-        setTrades([]); // Очистить данные при ошибке
+        if (!append) setTrades([]);
       } finally {
         setIsLoading(false);
         setIsFetchingMore(false);
@@ -128,54 +136,15 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
     [buildQuery, orderBy, ascending, limit]
   );
 
-  // Подписка на real-time обновления
+  // Загрузка при монтировании (без realtime подписки для стабильности)
   useEffect(() => {
     const uid = getUserIdFromCache();
-    if (!uid) return;
-
-    fetchTrades();
-
-    // Если подписка уже есть, не создаём новую
-    if (subscriptionRef.current) {
-      console.log('[useTradesOptimized] Subscription already exists, skipping');
+    if (!uid) {
+      setIsLoading(false);
       return;
     }
 
-    subscriptionRef.current = supabase
-      .channel('trades-realtime')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'trades',
-          filter: `user_id=eq.${uid}`,
-        },
-        (payload) => {
-          const newTrade = payload.new as Trade;
-          setTrades((prev) => [newTrade, ...prev]);
-          setTotalCount((prev) => prev + 1);
-        }
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'trades',
-          filter: `user_id=eq.${uid}`,
-        },
-        (payload) => {
-          const updated = payload.new as Trade;
-          setTrades((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      subscriptionRef.current?.unsubscribe();
-      subscriptionRef.current = null;
-    };
+    fetchTrades();
   }, [fetchTrades]);
 
   // Пагинация
