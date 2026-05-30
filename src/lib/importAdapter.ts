@@ -35,12 +35,12 @@ export class EVMImportAdapter {
     };
   }
 
-  async fetchSwaps(address: string, fromBlock: bigint, toBlock: bigint): Promise<UnifiedTrade[]> {
-    console.log('fetchSwaps called (mock):', {
-      address,
-      fromBlock: fromBlock.toString(),
-      toBlock: toBlock.toString(),
-    });
+  async fetchSwaps(
+    _address: string,
+    _fromBlock: bigint,
+    _toBlock: bigint
+  ): Promise<UnifiedTrade[]> {
+    // Mock implementation
     return [];
   }
 

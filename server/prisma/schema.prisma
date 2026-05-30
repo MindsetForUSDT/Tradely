@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Profile {
+  id                      String           @id @default(uuid())
+  clerk_id                String           @unique
+  email                   String           @unique
+  username                String?          @unique
+  hashed_password         String?
+  avatar_url              String?
+  subscription_tier       String           @default("free")
+  subscription_expires_at DateTime?
+  created_at              DateTime         @default(now())
+  updated_at              DateTime         @updatedAt
+  analytics               DailyAnalytics[]
+  tags                    Tag[]
+  trades                  Trade[]
+  wallets                 Wallet[]
+
+  @@map("profiles")
+}
+
+model Wallet {
+  id                    String    @id @default(uuid())
+  user_id               String
+  address               String
+  chain                 String
+  label                 String?
+  encrypted_credentials String?
+  credentials_iv        String?
+  credentials_tag       String?
+  web3_provider         String?
+  cex_provider          String?
+  processing_status     String    @default("pending")
+  last_synced_at        DateTime?
+  last_processed_block  Int?
+  error_message         String?
+  settings              String?
+  import_from_date      DateTime?
+  added_at              DateTime  @default(now())
+  trades                Trade[]
+  user                  Profile   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  // Один CEX провайдер на пользователя
+  @@unique([user_id, cex_provider], name: "unique_user_cex")
+  // Один адрес на пользователя для Web3 и брокеров
+  @@unique([user_id, address], name: "unique_user_address")
+  @@map("wallets")
+}
+
+model Trade {
+  id             String     @id @default(uuid())
+  user_id        String
+  wallet_id      String?
+  tx_hash        String?
+  timestamp      DateTime   @default(now())
+  block_number   Int?
+  symbol         String
+  side           String
+  amount         Decimal    @default(0) @db.Decimal(20, 8)
+  price_usd      Decimal    @default(0) @db.Decimal(20, 8)
+  value_usd      Decimal    @default(0) @db.Decimal(20, 8)
+  fee_usd        Decimal    @default(0) @db.Decimal(20, 8)
+  pnl_realized   Decimal    @default(0) @db.Decimal(20, 8)
+  pnl_unrealized Decimal    @default(0) @db.Decimal(20, 8)
+  status         String     @default("completed")
+  exchange       String?
+  import_source  String     @default("manual")
+  raw_data       String?
+  created_at     DateTime   @default(now())
+  tags           TradeTag[]
+  user           Profile    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  wallet         Wallet?    @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, tx_hash], name: "unique_user_tx")
+  @@index([user_id, wallet_id])
+  @@index([user_id, timestamp])
+  @@map("trades")
+}
+
+model Tag {
+  id         String     @id @default(uuid())
+  user_id    String
+  name       String
+  color      String     @default("#00FFA3")
+  created_at DateTime   @default(now())
+  user       Profile    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  tradeTags  TradeTag[]
+
+  @@unique([user_id, name])
+  @@map("tags")
+}
+
+model TradeTag {
+  id       String @id @default(uuid())
+  trade_id String
+  tag_id   String
+  tag      Tag    @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+  trade    Trade  @relation(fields: [trade_id], references: [id], onDelete: Cascade)
+
+  @@unique([trade_id, tag_id])
+  @@map("trade_tags")
+}
+
+model DailyAnalytics {
+  id               String   @id @default(uuid())
+  user_id          String
+  date             DateTime @db.Date
+  total_trades     Int      @default(0)
+  winning_trades   Int      @default(0)
+  losing_trades    Int      @default(0)
+  realized_pnl_usd Decimal  @default(0) @db.Decimal(20, 8)
+  volume_usd       Decimal  @default(0) @db.Decimal(20, 8)
+  avg_trade_size   Decimal  @default(0) @db.Decimal(20, 8)
+  max_drawdown     Decimal  @default(0) @db.Decimal(20, 8)
+  sharpe_ratio     Decimal  @default(0) @db.Decimal(20, 8)
+  win_rate         Decimal  @default(0) @db.Decimal(20, 8)
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+  user             Profile  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, date])
+  @@map("daily_analytics")
+}

@@ -45,7 +45,8 @@ export function NewFeaturesSection() {
   return (
     <section
       id="features"
-      ref={(el) => {}}
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      ref={(_el) => {}}
       className="py-24 md:py-32 px-4 relative overflow-hidden bg-gradient-to-b from-[#0a0a0f] via-[#0f0f14] to-[#0a0a0f]"
     >
       {/* Декоративные градиентные пятна */}

@@ -1,30 +1,19 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
 import toast from 'react-hot-toast';
-import { useAuth } from '@/providers/AppProviders';
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-function getErrorMessage(err: any): string {
-  const msg = err?.message || String(err);
-  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-    return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
-  }
-  if (msg.includes('Invalid login credentials')) {
-    return 'Неверный email или пароль';
-  }
-  if (msg.includes('Email not confirmed')) {
-    return 'Email не подтверждён. Проверьте почту.';
-  }
-  return msg;
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'Ошибка при входе в аккаунт';
 }
 
 export function Login() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,17 +23,17 @@ export function Login() {
   // Предзаполнить email из последней регистрации
   useEffect(() => {
     const lastEmail = localStorage.getItem('lastRegistrationEmail');
-    if (lastEmail && !email) {
+    if (lastEmail) {
       setEmail(lastEmail);
     }
   }, []);
 
   // Перенаправляем авторизованных пользователей
-  if (!isLoading && isAuthenticated) {
+  if (!authLoading && isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
         <div className="w-10 h-10 rounded-full border-2 border-neon-cyan border-t-transparent animate-spin" />
@@ -55,62 +44,57 @@ export function Login() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!email || !password) {
+    if (!email.trim() || !password) {
       setError('Введите email и пароль');
-      return;
-    }
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      setError('Сервис авторизации временно недоступен. Не настроены параметры подключения.');
       return;
     }
 
     setLoading(true);
     setError('');
-    toast.loading('Входим в аккаунт...', { duration: 10000 });
 
     try {
-      const normalizedEmail = email.toLowerCase().trim();
+      const normalizedEmail = email.trim().toLowerCase();
 
-      // Добавляем timeout для запроса
-      const loginPromise = supabase.auth.signInWithPassword({
+      const response = await api.post<{
+        success: boolean;
+        user: {
+          id: string;
+          email: string;
+          username: string;
+          subscription_tier: string;
+          created_at: string;
+        };
+        token: string;
+      }>('/auth/login', {
         email: normalizedEmail,
         password,
       });
 
-      const { data, error } = await Promise.race([
-        loginPromise,
-        new Promise<{ data: null; error: any }>((_, reject) =>
-          setTimeout(() => reject(new Error('Запрос превысил 15 секунд')), 15000)
-        ),
-      ]);
+      const { user, token } = response;
 
-      if (error) {
-        const errorMsg = getErrorMessage(error);
-        toast.error(errorMsg);
-        setError(errorMsg);
-        return;
+      if (!user || !token) {
+        throw new Error('Ошибка входа');
       }
 
-      if (!data || !data.session) {
-        toast.error('Не удалось создать сессию. Попробуйте позже.');
-        setError('Не удалось создать сессию');
-        return;
-      }
+      // Устанавливаем токен для API
+      api.setTokenProvider(() => Promise.resolve(token));
 
-      console.log('[Login] Login successful:', {
-        userId: data.user.id,
-        email: data.user.email,
-      });
+      setUser(
+        {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          subscription_tier: user.subscription_tier as 'free' | 'pro',
+          created_at: user.created_at,
+        },
+        token
+      );
 
-      toast.success('Успешный вход!');
-
-      // Очищаем localStorage после успешного входа
       localStorage.removeItem('lastRegistrationEmail');
-
+      toast.success('Успешный вход!');
       navigate('/dashboard', { replace: true });
-    } catch (err: any) {
-      const errorMsg = err?.message || 'Произошла ошибка при входе';
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err);
       toast.error(errorMsg);
       setError(errorMsg);
     } finally {
@@ -178,7 +162,7 @@ export function Login() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Минимум 6 символов"
                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 transition-all"
                 disabled={loading}
               />

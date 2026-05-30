@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getUserId } from '@/lib/auth';
+import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 export function useTradeJournal() {
@@ -8,20 +7,15 @@ export function useTradeJournal() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const uid = getUserId();
-    if (!uid) {
+    try {
+      const response: any = await api.get('/trades?limit=200&orderBy=timestamp&ascending=false');
+      const manualTrades = (response.trades || []).filter((t: any) => t.import_source === 'manual');
+      setTrades(manualTrades);
+    } catch (error) {
+      console.error('[useTradeJournal] Error loading trades:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-    const { data } = await supabase
-      .from('trades')
-      .select('*')
-      .eq('user_id', uid)
-      .eq('import_source', 'manual')
-      .order('timestamp', { ascending: false })
-      .limit(200);
-    setTrades(data || []);
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -29,36 +23,32 @@ export function useTradeJournal() {
   }, []);
 
   const addTrade = async (trade: any) => {
-    const uid = getUserId();
-    if (!uid) return;
-    const { error } = await supabase
-      .from('trades')
-      .insert({ ...trade, user_id: uid, import_source: 'manual', status: 'closed' });
-    if (error) {
-      toast.error('Ошибка добавления');
-    } else {
+    try {
+      await api.post('/trades', { ...trade, import_source: 'manual', status: 'closed' });
       toast.success('Сделка добавлена');
       load();
+    } catch (error) {
+      toast.error('Ошибка добавления');
     }
   };
 
   const updateTrade = async (trade: any) => {
-    const { error } = await supabase.from('trades').update(trade).eq('id', trade.id);
-    if (error) {
-      toast.error('Ошибка обновления');
-    } else {
+    try {
+      await api.patch(`/trades/${trade.id}`, trade);
       toast.success('Сделка обновлена');
       load();
+    } catch (error) {
+      toast.error('Ошибка обновления');
     }
   };
 
   const deleteTrade = async (id: string) => {
-    const { error } = await supabase.from('trades').delete().eq('id', id);
-    if (error) {
-      toast.error('Ошибка удаления');
-    } else {
+    try {
+      await api.delete(`/trades/${id}`);
       toast.success('Сделка удалена');
       load();
+    } catch (error) {
+      toast.error('Ошибка удаления');
     }
   };
 

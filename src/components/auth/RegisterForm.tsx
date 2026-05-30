@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
-import { useAuth } from '@/providers/AppProviders';
+import { useAuth } from '@/hooks/useAuth';
+import { useStore } from '@/store/useStore';
+import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 interface RegisterFormProps {
@@ -10,16 +11,29 @@ interface RegisterFormProps {
   onEmailChange: (email: string) => void;
 }
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+interface RegisterResponse {
+  user: {
+    id: string;
+    username: string;
+    email: string;
+    subscription_tier: 'free' | 'pro';
+    created_at: string;
+  };
+  token: string;
+}
 
-function getErrorMessage(err: any): string {
-  const msg = err?.message || String(err);
-  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-    return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
+function getErrorMessage(err: unknown): string {
+  const msg =
+    err && typeof err === 'object' && 'message' in err ? String(err.message) : String(err);
+  if (
+    msg.includes('Failed to fetch') ||
+    msg.includes('NetworkError') ||
+    msg.includes('ERR_CONNECTION_REFUSED')
+  ) {
+    return 'Ошибка соединения с сервером. Проверьте подключение или попробуйте позже.';
   }
-  if (msg.includes('already registered') || msg.includes('User already registered')) {
-    return 'Пользователь с этим email уже существует. Пожалуйста, войдите.';
+  if (msg.includes('already registered') || msg.includes('User already exists')) {
+    return 'Пользователь с таким email уже существует. Пожалуйста, войдите.';
   }
   if (msg.includes('Password should be')) {
     return 'Пароль слишком простой. Используйте не менее 6 символов.';
@@ -30,6 +44,7 @@ function getErrorMessage(err: any): string {
 export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: RegisterFormProps) {
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const clearStore = useStore((s) => s.resetStats);
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState(savedEmail);
   const [password, setPassword] = useState('');
@@ -45,64 +60,43 @@ export function RegisterForm({ savedEmail, onSwitchToLogin, onEmailChange }: Reg
       return;
     }
 
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      toast.error('Сервис регистрации временно недоступен. Не настроены параметры подключения.');
-      return;
-    }
-
     setLoading(true);
-    console.log('[RegisterForm] Attempting registration for:', email);
+    // Очищаем старые данные перед регистрацией
+    localStorage.removeItem('tradeumdiary-user');
+    localStorage.removeItem('tradeumdiary-user-id');
+    localStorage.removeItem('tradeumdiary-store');
+    localStorage.removeItem('sb-token');
+    clearStore();
 
     try {
       const normalizedEmail = email.toLowerCase().trim();
 
-      const { data, error } = await supabase.auth.signUp({
+      const data = await api.post<RegisterResponse>('/auth/register', {
         email: normalizedEmail,
         password,
-        options: { data: { username } },
+        username,
       });
 
-      if (error) {
-        console.error('[RegisterForm] Registration error:', error);
-        const errorMsg = getErrorMessage(error);
-        toast.error(errorMsg);
-        setLoading(false);
-        return;
+      const { user, token } = data;
+
+      if (!user || !token) {
+        throw new Error('Ошибка регистрации');
       }
 
-      console.log('[RegisterForm] Registration result:', {
-        userId: data?.user?.id,
-        email: data?.user?.email,
-        hasSession: !!data?.session,
+      // Устанавливаем токен для API
+      api.setTokenProvider(() => Promise.resolve(token));
+
+      setUser?.({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        subscription_tier: user.subscription_tier,
+        created_at: user.created_at,
       });
 
-      if (data?.session) {
-        console.log('[RegisterForm] Updating AuthContext with user:', data.session.user.id);
-
-        setUser?.({
-          id: data.session.user.id,
-          username: username,
-          email: data.session.user.email,
-          subscription_tier: 'free',
-          created_at: data.session.user.created_at,
-        });
-
-        toast.success('Аккаунт создан!');
-        localStorage.removeItem('lastRegistrationEmail');
-        navigate('/dashboard', { replace: true });
-      } else {
-        console.log('[RegisterForm] No session - email confirmation may be required');
-        toast.success(
-          'Письмо с подтверждением отправлено на ' +
-            normalizedEmail +
-            '. Проверьте почту и подтвердите аккаунт, затем войдите.'
-        );
-        // Сохраняем email для удобства входа
-        localStorage.setItem('lastRegistrationEmail', normalizedEmail);
-        onSwitchToLogin();
-      }
-    } catch (err) {
-      console.error('[RegisterForm] Unexpected error:', err);
+      toast.success('Аккаунт создан!');
+      navigate('/dashboard', { replace: true });
+    } catch (err: unknown) {
       toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);

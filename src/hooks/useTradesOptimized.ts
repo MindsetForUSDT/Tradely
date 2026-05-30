@@ -1,7 +1,6 @@
 // hooks/useTradesOptimized.ts
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getUserIdFromCache } from '@/lib/auth';
+import { api } from '@/lib/api';
 import type { Trade } from '@/types';
 
 interface UseTradesOptions {
@@ -48,43 +47,26 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
   const [hasMore, setHasMore] = useState(true);
 
   const offsetRef = useRef(0);
-  const subscriptionRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const isFetchingRef = useRef(false);
 
-  // Автоматически вычисляем dateFrom из daysAgo
+  // Стабильные фильтры — не пересоздаём объект
   const computedFilters = useMemo(() => {
-    const f = { ...filters };
-    if (daysAgo && !f.dateFrom) {
-      const d = new Date();
-      d.setDate(d.getDate() - daysAgo);
-      f.dateFrom = d.toISOString();
-    }
+    const f: typeof filters = {};
+    if (filters.symbol) f.symbol = filters.symbol;
+    if (filters.side) f.side = filters.side;
+    if (filters.dateFrom) f.dateFrom = filters.dateFrom;
+    if (filters.dateTo) f.dateTo = filters.dateTo;
+    if (filters.walletId) f.walletId = filters.walletId;
+    // Убираем автоматический фильтр daysAgo - пользователь должен явно указать dateFrom
     return f;
-  }, [filters, daysAgo]);
+  }, [filters?.symbol, filters?.side, filters?.dateFrom, filters?.dateTo, filters?.walletId]);
 
-  // Построение запроса
-  const buildQuery = useCallback(() => {
-    const uid = getUserIdFromCache();
-    if (!uid) return null;
-
-    let query = supabase.from('trades').select('*', { count: 'exact' }).eq('user_id', uid);
-
-    if (computedFilters.symbol) query = query.ilike('symbol', `%${computedFilters.symbol}%`);
-    if (computedFilters.side) query = query.eq('side', computedFilters.side);
-    if (computedFilters.dateFrom) query = query.gte('timestamp', computedFilters.dateFrom);
-    if (computedFilters.dateTo) query = query.lte('timestamp', computedFilters.dateTo);
-    if (computedFilters.walletId) query = query.eq('wallet_id', computedFilters.walletId);
-
-    return query;
-  }, [computedFilters]);
-
-  // Загрузка данных
+  // Загрузка данных через API
   const fetchTrades = useCallback(
     async (append = false) => {
-      const query = buildQuery();
-      if (!query) {
-        setIsLoading(false);
-        return;
-      }
+      // Защита от параллельных запросов
+      if (isFetchingRef.current) return;
+      isFetchingRef.current = true;
 
       if (append) {
         setIsFetchingMore(true);
@@ -96,56 +78,49 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
       try {
         const offset = append ? offsetRef.current : 0;
 
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 сек таймаут
+        const params: Record<string, string> = {
+          limit: String(limit),
+          offset: String(offset),
+          orderBy,
+          ascending: String(ascending),
+        };
 
-        const {
-          data,
-          error: fetchError,
-          count,
-        } = await query
-          .order(orderBy, { ascending })
-          .range(offset, offset + limit - 1)
-          .abortSignal(controller.signal);
+        if (computedFilters.symbol) params.symbol = computedFilters.symbol;
+        if (computedFilters.side) params.side = computedFilters.side;
+        if (computedFilters.dateFrom) params.dateFrom = computedFilters.dateFrom;
+        if (computedFilters.dateTo) params.dateTo = computedFilters.dateTo;
+        if (computedFilters.walletId) params.walletId = computedFilters.walletId;
 
-        clearTimeout(timeoutId);
-
-        if (fetchError) {
-          console.error('[useTradesOptimized] Fetch error:', fetchError);
-          throw fetchError;
-        }
+        const data = await api.get<{ trades: Trade[]; total: number }>('/trades', params);
 
         if (append) {
-          setTrades((prev) => [...prev, ...(data || [])]);
+          setTrades((prev) => [...prev, ...(data.trades || [])]);
         } else {
-          setTrades(data || []);
+          setTrades(data.trades || []);
         }
 
-        setTotalCount(count || 0);
-        offsetRef.current = offset + (data?.length || 0);
-        setHasMore((data?.length || 0) === limit);
-      } catch (e: any) {
+        setTotalCount(data.total || 0);
+        offsetRef.current = offset + (data.trades?.length || 0);
+        setHasMore((data.trades?.length || 0) === limit);
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Ошибка загрузки сделок';
         console.error('[useTradesOptimized] Error:', e);
-        setError(e.message || 'Ошибка загрузки сделок');
+        setError(message);
         if (!append) setTrades([]);
       } finally {
         setIsLoading(false);
         setIsFetchingMore(false);
+        isFetchingRef.current = false;
       }
     },
-    [buildQuery, orderBy, ascending, limit]
+    [computedFilters, orderBy, ascending, limit]
   );
 
-  // Загрузка при монтировании (без realtime подписки для стабильности)
+  // Загрузка при монтировании — только один раз
   useEffect(() => {
-    const uid = getUserIdFromCache();
-    if (!uid) {
-      setIsLoading(false);
-      return;
-    }
-
     fetchTrades();
-  }, [fetchTrades]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Пустой массив — только при монтировании
 
   // Пагинация
   const loadMore = useCallback(async () => {
@@ -164,39 +139,43 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
     (tradeId: string, updates: Partial<Trade>) => {
       setTrades((prev) => prev.map((t) => (t.id === tradeId ? { ...t, ...updates } : t)));
 
-      supabase
-        .from('trades')
-        .update(updates)
-        .eq('id', tradeId)
-        .then(({ error }) => {
-          if (error) {
-            refresh();
-          }
-        });
+      api.patch(`/trades/${tradeId}`, updates).catch(() => {
+        refresh();
+      });
     },
     [refresh]
   );
 
   // ✅ Производные данные для графиков и аналитики
   const pnlData = useMemo(() => {
+    if (!trades || trades.length === 0) return [];
+
     let cumulative = 0;
     return [...trades]
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
       .map((t) => {
-        cumulative += t.pnl_realized || 0;
+        const pnl =
+          typeof t.pnl_realized === 'number'
+            ? t.pnl_realized
+            : parseFloat(String(t.pnl_realized ?? '0'));
+        cumulative += isNaN(pnl) ? 0 : pnl;
         return {
           date: t.timestamp,
-          pnl: t.pnl_realized || 0,
+          pnl: isNaN(pnl) ? 0 : pnl,
           cumulativePnl: cumulative,
         };
       });
   }, [trades]);
 
   const tokenVolumes = useMemo(() => {
+    if (!trades || trades.length === 0) return [];
+
     const map = new Map<string, number>();
     trades.forEach((t) => {
       const token = t.symbol?.split('/')[0] || 'Unknown';
-      map.set(token, (map.get(token) || 0) + (t.value_usd || 0));
+      const value =
+        typeof t.value_usd === 'number' ? t.value_usd : parseFloat(String(t.value_usd ?? '0'));
+      map.set(token, (map.get(token) || 0) + (isNaN(value) ? 0 : value));
     });
     const total = Array.from(map.values()).reduce((s, v) => s + v, 0);
     return Array.from(map.entries())
@@ -208,7 +187,16 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
       .sort((a, b) => b.volume - a.volume);
   }, [trades]);
 
-  const totalVolume = useMemo(() => trades.reduce((s, t) => s + (t.value_usd || 0), 0), [trades]);
+  const totalVolume = useMemo(() => {
+    if (!trades || trades.length === 0) return 0;
+    let sum = 0;
+    trades.forEach((t) => {
+      const value =
+        typeof t.value_usd === 'number' ? t.value_usd : parseFloat(String(t.value_usd ?? '0'));
+      sum += isNaN(value) ? 0 : value;
+    });
+    return sum;
+  }, [trades]);
 
   const totalTrades = trades.length;
 

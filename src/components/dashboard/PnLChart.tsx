@@ -131,7 +131,7 @@ export function PnLChart({ data, isLoading = false }: PnLChartProps) {
     return (
       <Card padding="md">
         <div className="text-center py-8">
-          <p className="text-text-muted">Нет данных за выбранный период</p>
+          <p className="text-text-muted">Сделок пока нет</p>
         </div>
       </Card>
     );

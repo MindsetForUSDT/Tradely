@@ -1,6 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { Icon } from '@/components/ui/Icons';
-import { cn } from '@/lib/utils';
 
 interface ContactModalProps {
   isOpen: boolean;

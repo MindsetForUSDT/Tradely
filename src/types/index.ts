@@ -7,8 +7,10 @@ export interface Trade {
   side: 'buy' | 'sell';
   amount: number;
   price: number;
+  price_usd?: number;
   value_usd: number;
   fee: number;
+  fee_usd?: number;
   fee_token?: string;
   status: 'open' | 'closed' | 'pending';
   exchange?: string;
@@ -17,6 +19,7 @@ export interface Trade {
   block_number?: number;
   pnl_realized?: number;
   pnl_percent?: number;
+  holding_time_minutes?: number;
   strategy_tag?: string;
   tags?: string[];
   notes?: string;
@@ -49,10 +52,12 @@ export interface Wallet {
   chain: string;
   chain_id?: number;
   label?: string;
+  settings?: string | Record<string, unknown>;
   processing_status: 'pending' | 'processing' | 'completed' | 'failed';
   last_synced_at?: string;
   last_processed_block?: number;
   error_message?: string;
+  import_from_date?: string;
   added_at: string;
 }
 

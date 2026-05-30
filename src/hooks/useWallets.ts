@@ -1,8 +1,6 @@
-// hooks/useWallets.ts — ОПТИМИЗИРОВАННЫЙ С КЭШИРОВАНИЕМ
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getUserIdFromCache } from '@/lib/auth';
-import { walletsCache } from '@/lib/cache';
+import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
 
 interface SyncStatus {
   walletId: string;
@@ -17,8 +15,8 @@ interface Wallet {
   user_id: string;
   address: string;
   chain: string;
-  chain_id: number;
   label?: string;
+  settings?: string | Record<string, unknown>;
   processing_status: 'pending' | 'processing' | 'completed' | 'failed';
   last_synced_at?: string;
   last_processed_block?: number;
@@ -28,71 +26,19 @@ interface Wallet {
 
 export function useWallets() {
   const [wallets, setWallets] = useState<Wallet[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDatabaseAwake, setIsDatabaseAwake] = useState<boolean | null>(null);
-  const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
 
-  // Загрузка кошельков с кэшированием
   const loadWallets = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const uid = getUserIdFromCache();
-      if (!uid) {
-        setWallets([]);
-        setIsLoading(false);
-        return;
-      }
+      const data = await api.get<Wallet[]>('/wallets');
+      setWallets(data);
 
-      // "Разбудить" базу если нужно
-      if (isDatabaseAwake === null) {
-        setIsDatabaseAwake(false);
-      }
-
-      // 1. Сначала пробуем из кэша (для мгновенной загрузки)
-      const cached = walletsCache.getWallets(uid);
-      if (cached && !cached.expired) {
-        setWallets(cached.data as Wallet[]);
-        setIsLoading(false);
-      }
-
-      // 2. Загружаем из сети с timeout (параллельно)
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-      const startTime = Date.now();
-      const { data, error: fetchError } = await supabase
-        .from('wallets')
-        .select('*')
-        .eq('user_id', uid)
-        .order('added_at', { ascending: false })
-        .abortSignal(controller.signal);
-
-      const duration = Date.now() - startTime;
-      clearTimeout(timeoutId);
-
-      // Если запрос занял больше 5 секунд - база была "спящей"
-      if (duration > 5000) {
-        console.log(`[useWallets] Database woke up in ${duration}ms`);
-        setIsDatabaseAwake(true);
-      }
-
-      if (fetchError) {
-        console.error('[useWallets] Fetch error:', fetchError);
-        if (!cached) {
-          throw fetchError;
-        }
-      } else {
-        const walletData = data || [];
-        setWallets(walletData);
-        walletsCache.setWallets(uid, walletData);
-      }
-
-      // Восстанавливаем статусы синхронизации
-      const walletData = data || (cached?.data as Wallet[]) || [];
       const statusMap: Record<string, SyncStatus> = {};
-      walletData.forEach((w) => {
+      data.forEach((w) => {
         statusMap[w.id] = {
           walletId: w.id,
           progress: w.processing_status === 'completed' ? 100 : 0,
@@ -102,177 +48,62 @@ export function useWallets() {
       });
       setSyncStatuses(statusMap);
     } catch (e: any) {
-      console.error('[useWallets] Error loading wallets:', e);
-
-      let errorMessage = 'Ошибка загрузки кошельков';
-      if (e.message?.includes('503') || e.message?.includes('Connection reset')) {
-        errorMessage = 'База данных "просыпается". Подождите 30 секунд и обновите страницу.';
-      } else if (e.message?.includes('403')) {
-        errorMessage = 'Нет доступа к данным.';
-      } else if (e.message?.includes('timeout')) {
-        errorMessage = 'Превышено время ожидания.';
+      console.error('[useWallets] Error:', e);
+      // Игнорируем ошибку "Profile not found" - просто нет кошельков
+      if (e.message?.includes('Profile not found')) {
+        setWallets([]);
+        setError(null);
+      } else if (e.message?.includes('401') || e.message?.includes('403')) {
+        // Неавторизован - не показываем ошибку
+        setWallets([]);
+        setError(null);
+      } else {
+        setError(e.message || 'Ошибка загрузки кошельков');
       }
-
-      setError(errorMessage);
-      setWallets([]);
     } finally {
       setIsLoading(false);
     }
-  }, [isDatabaseAwake]);
+  }, []);
 
-  // Подписка на изменения в реальном времени
+  // Загружаем только при монтировании
   useEffect(() => {
     loadWallets();
-
-    const uid = getUserIdFromCache();
-    if (!uid) return;
-
-    const channel = supabase
-      .channel('wallets-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'wallets',
-          filter: `user_id=eq.${uid}`,
-        },
-        (payload) => {
-          const updated = payload.new as Wallet;
-          setWallets((prev) => prev.map((w) => (w.id === updated.id ? updated : w)));
-          setSyncStatuses((prev) => ({
-            ...prev,
-            [updated.id]: {
-              walletId: updated.id,
-              progress:
-                updated.processing_status === 'completed' ? 100 : prev[updated.id]?.progress || 0,
-              status: mapDbStatus(updated.processing_status),
-              error: updated.error_message,
-            },
-          }));
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [loadWallets]);
 
-  // Запуск реальной синхронизации
-  const startSync = useCallback(
-    async (walletId: string) => {
+  const startSync = useCallback(async (walletId: string) => {
+    setSyncStatuses((prev) => ({
+      ...prev,
+      [walletId]: { walletId, progress: 0, status: 'queued' },
+    }));
+
+    try {
+      await api.post(`/wallets/${walletId}/sync`, {});
       setSyncStatuses((prev) => ({
         ...prev,
-        [walletId]: { walletId, progress: 0, status: 'queued' },
+        [walletId]: { walletId, progress: 100, status: 'completed' },
       }));
-
-      try {
-        // Обновляем статус на pending
-        const { error: updateError } = await supabase
-          .from('wallets')
-          .update({ processing_status: 'pending' })
-          .eq('id', walletId);
-
-        if (updateError) throw updateError;
-
-        // Вызываем Edge Function
-        const { data, error: fnError } = await supabase.functions.invoke('fetch-trade-history', {
-          body: { walletId, priority: 'high' },
-        });
-
-        if (fnError) {
-          const msg = fnError.message || String(fnError);
-          if (msg.includes('Failed to fetch') || msg.includes('Edge Function')) {
-            throw new Error('Сервер синхронизации временно недоступен. Попробуйте позже.');
-          }
-          throw fnError;
-        }
-
-        setSyncStatuses((prev) => ({
-          ...prev,
-          [walletId]: {
-            walletId,
-            progress: 100,
-            status: 'completed',
-            tradesFound: data?.imported || 0,
-          },
-        }));
-
-        // Инвалидируем кэш после успешной синхронизации
-        const uid = getUserIdFromCache();
-        if (uid) {
-          walletsCache.removeWallets(uid);
-        }
-      } catch (e: any) {
-        setSyncStatuses((prev) => ({
-          ...prev,
-          [walletId]: {
-            walletId,
-            progress: 0,
-            status: 'failed',
-            error: e.message || 'Sync failed',
-          },
-        }));
-
-        await supabase
-          .from('wallets')
-          .update({
-            processing_status: 'failed',
-            error_message: e.message,
-          })
-          .eq('id', walletId);
-      }
-
-      await loadWallets();
-    },
-    [loadWallets]
-  );
-
-  // Массовая синхронизация
-  const syncAll = useCallback(async () => {
-    const pending = wallets.filter(
-      (w) => w.processing_status === 'pending' || w.processing_status === 'failed'
-    );
-    for (const wallet of pending) {
-      await startSync(wallet.id);
+    } catch (e: any) {
+      setSyncStatuses((prev) => ({
+        ...prev,
+        [walletId]: { walletId, progress: 0, status: 'failed', error: e.message },
+      }));
     }
-  }, [wallets, startSync]);
+  }, []);
 
   const refresh = useCallback(() => {
     loadWallets();
   }, [loadWallets]);
 
-  const manuallyWakeUpDatabase = useCallback(async () => {
-    setIsLoading(true);
-    setIsDatabaseAwake(false);
-    try {
-      const { error } = await supabase.rpc('wake_up_database');
-      if (error) throw error;
-      setIsDatabaseAwake(true);
-      await loadWallets();
-    } catch (e: any) {
-      console.error('[useWallets] Wake-up error:', e);
-      setError('Не удалось пробудить базу. Попробуйте обновить страницу.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [loadWallets]);
-
   return {
     wallets,
     isLoading,
-    isDatabaseAwake,
     error,
     syncStatuses,
     refresh,
     startSync,
-    syncAll,
-    manuallyWakeUpDatabase,
   };
 }
 
-// Хелпер маппинга статусов
 function mapDbStatus(dbStatus: string): SyncStatus['status'] {
   switch (dbStatus) {
     case 'pending':

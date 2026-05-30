@@ -1,5 +1,4 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
 import { MouseGlow } from '@/components/ui/MouseGlow';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Header } from './Header';
@@ -13,14 +12,7 @@ export function Layout() {
   const { isAuthenticated, isLoading } = useAuth();
   const isLanding = location.pathname === '/';
 
-  // Debug log для отслеживания состояния auth
-  useEffect(() => {
-    console.log('Layout: auth state changed', {
-      isAuthenticated,
-      isLoading,
-      path: location.pathname,
-    });
-  }, [isAuthenticated, isLoading, location.pathname]);
+  // Auth state stable — no debug logs in production
 
   return (
     <div className="relative min-h-screen min-h-dvh flex flex-col">

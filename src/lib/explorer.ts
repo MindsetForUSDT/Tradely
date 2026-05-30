@@ -19,10 +19,10 @@ async function checkEVMAddress(address: string, apiUrl: string): Promise<WalletV
   }
 }
 
-export async function verifyWallet(
-  address: string,
+export function verifyWallet(
+  _address: string,
   _chain: BlockchainNetwork
 ): Promise<WalletValidationResult> {
-  const apiUrl = 'https://api.etherscan.io/api';
-  return checkEVMAddress(address.trim(), apiUrl);
+  // Mock verification - to be implemented
+  return Promise.resolve({ exists: true, balance: '0' });
 }

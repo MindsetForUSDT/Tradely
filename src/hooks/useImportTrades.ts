@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getUserId } from '@/lib/auth';
+import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 type ExchangeType = 'binance' | 'bybit' | 'okx' | 'mt4' | 'mt5';
@@ -10,9 +9,12 @@ function getErrorMessage(err: any): string {
   if (
     msg.includes('Failed to fetch') ||
     msg.includes('NetworkError') ||
-    msg.includes('Edge Function')
+    msg.includes('ERR_CONNECTION_REFUSED')
   ) {
     return 'Ошибка соединения с сервером. Проверьте подключение или попробуйте позже.';
+  }
+  if (msg.includes('Invalid API key')) {
+    return 'Неверный API ключ';
   }
   return msg;
 }
@@ -22,52 +24,26 @@ export function useImportTrades() {
   const [progress, setProgress] = useState(0);
 
   const importFromExchange = async (exchange: ExchangeType, apiKey: string, apiSecret: string) => {
-    const uid = getUserId();
-    if (!uid) {
-      toast.error('Не авторизован');
-      return;
-    }
-
     setImporting(true);
     setProgress(10);
 
     try {
-      // Сохраняем источник
-      const { error: insertError } = await supabase.from('import_sources').insert({
-        user_id: uid,
-        source_type: exchange,
-        api_key_encrypted: apiKey.slice(0, 8) + '***',
-        api_secret_encrypted: apiSecret.slice(0, 8) + '***',
-      });
-
-      if (insertError) {
-        console.error('[useImportTrades] Failed to save import source:', insertError);
-        // Не прерываем, продолжаем импорт
-      }
-
       setProgress(30);
 
-      // Вызываем Edge Function через supabase client
-      const { data, error } = await supabase.functions.invoke('fetch-trade-history', {
-        body: { exchange, apiKey, apiSecret, userId: uid },
+      const response: any = await api.post('/wallets/sync', {
+        exchange,
+        apiKey,
+        apiSecret,
       });
 
       setProgress(70);
 
-      if (error) {
-        console.error('[useImportTrades] Edge Function error:', error);
-        toast.error(getErrorMessage(error));
-        setProgress(0);
-        setImporting(false);
-        return;
-      }
-
-      if (data?.success) {
-        toast.success(`Импортировано ${data.imported} сделок`);
+      if (response.success) {
+        toast.success(`Импортировано ${response.imported || 0} сделок`);
         setProgress(100);
       } else {
-        console.error('[useImportTrades] Import failed:', data?.error);
-        toast.error(data?.error || 'Ошибка импорта');
+        console.error('[useImportTrades] Import failed:', response?.error);
+        toast.error(response?.error || 'Ошибка импорта');
         setProgress(0);
       }
     } catch (e: any) {

@@ -1,11 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import {
-  securityHeaders,
-  productionSecurityHeaders,
-  developmentSecurityHeaders,
-} from './vite.security-plugin';
+import { productionSecurityHeaders, developmentSecurityHeaders } from './vite.security-plugin';
 
 export default defineConfig(({ mode }) => {
   const isProduction = mode === 'production';

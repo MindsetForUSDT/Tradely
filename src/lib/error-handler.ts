@@ -107,7 +107,7 @@ export function parseSupabaseError(error: unknown): AppError {
 /**
  * Показывает ошибку пользователю
  */
-export function showError(error: unknown, defaultMessage?: string) {
+export function showError(error: unknown, _defaultMessage?: string) {
   const parsed = parseSupabaseError(error);
   toast.error(parsed.message, {
     duration: 5000,
@@ -116,12 +116,7 @@ export function showError(error: unknown, defaultMessage?: string) {
 
   // Логируем детали для отладки
   if (parsed.details || parsed.hint) {
-    console.error('[App Error]', {
-      code: parsed.code,
-      message: parsed.message,
-      details: parsed.details,
-      hint: parsed.hint,
-    });
+    // Error details logged for debugging
   }
 }
 
@@ -149,7 +144,6 @@ export async function retryOperation<T>(
 
       if (attempt < maxRetries) {
         const delay = initialDelay * Math.pow(2, attempt);
-        console.log(`[Retry] Attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -161,7 +155,7 @@ export async function retryOperation<T>(
 /**
  * Обертка для операций с таймаутом
  */
-export async function withTimeout<T>(
+export function withTimeout<T>(
   promise: Promise<T>,
   timeoutMs: number,
   operationName: string

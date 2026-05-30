@@ -1,8 +1,8 @@
 // components/ui/ErrorBoundary.tsx — УЛУЧШЕННАЯ ВЕРСИЯ
 import { Component, type ReactNode } from 'react';
+import toast from 'react-hot-toast';
 import { Card } from './Card';
 import { Button } from './Button';
-import { supabase } from '@/lib/supabase';
 import { cn } from '@/lib/utils';
 
 interface Props {
@@ -35,25 +35,11 @@ export class ErrorBoundary extends Component<Props, State> {
     const errorId = await this.logError(error, errorInfo);
     this.setState({ errorId });
     this.props.onError?.(error, errorInfo);
-
-    if (import.meta.env.DEV) {
-      console.error('ErrorBoundary caught:', error, errorInfo);
-      this.setState({
-        errorDetails: `${error.message}\n\n${error.stack}`,
-      });
-    }
   }
 
   private async logError(error: Error, errorInfo: React.ErrorInfo): Promise<string | null> {
+    // Локальное логирование ошибок (без Supabase)
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        console.warn('Supabase not configured, skipping error log');
-        return null;
-      }
-
       const errorPayload = {
         message: error.message?.substring(0, 1000),
         stack: error.stack?.substring(0, 2000),
@@ -63,11 +49,14 @@ export class ErrorBoundary extends Component<Props, State> {
         timestamp: new Date().toISOString(),
       };
 
-      const { data } = await supabase.from('error_logs').insert(errorPayload).select('id').single();
+      // Сохраняем в localStorage для отладки
+      const errorLogs = JSON.parse(localStorage.getItem('app_error_logs') || '[]');
+      errorLogs.push(errorPayload);
+      if (errorLogs.length > 50) errorLogs.shift();
+      localStorage.setItem('app_error_logs', JSON.stringify(errorLogs));
 
-      return data?.id || null;
-    } catch (e) {
-      console.warn('Failed to log error:', e);
+      return Date.now().toString();
+    } catch {
       return null;
     }
   }
@@ -80,9 +69,14 @@ export class ErrorBoundary extends Component<Props, State> {
     window.location.reload();
   };
 
-  handleCopyError = () => {
+  handleCopyError = async () => {
     const text = this.state.errorDetails || this.state.error?.message || '';
-    navigator.clipboard.writeText(text);
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success('Ошибка скопирована в буфер обмена');
+    } catch {
+      toast.error('Не удалось скопировать ошибку');
+    }
   };
 
   render() {

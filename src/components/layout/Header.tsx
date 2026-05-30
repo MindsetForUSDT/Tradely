@@ -1,6 +1,6 @@
 // components/layout/Header.tsx — УЛУЧШЕННАЯ ВЕРСИЯ
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/providers/AppProviders';
+import { useAuth } from '@/hooks/useAuth';
 import { GlowButton } from '@/components/ui/GlowButton';
 import { Icon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
@@ -33,10 +33,8 @@ export function Header() {
   const handleSignOut = async () => {
     if (isSigningOut) return;
     setIsSigningOut(true);
-    console.log('[Header] Starting sign out...');
     try {
       await signOut();
-      console.log('[Header] Sign out successful, navigating to home');
       navigate('/', { replace: true });
     } catch (error) {
       console.error('[Header] Sign out error:', error);

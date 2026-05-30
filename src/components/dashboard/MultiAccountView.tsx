@@ -4,8 +4,7 @@ import { formatUSD } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 
 export function MultiAccountView() {
-  const { accounts, selectedAccounts, toggleAccount, aggregated, loading, maxAccounts } =
-    useMultiAccounts();
+  const { accounts, selectedAccounts, toggleAccount, aggregated, maxAccounts } = useMultiAccounts();
 
   return (
     <Card padding="md" className="space-y-4 max-w-lg">

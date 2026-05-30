@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Navigate, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '@/providers/AppProviders';
+import { useAuth } from '@/hooks/useAuth';
 import { GlowButton } from '@/components/ui/GlowButton';
 import { Icon } from '@/components/ui/Icons';
 import { cn } from '@/lib/utils';
+import toast from 'react-hot-toast';
 
 export function NewSubscribe() {
   const { user } = useAuth();
@@ -46,6 +47,7 @@ export function NewSubscribe() {
       description: 'Для начинающих трейдеров',
       color: 'cyan' as const,
       popular: false,
+      comingSoon: false,
       features: [
         { text: 'До 5 кошельков', included: true },
         { text: 'Последние 30 дней истории', included: true },
@@ -67,6 +69,7 @@ export function NewSubscribe() {
       description: 'Для профессиональных трейдеров',
       color: 'magenta' as const,
       popular: true,
+      comingSoon: true, // ✅ Блокируем PRO подписку
       features: [
         { text: 'Безлимитные кошельки', included: true },
         { text: 'Полная история сделок', included: true },
@@ -77,8 +80,10 @@ export function NewSubscribe() {
         { text: 'Налоговые отчёты', included: true },
         { text: 'Кастомные дашборды', included: true },
       ],
-      cta: user ? 'Оформить подписку' : 'Начать бесплатно',
-      onClick: () => handlePlanClick('pro'),
+      cta: 'Скоро открытие',
+      onClick: () => {
+        toast.error('PRO подписка находится в разработке. Доступна в ближайшее время!');
+      },
     },
   ];
 
@@ -140,21 +145,39 @@ export function NewSubscribe() {
                 </div>
               )}
 
-              <div className="bg-cyber-900/95 backdrop-blur-xl rounded-xl p-6 h-full">
-                {/* Название */}
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-2xl font-bold text-white">{plan.name}</h3>
-                  {plan.popular && <Icon name="pro" size={24} className="text-neon-magenta" />}
-                </div>
-
-                {/* Цена */}
-                <div className="mb-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-5xl font-bold text-white font-mono">{plan.price}</span>
-                    <span className="text-text-muted">{plan.period}</span>
+              <div className="bg-cyber-900/95 backdrop-blur-xl rounded-xl p-6 h-full relative overflow-hidden">
+                {/* Бейдж COMING SOON */}
+                {plan.comingSoon && (
+                  <div className="absolute inset-0 z-20 bg-gradient-to-br from-cyber-950/95 via-cyber-900/95 to-cyber-950/95 backdrop-blur-sm flex items-center justify-center rounded-xl">
+                    <div className="text-center p-6 max-w-xs">
+                      <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-neon-magenta/20 border-2 border-neon-magenta/40 mb-4 animate-pulse">
+                        <Icon name="pro" size={28} className="text-neon-magenta" />
+                      </div>
+                      <h4 className="text-lg font-bold text-white mb-2">
+                        <span className="bg-gradient-to-r from-neon-magenta to-neon-cyan bg-clip-text text-transparent">
+                          Скоро открытие
+                        </span>
+                      </h4>
+                      <p className="text-sm text-text-muted mb-4">
+                        Мы работаем над запуском PRO подписки с расширенными функциями для
+                        профессиональных трейдеров.
+                      </p>
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-neon-cyan/10 border border-neon-cyan/30">
+                        <span className="w-2 h-2 rounded-full bg-neon-cyan animate-pulse" />
+                        <span className="text-xs font-semibold text-neon-cyan uppercase">
+                          Следите за новостями
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-sm text-text-secondary mt-2">{plan.description}</p>
-                </div>
+                )}
+
+                {/* Для POPULAR плана - бейдж */}
+                {plan.popular && !plan.comingSoon && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1.5 rounded-full bg-gradient-to-r from-neon-magenta to-neon-magenta-dim text-white text-xs font-bold uppercase tracking-wider">
+                    Самый популярный
+                  </div>
+                )}
 
                 {/* Преимущества */}
                 <ul className="space-y-3 mb-8">
@@ -205,12 +228,14 @@ export function NewSubscribe() {
 
                 {/* Кнопка */}
                 <GlowButton
-                  variant={plan.popular ? 'primary' : 'outline'}
+                  variant={plan.popular && !plan.comingSoon ? 'primary' : 'outline'}
                   size="lg"
                   className="w-full"
                   onClick={plan.onClick}
+                  disabled={plan.comingSoon}
                 >
                   {plan.cta}
+                  {plan.comingSoon && <Icon name="alert" size={16} className="ml-2" />}
                 </GlowButton>
               </div>
             </motion.div>

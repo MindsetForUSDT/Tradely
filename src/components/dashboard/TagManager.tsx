@@ -1,6 +1,4 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getUserId } from '@/lib/auth';
 import toast from 'react-hot-toast';
 
 const PRESET_TAGS = ['Стратегия', 'Эмоция', 'FOMO', 'По плану', 'Ошибка', 'Удача'];
@@ -18,8 +16,13 @@ export function TagManager({ tradeId }: TagManagerProps) {
   }, [tradeId]);
 
   const loadTags = async () => {
-    const { data } = await supabase.from('trade_tags').select('tag_name').eq('trade_id', tradeId);
-    setTags((data || []).map((t: any) => t.tag_name));
+    try {
+      const response: any = await fetch(`http://localhost:3001/api/trades/${tradeId}/tags`);
+      const data = await response.json();
+      setTags(data.tags || []);
+    } catch (error) {
+      console.error('[TagManager] Error loading tags:', error);
+    }
   };
 
   const addTag = async (tagName: string) => {
@@ -28,32 +31,31 @@ export function TagManager({ tradeId }: TagManagerProps) {
     const prev = [...tags];
     setTags((prev) => [...prev, clean]);
     setNewTag('');
-    const uid = getUserId();
-    if (!uid) {
-      setTags(prev);
-      return;
-    }
-    const { error } = await supabase
-      .from('trade_tags')
-      .insert({ user_id: uid, trade_id: tradeId, tag_name: clean });
-    if (error) {
+    try {
+      await fetch(`http://localhost:3001/api/trades/${tradeId}/tags`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tag_name: clean }),
+      });
+      toast.success('Тег добавлен');
+    } catch (_error) {
       setTags(prev);
       toast.error('Ошибка');
-    } else toast.success('Тег добавлен');
+    }
   };
 
   const removeTag = async (tagName: string) => {
     const prev = [...tags];
     setTags((prev) => prev.filter((t) => t !== tagName));
-    const { error } = await supabase
-      .from('trade_tags')
-      .delete()
-      .eq('trade_id', tradeId)
-      .eq('tag_name', tagName);
-    if (error) {
+    try {
+      await fetch(`http://localhost:3001/api/trades/${tradeId}/tags?tag=${tagName}`, {
+        method: 'DELETE',
+      });
+      toast.success('Тег удалён');
+    } catch (_error) {
       setTags(prev);
       toast.error('Ошибка');
-    } else toast.success('Тег удалён');
+    }
   };
 
   return (

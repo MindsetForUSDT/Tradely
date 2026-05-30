@@ -1,23 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabase';
-import { getUserId } from '@/lib/auth';
+import { api } from '@/lib/api';
+
+interface AnalyticsResponse {
+  analytics?: unknown[];
+}
 
 export function useAnalytics(days = 30) {
-  const { data: analytics = [], isLoading } = useQuery({
+  const {
+    data: analytics = [],
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
     queryKey: ['analytics', days],
-    queryFn: async () => {
-      const uid = getUserId();
-      if (!uid) return [];
-      const { data, error } = await supabase
-        .from('daily_analytics')
-        .select('*')
-        .eq('user_id', uid)
-        .order('date', { ascending: false })
-        .limit(days);
-      if (error) throw error;
-      return data || [];
+    queryFn: async (): Promise<unknown[]> => {
+      const response = await api.get<AnalyticsResponse>(`/analytics?days=${days}`);
+      return response.analytics || [];
     },
     staleTime: 5 * 60 * 1000,
+    enabled: true,
   });
-  return { analytics, todayAnalytics: analytics[0] || null, isLoading };
+  return { analytics, todayAnalytics: analytics[0] || null, isLoading, error, refetch };
 }

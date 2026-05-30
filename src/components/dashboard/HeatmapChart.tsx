@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import React from 'react';
 import { Card } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
 
@@ -25,7 +26,7 @@ export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
       const day = days[d.getDay() === 0 ? 6 : d.getDay() - 1];
       const hour = d.getHours();
       if (grid[day] && grid[day][hour] !== undefined) {
-        grid[day][hour].pnl += t.pnl_realized || 0;
+        grid[day][hour].pnl += Number(t.pnl_realized || 0);
         grid[day][hour].count++;
       }
     });
@@ -49,6 +50,16 @@ export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
     );
   }
 
+  if (!heatmapData.days.length) {
+    return (
+      <Card padding="md">
+        <div className="text-center py-12 text-text-muted">
+          <p>Нет данных для отображения</p>
+        </div>
+      </Card>
+    );
+  }
+
   return (
     <Card padding="md">
       <h3 className="text-sm font-semibold mb-4">Тепловая карта активности (P&L по дням/часам)</h3>
@@ -61,12 +72,10 @@ export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
             </div>
           ))}
           {heatmapData.days.map((day) => (
-            <>
-              <div key={`label-${day}`} className="text-text-muted pr-2 py-1 text-right">
-                {day}
-              </div>
+            <React.Fragment key={day}>
+              <div className="text-text-muted pr-2 py-1 text-right">{day}</div>
               {heatmapData.hours.map((h) => {
-                const cell = heatmapData.grid[day][h];
+                const cell = heatmapData.grid[day]?.[h] || { pnl: 0, count: 0 };
                 const intensity = heatmapData.maxAbs > 0 ? cell.pnl / heatmapData.maxAbs : 0;
                 const isPositive = cell.pnl > 0;
                 const isNegative = cell.pnl < 0;
@@ -81,13 +90,13 @@ export function HeatmapChart({ trades, isLoading = false }: HeatmapChartProps) {
                       !isPositive && !isNegative && 'bg-surface-border'
                     )}
                     style={{ opacity: cell.count > 0 ? 0.3 + bgOpacity : 0.1 }}
-                    title={`${day} ${h}:00\nP&L: $${cell.pnl.toFixed(2)}\nСделок: ${cell.count}`}
+                    title={`${day} ${h}:00\nP&L: $${Number(cell.pnl).toFixed(2)}\nСделок: ${cell.count}`}
                   >
                     {cell.count > 0 ? cell.count : ''}
                   </div>
                 );
               })}
-            </>
+            </React.Fragment>
           ))}
         </div>
       </div>

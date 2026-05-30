@@ -12,7 +12,6 @@
  *
  * Оптимальная доля капитала для максимизации логарифмической прибыли.
  */
-
 export interface KellyResult {
   kellyFraction: number; // Полный Келли (f*)
   halfKelly: number; // Половина Келли (консервативный)
@@ -27,7 +26,7 @@ export function calculateKellyCriterion(
   winRate: number,
   avgWin: number,
   avgLoss: number,
-  riskFreeRate: number = 0.05
+  _riskFreeRate: number = 0.05
 ): KellyResult {
   // Защита от некорректных входных данных
   if (accountBalance <= 0 || winRate <= 0 || winRate >= 1 || avgWin <= 0 || avgLoss <= 0) {

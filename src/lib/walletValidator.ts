@@ -81,7 +81,7 @@ export function validateAddress(address: string, chain: Chain): ValidationResult
 }
 
 /**
- * Проверка, является ли адрес дубликатом для пользователя
+ * Проверка дубликата адреса
  */
 export async function checkDuplicateAddress(
   userId: string,
@@ -89,22 +89,17 @@ export async function checkDuplicateAddress(
   chain: Chain
 ): Promise<ValidationResult> {
   try {
-    const { supabase } = await import('./supabase');
+    const response = await fetch(
+      `/api/wallets/check-duplicate?userId=${userId}&address=${address.toLowerCase()}&chain=${chain}`
+    );
+    const data = await response.json();
 
-    const { data, error } = await supabase
-      .from('wallets')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('address', address.toLowerCase())
-      .eq('chain', chain)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      return { isValid: false, error: 'Ошибка проверки дубликатов' };
+    if (!response.ok) {
+      return { isValid: false, error: data.error || 'Ошибка проверки дубликатов' };
     }
 
-    if (data) {
-      return { isValid: false, error: 'Этот кошелек уже добавлен' };
+    if (data.exists) {
+      return { isValid: false, error: 'Этот кошелёк уже добавлен' };
     }
 
     return { isValid: true };

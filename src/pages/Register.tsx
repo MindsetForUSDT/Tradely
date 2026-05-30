@@ -1,65 +1,66 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
 import toast from 'react-hot-toast';
-import { useAuth } from '@/providers/AppProviders';
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
 
 interface ValidationErrors {
   email?: string;
   password?: string;
+  username?: string;
 }
 
-function getErrorMessage(err: any): string {
-  const msg = err?.message || String(err);
-  if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-    return 'Ошибка соединения с сервером. Проверьте подключение к интернету или попробуйте позже.';
-  }
-  if (msg.includes('already registered') || msg.includes('User already registered')) {
-    return 'Пользователь с этим email уже существует. Пожалуйста, войдите.';
-  }
-  if (msg.includes('Password should be')) {
-    return 'Пароль слишком простой. Используйте не менее 6 символов.';
-  }
-  if (msg.includes('Invalid email')) {
-    return 'Некорректный формат email';
-  }
-  return msg;
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === 'string') return err;
+  return 'Ошибка при регистрации';
 }
 
 function validateEmail(email: string): string | undefined {
   if (!email) return 'Введите email';
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-  if (!re.test(email)) return 'Некорректный формат email (пример: user@mail.com)';
+  if (!re.test(email)) return 'Некорректный формат email';
 }
 
 function validatePassword(password: string): string | undefined {
   if (!password) return 'Введите пароль';
   if (password.length < 6) return 'Минимум 6 символов';
-  if (password.length < 8) return 'Рекомендуется 8+ символов для надёжности';
+}
+
+function validateUsername(username: string): string | undefined {
+  if (!username) return 'Введите имя пользователя';
+  if (username.length < 2) return 'Минимум 2 символа';
 }
 
 export function Register() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: authLoading, setUser } = useAuth();
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<ValidationErrors>({});
-  const [touched, setTouched] = useState<{ email?: boolean; password?: boolean }>({});
+  const [touched, setTouched] = useState<{
+    email?: boolean;
+    password?: boolean;
+    username?: boolean;
+  }>({});
   const navigate = useNavigate();
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
 
-  const validateField = useCallback((name: 'email' | 'password', value: string) => {
+  const validateField = useCallback((name: keyof ValidationErrors, value: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       setFieldErrors((prev) => ({
         ...prev,
-        [name]: name === 'email' ? validateEmail(value) : validatePassword(value),
+        [name]:
+          name === 'email'
+            ? validateEmail(value)
+            : name === 'password'
+              ? validatePassword(value)
+              : validateUsername(value),
       }));
     }, 300);
   }, []);
@@ -70,20 +71,12 @@ export function Register() {
     };
   }, []);
 
-  // Загрузка последнего зарегистрированного email
-  useEffect(() => {
-    const lastEmail = localStorage.getItem('lastRegistrationEmail');
-    if (lastEmail && !email) {
-      setEmail(lastEmail);
-    }
-  }, []);
-
   // Перенаправляем авторизованных пользователей
-  if (!isLoading && isAuthenticated) {
+  if (!authLoading && isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  if (isLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#0a0a0f]">
         <div className="w-10 h-10 rounded-full border-2 border-neon-cyan border-t-transparent animate-spin" />
@@ -91,21 +84,10 @@ export function Register() {
     );
   }
 
-  const handleEmailChange = (value: string) => {
-    setEmail(value.toLowerCase().trim());
-    setError('');
-    if (touched.email) validateField('email', value);
-  };
-
-  const handlePasswordChange = (value: string) => {
-    setPassword(value);
-    setError('');
-    if (touched.password) validateField('password', value);
-  };
-
-  const handleBlur = (field: 'email' | 'password') => {
+  const handleBlur = (field: keyof ValidationErrors) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    validateField(field, field === 'email' ? email : password);
+    const value = field === 'email' ? email : field === 'password' ? password : username;
+    validateField(field, value);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -113,76 +95,61 @@ export function Register() {
 
     const emailErr = validateEmail(email);
     const passwordErr = validatePassword(password);
-    setFieldErrors({ email: emailErr, password: passwordErr });
-    setTouched({ email: true, password: true });
+    const usernameErr = validateUsername(username);
+    setFieldErrors({ email: emailErr, password: passwordErr, username: usernameErr });
+    setTouched({ email: true, password: true, username: true });
 
-    if (emailErr || passwordErr) {
+    if (emailErr || passwordErr || usernameErr) {
       setError('Проверьте введённые данные');
-      return;
-    }
-
-    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-      setError('Сервис регистрации временно недоступен. Не настроены параметры подключения.');
       return;
     }
 
     setLoading(true);
     setError('');
-    toast.loading('Создаём аккаунт...', { duration: 15000 });
 
     try {
       const normalizedEmail = email.toLowerCase().trim();
 
-      const registerPromise = supabase.auth.signUp({
+      const response = await api.post<{
+        success: boolean;
+        user: {
+          id: string;
+          email: string;
+          username: string;
+          subscription_tier: string;
+          created_at: string;
+        };
+        token: string;
+      }>('/auth/register', {
         email: normalizedEmail,
         password,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        username: username.trim(),
+      });
+
+      const { user, token } = response;
+
+      if (!user || !token) {
+        throw new Error('Ошибка регистрации');
+      }
+
+      // Устанавливаем токен для API
+      api.setTokenProvider(() => Promise.resolve(token));
+
+      setUser(
+        {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          subscription_tier: user.subscription_tier as 'free' | 'pro',
+          created_at: user.created_at,
         },
-      });
+        token
+      );
 
-      const { data, error } = await Promise.race([
-        registerPromise,
-        new Promise<{ data: null; error: any }>((_, reject) =>
-          setTimeout(() => reject(new Error('Запрос превысил 20 секунд')), 20000)
-        ),
-      ]);
-
-      if (error) {
-        const errorMsg = getErrorMessage(error);
-        toast.error(errorMsg);
-        setError(errorMsg);
-        setLoading(false);
-        return;
-      }
-
-      console.log('[Register] Registration result:', {
-        userId: data?.user?.id,
-        email: data?.user?.email,
-        hasSession: !!data?.session,
-      });
-
-      if (data?.session) {
-        // Успешная регистрация с сессией
-        toast.success('Аккаунт создан успешно!');
-        navigate('/dashboard', { replace: true });
-      } else if (data?.user) {
-        // Регистрация успешна, но требуется подтверждение email
-        toast.success(
-          'Письмо с подтверждением отправлено на ' +
-            normalizedEmail +
-            '. Проверьте почту и подтвердите аккаунт, затем войдите.'
-        );
-        // Перенаправляем на вход с предзаполненным email
-        navigate('/login', { replace: true });
-        // Сохраняем email в localStorage для удобства
-        localStorage.setItem('lastRegistrationEmail', normalizedEmail);
-      } else {
-        toast.error('Не удалось создать аккаунт. Попробуйте позже.');
-        setError('Не удалось создать аккаунт');
-      }
-    } catch (err: any) {
-      const errorMsg = err?.message || 'Произошла ошибка при регистрации';
+      toast.success('Аккаунт создан!');
+      navigate('/dashboard', { replace: true });
+    } catch (err: unknown) {
+      const errorMsg = getErrorMessage(err);
       toast.error(errorMsg);
       setError(errorMsg);
     } finally {
@@ -230,13 +197,53 @@ export function Register() {
 
           {/* Форма */}
           <form onSubmit={handleRegister} className="space-y-4" aria-live="polite">
+            {/* Username */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Имя пользователя
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  setError('');
+                  if (touched.username) validateField('username', e.target.value);
+                }}
+                onBlur={() => handleBlur('username')}
+                placeholder="trader_01"
+                className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all ${
+                  fieldErrors.username && touched.username
+                    ? 'border-red-500/50 focus:border-red-500 focus:ring-red-500/30'
+                    : 'border-white/10 focus:border-emerald-500/50 focus:ring-emerald-500/30'
+                }`}
+                disabled={loading}
+                aria-invalid={!!fieldErrors.username && touched.username}
+                aria-describedby={
+                  fieldErrors.username && touched.username ? 'username-error' : undefined
+                }
+              />
+              {fieldErrors.username && touched.username && (
+                <p
+                  id="username-error"
+                  className="text-xs text-red-400 mt-1.5 flex items-center gap-1"
+                >
+                  <span>⚠</span> {fieldErrors.username}
+                </p>
+              )}
+            </div>
+
             {/* Email */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Email</label>
               <input
                 type="email"
                 value={email}
-                onChange={(e) => handleEmailChange(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value.toLowerCase().trim());
+                  setError('');
+                  if (touched.email) validateField('email', e.target.value);
+                }}
                 onBlur={() => handleBlur('email')}
                 placeholder="your@email.com"
                 className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all ${
@@ -261,7 +268,11 @@ export function Register() {
               <input
                 type="password"
                 value={password}
-                onChange={(e) => handlePasswordChange(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError('');
+                  if (touched.password) validateField('password', e.target.value);
+                }}
                 onBlur={() => handleBlur('password')}
                 placeholder="Минимум 6 символов"
                 className={`w-full px-4 py-3 rounded-xl bg-white/5 border text-white placeholder-gray-500 focus:outline-none focus:ring-1 transition-all ${

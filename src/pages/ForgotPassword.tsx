@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
 
 export function ForgotPassword() {
@@ -28,14 +27,14 @@ export function ForgotPassword() {
     setLoading(true);
 
     try {
-      const { error: supaError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${window.location.origin}/update-password`,
+      const response = await fetch('http://localhost:3001/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim() }),
       });
 
-      if (supaError) {
-        setError(supaError.message);
-        setLoading(false);
-        return;
+      if (!response.ok) {
+        throw new Error('Ошибка отправки');
       }
 
       setSent(true);

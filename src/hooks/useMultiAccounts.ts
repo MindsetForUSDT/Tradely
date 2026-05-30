@@ -1,8 +1,7 @@
 // hooks/useMultiAccounts.ts — ИСПРАВЛЕННАЯ ВЕРСИЯ
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getUserIdFromCache } from '@/lib/auth'; // ✅ Безопасный метод
-import { useAuth } from '@/providers/AppProviders'; // ✅ Правильный импорт
+import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
 
 interface AggregatedStats {
   totalVolume: number;
@@ -38,53 +37,49 @@ export function useMultiAccounts() {
   }, [selectedAccounts]);
 
   const loadAccounts = async () => {
-    const uid = getUserIdFromCache(); // ✅ Безопасный метод
-    if (!uid) {
+    try {
+      const response: any = await api.get('/wallets');
+      setAccounts(response.wallets || []);
+      if (response.wallets?.length) {
+        setSelectedAccounts(new Set([response.wallets[0].id]));
+      }
+    } catch (error) {
+      console.error('[useMultiAccounts] Error loading accounts:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { data } = await supabase
-      .from('wallets')
-      .select('*')
-      .eq('user_id', uid)
-      .order('added_at', { ascending: false })
-      .limit(maxAccounts);
-    setAccounts(data || []);
-    if (data?.length) {
-      setSelectedAccounts(new Set([data[0].id]));
-    }
-    setLoading(false);
   };
 
   const loadAggregatedStats = async () => {
     const ids = Array.from(selectedAccounts);
     if (!ids.length) return;
 
-    const { data: trades } = await supabase
-      .from('trades')
-      .select('wallet_id, value_usd, pnl_realized')
-      .in('wallet_id', ids);
+    try {
+      const response: any = await api.get(`/trades?limit=10000`);
+      const trades = (response.trades || []).filter((t: any) => ids.includes(t.wallet_id));
 
-    const byAccount = accounts
-      .filter((a) => selectedAccounts.has(a.id))
-      .map((a) => {
-        const accTrades = (trades || []).filter((t: any) => t.wallet_id === a.id);
-        return {
-          walletId: a.id,
-          label: a.label || a.address.slice(0, 8),
-          volume: accTrades.reduce((s: number, t: any) => s + (t.value_usd || 0), 0),
-          trades: accTrades.length,
-          pnl: accTrades.reduce((s: number, t: any) => s + (t.pnl_realized || 0), 0),
-        };
+      const byAccount = accounts
+        .filter((a) => selectedAccounts.has(a.id))
+        .map((a) => {
+          const accTrades = trades.filter((t: any) => t.wallet_id === a.id);
+          return {
+            walletId: a.id,
+            label: a.label || a.address?.slice(0, 8) || a.exchange || 'Wallet',
+            volume: accTrades.reduce((s: number, t: any) => s + (t.value_usd || 0), 0),
+            trades: accTrades.length,
+            pnl: accTrades.reduce((s: number, t: any) => s + (t.pnl_realized || 0), 0),
+          };
+        });
+
+      setAggregated({
+        totalVolume: byAccount.reduce((s, a) => s + a.volume, 0),
+        totalTrades: byAccount.reduce((s, a) => s + a.trades, 0),
+        totalPnl: byAccount.reduce((s, a) => s + a.pnl, 0),
+        byAccount,
       });
-
-    setAggregated({
-      totalVolume: byAccount.reduce((s, a) => s + a.volume, 0),
-      totalTrades: byAccount.reduce((s, a) => s + a.trades, 0),
-      totalPnl: byAccount.reduce((s, a) => s + a.pnl, 0),
-      byAccount,
-    });
+    } catch (error) {
+      console.error('[useMultiAccounts] Error loading aggregated stats:', error);
+    }
   };
 
   const toggleAccount = (walletId: string) => {

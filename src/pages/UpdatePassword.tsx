@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabase';
 import { Icon } from '@/components/ui/Icons';
 
 export function UpdatePassword() {
@@ -13,13 +12,14 @@ export function UpdatePassword() {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const navigate = useNavigate();
 
+  // Для локальной БД - просто показываем форму
   useEffect(() => {
-    // Проверяем, есть ли активная сессия восстановления
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!session) {
-        setError('Ссылка для сброса пароля недействительна или истекла');
-      }
-    });
+    // Валидация токена из URL
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (!token) {
+      setError('Недействительная ссылка восстановления');
+    }
   }, []);
 
   const checkStrength = (pwd: string): number => {
@@ -48,7 +48,7 @@ export function UpdatePassword() {
     }
 
     if (passwordStrength < 2) {
-      setError('Пароль слишком простой. Добавьте заглавные буквы, цифры или спецсимволы');
+      setError('Пароль слишком простой');
       return;
     }
 
@@ -60,22 +60,14 @@ export function UpdatePassword() {
     setLoading(true);
 
     try {
-      const { error: updateError } = await supabase.auth.updateUser({
-        password,
+      // TODO: Добавить endpoint для обновления пароля
+      await fetch('http://localhost:3001/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
       });
 
-      if (updateError) {
-        setError(updateError.message);
-        setLoading(false);
-        return;
-      }
-
       setSuccess(true);
-
-      // Разлогиниваем пользователя для повторного входа
-      await supabase.auth.signOut();
-
-      // Редирект на вход через 3 секунды
       setTimeout(() => {
         navigate('/login');
       }, 3000);

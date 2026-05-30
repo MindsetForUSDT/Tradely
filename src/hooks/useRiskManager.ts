@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
-import { getUserId } from '@/lib/auth';
+import { api } from '@/lib/api';
 import toast from 'react-hot-toast';
 
 interface RiskLimits {
@@ -29,29 +28,25 @@ export function useRiskManager() {
   }, []);
 
   const loadLimits = async () => {
-    const uid = getUserId();
-    if (!uid) {
+    try {
+      const response: any = await api.get('/profile');
+      if (response.risk_limits) {
+        setLimits(response.risk_limits);
+      }
+    } catch (error) {
+      console.error('[useRiskManager] Error loading limits:', error);
+    } finally {
       setLoading(false);
-      return;
     }
-    const { data } = await supabase.from('risk_limits').select('*').eq('user_id', uid).single();
-    if (data) setLimits(data);
-    setLoading(false);
   };
 
   const saveLimits = async (newLimits: RiskLimits) => {
-    const uid = getUserId();
-    if (!uid) return;
-    const { error } = await supabase.from('risk_limits').upsert({
-      ...newLimits,
-      user_id: uid,
-      updated_at: new Date().toISOString(),
-    });
-    if (error) {
-      toast.error('Ошибка сохранения');
-    } else {
+    try {
+      await api.post('/profile/risk-limits', newLimits);
       toast.success('Лимиты сохранены');
       setLimits(newLimits);
+    } catch (error) {
+      toast.error('Ошибка сохранения');
     }
   };
 

@@ -47,7 +47,7 @@ export function VolumeByTokenChart({ data, isLoading = false }: VolumeByTokenCha
   if (data.length === 0)
     return (
       <Card padding="md">
-        <h3 className="text-sm font-semibold mb-4">Объём по токенам</h3>
+        <h3 className="text-sm font-semibold mb-4">Объём торгов по токенам</h3>
         <div className="flex flex-col items-center justify-center h-48 text-text-muted">
           <svg
             width="40"
@@ -60,7 +60,7 @@ export function VolumeByTokenChart({ data, isLoading = false }: VolumeByTokenCha
           >
             <path d="M21 12V7H5a2 2 0 010-4h14v4" />
           </svg>
-          <p className="text-sm">Нет данных</p>
+          <p className="text-sm">Сделок пока нет</p>
         </div>
       </Card>
     );

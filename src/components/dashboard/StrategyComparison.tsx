@@ -23,7 +23,7 @@ export function StrategyComparison() {
       .map((strategy) => {
         const sTrades = trades.filter((t: any) => t.strategy_tag === strategy);
         const winners = sTrades.filter((t: any) => (t.pnl_realized || 0) > 0);
-        const losers = sTrades.filter((t: any) => (t.pnl_realized || 0) < 0);
+        sTrades.filter((t: any) => (t.pnl_realized || 0) < 0);
         const totalPnl = sTrades.reduce((s, t: any) => s + (t.pnl_realized || 0), 0);
         const winRate = sTrades.length ? (winners.length / sTrades.length) * 100 : 0;
         const profitFactor = calculateProfitFactor(sTrades);

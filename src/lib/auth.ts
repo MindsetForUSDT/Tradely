@@ -1,6 +1,5 @@
 // lib/auth.ts
 // Улучшенная версия с дополнительными мерами безопасности
-import { supabase } from './supabase';
 
 // Константы валидации
 const MAX_USERNAME_LENGTH = 50;
@@ -20,81 +19,58 @@ function isValidUuid(id: unknown): boolean {
 function sanitizeString(input: string): string {
   return input
     .trim()
-    .replace(/[\0\r\n]/g, '') // Удаление null-байтов и управляющих символов
-    .substring(0, 1000); // Ограничение длины
+    .replace(/[\0\r\n]/g, '')
+    .substring(0, 1000);
+}
+
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _secureLog(_action: string, _details?: Record<string, unknown>) {
+  // Silent logging
 }
 
 /**
- * Безопасное логирование (без чувствительных данных)
+ * Получает ID пользователя из localStorage
  */
-function secureLog(action: string, details?: Record<string, unknown>) {
-  const safeDetails = {
-    action,
-    timestamp: new Date().toISOString(),
-    ...details,
-  };
-  // Не логируем userId, email и другие PII данные
-  console.log('[auth]', JSON.stringify(safeDetails));
+export function getUserIdAsync(): Promise<string | null> {
+  const userId = localStorage.getItem('tradeumdiary-user-id');
+  if (userId && isValidUuid(userId)) {
+    return Promise.resolve(userId);
+  }
+  return Promise.resolve(null);
 }
 
 /**
- * Асинхронно получает ID пользователя через Supabase Auth.
- * С валидацией и защитой от инъекций.
+ * Безопасный парсинг JSON
  */
-export async function getUserIdAsync(): Promise<string | null> {
+function safeParseJson<T>(str: string | null): T | null {
+  if (!str) return null;
   try {
-    const {
-      data: { session },
-      error,
-    } = await supabase.auth.getSession();
-
-    if (error || !session?.user) {
-      secureLog('session_not_found', { reason: error?.message || 'no_user' });
-      return null;
-    }
-
-    // Валидация UUID пользователя
-    if (!isValidUuid(session.user.id)) {
-      secureLog('validation_failure', { reason: 'invalid_user_id_format' });
-      return null;
-    }
-
-    return session.user.id;
-  } catch (error) {
-    secureLog('error', { type: error instanceof Error ? error.name : 'UnknownError' });
+    return JSON.parse(str) as T;
+  } catch {
     return null;
   }
 }
 
+interface UserSession {
+  user?: { id?: string };
+  data?: { user?: { id?: string } };
+  user_id?: string;
+}
+
 /**
- * Синхронная версия из кэша с валидацией.
+ * Синхронная версия из кэша
  */
 export function getUserIdFromCache(): string | null {
   try {
-    // Пробуем несколько вариантов ключей localStorage для Supabase
-    const possibleKeys = [
-      ...Object.keys(localStorage).filter((k) => k.includes('supabase')),
-      ...Object.keys(localStorage).filter((k) => k.includes('auth')),
-    ];
+    const userId = localStorage.getItem('tradeumdiary-user-id');
+    if (userId && isValidUuid(userId)) return userId;
 
-    for (const key of possibleKeys) {
-      const sessionStr = localStorage.getItem(key);
-      if (!sessionStr) continue;
-
-      try {
-        const session = JSON.parse(sessionStr);
-        // Пробуем разные структуры сессии
-        const userId = session?.user?.id || session?.data?.user?.id || session?.user_id;
-
-        if (userId && isValidUuid(userId)) {
-          return userId;
-        }
-      } catch {
-        continue;
-      }
+    const session = safeParseJson<UserSession>(localStorage.getItem('tradeumdiary-auth::session'));
+    if (session) {
+      const id = session.user?.id || session.data?.user?.id || session.user_id;
+      if (id && isValidUuid(id)) return id;
     }
 
-    // Фолбэк: асинхронно получаем сессию
     return null;
   } catch {
     return null;
@@ -102,25 +78,10 @@ export function getUserIdFromCache(): string | null {
 }
 
 /**
- * Асинхронная версия с фолбэком на getSession и валидацией.
+ * Асинхронная версия
  */
-export async function getUserIdFromCacheAsync(): Promise<string | null> {
-  const syncId = getUserIdFromCache();
-  if (syncId) return syncId;
-
-  try {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-
-    if (session?.user && isValidUuid(session.user.id)) {
-      return session.user.id;
-    }
-
-    return null;
-  } catch {
-    return null;
-  }
+export function getUserIdFromCacheAsync(): Promise<string | null> {
+  return Promise.resolve(getUserIdFromCache());
 }
 
 /**
@@ -132,7 +93,6 @@ export function isValidEmail(email: unknown): boolean {
   const sanitized = sanitizeString(email);
   if (!sanitized || sanitized.length > MAX_EMAIL_LENGTH) return false;
 
-  // RFC 5322 упрощённый паттерн
   const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
   return emailPattern.test(sanitized);
 }
@@ -146,13 +106,12 @@ export function isValidUsername(username: unknown): boolean {
   const sanitized = sanitizeString(username);
   if (!sanitized || sanitized.length > MAX_USERNAME_LENGTH) return false;
 
-  // Разрешаем только буквы, цифры, нижнее подчеркивание и дефис
   const usernamePattern = /^[a-zA-Z0-9_-]+$/;
   return usernamePattern.test(sanitized);
 }
 
 /**
- * Санитизация ввода для предотвращения XSS и инъекций
+ * Санитизация ввода
  */
 export function sanitizeUserInput(input: unknown): string | null {
   if (typeof input !== 'string') return null;
@@ -167,25 +126,25 @@ export function getUserId(): string | null {
 /**
  * Выход из аккаунта
  */
-export async function logout(): Promise<{ success: boolean; error?: string }> {
+export function logout(): Promise<{ success: boolean; error?: string }> {
   try {
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      console.error('[auth] Logout error:', error);
-      return { success: false, error: error.message };
-    }
-
-    // Очистка локального кэша
-    const keysToRemove = Object.keys(localStorage).filter(
-      (k) => k.includes('supabase') || k.includes('auth')
-    );
-    keysToRemove.forEach((key) => localStorage.removeItem(key));
-
-    console.log('[auth] Logout successful');
-    return { success: true };
-  } catch (error: any) {
-    console.error('[auth] Logout exception:', error);
-    return { success: false, error: error.message || 'Ошибка выхода' };
+    const keysToRemove = [
+      'tradeumdiary-auth::session',
+      'tradeumdiary-user',
+      'tradeumdiary-user-id',
+      'tradeumdiary-store',
+      'tradeumdiary-api-token',
+    ];
+    keysToRemove.forEach((key) => {
+      try {
+        localStorage.removeItem(key);
+      } catch {
+        // Игнорируем ошибки
+      }
+    });
+    return Promise.resolve({ success: true });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Ошибка выхода';
+    return Promise.resolve({ success: false, error: message });
   }
 }

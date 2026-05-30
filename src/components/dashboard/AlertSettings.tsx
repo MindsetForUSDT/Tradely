@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { Card } from '@/components/ui/Card';
-import { supabase } from '@/lib/supabase';
-import { getUserId } from '@/lib/auth';
 import { Icon } from '@/components/ui/Icons';
 import toast from 'react-hot-toast';
+
+interface AlertConfig {
+  name: string;
+  alert_type: string;
+  condition_config: { metric: string; operator: string; value: number };
+  channels: string[];
+}
 
 export function AlertSettings() {
   const [pnlTarget, setPnlTarget] = useState('');
@@ -12,18 +17,12 @@ export function AlertSettings() {
   const [saving, setSaving] = useState(false);
 
   const saveAlerts = async () => {
-    const uid = getUserId();
-    if (!uid) {
-      toast.error('Не авторизован');
-      return;
-    }
     setSaving(true);
-    const alerts: any[] = [];
+    const alerts: AlertConfig[] = [];
     const pnlVal = parseFloat(pnlTarget);
     const ddVal = parseFloat(drawdownLimit);
     if (!isNaN(pnlVal) && pnlVal > 0)
       alerts.push({
-        user_id: uid,
         name: 'P&L Цель',
         alert_type: 'pnl_target',
         condition_config: { metric: 'pnl_daily', operator: 'gte', value: pnlVal },
@@ -31,18 +30,21 @@ export function AlertSettings() {
       });
     if (!isNaN(ddVal) && ddVal > 0)
       alerts.push({
-        user_id: uid,
         name: 'Макс. просадка',
         alert_type: 'drawdown',
         condition_config: { metric: 'drawdown', operator: 'gte', value: ddVal },
         channels: email ? ['email'] : [],
       });
     if (alerts.length) {
-      const { error } = await supabase.from('alerts').insert(alerts);
-      if (error) {
-        toast.error('Ошибка сохранения');
-      } else {
+      try {
+        await fetch('http://localhost:3001/api/profile/alerts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ alerts, email }),
+        });
         toast.success('Алерты сохранены!');
+      } catch {
+        toast.error('Ошибка сохранения');
       }
     }
     setSaving(false);

@@ -1,7 +1,7 @@
 // store/useStore.ts
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { supabase } from '@/lib/supabase';
+import { api } from '@/lib/api';
 
 // Типы
 type SubscriptionTier = 'free' | 'pro' | 'enterprise';
@@ -136,41 +136,44 @@ export const useStore = create<AppStore>()(
         set((s) => ({ stats: { ...s.stats, isLoading: true, error: null } }));
 
         try {
-          const { data: trades, error } = await supabase
-            .from('trades')
-            .select('pnl_realized, side, timestamp')
-            .eq('user_id', user.id);
+          interface Trade {
+            timestamp: string;
+            pnl_realized?: number;
+            value_usd?: number;
+          }
 
-          if (error) throw error;
+          const trades = await api.get<Trade[]>('/trades');
+          const tradeList = trades || [];
 
           const now = new Date();
           const dayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
 
-          const dailyTrades = (trades || []).filter((t) => new Date(t.timestamp) >= dayAgo);
-          const winners = (trades || []).filter((t) => (t.pnl_realized || 0) > 0);
+          const dailyTrades = tradeList.filter((t) => new Date(t.timestamp) >= dayAgo);
+          const winners = tradeList.filter((t) => (t.pnl_realized || 0) > 0);
+
+          const sumPnl = (list: Trade[]) => list.reduce((sum, t) => sum + (t.pnl_realized || 0), 0);
 
           set({
             stats: {
               totalBalance: 0,
-              dailyPnl: dailyTrades.reduce((s, t) => s + (t.pnl_realized || 0), 0),
-              weeklyPnl: (trades || [])
-                .filter((t) => new Date(t.timestamp) >= weekAgo)
-                .reduce((s, t) => s + (t.pnl_realized || 0), 0),
-              monthlyPnl: (trades || [])
-                .filter((t) => new Date(t.timestamp) >= monthAgo)
-                .reduce((s, t) => s + (t.pnl_realized || 0), 0),
-              totalTrades: trades?.length || 0,
-              winRate: trades?.length ? +((winners.length / trades.length) * 100).toFixed(1) : 0,
+              dailyPnl: sumPnl(dailyTrades),
+              weeklyPnl: sumPnl(tradeList.filter((t) => new Date(t.timestamp) >= weekAgo)),
+              monthlyPnl: sumPnl(tradeList.filter((t) => new Date(t.timestamp) >= monthAgo)),
+              totalTrades: tradeList.length,
+              winRate: tradeList.length
+                ? +((winners.length / tradeList.length) * 100).toFixed(1)
+                : 0,
               isLoading: false,
               error: null,
               lastUpdated: new Date().toISOString(),
             },
           });
-        } catch (e: any) {
+        } catch (e: unknown) {
+          const message = e instanceof Error ? e.message : 'Ошибка загрузки статистики';
           set((s) => ({
-            stats: { ...s.stats, isLoading: false, error: e.message },
+            stats: { ...s.stats, isLoading: false, error: message },
           }));
         }
       },

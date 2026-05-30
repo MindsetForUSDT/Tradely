@@ -4,16 +4,6 @@ import type { Trade } from '@/types';
 
 type AggregationLevel = 'hourly' | 'daily' | 'weekly' | 'monthly';
 
-interface AggregatedPoint {
-  timestamp: number;
-  date: string;
-  pnl: number;
-  cumulativePnl: number;
-  volume: number;
-  trades: number;
-  winRate: number;
-}
-
 export function useAggregatedChartData(
   trades: Trade[],
   level: AggregationLevel = 'daily',

@@ -1,249 +1,130 @@
-// providers/AppProviders.tsx
-import { useEffect, useState, createContext, useContext, ReactNode, useCallback } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { supabase } from '@/lib/supabase';
-import toast from 'react-hot-toast';
-import { Toaster } from 'react-hot-toast';
-import { useStore } from '@/store/useStore';
+import { ReactNode, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
+import { Toaster } from 'react-hot-toast';
+import { AuthContext, type UserProfile } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
+import { useStore } from '@/store/useStore';
 
-// QueryClient с оптимальными настройками
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60_000, // 5 минут — данные актуальны
-      gcTime: 30 * 60_000, // 30 минут — удерживаем в памяти
+      staleTime: 5 * 60_000,
+      gcTime: 30 * 60_000,
       retry: 2,
       refetchOnWindowFocus: false,
       refetchOnReconnect: true,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000), // Экспоненциальная задержка
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     },
-    mutations: {
-      retry: 1,
-      onError: (error) => {
-        console.error('[Mutation Error]', error);
-      },
-    },
+    mutations: { retry: 1 },
   },
 });
 
-// Типы
-interface UserProfile {
-  id: string;
-  username: string;
-  email?: string;
-  subscription_tier: 'free' | 'pro';
-  subscription_expires_at?: string; // ✅ Добавлено
-  avatar_url?: string;
-  created_at?: string;
+const STORAGE_KEYS = {
+  USER: 'tradeumdiary-user',
+  USER_ID: 'tradeumdiary-user-id',
+  API_TOKEN: 'tradeumdiary-api-token',
+} as const;
+
+function safelyParseUser(data: string | null): UserProfile | null {
+  if (!data) return null;
+  try {
+    const parsed = JSON.parse(data);
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      typeof parsed.id === 'string' &&
+      typeof parsed.username === 'string'
+    ) {
+      return parsed as UserProfile;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
-interface AuthContextType {
-  userId: string | null;
-  user: UserProfile | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  subscriptionTier: 'free' | 'pro';
-  signOut: () => Promise<void>;
-  setUser: (user: UserProfile | null) => void;
-}
-
-export const AuthContext = createContext<AuthContextType>({
-  userId: null,
-  user: null,
-  isAuthenticated: false,
-  isLoading: true,
-  subscriptionTier: 'free',
-  signOut: async () => {},
-  setUser: () => {},
-});
-
-export const useAuth = () => useContext(AuthContext);
-
-// Провайдер аутентификации
-function AuthProvider({ children }: { children: ReactNode }) {
+function AuthProviderInner({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
-  const [user, setUserState] = useState<UserProfile | null>(null);
+  const [user, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const storeSetUser = useStore((s) => s.setUser);
-  const setOnline = useStore((s) => s.setOnline);
-
-  const setUser = (newUser: UserProfile | null) => {
-    setUserState(newUser);
-    if (newUser) {
-      storeSetUser(newUser);
-    }
-  };
-
-  // Загрузка профиля из таблицы profiles
-  const loadUserProfile = useCallback(async (userId: string, email?: string) => {
-    try {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-
-      if (error) {
-        console.error('[AuthProvider] Profile load error:', error);
-        return null;
-      }
-
-      return data;
-    } catch (err) {
-      console.error('[AuthProvider] Profile load exception:', err);
-      return null;
-    }
-  }, []);
+  const initDone = useRef(false);
 
   useEffect(() => {
-    let isMounted = true;
+    if (initDone.current) return;
+    initDone.current = true;
 
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<{ data: { session: null }; error: any }>((resolve) =>
-            setTimeout(() => resolve({ data: { session: null }, error: null }), 10000)
-          ),
-        ]);
+    const savedUser = safelyParseUser(localStorage.getItem(STORAGE_KEYS.USER));
+    const savedUserId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+    const savedToken = localStorage.getItem(STORAGE_KEYS.API_TOKEN);
 
-        if (!isMounted) return;
-
-        if (error) {
-          console.error('[AuthProvider] getSession error:', error);
-          setIsLoading(false);
-          return;
-        }
-
-        if (session?.user) {
-          const profile = await loadUserProfile(session.user.id, session.user.email || undefined);
-
-          if (!isMounted) return;
-
-          setUserId(session.user.id);
-          const userProfile: UserProfile = {
-            id: session.user.id,
-            username: profile?.username || session.user.email || 'User',
-            email: session.user.email,
-            subscription_tier: profile?.subscription_tier || 'free',
-            subscription_expires_at: profile?.subscription_expires_at,
-            avatar_url: profile?.avatar_url,
-            created_at: session.user.created_at,
-          };
-          setUserState(userProfile);
-          storeSetUser(userProfile);
-        }
-        setIsLoading(false);
-      } catch (err) {
-        console.error('[AuthProvider] Session check error:', err);
-        if (isMounted) setIsLoading(false);
+    if (savedUserId && savedUser) {
+      setUserId(savedUserId);
+      setProfile(savedUser);
+      storeSetUser(savedUser);
+      if (savedToken) {
+        api.setTokenProvider(() => Promise.resolve(savedToken));
       }
-    };
-
-    checkSession();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!isMounted) return;
-
-      if (session?.user) {
-        const profile = await loadUserProfile(session.user.id, session.user.email || undefined);
-
-        if (!isMounted) return;
-
-        setUserId(session.user.id);
-        const userProfile: UserProfile = {
-          id: session.user.id,
-          username: profile?.username || session.user.email || 'User',
-          email: session.user.email,
-          subscription_tier: profile?.subscription_tier || 'free',
-          subscription_expires_at: profile?.subscription_expires_at,
-          avatar_url: profile?.avatar_url,
-          created_at: session.user.created_at,
-        };
-        setUserState(userProfile);
-        storeSetUser(userProfile);
-      } else if (event === 'SIGNED_OUT') {
-        setUserId(null);
-        setUserState(null);
-        storeSetUser(null);
-      }
-    });
-
-    const handleOnline = () => setOnline(true);
-    const handleOffline = () => setOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      isMounted = false;
-      subscription.unsubscribe();
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [storeSetUser, setOnline, loadUserProfile]);
-
-  const signOut = async () => {
-    try {
-      const { error } = await supabase.auth.signOut();
-
-      if (error) {
-        console.error('[AuthProvider] Sign out error:', error);
-        toast.error('Ошибка выхода: ' + error.message);
-        return;
-      }
-
-      // Очистка состояния
-      setUserId(null);
-      setUserState(null);
-      storeSetUser(null);
-
-      // Очистка кэша запросов
-      queryClient.clear();
-
-      // Очистка localStorage (кроме критичных данных)
-      const keysToRemove = Object.keys(localStorage).filter(
-        (key) =>
-          key.startsWith('tradeumdiary-') ||
-          key.startsWith('supabase.auth.token') ||
-          key.startsWith('sb-')
-      );
-      keysToRemove.forEach((key) => localStorage.removeItem(key));
-
-      toast.success('Вы вышли из аккаунта');
-    } catch (error: any) {
-      console.error('[AuthProvider] Sign out exception:', error);
-      toast.error('Ошибка выхода: ' + (error.message || 'Неизвестная ошибка'));
     }
-  };
 
-  return (
-    <AuthContext.Provider
-      value={{
-        userId,
-        user,
-        isAuthenticated: !!userId,
-        isLoading,
-        subscriptionTier: user?.subscription_tier || 'free',
-        signOut,
-        setUser,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+    setIsLoading(false);
+  }, [storeSetUser]);
+
+  const signOut = useCallback(async () => {
+    setUserId(null);
+    setProfile(null);
+    storeSetUser(null);
+    localStorage.removeItem(STORAGE_KEYS.USER);
+    localStorage.removeItem(STORAGE_KEYS.USER_ID);
+    localStorage.removeItem(STORAGE_KEYS.API_TOKEN);
+    api.setTokenProvider(() => Promise.resolve(null));
+    queryClient.clear();
+  }, [storeSetUser]);
+
+  const setUser = useCallback(
+    (newUser: UserProfile | null, token?: string) => {
+      if (newUser) {
+        setProfile(newUser);
+        storeSetUser(newUser);
+        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
+        localStorage.setItem(STORAGE_KEYS.USER_ID, newUser.id);
+
+        if (token) {
+          localStorage.setItem(STORAGE_KEYS.API_TOKEN, token);
+          api.setTokenProvider(() => Promise.resolve(token));
+        }
+
+        setUserId(newUser.id);
+      }
+    },
+    [storeSetUser]
   );
+
+  const contextValue = useMemo(
+    () => ({
+      userId,
+      user,
+      isAuthenticated: !!userId,
+      isLoading,
+      subscriptionTier: user?.subscription_tier || 'free',
+      signOut,
+      setUser,
+    }),
+    [userId, user, isLoading, signOut, setUser]
+  );
+
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 }
 
-// Главный провайдер
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AuthProvider>
+          <AuthProviderInner>
             <OfflineBanner />
             {children}
             <Toaster
@@ -265,7 +146,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
                 },
               }}
             />
-          </AuthProvider>
+          </AuthProviderInner>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>

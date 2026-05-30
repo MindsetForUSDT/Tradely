@@ -175,8 +175,14 @@ function buildContentSecurityPolicy(options: {
   // Font-src
   directives.push("font-src 'self' data: https://fonts.gstatic.com");
 
-  // Connect-src - добавляем WebSocket для Supabase
-  const connectSources = ["'self'", 'https://*.supabase.co', 'wss://*.supabase.co'];
+  // Connect-src - добавляем WebSocket для Supabase и localhost для API
+  const connectSources = [
+    "'self'",
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://*.supabase.co',
+    'wss://*.supabase.co',
+  ];
   // Добавляем API бирж
   connectSources.push('https://api.binance.com');
   connectSources.push('https://api.bybit.com');

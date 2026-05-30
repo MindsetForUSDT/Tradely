@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
-import { formatDate } from '@/lib/utils';
 import { cn } from '@/lib/utils';
+import type { Trade } from '@/types';
 
 interface CalendarViewProps {
-  trades: any[];
+  trades: Trade[];
 }
 
 export function CalendarView({ trades }: CalendarViewProps) {
@@ -15,7 +15,7 @@ export function CalendarView({ trades }: CalendarViewProps) {
   const firstDay = new Date(year, month, 0).getDay();
 
   const tradesByDay = useMemo(() => {
-    const map: Record<number, any[]> = {};
+    const map: Record<number, Trade[]> = {};
     trades.forEach((t) => {
       const d = new Date(t.timestamp);
       if (d.getFullYear() === year && d.getMonth() === month) {
@@ -83,7 +83,7 @@ export function CalendarView({ trades }: CalendarViewProps) {
         {Array.from({ length: daysInMonth }).map((_, i) => {
           const day = i + 1;
           const dayTrades = tradesByDay[day] || [];
-          const pnl = dayTrades.reduce((s: number, t: any) => s + (t.pnl_realized || 0), 0);
+          const pnl = dayTrades.reduce((s: number, t: Trade) => s + (t.pnl_realized || 0), 0);
           return (
             <div
               key={day}

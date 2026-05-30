@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { GlowButton } from '@/components/ui/GlowButton';
 import { Icon } from '@/components/ui/Icons';
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '@/providers/AppProviders';
+import { useAuth } from '@/hooks/useAuth';
 
 interface NewHeroSectionProps {
   onOpenContacts?: () => void;
@@ -127,12 +127,10 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
   }, []);
 
   const handleScrollToAuth = () => {
-    console.log('[Hero] Scrolling to auth section');
     authRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleScrollToFeatures = () => {
-    console.log('[Hero] Scrolling to features section');
     featuresRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -201,10 +199,7 @@ export function NewHeroSection({ onOpenContacts }: NewHeroSectionProps = {}) {
               </GlowButton>
               {onOpenContacts && (
                 <button
-                  onClick={() => {
-                    console.log('[Hero] Opening contacts modal');
-                    onOpenContacts();
-                  }}
+                  onClick={() => onOpenContacts()}
                   className="px-6 py-3 rounded-xl border border-white/20 text-white font-medium bg-white/5 hover:bg-white/10 hover:border-white/30 transition-all duration-150 active:scale-[0.98]"
                 >
                   Контакты

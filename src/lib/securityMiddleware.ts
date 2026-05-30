@@ -194,7 +194,7 @@ export function initSecurityMiddleware(): void {
   setupSecurityHeadersForFetch();
   preventClickjacking();
 
-  console.log('[Security] Security middleware initialized');
+  // Security middleware initialized
 }
 
 /**

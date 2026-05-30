@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { SlideIn } from '@/components/ui/SlideIn';
 import { Icon } from '@/components/ui/Icons';
 import { GlowButton } from '@/components/ui/GlowButton';
-import { useAuth } from '@/providers/AppProviders';
+import { useAuth } from '@/hooks/useAuth';
 
 const FEATURES = [
   {

@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
 import toast from 'react-hot-toast';
 
 interface PasswordResetProps {
@@ -18,17 +17,20 @@ export function PasswordReset({ savedEmail, onSwitchToLogin }: PasswordResetProp
       return;
     }
     setLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: window.location.origin + '/reset-password',
-    });
-    if (error) {
+    // TODO: Добавить endpoint для сброса пароля
+    try {
+      await fetch('http://localhost:3001/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      setSent(true);
+      toast.success('Ссылка отправлена на email');
+    } catch {
       toast.error('Ошибка отправки');
+    } finally {
       setLoading(false);
-      return;
     }
-    setSent(true);
-    toast.success('Ссылка отправлена на email');
-    setLoading(false);
   };
 
   if (sent) {

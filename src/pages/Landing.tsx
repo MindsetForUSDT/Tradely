@@ -3,7 +3,7 @@ import { NewHeroSection } from '@/components/landing/NewHeroSection';
 import { NewFeaturesSection } from '@/components/landing/NewFeaturesSection';
 import { FAQSection } from '@/components/landing/FAQSection';
 import { ContactModal } from '@/components/landing/ContactModal';
-import { useAuth } from '@/providers/AppProviders';
+import { useAuth } from '@/hooks/useAuth';
 import { Navigate } from 'react-router-dom';
 
 export function Landing() {
@@ -25,17 +25,14 @@ export function Landing() {
   }
 
   const openContacts = () => {
-    console.log('[Landing] Opening contacts modal');
     setIsContactModalOpen(true);
   };
 
   const closeContacts = () => {
-    console.log('[Landing] Closing contacts modal');
     setIsContactModalOpen(false);
   };
 
   const scrollToFeatures = () => {
-    console.log('[Landing] Scrolling to features');
     featuresRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
