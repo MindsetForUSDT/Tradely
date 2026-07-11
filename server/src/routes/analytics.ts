@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { prisma } from '../db';
-import { requireAuth, AuthRequest } from '../middleware/auth';
+import { prisma } from '../db.js';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
 router.get('/', requireAuth, async (req: AuthRequest, res) => {
   try {
     const profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
+      where: { id: req.userId! },
     });
 
     if (!profile) {

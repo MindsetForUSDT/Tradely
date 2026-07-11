@@ -2,20 +2,10 @@
 
 ## 🚀 Быстрый старт
 
-### 1. Запуск PostgreSQL (если не запущен)
+### 1. Запуск PostgreSQL
 
 ```powershell
-docker ps  # Проверить запущен ли контейнер
-
-# Если нет, запустить:
-docker run -d `
-  --name tradeumdiary-db `
-  -e POSTGRES_USER=tradeumdiary `
-  -e POSTGRES_PASSWORD=dev_password_123 `
-  -e POSTGRES_DB=tradeumdiary `
-  -p 5432:5432 `
-  -v postgres_data:/var/lib/postgresql/data `
-  postgres:15
+docker compose up -d db
 ```
 
 ### 2. Запуск серверов
@@ -133,7 +123,7 @@ npx prisma migrate reset
 │                                     │
 │  Frontend: localhost:3000 (Vite)    │
 │  Backend:  localhost:3001 (Express) │
-│  БД:       localhost:5432 (Postgres)│
+│  БД:       localhost:5433 (Postgres)│
 │                                     │
 │  Все работает локально — 0 ₽        │
 └─────────────────────────────────────┘

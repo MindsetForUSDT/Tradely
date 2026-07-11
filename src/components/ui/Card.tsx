@@ -19,18 +19,18 @@ const paddingMap = {
 };
 
 const variantMap = {
-  default: 'bg-cyber-800/60 border-cyber-700/50',
-  glass: 'bg-cyber-800/40 backdrop-blur-xl border-cyber-700/30',
-  elevated: 'bg-cyber-900/80 border-cyber-600/50 shadow-lg',
-  gradient: 'bg-gradient-to-br from-cyber-800/80 to-cyber-900/80 border-cyber-700/50',
+  default: 'bg-[#0d0f11] border-[#2b2d32]',
+  glass: 'bg-[#0d0f11]/90 backdrop-blur-xl border-[#2b2d32]',
+  elevated: 'bg-[#111316] border-[#34373c] shadow-lg shadow-black/30',
+  gradient: 'bg-[#101215] border-[#303238]',
 };
 
 const glowMap = {
-  cyan: 'hover:border-neon-cyan/40 hover:shadow-neon-cyan',
-  magenta: 'hover:border-neon-magenta/40 hover:shadow-neon-magenta',
-  green: 'hover:border-neon-green/40 hover:shadow-neon-green',
-  yellow: 'hover:border-neon-yellow/40 hover:shadow-neon-yellow',
-  red: 'hover:border-accent-red/40 hover:shadow-neon-red',
+  cyan: 'hover:border-[#62656b]',
+  magenta: 'hover:border-[#62656b]',
+  green: 'hover:border-[#62656b]',
+  yellow: 'hover:border-[#62656b]',
+  red: 'hover:border-[#62656b]',
 };
 
 export const Card = forwardRef<HTMLDivElement, CardProps>(
@@ -52,33 +52,19 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
       <div
         ref={ref}
         className={cn(
-          'relative rounded-2xl border transition-all duration-300',
+          'relative rounded-lg border transition-all duration-200',
           variantMap[variant],
           noPadding ? 'p-0' : paddingMap[padding],
           (hover || interactive) && cn(glowMap[glowColor], 'cursor-pointer'),
           interactive && 'active:scale-[0.99]',
           'overflow-hidden',
-          // Градиентная обводка при наведении
           hover && 'group',
-          hover &&
-            'before:absolute before:inset-0 before:rounded-2xl before:p-[1px] before:pointer-events-none',
-          hover &&
-            'before:bg-gradient-to-br before:from-neon-cyan/20 before:via-neon-magenta/20 before:to-neon-cyan/20',
-          hover &&
-            'before:opacity-0 group-hover:opacity-100 before:transition-opacity before:duration-300',
-          // Внутренний градиент при наведении
-          hover &&
-            'after:absolute after:inset-0 after:bg-gradient-to-br after:from-neon-cyan/5 after:via-transparent after:to-neon-magenta/5',
-          hover &&
-            'after:opacity-0 group-hover:opacity-100 after:transition-opacity after:duration-300',
           className
         )}
         {...props}
       >
         {/* Фоновый градиент для variant=gradient */}
-        {variant === 'gradient' && (
-          <div className="absolute inset-0 bg-gradient-to-br from-neon-cyan/5 via-transparent to-neon-magenta/5 opacity-50" />
-        )}
+        {variant === 'gradient' && <div className="absolute inset-0 bg-white/[0.01]" />}
 
         {/* Контент поверх фона */}
         <div className="relative z-10">{children}</div>

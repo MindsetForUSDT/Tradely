@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Navigate, Routes, Route } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
 import { Landing } from '@/pages/Landing';
 import { Features } from '@/pages/Features';
@@ -13,6 +13,8 @@ import { Login } from '@/pages/Login';
 import { ForgotPassword } from '@/pages/ForgotPassword';
 import { UpdatePassword } from '@/pages/UpdatePassword';
 import { NotFound } from '@/pages/NotFound';
+import { WorkspacePage } from '@/pages/WorkspacePage';
+import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
 
 export default function App() {
   return (
@@ -26,8 +28,56 @@ export default function App() {
         <Route path="/update-password" element={<UpdatePassword />} />
         <Route path="/subscribe" element={<Subscribe />} />
         <Route path="/payment" element={<Payment />} />
-        <Route path="/dashboard/*" element={<Dashboard />} />
-        <Route path="/pro/*" element={<ProAnalytics />} />
+        <Route
+          path="/dashboard/*"
+          element={
+            <WorkspaceShell>
+              <Dashboard />
+            </WorkspaceShell>
+          }
+        />
+        <Route path="/journal" element={<Navigate to="/dashboard/journal" replace />} />
+        <Route path="/wallets" element={<Navigate to="/dashboard/wallets" replace />} />
+        <Route
+          path="/pro/*"
+          element={
+            <WorkspaceShell>
+              <ProAnalytics />
+            </WorkspaceShell>
+          }
+        />
+        <Route
+          path="/ai"
+          element={
+            <WorkspaceShell>
+              <WorkspacePage kind="ai" />
+            </WorkspaceShell>
+          }
+        />
+        <Route
+          path="/goals"
+          element={
+            <WorkspaceShell>
+              <WorkspacePage kind="goals" />
+            </WorkspaceShell>
+          }
+        />
+        <Route
+          path="/achievements"
+          element={
+            <WorkspaceShell>
+              <WorkspacePage kind="achievements" />
+            </WorkspaceShell>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <WorkspaceShell>
+              <WorkspacePage kind="settings" />
+            </WorkspaceShell>
+          }
+        />
         <Route path="/terms" element={<Terms />} />
         <Route path="/privacy" element={<Privacy />} />
         <Route path="*" element={<NotFound />} />
