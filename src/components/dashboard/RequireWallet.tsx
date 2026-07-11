@@ -1,30 +1,59 @@
 import { useNavigate } from 'react-router-dom';
-import { Card } from '@/components/ui/Card';
 import { Icon } from '@/components/ui/Icons';
 
 export function RequireWallet() {
   const navigate = useNavigate();
-
   return (
-    <div className="min-h-[60vh] flex items-center justify-center px-4">
-      <Card padding="lg" className="max-w-md w-full text-center space-y-6">
-        <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center">
-          <Icon name="wallet" size={32} className="text-accent-green" />
+    <section className="dashboard-onboarding">
+      <div className="dashboard-onboarding-head">
+        <p>Рабочее пространство</p>
+        <h1>Добро пожаловать в TradeumDiary</h1>
+        <span>
+          Подключите источник, чтобы превратить историю сделок в понятную систему решений.
+        </span>
+      </div>
+      <div className="dashboard-onboarding-panel">
+        <div className="dashboard-onboarding-icon">
+          <Icon name="wallet-add" size={28} />
         </div>
-        <div>
-          <h2 className="text-xl font-bold mb-2">Подключите кошелёк</h2>
-          <p className="text-sm text-text-muted leading-relaxed">
-            Для доступа к дашборду необходимо подключить хотя бы один кошелёк.
-          </p>
-        </div>
-        <button
-          onClick={() => navigate('/dashboard/wallets')}
-          className="btn-primary w-full inline-flex items-center justify-center gap-2"
-        >
-          <Icon name="wallet-add" size={18} />
-          Подключить кошелёк
+        <p className="dashboard-onboarding-step">Шаг 1 из 3</p>
+        <h2>Подключите первый источник</h2>
+        <p>
+          Добавьте биржу, публичный адрес кошелька или импортируйте CSV. Мы не показываем демо-цифры
+          вместо ваших результатов.
+        </p>
+        <button type="button" onClick={() => navigate('/dashboard/wallets')}>
+          <Icon name="wallet-add" size={17} /> Подключить источник
         </button>
-      </Card>
-    </div>
+        <div className="dashboard-onboarding-trust">
+          <span>Только чтение</span>
+          <span>Шифрование AES-256</span>
+          <span>Без доступа к средствам</span>
+        </div>
+      </div>
+      <div className="dashboard-onboarding-flow">
+        <article>
+          <span>01</span>
+          <div>
+            <strong>Источник</strong>
+            <small>Биржа, кошелёк или файл</small>
+          </div>
+        </article>
+        <article>
+          <span>02</span>
+          <div>
+            <strong>Контекст</strong>
+            <small>Теги, решения и риск</small>
+          </div>
+        </article>
+        <article>
+          <span>03</span>
+          <div>
+            <strong>Обратная связь</strong>
+            <small>Метрики и AI-разбор</small>
+          </div>
+        </article>
+      </div>
+    </section>
   );
 }

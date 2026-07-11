@@ -1,4 +1,4 @@
-import { prisma } from '../db';
+import { prisma } from '../db.js';
 import { Decimal } from '@prisma/client/runtime/library';
 
 interface TradeData {

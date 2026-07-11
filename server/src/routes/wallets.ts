@@ -1,8 +1,12 @@
 import { Router } from 'express';
-import { prisma } from '../db';
-import { requireAuth, AuthRequest } from '../middleware/auth';
-import { encrypt, decrypt } from '../services/crypto';
-import { importTradesFromExchange, saveTrades, validateBybitWallet } from '../services/tradeImport';
+import { prisma } from '../db.js';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { encrypt, decrypt } from '../services/crypto.js';
+import {
+  importTradesFromExchange,
+  saveTrades,
+  validateBybitWallet,
+} from '../services/tradeImport.js';
 
 const router = Router();
 
@@ -17,57 +21,15 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
   console.log('[Wallets GET] userId:', req.userId);
   console.log('[Wallets GET] userEmail:', req.userEmail);
 
-  let profileId: string;
-
   try {
-    console.log('[Wallets GET] Step 1: Finding profile by clerk_id...');
-
-    let profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
+    const profile = await prisma.profile.findUnique({
+      where: { id: req.userId! },
     });
-
-    console.log('[Wallets GET] Profile by clerk_id found:', !!profile);
-
     if (!profile) {
-      console.log('[Wallets GET] Profile not found by clerk_id, checking by email...');
-      // Проверяем существует ли профиль с таким email
-      profile = await prisma.profile.findFirst({
-        where: { email: req.userEmail! },
-      });
-
-      if (profile) {
-        console.log('[Wallets GET] Profile found by email:', profile.id, 'Updating clerk_id...');
-        // Обновляем clerk_id чтобы связать профили
-        profile = await prisma.profile.update({
-          where: { id: profile.id },
-          data: { clerk_id: req.userId! },
-        });
-      } else {
-        console.log('[Wallets GET] No profile found, creating new...');
-        // Создаём новый профиль
-        profile = await prisma.profile.create({
-          data: {
-            clerk_id: req.userId!,
-            email: req.userEmail || `${req.userId}@localhost.com`,
-            username: req.userId?.split('@')[0] || 'User',
-          },
-        });
-        console.log('[Wallets GET] Profile created:', profile.id);
-      }
+      return res.status(404).json({ error: 'Profile not found' });
     }
-
-    profileId = profile.id;
-    console.log('[Wallets GET] Profile ID:', profileId);
-  } catch (error: any) {
-    console.error('[Wallets GET] Profile error:', error.message);
-    console.error('[Wallets GET] Profile stack:', error.stack);
-    return res.status(500).json({ error: 'Profile error', details: error.message });
-  }
-
-  try {
-    console.log('[Wallets GET] Step 2: Fetching wallets...');
     const wallets = await prisma.wallet.findMany({
-      where: { user_id: profileId },
+      where: { user_id: profile.id },
       orderBy: { added_at: 'desc' },
     });
 
@@ -112,55 +74,14 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
   console.log('[Wallets POST] userEmail:', req.userEmail);
   console.log('[Wallets POST] Request body:', JSON.stringify(req.body));
 
-  let profileId: string;
-
   try {
-    console.log('[Wallets POST] Step 1: Finding profile by clerk_id...');
-
-    let profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
+    const profile = await prisma.profile.findUnique({
+      where: { id: req.userId! },
     });
-
-    console.log('[Wallets POST] Profile by clerk_id found:', !!profile);
-
     if (!profile) {
-      console.log('[Wallets POST] Profile not found by clerk_id, checking by email...');
-      // Проверяем существует ли профиль с таким email
-      profile = await prisma.profile.findFirst({
-        where: { email: req.userEmail! },
-      });
-
-      if (profile) {
-        console.log('[Wallets POST] Profile found by email:', profile.id, 'Updating clerk_id...');
-        // Обновляем clerk_id чтобы связать профили
-        profile = await prisma.profile.update({
-          where: { id: profile.id },
-          data: { clerk_id: req.userId! },
-        });
-      } else {
-        console.log('[Wallets POST] No profile found, creating new...');
-        // Создаём новый профиль
-        profile = await prisma.profile.create({
-          data: {
-            clerk_id: req.userId!,
-            email: req.userEmail || `${req.userId}@localhost.com`,
-            username: req.userId?.split('@')[0] || 'User',
-          },
-        });
-        console.log('[Wallets POST] Profile created:', profile.id);
-      }
+      return res.status(404).json({ error: 'Profile not found' });
     }
-
-    profileId = profile.id;
-    console.log('[Wallets POST] Profile ID:', profileId);
-  } catch (error: any) {
-    console.error('[Wallets POST] Profile error:', error.message);
-    console.error('[Wallets POST] Profile stack:', error.stack);
-    return res.status(500).json({ error: 'Profile error', details: error.message });
-  }
-
-  try {
-    console.log('[Wallets POST] Step 2: Creating wallet...');
+    const profileId = profile.id;
     // Шифруем API ключи если есть
     const bodySettings = req.body.settings ? JSON.parse(req.body.settings) : {};
     let encryptedCreds: { encrypted: string; iv: string; tag: string } | null = null;
@@ -268,27 +189,20 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
 
 router.delete('/:id', requireAuth, async (req: AuthRequest, res) => {
   try {
+    const walletId = String(req.params.id);
     console.log('[Wallets DELETE] userId from auth:', req.userId);
 
-    let profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
+    const profile = await prisma.profile.findUnique({
+      where: { id: req.userId! },
     });
 
     if (!profile) {
-      console.log('[Wallets DELETE] Profile not found, creating...');
-      profile = await prisma.profile.create({
-        data: {
-          clerk_id: req.userId!,
-          email: req.userEmail || `${req.userId}@localhost.com`,
-          username: req.userId?.split('@')[0] || 'User',
-        },
-      });
-      console.log('[Wallets DELETE] Created profile:', profile.id);
+      return res.status(404).json({ error: 'Profile not found' });
     }
 
     await prisma.wallet.deleteMany({
       where: {
-        id: req.params.id,
+        id: walletId,
         user_id: profile.id,
       },
     });
@@ -303,45 +217,38 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res) => {
 // Endpoint для синхронизации кошелька
 router.post('/:id/sync', requireAuth, async (req: AuthRequest, res) => {
   try {
-    console.log('[Wallets SYNC] userId from auth:', req.userId, 'walletId:', req.params.id);
+    const walletId = String(req.params.id);
+    console.log('[Wallets SYNC] userId from auth:', req.userId, 'walletId:', walletId);
 
-    let profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
+    const profile = await prisma.profile.findUnique({
+      where: { id: req.userId! },
     });
 
     if (!profile) {
-      console.log('[Wallets SYNC] Profile not found, creating...');
-      profile = await prisma.profile.create({
-        data: {
-          clerk_id: req.userId!,
-          email: req.userEmail || `${req.userId}@localhost.com`,
-          username: req.userId?.split('@')[0] || 'User',
-        },
-      });
-      console.log('[Wallets SYNC] Created profile:', profile.id);
+      return res.status(404).json({ error: 'Profile not found' });
     }
 
     // Проверяем что кошелёк принадлежит пользователю
     const wallet = await prisma.wallet.findFirst({
       where: {
-        id: req.params.id,
+        id: walletId,
         user_id: profile.id,
       },
     });
 
     if (!wallet) {
-      console.log('[Wallets SYNC] Wallet not found:', req.params.id);
+      console.log('[Wallets SYNC] Wallet not found:', walletId);
       res.status(404).json({ error: 'Wallet not found' });
       return;
     }
 
     // Обновляем статус на "processing"
     await prisma.wallet.update({
-      where: { id: req.params.id },
+      where: { id: walletId },
       data: { processing_status: 'processing' },
     });
 
-    console.log('[Wallets SYNC] Started sync for wallet:', req.params.id);
+    console.log('[Wallets SYNC] Started sync for wallet:', walletId);
 
     // Запускаем синхронизацию в фоне
     (async () => {
@@ -383,25 +290,23 @@ router.post('/:id/sync', requireAuth, async (req: AuthRequest, res) => {
           );
 
           const saved = await saveTrades(profile.id, wallet.id, trades);
-          console.log(
-            `[Wallets SYNC] Saved ${saved} trades for ${wallet.cex_provider} (from: ${startDate?.toISOString() || 'all time'})`
-          );
+          console.log(`[Wallets SYNC] Saved ${saved} trades for ${wallet.cex_provider} (all time)`);
         } else {
           console.log('[Wallets SYNC] Non-CEX wallet, skipping trade import');
         }
 
         await prisma.wallet.update({
-          where: { id: req.params.id },
+          where: { id: wallet.id },
           data: {
             processing_status: 'completed',
             last_synced_at: new Date(),
           },
         });
-        console.log('[Wallets SYNC] Completed sync for wallet:', req.params.id);
+        console.log('[Wallets SYNC] Completed sync for wallet:', wallet.id);
       } catch (err: any) {
         console.error('[Wallets SYNC] Error:', err.message);
         await prisma.wallet.update({
-          where: { id: req.params.id },
+          where: { id: wallet.id },
           data: {
             processing_status: 'failed',
             error_message: err.message || 'Sync failed',
@@ -413,7 +318,7 @@ router.post('/:id/sync', requireAuth, async (req: AuthRequest, res) => {
     res.json({
       success: true,
       message: 'Синхронизация запущена',
-      walletId: req.params.id,
+      walletId,
     });
   } catch (error) {
     console.error('[Wallets SYNC]', error);

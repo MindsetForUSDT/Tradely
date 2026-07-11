@@ -73,7 +73,7 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, [storeSetUser]);
 
-  const signOut = useCallback(async () => {
+  const signOut = useCallback(() => {
     setUserId(null);
     setProfile(null);
     storeSetUser(null);
@@ -82,6 +82,7 @@ function AuthProviderInner({ children }: { children: ReactNode }) {
     localStorage.removeItem(STORAGE_KEYS.API_TOKEN);
     api.setTokenProvider(() => Promise.resolve(null));
     queryClient.clear();
+    return Promise.resolve();
   }, [storeSetUser]);
 
   const setUser = useCallback(
@@ -123,7 +124,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <AuthProviderInner>
             <OfflineBanner />
             {children}
@@ -132,17 +133,17 @@ export function AppProviders({ children }: { children: ReactNode }) {
               toastOptions={{
                 duration: 4000,
                 style: {
-                  background: '#1A1A1A',
-                  color: '#FFFFFF',
-                  border: '1px solid #2A2A2A',
-                  borderRadius: '12px',
-                  fontSize: '14px',
+                  background: '#0D0F11',
+                  color: '#F4F4F2',
+                  border: '1px solid #34373C',
+                  borderRadius: '6px',
+                  fontSize: '12px',
                 },
                 success: {
-                  iconTheme: { primary: '#00FFA3', secondary: '#1A1A1A' },
+                  iconTheme: { primary: '#71B67A', secondary: '#0D0F11' },
                 },
                 error: {
-                  iconTheme: { primary: '#FF3B5C', secondary: '#1A1A1A' },
+                  iconTheme: { primary: '#E15B5B', secondary: '#0D0F11' },
                 },
               }}
             />

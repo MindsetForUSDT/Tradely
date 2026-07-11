@@ -10,7 +10,7 @@ console.log('[Server] ENV:', process.env.NODE_ENV);
 console.log('[Server] DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
 
 // Импортируем Prisma ПЕРЕД маршрутами
-import { prisma } from './db';
+import { prisma } from './db.js';
 
 // Тестируем подключение к БД
 prisma
@@ -22,30 +22,36 @@ prisma
     console.error('[Server] ❌ Prisma connection error:', err);
   });
 
-import profileRouter from './routes/profile';
-import walletsRouter from './routes/wallets';
-import tradesRouter from './routes/trades';
-import analyticsRouter from './routes/analytics';
-import webhookRouter from './routes/webhook';
-import authRouter from './routes/auth';
+import profileRouter from './routes/profile.js';
+import walletsRouter from './routes/wallets.js';
+import tradesRouter from './routes/trades.js';
+import analyticsRouter from './routes/analytics.js';
+import webhookRouter from './routes/webhook.js';
+import authRouter from './routes/auth.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Debug middleware - ВСЕ запросы логируем
+// Краткий access log без заголовков и токенов авторизации.
 app.use((req, res, next) => {
   console.log(`[Server] 📥 ${req.method} ${req.path}`);
-  console.log(`[Server] Headers:`, JSON.stringify(req.headers));
   next();
 });
 
 app.use(helmet());
+const allowedOrigins = (
+  process.env.CORS_ORIGINS ||
+  (process.env.NODE_ENV === 'production'
+    ? 'https://tradeumdiary.com'
+    : 'http://localhost:3000,http://127.0.0.1:3000')
+)
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? ['https://tradeumdiary.com']
-        : ['http://localhost:3000'],
+    origin: allowedOrigins,
     credentials: true,
   })
 );
@@ -64,8 +70,10 @@ app.get('/api', (req, res) => {
     version: '1.0.0',
     endpoints: {
       profile: '/api/profile',
+      auth: '/api/auth',
       wallets: '/api/wallets',
       trades: '/api/trades',
+      analytics: '/api/analytics',
       webhook: '/api/webhook',
       health: '/health',
     },
@@ -90,3 +98,12 @@ app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ Test endpoint: http://localhost:${PORT}/health`);
 });
+
+const shutdown = async (signal: string) => {
+  console.log(`[Server] ${signal}: shutting down`);
+  await prisma.$disconnect();
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));

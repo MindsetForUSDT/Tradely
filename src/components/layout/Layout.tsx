@@ -1,5 +1,4 @@
 import { Outlet, useLocation } from 'react-router-dom';
-import { MouseGlow } from '@/components/ui/MouseGlow';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Header } from './Header';
 import { Footer } from './Footer';
@@ -11,26 +10,28 @@ export function Layout() {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
   const isLanding = location.pathname === '/';
+  const isWorkspace = ['/dashboard', '/pro', '/ai', '/goals', '/achievements', '/settings'].some(
+    (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
+  );
 
   // Auth state stable — no debug logs in production
 
   return (
     <div className="relative min-h-screen min-h-dvh flex flex-col">
       <OfflineBanner />
-      <MouseGlow />
-      <Header />
+      {!isWorkspace && <Header />}
       <main
         className={cn(
           'flex-1 relative z-10 transition-opacity duration-300',
-          isLoading && 'opacity-50',
-          isLanding ? 'pt-16 md:pt-20' : 'pt-20 md:pt-24',
+          isLoading && !isLanding && 'opacity-50',
+          isWorkspace ? 'pt-0' : isLanding ? 'pt-16' : 'pt-20 md:pt-24',
           isAuthenticated ? 'pb-20 md:pb-0' : ''
         )}
       >
         <Outlet />
       </main>
-      {!isAuthenticated && !isLoading && <Footer />}
-      {isAuthenticated && <MobileNav />}
+      {!isWorkspace && !isAuthenticated && !isLoading && <Footer />}
+      {!isWorkspace && isAuthenticated && <MobileNav />}
     </div>
   );
 }

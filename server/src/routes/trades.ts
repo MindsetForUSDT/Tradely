@@ -1,13 +1,13 @@
 import { Router } from 'express';
-import { prisma } from '../db';
-import { requireAuth, AuthRequest } from '../middleware/auth';
+import { prisma } from '../db.js';
+import { requireAuth, AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 
 router.get('/', requireAuth, async (req: AuthRequest, res) => {
   try {
     const profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
+      where: { id: req.userId! },
     });
 
     if (!profile) {
@@ -58,7 +58,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
 router.post('/', requireAuth, async (req: AuthRequest, res) => {
   try {
     const profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
+      where: { id: req.userId! },
     });
 
     if (!profile) {
@@ -80,37 +80,6 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
   }
 });
 
-router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
-  try {
-    const profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
-    });
-
-    if (!profile) {
-      res.status(404).json({ error: 'Profile not found' });
-      return;
-    }
-
-    const trade = await prisma.trade.updateMany({
-      where: {
-        id: req.params.id,
-        user_id: profile.id,
-      },
-      data: req.body,
-    });
-
-    if (trade.count === 0) {
-      res.status(404).json({ error: 'Trade not found' });
-      return;
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('[Trades PATCH]', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 // Bulk update wallet for trades
 router.patch('/bulk-update-wallet', requireAuth, async (req: AuthRequest, res) => {
   try {
@@ -121,7 +90,7 @@ router.patch('/bulk-update-wallet', requireAuth, async (req: AuthRequest, res) =
     }
 
     const profile = await prisma.profile.findUnique({
-      where: { clerk_id: req.userId! },
+      where: { id: req.userId! },
     });
 
     if (!profile) {
@@ -141,6 +110,38 @@ router.patch('/bulk-update-wallet', requireAuth, async (req: AuthRequest, res) =
     res.json({ success: true, updated: updated.count });
   } catch (error) {
     console.error('[Trades PATCH bulk-update-wallet]', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
+  try {
+    const tradeId = String(req.params.id);
+    const profile = await prisma.profile.findUnique({
+      where: { id: req.userId! },
+    });
+
+    if (!profile) {
+      res.status(404).json({ error: 'Profile not found' });
+      return;
+    }
+
+    const trade = await prisma.trade.updateMany({
+      where: {
+        id: tradeId,
+        user_id: profile.id,
+      },
+      data: req.body,
+    });
+
+    if (trade.count === 0) {
+      res.status(404).json({ error: 'Trade not found' });
+      return;
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('[Trades PATCH]', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
