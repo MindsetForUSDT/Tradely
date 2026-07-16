@@ -1,33 +1,31 @@
-# Design QA — Spatial Intelligence landing
+# Design QA — Interactive landing demo
 
-## Target
+## Evidence reviewed
 
-- Selected concept: `/workspace/scratch/c2eb786066fb/generated_images/exec-92f637ef-d856-42b1-abce-9b22667ada41.png`
-- Target route: `/`
-- Target viewports: 1440 × 1024 and 390 × 844
+- User screenshot: hero and static wave at 1917 × 907
+- User screenshot: empty risk widgets at 1917 × 907
+
+## Findings addressed
+
+- P1: static raster wave did not communicate a dynamic product — replaced with a real-time Canvas particle field with pointer response and reduced-motion support.
+- P1: product preview advertised an unregistered state — replaced with an explicit interactive demo containing journal, analytics, risk, and AI scenarios.
+- P1: risk section contained placeholders — replaced with representative demo limits and an active rule state.
+- P2: hero copy said there were no demo values while the landing needs to explain the product — copy now clearly distinguishes the interactive demo from the user's real workspace.
+- P2: the large preview had little interactive value — scene tabs now swap functional product views and FAQ controls remain interactive.
 
 ## Automated checks
 
 - TypeScript: passed
 - Production build: passed
-- Targeted ESLint (`src/pages/Landing.tsx`): passed
-- Generated wave asset: present at `public/tradeum-data-wave.png`
+- Targeted ESLint (`src/pages/Landing.tsx`): passed with zero warnings
+- Diff whitespace validation: passed
 
-## Visual comparison
+## Data policy
 
-Blocked. The Browser plugin is unavailable in this session. Playwright fallback could not download Chromium because the environment rejected the external browser download after its usage limit was reached.
-
-## Interaction checks pending rendered browser
-
-- Product scene tabs: journal / analytics / risk / AI
-- FAQ expand and collapse
-- Register CTA navigation
-- Desktop and mobile overflow
-- Console errors and animation behavior
-- Reduced-motion behavior
+Representative figures are used only inside the marketing landing demo and are explicitly labelled `Интерактивное демо` / `Демо-портфель`. Authenticated workspace pages still use real connected data or onboarding.
 
 ## Final result
 
 **blocked**
 
-The implementation must be opened locally and captured at the two target viewports before visual sign-off.
+Source-level fixes are complete. Final rendered screenshot comparison remains blocked because the Browser plugin and a local Chromium runtime are unavailable in this environment. Desktop and mobile capture should be completed after the branch is run locally.

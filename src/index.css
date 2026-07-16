@@ -2958,3 +2958,447 @@
   background-size: 50px 50px;
   mask-image: radial-gradient(ellipse at center, black 40%, transparent 70%);
 }
+
+/* Landing demo — interactive product data and live particle field */
+.spatial-wave-canvas {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  bottom: -24px;
+  width: 100%;
+  height: 350px;
+  opacity: 0.9;
+  touch-action: none;
+}
+
+.spatial-chart-live {
+  position: relative;
+  height: 245px;
+  margin-top: 12px;
+}
+
+.spatial-chart-live > div:last-child {
+  position: absolute;
+  top: 14px;
+  left: 8px;
+  display: grid;
+  gap: 3px;
+}
+
+.spatial-chart-live span,
+.spatial-chart-live small {
+  color: #686868;
+  font-size: 9px;
+}
+
+.spatial-chart-live strong {
+  font-size: 18px;
+}
+
+.spatial-chart-live small {
+  color: #c4c4c4;
+}
+
+.spatial-trade-result,
+.spatial-confidence {
+  margin-top: 22px;
+  padding-top: 14px;
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  border-top: 1px solid #2a2a2a;
+}
+
+.spatial-trade-result strong {
+  font-size: 20px;
+}
+
+.spatial-trade-result span,
+.spatial-confidence span {
+  color: #717171;
+  font-size: 9px;
+}
+
+.spatial-confidence strong {
+  font-size: 18px;
+}
+
+.spatial-demo-status {
+  padding: 5px 9px;
+  border: 1px solid #3b3b3b;
+  border-radius: 5px;
+  color: #d0d0d0;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.spatial-demo-workspace {
+  min-width: 0;
+  padding: 16px;
+}
+
+.spatial-demo-stack {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.spatial-demo-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border: 1px solid #252525;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.spatial-demo-metrics > div {
+  min-height: 78px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid #252525;
+}
+
+.spatial-demo-metrics > div:last-child {
+  border: 0;
+}
+
+.spatial-demo-metrics span,
+.spatial-demo-metrics small {
+  color: #666;
+  font-size: 8px;
+}
+
+.spatial-demo-metrics strong {
+  margin-top: 8px;
+  font-size: 15px;
+}
+
+.spatial-demo-metrics small {
+  margin-top: 3px;
+}
+
+.spatial-demo-chart-row,
+.spatial-analytics-grid {
+  min-height: 230px;
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(190px, 0.7fr);
+  gap: 12px;
+}
+
+.spatial-demo-chart,
+.spatial-demo-context,
+.spatial-setup-list,
+.spatial-risk-timeline,
+.spatial-ai-score,
+.spatial-ai-insight {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid #252525;
+  border-radius: 8px;
+  background: #0b0b0b;
+}
+
+.spatial-demo-chart {
+  height: 230px;
+}
+
+.spatial-demo-chart header,
+.spatial-risk-timeline header {
+  height: 22px;
+  display: flex;
+  justify-content: space-between;
+  color: #bcbcbc;
+  font-size: 9px;
+}
+
+.spatial-demo-chart header small,
+.spatial-risk-timeline header small {
+  color: #555;
+}
+
+.spatial-demo-context {
+  display: flex;
+  flex-direction: column;
+}
+
+.spatial-demo-context > span,
+.spatial-setup-list > span,
+.spatial-ai-insight > span,
+.spatial-ai-score > span {
+  color: #626262;
+  font-family: ui-monospace, SFMono-Regular, monospace;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.spatial-demo-context strong {
+  margin-top: 18px;
+  font-size: 15px;
+}
+
+.spatial-demo-context p {
+  margin-top: 12px;
+  color: #727272;
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.spatial-demo-context div {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  color: #777;
+  font-size: 9px;
+}
+
+.spatial-demo-context b {
+  color: #eee;
+  font-size: 16px;
+}
+
+.spatial-demo-table {
+  border: 1px solid #252525;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.spatial-demo-table > div {
+  min-height: 30px;
+  padding: 0 12px;
+  display: grid;
+  grid-template-columns: 1fr 0.8fr 1fr 0.7fr 1fr;
+  align-items: center;
+  border-top: 1px solid #1f1f1f;
+  color: #a8a8a8;
+  font-size: 8px;
+}
+
+.spatial-demo-table > div.head {
+  border: 0;
+  color: #555;
+}
+
+.spatial-setup-list {
+  display: grid;
+  align-content: start;
+  gap: 0;
+}
+
+.spatial-setup-list div {
+  padding: 18px 0 10px;
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 1px solid #252525;
+  font-size: 10px;
+}
+
+.spatial-setup-list em {
+  color: #ddd;
+  font-style: normal;
+}
+
+.spatial-demo-risk-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.spatial-demo-risk-cards > div {
+  min-height: 125px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #252525;
+  border-radius: 8px;
+}
+
+.spatial-demo-risk-cards span,
+.spatial-demo-risk-cards small {
+  color: #666;
+  font-size: 8px;
+}
+
+.spatial-demo-risk-cards strong {
+  margin-top: 12px;
+  font-size: 20px;
+}
+
+.spatial-demo-risk-cards > div > div {
+  height: 3px;
+  margin-top: 18px;
+  background: #272727;
+}
+
+.spatial-demo-risk-cards i {
+  display: block;
+  height: 100%;
+  background: #eee;
+}
+
+.spatial-demo-risk-cards small {
+  margin-top: auto;
+}
+
+.spatial-risk-timeline > div {
+  min-height: 34px;
+  display: grid;
+  grid-template-columns: 0.5fr 1fr 1fr 1.1fr;
+  align-items: center;
+  border-top: 1px solid #222;
+  color: #8a8a8a;
+  font-size: 8px;
+}
+
+.spatial-demo-rule {
+  min-height: 58px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  border: 1px solid #363636;
+  border-radius: 8px;
+}
+
+.spatial-demo-rule div {
+  display: grid;
+  gap: 3px;
+}
+
+.spatial-demo-rule strong {
+  font-size: 10px;
+}
+
+.spatial-demo-rule span {
+  color: #696969;
+  font-size: 8px;
+}
+
+.spatial-ai-demo {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+.spatial-ai-score {
+  display: flex;
+  flex-direction: column;
+}
+
+.spatial-ai-score strong {
+  margin-top: 35px;
+  font-size: 70px;
+  line-height: 0.9;
+  letter-spacing: -0.08em;
+}
+
+.spatial-ai-score small,
+.spatial-ai-score p {
+  color: #646464;
+  font-size: 9px;
+}
+
+.spatial-ai-score p {
+  margin-top: auto;
+  line-height: 1.5;
+}
+
+.spatial-ai-insight h3 {
+  max-width: 580px;
+  margin-top: 25px;
+  font-size: 25px;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+}
+
+.spatial-ai-insight p {
+  max-width: 600px;
+  margin-top: 18px;
+  color: #787878;
+  font-size: 11px;
+  line-height: 1.65;
+}
+
+.spatial-ai-insight div {
+  margin-top: 30px;
+  padding-top: 15px;
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #262626;
+  color: #5f5f5f;
+  font-size: 8px;
+}
+
+.spatial-ai-insight em {
+  color: #bdbdbd;
+  font-style: normal;
+}
+
+.spatial-ai-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 10px;
+}
+
+.spatial-ai-actions button {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid #343434;
+  border-radius: 6px;
+  color: #aaa;
+  font-size: 9px;
+}
+
+.spatial-ai-actions button:first-child {
+  background: #eee;
+  color: #080808;
+}
+
+@media (max-width: 700px) {
+  .spatial-wave-canvas {
+    bottom: -10px;
+    height: 250px;
+  }
+
+  .spatial-demo-workspace {
+    padding: 10px;
+  }
+
+  .spatial-demo-metrics {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .spatial-demo-chart-row,
+  .spatial-analytics-grid,
+  .spatial-ai-demo {
+    grid-template-columns: 1fr;
+  }
+
+  .spatial-demo-context,
+  .spatial-setup-list {
+    min-height: 160px;
+  }
+
+  .spatial-demo-risk-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .spatial-demo-table > div {
+    grid-template-columns: 1fr 0.8fr 0.8fr;
+  }
+
+  .spatial-demo-table span:nth-child(3),
+  .spatial-demo-table span:nth-child(5) {
+    display: none;
+  }
+
+  .spatial-ai-actions {
+    grid-column: auto;
+    flex-direction: column;
+  }
+}
