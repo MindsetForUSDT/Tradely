@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { AuthFrame } from '@/components/auth/AuthFrame';
 import { useAuth } from '@/hooks/useAuth';
@@ -18,12 +18,21 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo =
+    typeof location.state === 'object' &&
+    location.state !== null &&
+    'from' in location.state &&
+    typeof location.state.from === 'string' &&
+    location.state.from.startsWith('/')
+      ? location.state.from
+      : '/dashboard';
 
   useEffect(() => {
     const saved = localStorage.getItem('lastRegistrationEmail');
     if (saved) setEmail(saved);
   }, []);
-  if (!authLoading && isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (!authLoading && isAuthenticated) return <Navigate to={returnTo} replace />;
   if (authLoading)
     return (
       <div className="auth-loading">
@@ -66,7 +75,7 @@ export function Login() {
       );
       localStorage.removeItem('lastRegistrationEmail');
       toast.success('Успешный вход!');
-      navigate('/dashboard', { replace: true });
+      navigate(returnTo, { replace: true });
     } catch (err: unknown) {
       const message = getErrorMessage(err);
       toast.error(message);

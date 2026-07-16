@@ -1,5 +1,5 @@
-import { ReactNode, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ReactNode, useEffect, useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Icon } from '@/components/ui/Icons';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -22,8 +22,33 @@ function isCurrent(pathname: string, href: string) {
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, subscriptionTier, signOut } = useAuth();
+  const { user, isAuthenticated, isLoading, subscriptionTier, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const applyWorkspaceSettings = () => {
+      try {
+        const saved = JSON.parse(
+          localStorage.getItem('tradeumdiary_workspace_settings_v1') || '{}'
+        ) as { compact?: boolean };
+        document.documentElement.classList.toggle('workspace-compact', Boolean(saved.compact));
+      } catch {
+        document.documentElement.classList.remove('workspace-compact');
+      }
+    };
+
+    applyWorkspaceSettings();
+    window.addEventListener('tradeumdiary:settings', applyWorkspaceSettings);
+    return () => window.removeEventListener('tradeumdiary:settings', applyWorkspaceSettings);
+  }, []);
+
+  if (isLoading) {
+    return <div className="workspace-loading">Загрузка рабочего пространства…</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location.pathname }} replace />;
+  }
 
   const logout = async () => {
     await signOut();
@@ -48,7 +73,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           <span>T</span>
           <div>
             <strong>TradeumDiary</strong>
-            <small>Signal Room</small>
+            <small>Рабочее пространство</small>
           </div>
         </Link>
         <nav aria-label="Рабочее пространство">

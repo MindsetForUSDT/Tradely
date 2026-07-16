@@ -597,7 +597,7 @@ export function Landing() {
         </motion.div>
       </section>
 
-      <section className="spatial-discipline">
+      <section className="spatial-discipline" id="analytics">
         <div>
           <span>Риск-дисциплина</span>
           <h2>
