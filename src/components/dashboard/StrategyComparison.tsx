@@ -1,10 +1,8 @@
-import { useState, useMemo } from 'react';
-import { Card } from '@/components/ui/Card';
+import { useEffect, useMemo, useState } from 'react';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { formatUSD } from '@/lib/utils';
 import { calculateProfitFactor, calculateExpectancy, calculateStreakAnalysis } from '@/lib/metrics';
-import { cn } from '@/lib/utils';
 
 export function StrategyComparison() {
   const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 365 });
@@ -12,19 +10,26 @@ export function StrategyComparison() {
 
   const strategies = useMemo(() => {
     const tags = new Set<string>();
-    trades.forEach((t: any) => {
+    trades.forEach((t) => {
       if (t.strategy_tag) tags.add(t.strategy_tag);
     });
     return Array.from(tags);
   }, [trades]);
 
+  useEffect(() => {
+    if (strategies.length) {
+      setSelectedStrategies((current) =>
+        current.size ? current : new Set(strategies.slice(0, 3))
+      );
+    }
+  }, [strategies]);
+
   const strategyStats = useMemo(() => {
     return strategies
       .map((strategy) => {
-        const sTrades = trades.filter((t: any) => t.strategy_tag === strategy);
-        const winners = sTrades.filter((t: any) => (t.pnl_realized || 0) > 0);
-        sTrades.filter((t: any) => (t.pnl_realized || 0) < 0);
-        const totalPnl = sTrades.reduce((s, t: any) => s + (t.pnl_realized || 0), 0);
+        const sTrades = trades.filter((t) => t.strategy_tag === strategy);
+        const winners = sTrades.filter((t) => (t.pnl_realized || 0) > 0);
+        const totalPnl = sTrades.reduce((sum, trade) => sum + (trade.pnl_realized || 0), 0);
         const winRate = sTrades.length ? (winners.length / sTrades.length) * 100 : 0;
         const profitFactor = calculateProfitFactor(sTrades);
         const expectancy = calculateExpectancy(sTrades);
@@ -62,39 +67,38 @@ export function StrategyComparison() {
   ];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h2 className="text-xl font-bold">Сравнение стратегий</h2>
-        <p className="text-sm text-text-muted mt-1">Выберите стратегии для сравнения</p>
-      </div>
-      <div className="flex flex-wrap gap-2">
+    <section className="strategy-compare">
+      <header>
+        <div>
+          <span>Сетапы</span>
+          <h2>Сравнение стратегий</h2>
+        </div>
+        <small>Выбрано: {selectedStrategies.size}</small>
+      </header>
+      <div className="strategy-compare-filters">
         {strategies.map((s) => (
           <button
             key={s}
+            type="button"
             onClick={() => toggleStrategy(s)}
-            className={cn(
-              'px-4 py-2 rounded-xl text-sm font-medium transition-colors',
-              selectedStrategies.has(s)
-                ? 'bg-accent-green text-surface'
-                : 'bg-surface-overlay text-text-secondary hover:text-text-primary'
-            )}
+            className={selectedStrategies.has(s) ? 'active' : ''}
           >
             {s}
-            {selectedStrategies.has(s) && ' ✓'}
+            <i />
           </button>
         ))}
         {strategies.length === 0 && (
-          <p className="text-text-muted text-sm">Нет сделок с тегами стратегий.</p>
+          <p>Добавьте теги стратегий к сделкам, чтобы сравнить сетапы.</p>
         )}
       </div>
       {selectedStrategies.size > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="strategy-compare-table-wrap">
+          <table>
             <thead>
-              <tr className="border-b border-surface-border text-text-muted text-xs">
+              <tr>
                 {headers.map((h) => (
-                  <th key={h.label} className="text-right py-3 px-4">
-                    <span className="flex items-center justify-end gap-0.5">
+                  <th key={h.label}>
+                    <span>
                       {h.label}
                       <Tooltip content={h.tooltip} />
                     </span>
@@ -106,27 +110,17 @@ export function StrategyComparison() {
               {strategyStats
                 .filter((s) => selectedStrategies.has(s.strategy))
                 .map((s) => (
-                  <tr
-                    key={s.strategy}
-                    className="border-b border-surface-border/30 hover:bg-surface-overlay"
-                  >
-                    <td className="py-3 px-4 font-medium">{s.strategy}</td>
-                    <td className="text-right py-3 px-4">{s.trades}</td>
-                    <td className="text-right py-3 px-4">{s.winRate.toFixed(1)}%</td>
-                    <td
-                      className={cn(
-                        'text-right py-3 px-4 font-mono',
-                        s.totalPnl >= 0 ? 'text-accent-green' : 'text-accent-red'
-                      )}
-                    >
+                  <tr key={s.strategy}>
+                    <td>{s.strategy}</td>
+                    <td>{s.trades}</td>
+                    <td>{s.winRate.toFixed(1)}%</td>
+                    <td className={s.totalPnl >= 0 ? 'positive' : 'negative'}>
                       {formatUSD(s.totalPnl)}
                     </td>
-                    <td className="text-right py-3 px-4 font-mono">
-                      {s.profitFactor === 999 ? '∞' : s.profitFactor.toFixed(2)}
-                    </td>
-                    <td className="text-right py-3 px-4 font-mono">{formatUSD(s.expectancy)}</td>
-                    <td className="text-right py-3 px-4 text-accent-green">{s.maxWinStreak}</td>
-                    <td className="text-right py-3 px-4 text-accent-red">{s.maxLossStreak}</td>
+                    <td>{s.profitFactor === 999 ? '∞' : s.profitFactor.toFixed(2)}</td>
+                    <td>{formatUSD(s.expectancy)}</td>
+                    <td>{s.maxWinStreak}</td>
+                    <td>{s.maxLossStreak}</td>
                   </tr>
                 ))}
             </tbody>
@@ -134,30 +128,14 @@ export function StrategyComparison() {
         </div>
       )}
       {strategyStats.length > 0 && (
-        <Card padding="md" className="max-w-md">
-          <h3 className="text-sm font-semibold mb-2">🏆 Лучшая стратегия</h3>
-          <p className="text-lg font-bold text-accent-green">{strategyStats[0].strategy}</p>
-          <div className="grid grid-cols-2 gap-2 mt-2 text-xs text-text-muted">
-            <span>
-              P&L:{' '}
-              <strong className="text-text-primary">{formatUSD(strategyStats[0].totalPnl)}</strong>
-            </span>
-            <span>
-              Win Rate:{' '}
-              <strong className="text-text-primary">{strategyStats[0].winRate.toFixed(1)}%</strong>
-            </span>
-            <span>
-              Сделок: <strong className="text-text-primary">{strategyStats[0].trades}</strong>
-            </span>
-            <span>
-              Profit Factor:{' '}
-              <strong className="text-text-primary">
-                {strategyStats[0].profitFactor.toFixed(2)}
-              </strong>
-            </span>
-          </div>
-        </Card>
+        <footer>
+          <span>Лучший результат</span>
+          <strong>{strategyStats[0].strategy}</strong>
+          <small>
+            {formatUSD(strategyStats[0].totalPnl)} · {strategyStats[0].winRate.toFixed(1)}% win rate
+          </small>
+        </footer>
       )}
-    </div>
+    </section>
   );
 }

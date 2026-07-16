@@ -4,8 +4,8 @@ import { Icon } from '@/components/ui/Icons';
 import { useAuth } from '@/hooks/useAuth';
 
 const publicLinks = [
-  { label: 'Продукт', href: '/#product' },
-  { label: 'Аналитика', href: '/#features' },
+  { label: 'Продукт', href: '/#workspace' },
+  { label: 'Аналитика', href: '/#analytics' },
   { label: 'Тарифы', href: '/#pricing' },
 ];
 

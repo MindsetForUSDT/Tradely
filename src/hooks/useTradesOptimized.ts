@@ -54,12 +54,17 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
     const f: typeof filters = {};
     if (filters.symbol) f.symbol = filters.symbol;
     if (filters.side) f.side = filters.side;
-    if (filters.dateFrom) f.dateFrom = filters.dateFrom;
+    if (filters.dateFrom) {
+      f.dateFrom = filters.dateFrom;
+    } else if (daysAgo && daysAgo > 0) {
+      const from = new Date();
+      from.setDate(from.getDate() - daysAgo);
+      f.dateFrom = from.toISOString();
+    }
     if (filters.dateTo) f.dateTo = filters.dateTo;
     if (filters.walletId) f.walletId = filters.walletId;
-    // Убираем автоматический фильтр daysAgo - пользователь должен явно указать dateFrom
     return f;
-  }, [filters?.symbol, filters?.side, filters?.dateFrom, filters?.dateTo, filters?.walletId]);
+  }, [daysAgo, filters.symbol, filters.side, filters.dateFrom, filters.dateTo, filters.walletId]);
 
   // Загрузка данных через API
   const fetchTrades = useCallback(
@@ -116,11 +121,10 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
     [computedFilters, orderBy, ascending, limit]
   );
 
-  // Загрузка при монтировании — только один раз
+  // Обновляем выборку при изменении периода, сортировки или фильтров.
   useEffect(() => {
     fetchTrades();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Пустой массив — только при монтировании
+  }, [fetchTrades]);
 
   // Пагинация
   const loadMore = useCallback(async () => {
