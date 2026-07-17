@@ -212,10 +212,15 @@ function SettingsWorkspace() {
     try {
       return JSON.parse(
         localStorage.getItem(SETTINGS_KEY) ||
-          '{"riskAlerts":true,"weeklyDigest":true,"compact":false}'
-      ) as { riskAlerts: boolean; weeklyDigest: boolean; compact: boolean };
+          '{"riskAlerts":true,"weeklyDigest":true,"compact":false,"manualTrades":false}'
+      ) as {
+        riskAlerts: boolean;
+        weeklyDigest: boolean;
+        compact: boolean;
+        manualTrades: boolean;
+      };
     } catch {
-      return { riskAlerts: true, weeklyDigest: true, compact: false };
+      return { riskAlerts: true, weeklyDigest: true, compact: false, manualTrades: false };
     }
   });
   const changed = useMemo(
@@ -235,7 +240,7 @@ function SettingsWorkspace() {
       <PageHeading
         eyebrow="Рабочее пространство"
         title="Настройки"
-        description="Профиль, уведомления и поведение интерфейса — без привязки к источнику данных."
+        description="Профиль, автоматизация импорта и поведение интерфейса."
       />
       <div className="workspace-settings-grid">
         <section>
@@ -263,7 +268,17 @@ function SettingsWorkspace() {
           </div>
         </section>
         <section className="workspace-settings-wide">
-          <span>Уведомления и интерфейс</span>
+          <span>Автоматизация и интерфейс</span>
+          <div className="workspace-setting-static">
+            <span>
+              <strong>Автоматический импорт сделок</strong>
+              <small>
+                Всегда включён для подключённых источников. Новые сделки синхронизируются без
+                ручного ввода.
+              </small>
+            </span>
+            <em>Всегда включён</em>
+          </div>
           {[
             [
               'riskAlerts',
@@ -276,6 +291,11 @@ function SettingsWorkspace() {
               'Краткий итог по дисциплине и торговым паттернам.',
             ],
             ['compact', 'Компактный режим', 'Уменьшить отступы в таблицах и аналитике.'],
+            [
+              'manualTrades',
+              'Ручное добавление сделок',
+              'Показывать отдельный раздел для записей, которых нет в подключённых источниках.',
+            ],
           ].map(([key, title, copy]) => (
             <button type="button" onClick={() => toggle(key as keyof typeof settings)} key={key}>
               <span>
