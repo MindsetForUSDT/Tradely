@@ -294,7 +294,7 @@ function SettingsWorkspace() {
             [
               'manualTrades',
               'Ручное добавление сделок',
-              'Показывать отдельный раздел для записей, которых нет в подключённых источниках.',
+              'Показывать действие «Добавить вручную» внутри раздела «Сделки».',
             ],
           ].map(([key, title, copy]) => (
             <button type="button" onClick={() => toggle(key as keyof typeof settings)} key={key}>

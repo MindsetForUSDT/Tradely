@@ -38,7 +38,7 @@ export function Header() {
           {isAuthenticated ? (
             <>
               <Link to="/dashboard">Обзор</Link>
-              <Link to="/dashboard/journal">Журнал</Link>
+              <Link to="/dashboard/trades">Сделки</Link>
               <Link to="/dashboard/wallets">Источники</Link>
               <Link to="/pro">PRO</Link>
               <button type="button" onClick={logout}>

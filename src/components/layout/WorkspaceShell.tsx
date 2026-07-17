@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowsLeftRight,
@@ -6,7 +6,6 @@ import {
   GearSix,
   House,
   List,
-  Notebook,
   PlugsConnected,
   ShieldCheck,
   SignOut,
@@ -99,12 +98,10 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading, subscriptionTier, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [settings, setSettings] = useState<WorkspaceSettings>(readWorkspaceSettings);
 
   useEffect(() => {
     const applyWorkspaceSettings = () => {
       const next = readWorkspaceSettings();
-      setSettings(next);
       document.documentElement.classList.toggle('workspace-compact', next.compact);
     };
 
@@ -113,14 +110,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('tradeumdiary:settings', applyWorkspaceSettings);
   }, []);
 
-  const navigation = useMemo(() => {
-    if (!settings.manualTrades) return primarySections;
-    return [
-      ...primarySections.slice(0, 2),
-      { label: 'Ручная запись', href: '/dashboard/journal', icon: Notebook },
-      ...primarySections.slice(2),
-    ];
-  }, [settings.manualTrades]);
+  const navigation = primarySections;
 
   if (isLoading) {
     return <div className="workspace-loading">Загрузка рабочего пространства…</div>;

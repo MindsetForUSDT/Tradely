@@ -5731,6 +5731,262 @@
   font-size: 9px;
 }
 
+.trades-v3-heading-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trades-v3-heading-actions > span,
+.trades-v3-heading-actions > button {
+  min-height: 31px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #30343a;
+  border-radius: 5px;
+  color: #858990;
+  font-size: 9px;
+}
+
+.trades-v3-heading-actions > button {
+  border-color: #4b5058;
+  color: #e7e7e4;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.trades-v3-heading-actions > button:hover {
+  border-color: #777c84;
+  background: #171a1f;
+}
+
+.manual-trade-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.manual-trade-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 3, 4, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.manual-trade-form-v3 {
+  position: relative;
+  z-index: 1;
+  width: min(620px, 100%);
+  max-height: calc(100dvh - 48px);
+  overflow-y: auto;
+  border: 1px solid #34383e;
+  border-radius: 9px;
+  background: #0c0e11;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.55);
+  color: #eeeeec;
+}
+
+.manual-trade-form-v3 > header {
+  min-height: 76px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #292d32;
+}
+
+.manual-trade-form-v3 > header > span {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid #3b4047;
+  border-radius: 6px;
+  background: #15181c;
+}
+
+.manual-trade-form-v3 > header > div {
+  flex: 1;
+  display: grid;
+  gap: 3px;
+}
+
+.manual-trade-form-v3 > header small {
+  color: #6d7279;
+  font-size: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.manual-trade-form-v3 > header h2 {
+  font-size: 15px;
+  font-weight: 640;
+  letter-spacing: -0.02em;
+}
+
+.manual-trade-form-v3 > header > button {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 5px;
+  color: #777c84;
+}
+
+.manual-trade-form-v3 > header > button:hover {
+  background: #1b1e23;
+  color: #eeeeec;
+}
+
+.manual-trade-intro {
+  margin: 16px 18px 0;
+  padding: 11px 12px;
+  border: 1px solid #292d32;
+  border-radius: 6px;
+  background: #101216;
+  color: #858990;
+  font-size: 9px;
+  line-height: 1.55;
+}
+
+.manual-trade-fields {
+  padding: 17px 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 13px;
+}
+
+.manual-trade-fields label {
+  display: grid;
+  gap: 6px;
+  color: #777c84;
+  font-size: 9px;
+}
+
+.manual-trade-fields input,
+.manual-trade-fields select,
+.manual-trade-fields textarea {
+  width: 100%;
+  min-height: 38px;
+  padding: 0 11px;
+  border: 1px solid #30343a;
+  border-radius: 5px;
+  background: #090a0c;
+  color: #e7e7e4;
+  font-size: 10px;
+  outline: 0;
+}
+
+.manual-trade-fields textarea {
+  min-height: 76px;
+  padding-block: 10px;
+  resize: vertical;
+}
+
+.manual-trade-fields input:focus,
+.manual-trade-fields select:focus,
+.manual-trade-fields textarea:focus {
+  border-color: #727780;
+}
+
+.manual-trade-fields [aria-invalid='true'] {
+  border-color: #9a5555;
+}
+
+.manual-trade-notes {
+  grid-column: 1 / -1;
+}
+
+.manual-trade-error {
+  margin: -5px 18px 14px;
+  color: #d17b7b;
+  font-size: 9px;
+}
+
+.manual-trade-form-v3 > footer {
+  min-height: 68px;
+  padding: 13px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-top: 1px solid #292d32;
+}
+
+.manual-trade-form-v3 > footer > span {
+  color: #747981;
+  font-size: 9px;
+}
+
+.manual-trade-form-v3 > footer strong {
+  margin-left: 5px;
+  color: #e8e8e5;
+  font-size: 11px;
+}
+
+.manual-trade-form-v3 > footer > div {
+  display: flex;
+  gap: 8px;
+}
+
+.manual-trade-form-v3 > footer button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 1px solid #353a41;
+  border-radius: 5px;
+  color: #a8abb0;
+  font-size: 9px;
+}
+
+.manual-trade-form-v3 > footer button[type='submit'] {
+  border-color: #dededb;
+  background: #eeeeec;
+  color: #090a0c;
+  font-weight: 620;
+}
+
+.manual-trade-form-v3 > footer button:disabled {
+  opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+  .trades-v3-heading {
+    flex-direction: column;
+  }
+
+  .manual-trade-layer {
+    padding: 10px;
+  }
+
+  .manual-trade-form-v3 {
+    max-height: calc(100dvh - 20px);
+  }
+
+  .manual-trade-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .manual-trade-notes {
+    grid-column: auto;
+  }
+
+  .manual-trade-form-v3 > footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .manual-trade-form-v3 > footer > div,
+  .manual-trade-form-v3 > footer button {
+    flex: 1;
+  }
+}
+
 .trades-v3-toolbar {
   min-height: 55px;
   padding: 9px 10px;
