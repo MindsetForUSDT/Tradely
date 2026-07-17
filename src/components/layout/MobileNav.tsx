@@ -5,7 +5,6 @@ import { Icon } from '@/components/ui/Icons';
 const navItems = [
   { label: 'Дашборд', href: '/dashboard', icon: 'wallet' as const },
   { label: 'Сделки', href: '/dashboard/trades', icon: 'trades' as const },
-  { label: 'Журнал', href: '/dashboard/journal', icon: 'journal' as const },
   { label: 'Кошельки', href: '/dashboard/wallets', icon: 'wallet-add' as const },
   { label: 'Риск', href: '/dashboard/risk', icon: 'risk' as const },
   { label: 'PRO', href: '/pro', icon: 'pro' as const },

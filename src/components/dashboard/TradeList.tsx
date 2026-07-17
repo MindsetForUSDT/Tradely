@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CaretLeft, CaretRight, MagnifyingGlass, X } from '@phosphor-icons/react';
+import { CaretLeft, CaretRight, MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
 import { SourceLogo, resolveSourceBrand } from '@/components/brand/SourceLogo';
 import { formatDate, formatUSD } from '@/lib/utils';
 import type { Trade } from '@/types';
@@ -8,6 +8,8 @@ interface TradeListProps {
   trades: Trade[];
   isLoading?: boolean;
   onTradeClick?: (trade: Trade) => void;
+  manualEnabled?: boolean;
+  onAddManual?: () => void;
 }
 
 type ResultFilter = 'all' | 'profit' | 'loss';
@@ -79,7 +81,13 @@ function TradeInspector({ trade, onClose }: { trade: Trade; onClose: () => void 
   );
 }
 
-export function TradeList({ trades, isLoading = false, onTradeClick }: TradeListProps) {
+export function TradeList({
+  trades,
+  isLoading = false,
+  onTradeClick,
+  manualEnabled = false,
+  onAddManual,
+}: TradeListProps) {
   const [search, setSearch] = useState('');
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
@@ -126,7 +134,14 @@ export function TradeList({ trades, isLoading = false, onTradeClick }: TradeList
           <h1>Сделки</h1>
           <p>Единая история из подключённых бирж и кошельков. Импорт работает автоматически.</p>
         </div>
-        <span>{trades.length} записей</span>
+        <div className="trades-v3-heading-actions">
+          {manualEnabled ? (
+            <button type="button" onClick={onAddManual}>
+              <Plus size={14} /> Добавить вручную
+            </button>
+          ) : null}
+          <span>{trades.length} записей</span>
+        </div>
       </header>
 
       <div className="trades-v3-toolbar">

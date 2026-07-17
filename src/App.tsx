@@ -36,7 +36,7 @@ export default function App() {
             </WorkspaceShell>
           }
         />
-        <Route path="/journal" element={<Navigate to="/dashboard/journal" replace />} />
+        <Route path="/journal" element={<Navigate to="/dashboard/trades" replace />} />
         <Route path="/wallets" element={<Navigate to="/dashboard/wallets" replace />} />
         <Route
           path="/pro/*"
