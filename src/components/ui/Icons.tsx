@@ -1,8 +1,10 @@
+import { SourceLogo } from '@/components/brand/SourceLogo';
+
 /* ✅ Кастомная система иконок TradeumDiary */
 /* Использование: <Icon name="wallet" /> */
 /* Цвет наследуется от текущего color, размер от font-size */
 
-interface IconProps {
+export interface IconProps {
   name:
     | 'wallet'
     | 'chart'
@@ -10,12 +12,15 @@ interface IconProps {
     | 'wallet-add'
     | 'metamask'
     | 'trustwallet'
+    | 'walletconnect'
     | 'binance'
     | 'bybit'
     | 'okx'
     | 'coinbase'
     | 'brave'
     | 'kucoin'
+    | 'kraken'
+    | 'gateio'
     | 'manual'
     | 'shield'
     | 'journal'
@@ -42,6 +47,23 @@ interface IconProps {
 }
 
 export function Icon({ name, size = 20, className = '' }: IconProps) {
+  if (
+    [
+      'metamask',
+      'trustwallet',
+      'walletconnect',
+      'binance',
+      'bybit',
+      'okx',
+      'coinbase',
+      'kucoin',
+      'kraken',
+      'gateio',
+    ].includes(name)
+  ) {
+    return <SourceLogo brand={name} size={size} className={className} />;
+  }
+
   const paths: Record<string, JSX.Element> = {
     wallet: (
       <path d="M21 12V7H5a2 2 0 010-4h14v4M3 5v14a2 2 0 002 2h16v-5M18 12a2 2 0 000 4h4v-4h-4z" />

@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { Card } from '@/components/ui/Card';
 import { api } from '@/lib/api';
 import { shortenAddress, cn } from '@/lib/utils';
-import { Icon } from '@/components/ui/Icons';
+import { Icon, type IconProps } from '@/components/ui/Icons';
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { WalletValidator } from '@/components/wallets/WalletValidator';
@@ -14,7 +14,7 @@ type Category = 'crypto' | 'stocks' | 'forex';
 interface Provider {
   id: string;
   label: string;
-  icon: string;
+  icon: IconProps['name'];
   url: string;
   category: Category;
   type: 'web3' | 'cex' | 'broker';
@@ -62,7 +62,7 @@ const PROVIDERS: Provider[] = [
   {
     id: 'walletconnect',
     label: 'WalletConnect',
-    icon: 'trustwallet',
+    icon: 'walletconnect',
     url: 'https://walletconnect.com',
     category: 'crypto',
     type: 'web3',
@@ -120,7 +120,7 @@ const PROVIDERS: Provider[] = [
   {
     id: 'kraken',
     label: 'Kraken',
-    icon: 'alert',
+    icon: 'kraken',
     url: 'https://www.kraken.com',
     category: 'crypto',
     type: 'cex',
@@ -128,7 +128,7 @@ const PROVIDERS: Provider[] = [
   {
     id: 'gateio',
     label: 'Gate.io',
-    icon: 'alert',
+    icon: 'gateio',
     url: 'https://www.gate.io',
     category: 'crypto',
     type: 'cex',
@@ -201,11 +201,12 @@ const PROVIDERS: Provider[] = [
   },
 ];
 
-const CATEGORIES: Array<{ id: Category; label: string; desc: string; icon: string }> = [
-  { id: 'crypto', label: 'Крипто', desc: 'Биржи и Web3 кошельки', icon: 'binance' },
-  { id: 'stocks', label: 'Фондовый рынок', desc: 'Брокеры РФ и мира', icon: 'wallet' },
-  { id: 'forex', label: 'Forex', desc: 'Валютные брокеры', icon: 'wallet' },
-];
+const CATEGORIES: Array<{
+  id: Category;
+  label: string;
+  desc: string;
+  icon: IconProps['name'];
+}> = [{ id: 'crypto', label: 'Крипто', desc: 'Биржи и Web3 кошельки', icon: 'binance' }];
 
 const INITIAL_FORM: WalletFormData = {
   category: null,
@@ -337,7 +338,7 @@ export function WalletConnect() {
           category: form.provider.category,
           providerType: form.provider.type,
           providerId: form.provider.id,
-          autoSync: form.autoSync,
+          autoSync: true,
           syncInterval: form.syncInterval,
           ...(validationStatus?.balance && { initialBalance: validationStatus.balance }),
         }),
@@ -390,13 +391,18 @@ export function WalletConnect() {
     }
   };
 
-  const getWalletIcon = (w: Wallet): string => {
+  const getWalletIcon = (w: Wallet): IconProps['name'] => {
     const lbl = (w.label || '').toLowerCase();
     if (lbl.includes('meta')) return 'metamask';
-    if (lbl.includes('trust') || lbl.includes('walletconnect')) return 'trustwallet';
+    if (lbl.includes('walletconnect')) return 'walletconnect';
+    if (lbl.includes('trust')) return 'trustwallet';
     if (lbl.includes('coinbase')) return 'coinbase';
-    if (['binance', 'bybit', 'okx', 'kucoin', 'kraken', 'gate.io'].some((x) => lbl.includes(x)))
-      return 'binance';
+    if (lbl.includes('binance')) return 'binance';
+    if (lbl.includes('bybit')) return 'bybit';
+    if (lbl.includes('okx')) return 'okx';
+    if (lbl.includes('kucoin')) return 'kucoin';
+    if (lbl.includes('kraken')) return 'kraken';
+    if (lbl.includes('gate.io') || lbl.includes('gateio')) return 'gateio';
     return 'wallet';
   };
 
@@ -408,7 +414,17 @@ export function WalletConnect() {
   // ===================== RENDER =====================
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
+    <div className="sources-v3-page max-w-none mx-auto px-4 py-6 space-y-6">
+      <header className="sources-v3-heading">
+        <div>
+          <h1>Источники</h1>
+          <p>
+            Подключите биржу или кошелёк один раз — новые сделки будут импортироваться
+            автоматически.
+          </p>
+        </div>
+        <span>Автоимпорт всегда включён</span>
+      </header>
       {isLoading && (
         <div className="p-4 rounded-xl bg-accent-green/5 border border-accent-green/20">
           <div className="flex items-center gap-3">
@@ -421,7 +437,7 @@ export function WalletConnect() {
       {/* === ШАГ 1: Выбор категории === */}
       {step === 'category' && (
         <>
-          <Card padding="lg" className="space-y-4">
+          <Card padding="lg" className="sources-v3-card space-y-4">
             <h3 className="text-base font-semibold">Выберите рынок</h3>
             <div className="grid grid-cols-3 gap-3">
               {CATEGORIES.map((cat) => (
@@ -431,7 +447,7 @@ export function WalletConnect() {
                   className="p-4 rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-overlay hover:border-accent-green/30 transition-all duration-200 text-left group"
                 >
                   <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center mb-3 group-hover:bg-accent-green/20 transition-colors">
-                    <Icon name={cat.icon as any} size={22} className="text-accent-green" />
+                    <Icon name={cat.icon} size={22} className="text-accent-green" />
                   </div>
                   <p className="text-sm font-semibold">{cat.label}</p>
                   <p className="text-xs text-text-muted mt-1">{cat.desc}</p>
@@ -441,7 +457,7 @@ export function WalletConnect() {
           </Card>
 
           {wallets.length === 0 && !isLoading && (
-            <Card padding="lg">
+            <Card padding="lg" className="sources-v3-card">
               <div className="text-center py-8">
                 <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
                   <Icon name="wallet" size={28} className="text-accent-green" />
@@ -457,15 +473,11 @@ export function WalletConnect() {
           {wallets.length > 0 && (
             <div className="space-y-3">
               {wallets.map((w) => (
-                <Card key={w.id} padding="md">
+                <Card key={w.id} padding="md" className="sources-v3-card sources-v3-connection">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center">
-                        <Icon
-                          name={getWalletIcon(w) as any}
-                          size={20}
-                          className="text-accent-green"
-                        />
+                        <Icon name={getWalletIcon(w)} size={20} className="text-accent-green" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">
@@ -523,7 +535,7 @@ export function WalletConnect() {
 
       {/* === ШАГ 2: Выбор провайдера === */}
       {step === 'provider' && form.category && (
-        <Card padding="lg" className="space-y-4">
+        <Card padding="lg" className="sources-v3-card space-y-4">
           <button
             onClick={() => {
               setStep('category');
@@ -547,7 +559,7 @@ export function WalletConnect() {
               >
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-accent-green/10 flex items-center justify-center shrink-0 group-hover:bg-accent-green/20 transition-colors">
-                    <Icon name={p.icon as any} size={20} className="text-accent-green" />
+                    <Icon name={p.icon} size={20} className="text-accent-green" />
                   </div>
                   <div>
                     <p className="text-sm font-medium">{p.label}</p>
@@ -564,7 +576,7 @@ export function WalletConnect() {
 
       {/* === ШАГ 3: Детали подключения === */}
       {step === 'details' && form.provider && (
-        <Card padding="lg" className="space-y-5">
+        <Card padding="lg" className="sources-v3-card space-y-5">
           <button
             onClick={() => {
               setStep('provider');
@@ -577,7 +589,7 @@ export function WalletConnect() {
 
           <div className="flex items-center gap-3 pb-3 border-b border-surface-border">
             <div className="w-10 h-10 rounded-lg bg-accent-green/10 flex items-center justify-center">
-              <Icon name={form.provider.icon as any} size={22} className="text-accent-green" />
+              <Icon name={form.provider.icon} size={22} className="text-accent-green" />
             </div>
             <div>
               <h3 className="text-base font-semibold">{form.provider.label}</h3>
@@ -685,36 +697,26 @@ export function WalletConnect() {
                 className="w-full px-3 py-2 bg-surface-overlay border border-surface-border rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                id="autoSync"
-                checked={form.autoSync}
-                onChange={(e) => setForm({ ...form, autoSync: e.target.checked })}
-                className="w-4 h-4 rounded bg-surface-overlay border-surface-border text-accent-green focus:ring-accent-green"
-              />
-              <label htmlFor="autoSync" className="text-sm text-text-primary">
-                Автосинхронизация
-              </label>
+            <div className="sources-v3-always-on">
+              <span>Автоматическая синхронизация</span>
+              <strong>Всегда включена</strong>
             </div>
-            {form.autoSync && (
-              <div className="space-y-1">
-                <label className="text-xs text-text-muted font-medium">Интервал</label>
-                <select
-                  value={form.syncInterval}
-                  onChange={(e) => setForm({ ...form, syncInterval: parseInt(e.target.value) })}
-                  className="w-full px-3 py-2 bg-surface-overlay border border-surface-border rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
-                >
-                  <option value={15}>Каждые 15 минут</option>
-                  <option value={30}>Каждые 30 минут</option>
-                  <option value={60}>Каждый час</option>
-                  <option value={180}>Каждые 3 часа</option>
-                  <option value={360}>Каждые 6 часов</option>
-                  <option value={720}>Каждые 12 часов</option>
-                  <option value={1440}>Ежедневно</option>
-                </select>
-              </div>
-            )}
+            <div className="space-y-1">
+              <label className="text-xs text-text-muted font-medium">Интервал</label>
+              <select
+                value={form.syncInterval}
+                onChange={(e) => setForm({ ...form, syncInterval: parseInt(e.target.value) })}
+                className="w-full px-3 py-2 bg-surface-overlay border border-surface-border rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
+              >
+                <option value={15}>Каждые 15 минут</option>
+                <option value={30}>Каждые 30 минут</option>
+                <option value={60}>Каждый час</option>
+                <option value={180}>Каждые 3 часа</option>
+                <option value={360}>Каждые 6 часов</option>
+                <option value={720}>Каждые 12 часов</option>
+                <option value={1440}>Ежедневно</option>
+              </select>
+            </div>
           </div>
 
           <div className="space-y-1">

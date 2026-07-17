@@ -1,5 +1,5 @@
 // pages/Dashboard.tsx — ОПТИМИЗИРОВАННЫЙ РОУТИНГ
-import { lazy, Suspense, useMemo } from 'react';
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { WalletConnect } from '@/components/dashboard/WalletConnect';
@@ -25,14 +25,26 @@ const MultiAccountView = lazy(() =>
 
 // ✅ Мемоизированный компонент загрузки
 const LoadingFallback = () => (
-  <div className="flex items-center justify-center py-12">
-    <div className="w-8 h-8 rounded-full border-2 border-accent-green border-t-transparent animate-spin" />
+  <div className="dashboard-route-loading">
+    <span />
+    Загружаем раздел…
   </div>
 );
 
 function TradesPage() {
   const { trades, isLoading } = useTradesOptimized({ limit: 200, daysAgo: 90 });
   return <TradeList trades={trades} isLoading={isLoading} />;
+}
+
+function ManualJournalPage() {
+  try {
+    const settings = JSON.parse(
+      localStorage.getItem('tradeumdiary_workspace_settings_v1') || '{}'
+    ) as { manualTrades?: boolean };
+    return settings.manualTrades ? <TradeJournal /> : <Navigate to="/dashboard/trades" replace />;
+  } catch {
+    return <Navigate to="/dashboard/trades" replace />;
+  }
 }
 
 // ✅ Мемоизированные компоненты Pro-фич
@@ -61,24 +73,18 @@ const MemoizedAccounts = () => (
 );
 
 export function Dashboard() {
-  // ✅ Мемоизированные роуты
-  const routes = useMemo(
-    () => (
-      <Routes>
-        <Route index element={<DashboardLayout />} />
-        <Route path="trades" element={<TradesPage />} />
-        <Route path="journal" element={<TradeJournal />} />
-        <Route path="wallets" element={<WalletConnect />} />
-        <Route path="alerts" element={<AlertSettings />} />
-        <Route path="tax" element={<TaxReport />} />
-        <Route path="risk" element={<MemoizedRiskManager />} />
-        <Route path="strategies" element={<MemoizedStrategies />} />
-        <Route path="accounts" element={<MemoizedAccounts />} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    ),
-    []
+  return (
+    <Routes>
+      <Route index element={<DashboardLayout />} />
+      <Route path="trades" element={<TradesPage />} />
+      <Route path="journal" element={<ManualJournalPage />} />
+      <Route path="wallets" element={<WalletConnect />} />
+      <Route path="alerts" element={<AlertSettings />} />
+      <Route path="tax" element={<TaxReport />} />
+      <Route path="risk" element={<MemoizedRiskManager />} />
+      <Route path="strategies" element={<MemoizedStrategies />} />
+      <Route path="accounts" element={<MemoizedAccounts />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
   );
-
-  return routes;
 }
