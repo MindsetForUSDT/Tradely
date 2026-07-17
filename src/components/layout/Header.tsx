@@ -32,7 +32,13 @@ export function Header() {
     <header className={`mono-header ${scrolled ? 'is-scrolled' : ''}`}>
       <div className="mono-header-inner">
         <Link className="mono-logo" to={isAuthenticated ? '/dashboard' : '/'}>
-          TradeumDiary
+          <span className="tailark-brand-mark" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+          <strong>TradeumDiary</strong>
         </Link>
         <nav className={open ? 'open' : ''} aria-label="Основная навигация">
           {isAuthenticated ? (
