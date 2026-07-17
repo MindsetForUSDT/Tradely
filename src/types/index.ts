@@ -23,6 +23,7 @@ export interface Trade {
   strategy_tag?: string;
   tags?: string[];
   notes?: string;
+  raw_data?: string;
   timestamp: string;
   created_at?: string;
 }

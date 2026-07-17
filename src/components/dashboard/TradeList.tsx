@@ -22,8 +22,27 @@ function numeric(value: unknown) {
   return Number.isFinite(result) ? result : 0;
 }
 
+function tradeMeta(trade: Trade) {
+  try {
+    return JSON.parse(trade.raw_data || '{}') as {
+      entryPrice?: number;
+      exitPrice?: number;
+      openedAt?: string;
+      closedAt?: string;
+      marketType?: 'spot' | 'linear';
+      notes?: string;
+      strategy?: string;
+    };
+  } catch {
+    return {};
+  }
+}
+
 function TradeInspector({ trade, onClose }: { trade: Trade; onClose: () => void }) {
   const pnl = numeric(trade.pnl_realized);
+  const meta = tradeMeta(trade);
+  const entryPrice = numeric(meta.entryPrice || trade.price_usd || trade.price);
+  const exitPrice = numeric(meta.exitPrice || trade.price_usd || trade.price);
   return (
     <aside className="trades-v3-inspector">
       <header>
@@ -45,23 +64,27 @@ function TradeInspector({ trade, onClose }: { trade: Trade; onClose: () => void 
       <dl>
         <div>
           <dt>Дата</dt>
-          <dd>{formatDate(trade.timestamp)}</dd>
+          <dd>{formatDate(meta.closedAt || trade.timestamp)}</dd>
         </div>
         <div>
           <dt>Статус</dt>
-          <dd>{trade.status === 'closed' ? 'Закрыта' : 'Открыта'}</dd>
+          <dd>Завершена</dd>
         </div>
         <div>
-          <dt>Направление</dt>
-          <dd>{trade.side === 'buy' ? 'Покупка' : 'Продажа'}</dd>
+          <dt>Позиция</dt>
+          <dd>{trade.side === 'buy' ? 'Long' : 'Short'}</dd>
         </div>
         <div>
           <dt>Размер</dt>
           <dd>{numeric(trade.amount).toLocaleString('ru-RU')}</dd>
         </div>
         <div>
-          <dt>Стоимость</dt>
-          <dd>{formatUSD(numeric(trade.value_usd))}</dd>
+          <dt>Цена входа</dt>
+          <dd>{formatUSD(entryPrice)}</dd>
+        </div>
+        <div>
+          <dt>Цена выхода</dt>
+          <dd>{formatUSD(exitPrice)}</dd>
         </div>
         <div>
           <dt>P&amp;L</dt>
@@ -74,8 +97,10 @@ function TradeInspector({ trade, onClose }: { trade: Trade; onClose: () => void 
       </dl>
       <section>
         <span>Заметка</span>
-        <p>{trade.notes || 'Контекст к сделке пока не добавлен.'}</p>
-        {trade.strategy_tag ? <em>{trade.strategy_tag}</em> : null}
+        <p>{meta.notes || trade.notes || 'Контекст к сделке пока не добавлен.'}</p>
+        {meta.strategy || trade.strategy_tag ? (
+          <em>{meta.strategy || trade.strategy_tag}</em>
+        ) : null}
       </section>
     </aside>
   );
@@ -193,9 +218,9 @@ export function TradeList({
         <div className="trades-v3-table-head">
           <span>Дата и время</span>
           <span>Инструмент</span>
-          <span>Сторона</span>
+          <span>Позиция</span>
           <span>Объём</span>
-          <span>Цена</span>
+          <span>Вход → выход</span>
           <span>P&amp;L</span>
           <span>Источник</span>
         </div>
@@ -207,6 +232,9 @@ export function TradeList({
         {!isLoading && visibleTrades.length
           ? visibleTrades.map((trade) => {
               const pnl = numeric(trade.pnl_realized);
+              const meta = tradeMeta(trade);
+              const entryPrice = numeric(meta.entryPrice || trade.price_usd || trade.price);
+              const exitPrice = numeric(meta.exitPrice || trade.price_usd || trade.price);
               return (
                 <button
                   type="button"
@@ -220,10 +248,12 @@ export function TradeList({
                     <small>{trade.status === 'closed' ? 'Закрыта' : 'Открыта'}</small>
                   </span>
                   <span className={trade.side === 'buy' ? 'positive' : 'negative'}>
-                    {trade.side === 'buy' ? 'Покупка' : 'Продажа'}
+                    {trade.side === 'buy' ? 'Long' : 'Short'}
                   </span>
                   <span>{formatUSD(numeric(trade.value_usd))}</span>
-                  <span>{formatUSD(numeric(trade.price_usd || trade.price))}</span>
+                  <span>
+                    {formatUSD(entryPrice)} → {formatUSD(exitPrice)}
+                  </span>
                   <span className={pnl >= 0 ? 'positive' : 'negative'}>{formatUSD(pnl)}</span>
                   <span className="trades-v3-source">
                     <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={20} />

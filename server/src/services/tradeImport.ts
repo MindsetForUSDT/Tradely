@@ -1,81 +1,330 @@
 import { prisma } from '../db.js';
-import { Decimal } from '@prisma/client/runtime/library';
 
-interface TradeData {
+const BYBIT_API = 'https://api.bybit.com';
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const DEFAULT_IMPORT_DAYS = 30;
+
+const pause = (milliseconds: number) =>
+  new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
+
+export interface FinalTradeData {
+  symbol: string;
+  side: 'buy' | 'sell';
+  amount: number;
+  entryPrice: number;
+  exitPrice: number;
+  value_usd: number;
+  fee_usd: number;
+  pnl_realized: number;
+  openedAt: Date;
+  closedAt: Date;
+  tx_hash: string;
+  exchange: string;
+  marketType: 'spot' | 'linear';
+  raw: Record<string, unknown>;
+}
+
+export interface SpotExecution {
   symbol: string;
   side: 'buy' | 'sell';
   amount: number;
   price: number;
-  value_usd: number;
-  fee_usd: number;
+  feeUsd: number;
   timestamp: Date;
-  tx_hash?: string;
-  exchange: string;
+  executionId: string;
+  orderId: string;
 }
 
-// ===================== WALLET VALIDATION =====================
+interface SpotOrder {
+  symbol: string;
+  side: 'buy' | 'sell';
+  amount: number;
+  price: number;
+  feeUsd: number;
+  timestamp: Date;
+  orderId: string;
+  executionIds: string[];
+}
+
+interface InventoryLot {
+  amount: number;
+  price: number;
+  feePerUnit: number;
+  openedAt: Date;
+  orderId: string;
+}
+
+async function signedBybitGet(
+  path: string,
+  params: URLSearchParams,
+  apiKey: string,
+  apiSecret: string
+) {
+  const timestamp = Date.now();
+  const query = params.toString();
+  const signature = await signHmac(`${timestamp}${apiKey}5000${query}`, apiSecret);
+  const response = await fetch(`${BYBIT_API}${path}?${query}`, {
+    headers: {
+      'X-BAPI-API-KEY': apiKey,
+      'X-BAPI-TIMESTAMP': String(timestamp),
+      'X-BAPI-SIGN': signature,
+      'X-BAPI-RECV-WINDOW': '5000',
+    },
+  });
+
+  if (!response.ok) throw new Error(`Bybit HTTP ${response.status}`);
+  const data = await response.json();
+  if (data.retCode !== 0) throw new Error(data.retMsg || `Bybit error ${data.retCode}`);
+  return data.result as { list?: any[]; nextPageCursor?: string };
+}
+
+function importWindows(startTime?: Date) {
+  const end = Date.now();
+  const start = Math.max(
+    startTime?.getTime() || end - DEFAULT_IMPORT_DAYS * 24 * 60 * 60 * 1000,
+    end - 2 * 365 * 24 * 60 * 60 * 1000
+  );
+  const windows: Array<{ start: number; end: number }> = [];
+  for (let cursor = start; cursor < end; cursor += SEVEN_DAYS_MS) {
+    windows.push({ start: cursor, end: Math.min(cursor + SEVEN_DAYS_MS - 1, end) });
+  }
+  return windows;
+}
+
+async function fetchAllPages(
+  path: string,
+  baseParams: Record<string, string>,
+  apiKey: string,
+  apiSecret: string
+) {
+  const records: any[] = [];
+  let cursor: string | undefined;
+  do {
+    const params = new URLSearchParams({ ...baseParams, limit: '100', ...(cursor && { cursor }) });
+    const result = await signedBybitGet(path, params, apiKey, apiSecret);
+    records.push(...(result.list || []));
+    cursor = result.nextPageCursor || undefined;
+  } while (cursor);
+  return records;
+}
+
+function normalizeSpotFee(execution: any) {
+  const fee = Math.abs(Number(execution.execFee || 0));
+  const currency = String(execution.feeCurrency || '').toUpperCase();
+  if (!fee) return 0;
+  if (currency === 'USDT' || currency === 'USDC' || currency === 'USD') return fee;
+  const symbol = String(execution.symbol || '').toUpperCase();
+  if (currency && symbol.startsWith(currency)) return fee * Number(execution.execPrice || 0);
+  return 0;
+}
+
+function aggregateSpotOrders(executions: SpotExecution[]): SpotOrder[] {
+  const orders = new Map<string, SpotOrder>();
+  for (const execution of [...executions].sort(
+    (a, b) => a.timestamp.getTime() - b.timestamp.getTime()
+  )) {
+    const key = `${execution.symbol}:${execution.side}:${execution.orderId}`;
+    const current = orders.get(key);
+    if (!current) {
+      orders.set(key, {
+        symbol: execution.symbol,
+        side: execution.side,
+        amount: execution.amount,
+        price: execution.price,
+        feeUsd: execution.feeUsd,
+        timestamp: execution.timestamp,
+        orderId: execution.orderId,
+        executionIds: [execution.executionId],
+      });
+      continue;
+    }
+    const totalAmount = current.amount + execution.amount;
+    current.price =
+      totalAmount > 0
+        ? (current.price * current.amount + execution.price * execution.amount) / totalAmount
+        : 0;
+    current.amount = totalAmount;
+    current.feeUsd += execution.feeUsd;
+    current.timestamp = execution.timestamp;
+    current.executionIds.push(execution.executionId);
+  }
+  return [...orders.values()].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime());
+}
+
+/** Converts spot executions into completed buy→sell round trips using FIFO inventory matching. */
+export function buildClosedSpotTrades(executions: SpotExecution[]): FinalTradeData[] {
+  const inventory = new Map<string, InventoryLot[]>();
+  const closed: FinalTradeData[] = [];
+
+  for (const order of aggregateSpotOrders(executions)) {
+    const lots = inventory.get(order.symbol) || [];
+    if (order.side === 'buy') {
+      lots.push({
+        amount: order.amount,
+        price: order.price,
+        feePerUnit: order.amount ? order.feeUsd / order.amount : 0,
+        openedAt: order.timestamp,
+        orderId: order.orderId,
+      });
+      inventory.set(order.symbol, lots);
+      continue;
+    }
+
+    let remaining = order.amount;
+    let matched = 0;
+    let entryValue = 0;
+    let buyFees = 0;
+    let openedAt = order.timestamp;
+    const entryOrderIds: string[] = [];
+
+    while (remaining > 1e-12 && lots.length) {
+      const lot = lots[0];
+      const quantity = Math.min(remaining, lot.amount);
+      if (!matched) openedAt = lot.openedAt;
+      matched += quantity;
+      entryValue += quantity * lot.price;
+      buyFees += quantity * lot.feePerUnit;
+      entryOrderIds.push(lot.orderId);
+      lot.amount -= quantity;
+      remaining -= quantity;
+      if (lot.amount <= 1e-12) lots.shift();
+    }
+
+    if (matched <= 1e-12) continue;
+    const allocatedSellFee = order.feeUsd * (matched / order.amount);
+    const exitValue = matched * order.price;
+    const totalFees = buyFees + allocatedSellFee;
+    closed.push({
+      symbol: order.symbol,
+      side: 'buy',
+      amount: matched,
+      entryPrice: entryValue / matched,
+      exitPrice: order.price,
+      value_usd: entryValue,
+      fee_usd: totalFees,
+      pnl_realized: exitValue - entryValue - totalFees,
+      openedAt,
+      closedAt: order.timestamp,
+      tx_hash: `bybit:spot:${order.orderId}`,
+      exchange: 'bybit',
+      marketType: 'spot',
+      raw: {
+        entryOrderIds: [...new Set(entryOrderIds)],
+        exitOrderId: order.orderId,
+        executionIds: order.executionIds,
+        unmatchedSellQuantity: Math.max(0, remaining),
+      },
+    });
+    inventory.set(order.symbol, lots);
+  }
+  return closed;
+}
+
+async function fetchBybitSpotTrades(
+  apiKey: string,
+  apiSecret: string,
+  startTime?: Date
+): Promise<FinalTradeData[]> {
+  const executions: SpotExecution[] = [];
+  const now = Date.now();
+  const reportStart = startTime?.getTime() || now - DEFAULT_IMPORT_DAYS * 24 * 60 * 60 * 1000;
+  // Cost basis can originate before the selected report period. Load the full API history for
+  // inventory matching, then keep only round trips closed inside the requested period.
+  const inventoryStart = new Date(now - 2 * 365 * 24 * 60 * 60 * 1000);
+  for (const window of importWindows(inventoryStart)) {
+    const records = await fetchAllPages(
+      '/v5/execution/list',
+      { category: 'spot', startTime: String(window.start), endTime: String(window.end) },
+      apiKey,
+      apiSecret
+    );
+    executions.push(
+      ...records
+        .filter((item) => item.execType === 'Trade')
+        .map((item) => ({
+          symbol: String(item.symbol),
+          side: String(item.side).toLowerCase() as 'buy' | 'sell',
+          amount: Number(item.execQty),
+          price: Number(item.execPrice),
+          feeUsd: normalizeSpotFee(item),
+          timestamp: new Date(Number(item.execTime)),
+          executionId: String(item.execId),
+          orderId: String(item.orderId || item.execId),
+        }))
+    );
+    await pause(120);
+  }
+  return buildClosedSpotTrades(executions).filter(
+    (trade) => trade.closedAt.getTime() >= reportStart
+  );
+}
+
+async function fetchBybitClosedLinearTrades(
+  apiKey: string,
+  apiSecret: string,
+  startTime?: Date
+): Promise<FinalTradeData[]> {
+  const trades: FinalTradeData[] = [];
+  for (const window of importWindows(startTime)) {
+    const records = await fetchAllPages(
+      '/v5/position/closed-pnl',
+      { category: 'linear', startTime: String(window.start), endTime: String(window.end) },
+      apiKey,
+      apiSecret
+    );
+    for (const item of records) {
+      const amount = Number(item.closedSize || item.qty || 0);
+      const entryPrice = Number(item.avgEntryPrice || 0);
+      const exitPrice = Number(item.avgExitPrice || 0);
+      const closingSide = String(item.side).toLowerCase();
+      if (!(amount > 0) || !(entryPrice > 0) || !(exitPrice > 0)) continue;
+      trades.push({
+        symbol: String(item.symbol),
+        side: closingSide === 'sell' ? 'buy' : 'sell',
+        amount,
+        entryPrice,
+        exitPrice,
+        value_usd: Number(item.cumEntryValue || amount * entryPrice),
+        fee_usd: Math.abs(Number(item.openFee || 0)) + Math.abs(Number(item.closeFee || 0)),
+        pnl_realized: Number(item.closedPnl || 0),
+        openedAt: new Date(Number(item.createdTime || item.updatedTime)),
+        closedAt: new Date(Number(item.updatedTime)),
+        tx_hash: `bybit:linear:${item.orderId}:${item.updatedTime}`,
+        exchange: 'bybit',
+        marketType: 'linear',
+        raw: {
+          orderId: item.orderId,
+          closingSide: item.side,
+          leverage: item.leverage,
+          fillCount: item.fillCount,
+          grossEntryValue: item.cumEntryValue,
+          grossExitValue: item.cumExitValue,
+        },
+      });
+    }
+    await pause(120);
+  }
+  return trades;
+}
 
 export async function validateBybitWallet(
   apiKey: string,
   apiSecret: string
 ): Promise<{ valid: boolean; balance?: number; error?: string }> {
   try {
-    const timestamp = Date.now();
-    const params = new URLSearchParams({
-      accountType: 'UNIFIED',
-    });
-
-    const signPayload = `${timestamp}${apiKey}5000${params.toString()}`;
-    const signature = await signHmac(signPayload, apiSecret);
-
-    const response = await fetch(
-      `https://api.bybit.com/v5/account/wallet-balance?${params.toString()}`,
-      {
-        headers: {
-          'X-BAPI-API-KEY': apiKey,
-          'X-BAPI-TIMESTAMP': String(timestamp),
-          'X-BAPI-SIGN': signature,
-          'X-BAPI-RECV-WINDOW': '5000',
-        },
-      }
+    const result = await signedBybitGet(
+      '/v5/account/wallet-balance',
+      new URLSearchParams({ accountType: 'UNIFIED' }),
+      apiKey,
+      apiSecret
     );
-
-    if (!response.ok) {
-      return { valid: false, error: 'Invalid API credentials' };
-    }
-
-    const data = await response.json();
-
-    if (data.retCode !== 0) {
-      return { valid: false, error: data.retMsg || 'Bybit API error' };
-    }
-
-    // Получаем общий баланс
-    let totalBalance = 0;
-    const accounts = data.result?.list || [];
-
-    console.log('[Bybit Validation] Accounts count:', accounts.length);
-
-    for (const account of accounts) {
-      console.log('[Bybit Validation] Account type:', account.accountType);
-      console.log(
-        '[Bybit Validation] totalEquity:',
-        account.totalEquity,
-        'totalMarginBalance:',
-        account.totalMarginBalance
-      );
-
-      // totalEquity - это общий баланс в USD для этого аккаунта
-      const equity = parseFloat(account.totalEquity || '0');
-      totalBalance += equity;
-    }
-
-    console.log('[Bybit Validation] Total balance calculated: $' + totalBalance);
+    const totalBalance = (result.list || []).reduce(
+      (sum, account) => sum + Number(account.totalEquity || 0),
+      0
+    );
     return { valid: true, balance: totalBalance };
-  } catch (err: any) {
-    console.error('[Bybit Validation] Error:', err.message);
-    console.error('[Bybit Validation] Stack:', err.stack);
-    return { valid: false, error: err.message };
+  } catch (error) {
+    return { valid: false, error: error instanceof Error ? error.message : 'Bybit API error' };
   }
 }
 
@@ -84,236 +333,66 @@ export async function getBybitBalance(apiKey: string, apiSecret: string): Promis
   return result.balance || 0;
 }
 
-// ===================== BYBIT TRADES =====================
-
-async function fetchBybitTrades(
-  apiKey: string,
-  apiSecret: string,
-  startTime?: number
-): Promise<TradeData[]> {
-  const baseUrl = 'https://api.bybit.com';
-  let allTrades: TradeData[] = [];
-
-  // Запрашиваем и spot и futures
-  const categories = ['spot', 'linear']; // linear = futures
-
-  for (const category of categories) {
-    console.log(`[Bybit Import] Fetching ${category} trades...`);
-
-    let cursor: string | undefined;
-    let page = 0;
-
-    do {
-      page++;
-      const timestamp = Date.now();
-
-      console.log(`[Bybit Import] ${category} page ${page}, startTime:`, startTime);
-
-      const params = new URLSearchParams({
-        category,
-        limit: '100',
-        ...(startTime && { startTime: String(startTime) }),
-        ...(cursor && { cursor }),
-      });
-
-      const signPayload = `${timestamp}${apiKey}5000${params.toString()}`;
-      const signature = await signHmac(signPayload, apiSecret);
-
-      const response = await fetch(`${baseUrl}/v5/execution/list?${params.toString()}`, {
-        headers: {
-          'X-BAPI-API-KEY': apiKey,
-          'X-BAPI-TIMESTAMP': String(timestamp),
-          'X-BAPI-SIGN': signature,
-          'X-BAPI-RECV-WINDOW': '5000',
-        },
-      });
-
-      if (!response.ok) {
-        const err = await response.text();
-        console.error(`[Bybit Import] ${category} Response error:`, err);
-        continue; // Пропускаем эту категорию, продолжаем с другой
-      }
-
-      const data = await response.json();
-
-      console.log(
-        `[Bybit Import] ${category} Response retCode:`,
-        data.retCode,
-        'retMsg:',
-        data.retMsg
-      );
-
-      if (data.retCode !== 0) {
-        console.error(`[Bybit Import] ${category} retCode error:`, data.retCode, data.retMsg);
-        continue;
-      }
-
-      const tradesList = data.result?.list || [];
-      const nextCursor = data.result?.nextPageCursor;
-
-      console.log(
-        `[Bybit Import] ${category} Page ${page}: ${tradesList.length} trades, nextCursor: ${nextCursor || 'none'}`
-      );
-
-      const pageTrades = tradesList.map((t: any) => ({
-        symbol: t.symbol,
-        side: t.side.toLowerCase(),
-        amount: parseFloat(t.execQty),
-        price: parseFloat(t.execPrice),
-        value_usd: parseFloat(t.execQty) * parseFloat(t.execPrice),
-        fee_usd: parseFloat(t.execFee),
-        timestamp: new Date(parseInt(t.execTime)),
-        tx_hash: t.execId,
-        exchange: 'bybit',
-      }));
-
-      allTrades = allTrades.concat(pageTrades);
-      cursor = nextCursor;
-
-      if (cursor) {
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      }
-    } while (cursor);
-  }
-
-  console.log(`[Bybit Import] Total trades fetched: ${allTrades.length}`);
-  return allTrades;
-}
-
-// ===================== SAVE TRADES =====================
-
+/** Replaces exchange-imported rows with normalized, final round-trip trades. */
 export async function saveTrades(
   userId: string,
   walletId: string,
-  trades: TradeData[]
+  trades: FinalTradeData[]
 ): Promise<number> {
-  let saved = 0;
-  let updated = 0;
-  let skipped = 0;
-
-  for (const trade of trades) {
-    try {
-      const existing = await prisma.trade.findFirst({
-        where: {
+  await prisma.$transaction(async (tx) => {
+    await tx.trade.deleteMany({
+      where: { user_id: userId, wallet_id: walletId, import_source: 'api' },
+    });
+    for (const trade of trades) {
+      await tx.trade.create({
+        data: {
           user_id: userId,
-          tx_hash: trade.tx_hash || undefined,
+          wallet_id: walletId,
+          symbol: trade.symbol,
+          side: trade.side,
+          amount: trade.amount,
+          price_usd: trade.exitPrice,
+          value_usd: trade.value_usd,
+          fee_usd: trade.fee_usd,
+          pnl_realized: trade.pnl_realized,
+          timestamp: trade.closedAt,
+          tx_hash: trade.tx_hash,
+          exchange: trade.exchange,
+          import_source: 'api',
+          status: 'closed',
+          raw_data: JSON.stringify({
+            version: 2,
+            finalTrade: true,
+            marketType: trade.marketType,
+            entryPrice: trade.entryPrice,
+            exitPrice: trade.exitPrice,
+            openedAt: trade.openedAt.toISOString(),
+            closedAt: trade.closedAt.toISOString(),
+            ...trade.raw,
+          }),
         },
       });
-
-      if (existing) {
-        await prisma.trade.update({
-          where: { id: existing.id },
-          data: {
-            wallet_id: walletId,
-            symbol: trade.symbol,
-            side: trade.side,
-            amount: trade.amount,
-            price_usd: trade.price,
-            value_usd: trade.value_usd,
-            fee_usd: trade.fee_usd,
-            timestamp: trade.timestamp,
-          },
-        });
-        updated++;
-      } else {
-        await prisma.trade.create({
-          data: {
-            user_id: userId,
-            wallet_id: walletId,
-            symbol: trade.symbol,
-            side: trade.side,
-            amount: trade.amount,
-            price_usd: trade.price,
-            value_usd: trade.value_usd,
-            fee_usd: trade.fee_usd,
-            timestamp: trade.timestamp,
-            tx_hash: trade.tx_hash,
-            exchange: trade.exchange,
-            import_source: 'api',
-            status: 'completed',
-          },
-        });
-        saved++;
-      }
-    } catch (err: any) {
-      if (err.code === 'P2002') {
-        console.log('[saveTrades] Duplicate trade skipped:', trade.tx_hash);
-        skipped++;
-      } else {
-        console.error('[saveTrades] Error saving trade:', err.message);
-      }
     }
-  }
-
-  // P&L calculation
-  try {
-    const allTrades = await prisma.trade.findMany({
-      where: { user_id: userId, wallet_id: walletId },
-      orderBy: { timestamp: 'asc' },
-    });
-
-    const symbolGroups = new Map<string, typeof allTrades>();
-    allTrades.forEach((trade) => {
-      if (!trade.symbol) return;
-      if (!symbolGroups.has(trade.symbol)) symbolGroups.set(trade.symbol, []);
-      symbolGroups.get(trade.symbol)!.push(trade);
-    });
-
-    let pnlCalculated = 0;
-
-    for (const [symbol, symbolTrades] of symbolGroups.entries()) {
-      const buys = symbolTrades.filter((t) => t.side === 'buy');
-      const sells = symbolTrades.filter((t) => t.side === 'sell');
-
-      if (buys.length > 0 && sells.length > 0) {
-        let totalBuyValue = new Decimal(0);
-        let totalSellValue = new Decimal(0);
-        let totalFees = new Decimal(0);
-
-        buys.forEach((t) => {
-          totalBuyValue = totalBuyValue.add(t.value_usd || 0);
-        });
-        sells.forEach((t) => {
-          totalSellValue = totalSellValue.add(t.value_usd || 0);
-        });
-        symbolTrades.forEach((t) => {
-          totalFees = totalFees.add(t.fee_usd || 0);
-        });
-
-        const grossPnl = totalSellValue.sub(totalBuyValue);
-        const netPnl = grossPnl.sub(totalFees);
-
-        let totalAmount = new Decimal(0);
-        symbolTrades.forEach((t) => {
-          totalAmount = totalAmount.add(t.amount || 0);
-        });
-
-        for (const trade of symbolTrades) {
-          const tradeAmount = trade.amount || 0;
-          const tradeRatio = tradeAmount.div(totalAmount);
-          const tradePnl = netPnl.mul(tradeRatio);
-
-          await prisma.trade.update({
-            where: { id: trade.id },
-            data: { pnl_realized: tradePnl.toString() },
-          });
-        }
-
-        console.log(`[saveTrades] P&L for ${symbol}: $${netPnl.toFixed(2)}`);
-        pnlCalculated++;
-      }
-    }
-
-    console.log(`[saveTrades] P&L calculated for ${pnlCalculated} symbols`);
-  } catch (err: any) {
-    console.error('[saveTrades] Error calculating P&L:', err.message);
-  }
-
-  console.log(`[saveTrades] Saved: ${saved}, Updated: ${updated}, Skipped: ${skipped}`);
-  return saved + updated;
+  });
+  return trades.length;
 }
 
-// ===================== HELPERS =====================
+export async function importTradesFromExchange(
+  exchange: string,
+  apiKey: string,
+  apiSecret: string,
+  _passphrase?: string,
+  startTime?: Date
+): Promise<FinalTradeData[]> {
+  if (exchange.toLowerCase() !== 'bybit') {
+    throw new Error(`Exchange ${exchange} not supported yet`);
+  }
+  const [spot, linear] = await Promise.all([
+    fetchBybitSpotTrades(apiKey, apiSecret, startTime),
+    fetchBybitClosedLinearTrades(apiKey, apiSecret, startTime),
+  ]);
+  return [...spot, ...linear].sort((a, b) => b.closedAt.getTime() - a.closedAt.getTime());
+}
 
 async function signHmac(message: string, secret: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -326,24 +405,6 @@ async function signHmac(message: string, secret: string): Promise<string> {
   );
   const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
   return Array.from(new Uint8Array(signature))
-    .map((b) => b.toString(16).padStart(2, '0'))
+    .map((byte) => byte.toString(16).padStart(2, '0'))
     .join('');
-}
-
-// For backwards compatibility
-export async function importTradesFromExchange(
-  exchange: string,
-  apiKey: string,
-  apiSecret: string,
-  passphrase?: string,
-  startTime?: Date
-): Promise<TradeData[]> {
-  const startTimestamp = startTime ? startTime.getTime() : undefined;
-
-  switch (exchange.toLowerCase()) {
-    case 'bybit':
-      return fetchBybitTrades(apiKey, apiSecret, startTimestamp);
-    default:
-      throw new Error(`Exchange ${exchange} not supported yet`);
-  }
 }

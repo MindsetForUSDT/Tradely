@@ -21,7 +21,10 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
     const ascending = req.query.ascending === 'true';
 
     // Фильтры
-    const where: any = { user_id: profile.id };
+    const where: any = {
+      user_id: profile.id,
+      ...(req.query.includeNonFinal === 'true' ? {} : { status: 'closed' }),
+    };
 
     if (req.query.symbol) {
       where.symbol = { contains: req.query.symbol as string, mode: 'insensitive' };

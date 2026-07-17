@@ -41,6 +41,7 @@ interface Wallet {
   chain: string;
   label?: string;
   processing_status: 'pending' | 'processing' | 'completed' | 'failed';
+  error_message?: string;
   last_synced_at?: string;
   cex_provider?: string;
   web3_provider?: string;
@@ -344,15 +345,15 @@ export function WalletConnect() {
         }),
       };
 
-      await api.post<Wallet>('/wallets', walletData);
-      toast.success('Кошелёк добавлен!');
+      const createdWallet = await api.post<Wallet>('/wallets', walletData);
+      toast.success('Источник подключён. Запускаем первый импорт.');
 
       setForm(INITIAL_FORM);
       setStep('category');
       setValidationErrors({});
       setValidationStatus(null);
       await loadWallets();
-      queryClient.invalidateQueries({ queryKey: ['trades'] });
+      void handleManualSync(createdWallet.id);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Ошибка при добавлении';
       toast.error(msg);
@@ -368,8 +369,23 @@ export function WalletConnect() {
     setSyncingWalletId(walletId);
     try {
       await api.post(`/wallets/${walletId}/sync`, {});
-      toast.success('Синхронизация запущена!');
-      await loadWallets();
+      toast.success('Синхронизация запущена');
+
+      for (let attempt = 0; attempt < 80; attempt += 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const data = await api.get<Wallet[]>('/wallets');
+        setWallets(data);
+        const current = data.find((wallet) => wallet.id === walletId);
+        if (current?.processing_status === 'completed') {
+          await queryClient.invalidateQueries({ queryKey: ['trades'] });
+          toast.success('Финальные сделки обновлены');
+          return;
+        }
+        if (current?.processing_status === 'failed') {
+          throw new Error(current.error_message || 'Импорт завершился с ошибкой');
+        }
+      }
+      throw new Error('Синхронизация выполняется дольше ожидаемого. Проверьте статус позже.');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Ошибка синхронизации';
       toast.error(msg);
@@ -507,13 +523,17 @@ export function WalletConnect() {
                               ? 'Ожидает'
                               : 'Обработка'}
                         </span>
-                        {w.processing_status === 'pending' && (
+                        {w.processing_status !== 'processing' && (
                           <button
                             onClick={() => handleManualSync(w.id)}
                             disabled={syncingWalletId === w.id}
                             className="text-xs text-accent-green hover:underline disabled:text-text-muted"
                           >
-                            {syncingWalletId === w.id ? 'Запуск...' : 'Синхронизировать'}
+                            {syncingWalletId === w.id
+                              ? 'Синхронизация…'
+                              : w.processing_status === 'completed'
+                                ? 'Обновить сделки'
+                                : 'Синхронизировать'}
                           </button>
                         )}
                       </div>

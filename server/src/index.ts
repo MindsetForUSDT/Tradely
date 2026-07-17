@@ -28,6 +28,7 @@ import tradesRouter from './routes/trades.js';
 import analyticsRouter from './routes/analytics.js';
 import webhookRouter from './routes/webhook.js';
 import authRouter from './routes/auth.js';
+import { syncDueWallets } from './services/walletSync.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -99,8 +100,20 @@ app.listen(PORT, () => {
   console.log(`✅ Test endpoint: http://localhost:${PORT}/health`);
 });
 
+const initialSync = setTimeout(() => {
+  void syncDueWallets().catch((error) => console.error('[Auto Sync] Initial run failed:', error));
+}, 5_000);
+initialSync.unref();
+
+const syncTimer = setInterval(() => {
+  void syncDueWallets().catch((error) => console.error('[Auto Sync] Scheduler failed:', error));
+}, 60_000);
+syncTimer.unref();
+
 const shutdown = async (signal: string) => {
   console.log(`[Server] ${signal}: shutting down`);
+  clearTimeout(initialSync);
+  clearInterval(syncTimer);
   await prisma.$disconnect();
   process.exit(0);
 };
