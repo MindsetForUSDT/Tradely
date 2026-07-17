@@ -34,6 +34,21 @@ function numeric(value: unknown) {
   return Number.isFinite(result) ? result : 0;
 }
 
+function tradeMeta(trade: Trade) {
+  try {
+    return JSON.parse(trade.raw_data || '{}') as {
+      entryPrice?: number;
+      exitPrice?: number;
+      openedAt?: string;
+      closedAt?: string;
+      notes?: string;
+      strategy?: string;
+    };
+  } catch {
+    return {};
+  }
+}
+
 function getInitialBalance(wallets: ReturnType<typeof useWallets>['wallets']) {
   return wallets.reduce((total, wallet) => {
     try {
@@ -91,6 +106,7 @@ function Metric({
 
 function TradeDetails({ trade, onClose }: { trade: Trade; onClose: () => void }) {
   const pnl = numeric(trade.pnl_realized);
+  const meta = tradeMeta(trade);
   return (
     <aside className="overview-trade-drawer" aria-label="Детали сделки">
       <header>
@@ -106,17 +122,17 @@ function TradeDetails({ trade, onClose }: { trade: Trade; onClose: () => void })
         <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={24} />
         <div>
           <strong>{trade.exchange || 'Подключённый источник'}</strong>
-          <span>{trade.status === 'closed' ? 'Закрыта' : 'Открыта'}</span>
+          <span>Завершена</span>
         </div>
       </div>
       <dl>
         <div>
           <dt>Дата и время</dt>
-          <dd>{formatDate(trade.timestamp)}</dd>
+          <dd>{formatDate(meta.closedAt || trade.timestamp)}</dd>
         </div>
         <div>
-          <dt>Направление</dt>
-          <dd>{trade.side === 'buy' ? 'Покупка' : 'Продажа'}</dd>
+          <dt>Позиция</dt>
+          <dd>{trade.side === 'buy' ? 'Long' : 'Short'}</dd>
         </div>
         <div>
           <dt>Размер</dt>
@@ -126,7 +142,11 @@ function TradeDetails({ trade, onClose }: { trade: Trade; onClose: () => void })
         </div>
         <div>
           <dt>Цена входа</dt>
-          <dd>{formatUSD(numeric(trade.price_usd || trade.price))}</dd>
+          <dd>{formatUSD(numeric(meta.entryPrice || trade.price_usd || trade.price))}</dd>
+        </div>
+        <div>
+          <dt>Цена выхода</dt>
+          <dd>{formatUSD(numeric(meta.exitPrice || trade.price_usd || trade.price))}</dd>
         </div>
         <div>
           <dt>Комиссия</dt>
@@ -139,8 +159,10 @@ function TradeDetails({ trade, onClose }: { trade: Trade; onClose: () => void })
       </dl>
       <section>
         <span>Контекст</span>
-        <p>{trade.notes || 'Заметка к этой сделке пока не добавлена.'}</p>
-        {trade.strategy_tag ? <em>{trade.strategy_tag}</em> : null}
+        <p>{meta.notes || trade.notes || 'Заметка к этой сделке пока не добавлена.'}</p>
+        {meta.strategy || trade.strategy_tag ? (
+          <em>{meta.strategy || trade.strategy_tag}</em>
+        ) : null}
       </section>
       <Link to="/dashboard/trades">
         Открыть в сделках <ArrowRight size={15} />
@@ -164,11 +186,13 @@ export function DashboardLayout() {
   });
 
   const summary = useMemo(() => {
-    const initialBalance = getInitialBalance(wallets);
+    const currentBalance = getInitialBalance(wallets);
     let grossProfit = 0;
     let grossLoss = 0;
     let wins = 0;
-    let equity = initialBalance;
+    const periodPnl = pnlData.reduce((total, point) => total + numeric(point.pnl), 0);
+    const openingBalance = Math.max(0, currentBalance - periodPnl);
+    let equity = openingBalance;
     let peak = equity;
     let maxDrawdown = 0;
 
@@ -193,12 +217,11 @@ export function DashboardLayout() {
     });
 
     const pnl = grossProfit - grossLoss;
-    const capital = initialBalance + pnl;
+    const capital = currentBalance;
     return {
-      initialBalance,
       capital,
       pnl,
-      pnlPercent: initialBalance ? (pnl / initialBalance) * 100 : 0,
+      pnlPercent: openingBalance > 0 ? (pnl / openingBalance) * 100 : 0,
       winRate: trades.length ? (wins / trades.length) * 100 : 0,
       profitFactor: grossLoss ? grossProfit / grossLoss : grossProfit ? Infinity : 0,
       maxDrawdown,
@@ -359,7 +382,7 @@ export function DashboardLayout() {
           <div className="overview-trades-table">
             <div className="overview-trade-head">
               <span>Инструмент</span>
-              <span>Сторона</span>
+              <span>Позиция</span>
               <span>Объём</span>
               <span>P&amp;L</span>
               <span>Источник</span>
@@ -379,7 +402,7 @@ export function DashboardLayout() {
                       <small>{formatDate(trade.timestamp)}</small>
                     </span>
                     <span className={trade.side === 'buy' ? 'positive' : 'negative'}>
-                      {trade.side === 'buy' ? 'Покупка' : 'Продажа'}
+                      {trade.side === 'buy' ? 'Long' : 'Short'}
                     </span>
                     <span>{formatUSD(numeric(trade.value_usd))}</span>
                     <span className={pnl >= 0 ? 'positive' : 'negative'}>{formatUSD(pnl)}</span>

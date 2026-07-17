@@ -1,12 +1,9 @@
 import { Router } from 'express';
 import { prisma } from '../db.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
-import { encrypt, decrypt } from '../services/crypto.js';
-import {
-  importTradesFromExchange,
-  saveTrades,
-  validateBybitWallet,
-} from '../services/tradeImport.js';
+import { encrypt } from '../services/crypto.js';
+import { validateBybitWallet } from '../services/tradeImport.js';
+import { syncWallet } from '../services/walletSync.js';
 
 const router = Router();
 
@@ -242,78 +239,10 @@ router.post('/:id/sync', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    // Обновляем статус на "processing"
-    await prisma.wallet.update({
-      where: { id: walletId },
-      data: { processing_status: 'processing' },
-    });
-
     console.log('[Wallets SYNC] Started sync for wallet:', walletId);
-
-    // Запускаем синхронизацию в фоне
-    (async () => {
-      try {
-        const settings = wallet.settings ? JSON.parse(wallet.settings) : {};
-
-        // Дешифруем API ключи
-        let apiKey = '';
-        let apiSecret = '';
-        let passphrase: string | undefined;
-
-        if (wallet.encrypted_credentials && wallet.credentials_iv && wallet.credentials_tag) {
-          try {
-            const decrypted = decrypt({
-              encrypted: wallet.encrypted_credentials,
-              iv: wallet.credentials_iv,
-              tag: wallet.credentials_tag,
-            });
-            const creds = JSON.parse(decrypted);
-            apiKey = creds.apiKey || '';
-            apiSecret = creds.apiSecret || '';
-            passphrase = creds.passphrase;
-          } catch (e: any) {
-            console.error('[Wallets SYNC] Decrypt error:', e.message);
-          }
-        }
-
-        // Только для CEX бирж
-        if (wallet.cex_provider && apiKey && apiSecret) {
-          // НЕ фильтруем по дате - загружаем ВСЕ сделки
-          console.log(`[Wallets SYNC] Loading all trades for ${wallet.cex_provider}`);
-
-          const trades = await importTradesFromExchange(
-            wallet.cex_provider,
-            apiKey,
-            apiSecret,
-            passphrase,
-            undefined // undefined = все сделки без фильтра по времени
-          );
-
-          const saved = await saveTrades(profile.id, wallet.id, trades);
-          console.log(`[Wallets SYNC] Saved ${saved} trades for ${wallet.cex_provider} (all time)`);
-        } else {
-          console.log('[Wallets SYNC] Non-CEX wallet, skipping trade import');
-        }
-
-        await prisma.wallet.update({
-          where: { id: wallet.id },
-          data: {
-            processing_status: 'completed',
-            last_synced_at: new Date(),
-          },
-        });
-        console.log('[Wallets SYNC] Completed sync for wallet:', wallet.id);
-      } catch (err: any) {
-        console.error('[Wallets SYNC] Error:', err.message);
-        await prisma.wallet.update({
-          where: { id: wallet.id },
-          data: {
-            processing_status: 'failed',
-            error_message: err.message || 'Sync failed',
-          },
-        });
-      }
-    })();
+    void syncWallet(wallet.id).catch((error) => {
+      console.error('[Wallets SYNC] Background error:', error);
+    });
 
     res.json({
       success: true,
