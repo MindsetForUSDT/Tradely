@@ -7,6 +7,8 @@ interface SyncSettings {
   syncInterval?: number;
 }
 
+const activeWalletSyncs = new Set<string>();
+
 function readSettings(value: string | null): SyncSettings {
   try {
     return value ? (JSON.parse(value) as SyncSettings) : {};
@@ -16,15 +18,20 @@ function readSettings(value: string | null): SyncSettings {
 }
 
 export async function syncWallet(walletId: string): Promise<number> {
-  const claimed = await prisma.wallet.updateMany({
-    where: { id: walletId, processing_status: { not: 'processing' } },
-    data: { processing_status: 'processing', error_message: null },
-  });
-  if (!claimed.count) return 0;
+  // `processing` lives in PostgreSQL, while the actual job lives in this process.
+  // After an API restart the database may retain a stale processing flag. The
+  // in-memory lease lets a new process safely resume it instead of leaving the
+  // source stuck forever.
+  if (activeWalletSyncs.has(walletId)) return 0;
+  activeWalletSyncs.add(walletId);
 
   try {
     const wallet = await prisma.wallet.findUnique({ where: { id: walletId } });
     if (!wallet) throw new Error('Источник не найден');
+    await prisma.wallet.update({
+      where: { id: walletId },
+      data: { processing_status: 'processing', error_message: null },
+    });
     if (!wallet.cex_provider)
       throw new Error('Автоимпорт для этого типа источника ещё не подключён');
     if (!wallet.encrypted_credentials || !wallet.credentials_iv || !wallet.credentials_tag) {
@@ -63,17 +70,23 @@ export async function syncWallet(walletId: string): Promise<number> {
       data: { processing_status: 'failed', error_message: message },
     });
     throw error;
+  } finally {
+    activeWalletSyncs.delete(walletId);
   }
 }
 
 export async function syncDueWallets() {
   const wallets = await prisma.wallet.findMany({
-    where: { cex_provider: { not: null }, processing_status: { not: 'processing' } },
+    where: { cex_provider: { not: null } },
   });
   const now = Date.now();
   const due = wallets.filter((wallet) => {
+    if (activeWalletSyncs.has(wallet.id)) return false;
     const settings = readSettings(wallet.settings);
     if (settings.autoSync === false) return false;
+    // A processing row without an in-memory lease belongs to an interrupted
+    // process and should be resumed on the next scheduler tick.
+    if (wallet.processing_status === 'processing') return true;
     const intervalMinutes = Math.max(5, Number(settings.syncInterval || 60));
     return (
       !wallet.last_synced_at || now - wallet.last_synced_at.getTime() >= intervalMinutes * 60_000

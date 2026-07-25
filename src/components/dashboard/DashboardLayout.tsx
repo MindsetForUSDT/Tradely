@@ -7,7 +7,9 @@ import {
   CaretRight,
   CheckCircle,
   ClockCounterClockwise,
+  Database,
   PlugsConnected,
+  SpinnerGap,
   X,
 } from '@phosphor-icons/react';
 import {
@@ -104,6 +106,16 @@ function Metric({
   );
 }
 
+function getWalletStatus(wallet: ReturnType<typeof useWallets>['wallets'][number]) {
+  if (wallet.processing_status === 'failed') {
+    return { label: 'Требует внимания', className: 'error' };
+  }
+  if (wallet.processing_status === 'processing' || wallet.processing_status === 'pending') {
+    return { label: 'Синхронизация', className: 'processing' };
+  }
+  return { label: 'Данные актуальны', className: 'ready' };
+}
+
 function TradeDetails({ trade, onClose }: { trade: Trade; onClose: () => void }) {
   const pnl = numeric(trade.pnl_realized);
   const meta = tradeMeta(trade);
@@ -181,7 +193,7 @@ export function DashboardLayout() {
     isLoading: tradesLoading,
     error: tradesError,
   } = useTradesOptimized({
-    limit: 1000,
+    limit: 500,
     daysAgo: range,
   });
 
@@ -289,6 +301,50 @@ export function DashboardLayout() {
           tone={summary.maxDrawdown >= 5 ? 'negative' : 'positive'}
         />
       </section>
+
+      {trades.length === 0 ? (
+        <section className="overview-setup-progress" aria-label="Прогресс первичного импорта">
+          <div className="overview-setup-score">
+            <strong>
+              {hasSource
+                ? wallets.some((w) => w.processing_status === 'completed')
+                  ? '66%'
+                  : '33%'
+                : '0%'}
+            </strong>
+            <span>Настройка импорта</span>
+          </div>
+          <div className="overview-setup-steps">
+            <span className={hasSource ? 'done' : 'active'}>
+              <CheckCircle size={18} weight={hasSource ? 'fill' : 'regular'} />
+              Источник подключён
+            </span>
+            <span
+              className={
+                wallets.some((wallet) => wallet.processing_status === 'completed')
+                  ? 'done'
+                  : hasSource
+                    ? 'active'
+                    : ''
+              }
+            >
+              {wallets.some((wallet) => wallet.processing_status === 'processing') ? (
+                <SpinnerGap size={18} className="spin" />
+              ) : (
+                <Database size={18} />
+              )}
+              Синхронизация данных
+            </span>
+            <span>
+              <ClockCounterClockwise size={18} />
+              Импорт сделок
+            </span>
+          </div>
+          <Link to="/dashboard/wallets">
+            {hasSource ? 'Открыть источники' : 'Подключить источник'}
+          </Link>
+        </section>
+      ) : null}
 
       <section className="overview-chart-section">
         <header>
@@ -437,18 +493,15 @@ export function DashboardLayout() {
             <div className="overview-source-list">
               {wallets.slice(0, 4).map((wallet) => {
                 const source = wallet.label || wallet.chain || 'Источник';
+                const status = getWalletStatus(wallet);
                 return (
                   <div key={wallet.id}>
                     <SourceLogo brand={resolveSourceBrand(source)} size={25} />
                     <span>
                       <strong>{source}</strong>
-                      <small>
-                        {wallet.processing_status === 'failed'
-                          ? 'Требует внимания'
-                          : 'Автоимпорт активен'}
-                      </small>
+                      <small>{status.label}</small>
                     </span>
-                    <i className={wallet.processing_status === 'failed' ? 'error' : ''} />
+                    <i className={status.className} />
                   </div>
                 );
               })}

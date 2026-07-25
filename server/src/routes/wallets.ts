@@ -21,6 +21,11 @@ const publicWalletSelect = {
   settings: true,
   import_from_date: true,
   added_at: true,
+  _count: {
+    select: {
+      trades: true,
+    },
+  },
 } as const;
 
 // Debug middleware

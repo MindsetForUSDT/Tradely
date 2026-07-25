@@ -46,6 +46,7 @@ interface Wallet {
   cex_provider?: string;
   web3_provider?: string;
   added_at: string;
+  _count?: { trades: number };
 }
 
 // ===================== ПРОВАЙДЕРЫ =====================
@@ -217,6 +218,45 @@ const getBybitHistoryMinDate = () => {
 
 const getTodayDate = () => new Date().toISOString().split('T')[0];
 
+const formatSyncTime = (value?: string) => {
+  if (!value) return 'Ещё не запускалась';
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
+};
+
+const getStatusMeta = (wallet: Wallet) => {
+  switch (wallet.processing_status) {
+    case 'completed':
+      return {
+        label: 'Синхронизировано',
+        description: 'Данные актуальны',
+        className: 'ready',
+      };
+    case 'processing':
+      return {
+        label: 'Синхронизация',
+        description: 'Загружаем историю сделок',
+        className: 'processing',
+      };
+    case 'failed':
+      return {
+        label: 'Ошибка импорта',
+        description: wallet.error_message || 'Повторите синхронизацию',
+        className: 'failed',
+      };
+    default:
+      return {
+        label: 'Готов к запуску',
+        description: 'Ожидает первой синхронизации',
+        className: 'pending',
+      };
+  }
+};
+
 const INITIAL_FORM: WalletFormData = {
   category: null,
   provider: null,
@@ -248,21 +288,29 @@ export function WalletConnect() {
   } | null>(null);
   const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadWallets();
-  }, []);
-
-  const loadWallets = async () => {
-    setIsLoading(true);
+  const loadWallets = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const data = await api.get<Wallet[]>('/wallets');
       setWallets(data);
     } catch {
       setWallets([]);
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    void loadWallets();
+  }, [loadWallets]);
+
+  useEffect(() => {
+    if (!wallets.some((wallet) => ['pending', 'processing'].includes(wallet.processing_status))) {
+      return;
+    }
+    const timer = window.setInterval(() => void loadWallets(true), 2500);
+    return () => window.clearInterval(timer);
+  }, [loadWallets, wallets]);
 
   const validateForm = useCallback((): boolean => {
     const errors: Record<string, string> = {};
@@ -360,7 +408,7 @@ export function WalletConnect() {
       setStep('category');
       setValidationErrors({});
       setValidationStatus(null);
-      await loadWallets();
+      await loadWallets(true);
       void handleManualSync(createdWallet.id);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Ошибка при добавлении';
@@ -407,7 +455,7 @@ export function WalletConnect() {
       return;
     try {
       await api.delete(`/wallets/${id}`);
-      await loadWallets();
+      await loadWallets(true);
       toast.success('Кошелёк удалён');
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Ошибка удаления';
@@ -458,105 +506,204 @@ export function WalletConnect() {
         </div>
       )}
 
-      {/* === ШАГ 1: Выбор категории === */}
+      {/* === ШАГ 1: Обзор и выбор категории === */}
       {step === 'category' && (
         <>
-          <Card padding="lg" className="sources-v3-card space-y-4">
-            <h3 className="text-base font-semibold">Выберите рынок</h3>
-            <div className="grid grid-cols-3 gap-3">
-              {CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => handleSelectCategory(cat.id)}
-                  className="p-4 rounded-xl border border-surface-border bg-surface-elevated hover:bg-surface-overlay hover:border-accent-green/30 transition-all duration-200 text-left group"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center mb-3 group-hover:bg-accent-green/20 transition-colors">
-                    <Icon name={cat.icon} size={22} className="text-accent-green" />
-                  </div>
-                  <p className="text-sm font-semibold">{cat.label}</p>
-                  <p className="text-xs text-text-muted mt-1">{cat.desc}</p>
-                </button>
-              ))}
+          <section className="sources-health" aria-label="Состояние автоимпорта">
+            <div className="sources-health-summary">
+              <div
+                className={cn(
+                  'sources-health-ring',
+                  wallets.some((wallet) => wallet.processing_status === 'failed') && 'failed'
+                )}
+              >
+                {wallets.length
+                  ? wallets.some((wallet) => wallet.processing_status === 'failed')
+                    ? '!'
+                    : wallets.some((wallet) => wallet.processing_status === 'processing')
+                      ? '···'
+                      : '100%'
+                  : '0%'}
+              </div>
+              <span>
+                <small>Состояние автоимпорта</small>
+                <strong>
+                  {wallets.length === 0
+                    ? 'Подключите первый источник'
+                    : wallets.some((wallet) => wallet.processing_status === 'failed')
+                      ? 'Требуется внимание'
+                      : wallets.some((wallet) => wallet.processing_status === 'processing')
+                        ? 'Идёт синхронизация'
+                        : 'Все источники в порядке'}
+                </strong>
+                <em>
+                  {wallets.length
+                    ? 'Tradeum автоматически поддерживает данные актуальными'
+                    : 'После подключения импорт запустится автоматически'}
+                </em>
+              </span>
             </div>
-          </Card>
+            <div className="sources-health-metrics">
+              <article>
+                <small>Подключено источников</small>
+                <strong>{wallets.length}</strong>
+              </article>
+              <article>
+                <small>Сделок импортировано</small>
+                <strong>
+                  {wallets.reduce((total, wallet) => total + (wallet._count?.trades || 0), 0)}
+                </strong>
+              </article>
+              <article>
+                <small>Последняя синхронизация</small>
+                <strong>
+                  {formatSyncTime(
+                    wallets
+                      .map((wallet) => wallet.last_synced_at)
+                      .filter(Boolean)
+                      .sort()
+                      .at(-1)
+                  )}
+                </strong>
+              </article>
+            </div>
+          </section>
+
+          <section className="sources-market">
+            <h2>Выберите рынок</h2>
+            {CATEGORIES.map((cat) => (
+              <button key={cat.id} onClick={() => handleSelectCategory(cat.id)}>
+                <span>
+                  <Icon name={cat.icon} size={21} />
+                </span>
+                <div>
+                  <strong>{cat.label}</strong>
+                  <small>{cat.desc}</small>
+                </div>
+                <Icon name="forward" size={16} />
+              </button>
+            ))}
+          </section>
 
           {wallets.length === 0 && !isLoading && (
-            <Card padding="lg" className="sources-v3-card">
-              <div className="text-center py-8">
-                <div className="w-16 h-16 mx-auto rounded-2xl bg-accent-green/10 flex items-center justify-center mb-4">
-                  <Icon name="wallet" size={28} className="text-accent-green" />
-                </div>
-                <h3 className="text-lg font-semibold">Нет подключений</h3>
-                <p className="text-sm text-text-muted mt-1">
-                  Выберите рынок выше, чтобы добавить кошелёк
-                </p>
-              </div>
-            </Card>
+            <section className="sources-empty">
+              <Icon name="wallet" size={27} />
+              <strong>Подключённых источников пока нет</strong>
+              <span>Выберите рынок выше — API-ключи используются только для чтения.</span>
+            </section>
           )}
 
           {wallets.length > 0 && (
-            <div className="space-y-3">
-              {wallets.map((w) => (
-                <Card key={w.id} padding="md" className="sources-v3-card sources-v3-connection">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-accent-green/10 flex items-center justify-center">
-                        <Icon name={getWalletIcon(w)} size={20} className="text-accent-green" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">
-                          {w.label || shortenAddress(w.address, 8)}
-                        </p>
-                        <p className="text-xs text-text-muted font-mono truncate">{w.address}</p>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-border text-text-muted mt-0.5 inline-block">
-                          {getCategoryLabel(w.chain)}
-                        </span>
+            <section className="sources-connections">
+              <header>
+                <div>
+                  <h2>Подключённые источники</h2>
+                  <p>Статус, объём данных и управление синхронизацией.</p>
+                </div>
+              </header>
+              {wallets.map((w) => {
+                const status = getStatusMeta(w);
+                const tradeCount = w._count?.trades || 0;
+                const isSyncing = w.processing_status === 'processing' || syncingWalletId === w.id;
+                return (
+                  <article key={w.id} className={`source-connection ${status.className}`}>
+                    <div className="source-identity">
+                      <span>
+                        <Icon name={getWalletIcon(w)} size={23} />
+                      </span>
+                      <div>
+                        <strong>{w.label || shortenAddress(w.address, 8)}</strong>
+                        <small>{shortenAddress(w.address, 13)}</small>
+                        <em>{getCategoryLabel(w.chain)}</em>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="text-right">
-                        <span
-                          className={cn(
-                            'text-[10px] px-2 py-0.5 rounded-full block mb-1',
-                            w.processing_status === 'completed'
-                              ? 'text-accent-green bg-accent-green/5'
-                              : w.processing_status === 'pending'
-                                ? 'text-yellow-400 bg-yellow-400/5'
-                                : 'text-text-muted bg-surface-border'
-                          )}
-                        >
-                          {w.processing_status === 'completed'
-                            ? 'Готово'
-                            : w.processing_status === 'pending'
-                              ? 'Ожидает'
-                              : 'Обработка'}
-                        </span>
-                        {w.processing_status !== 'processing' && (
-                          <button
-                            onClick={() => handleManualSync(w.id)}
-                            disabled={syncingWalletId === w.id}
-                            className="text-xs text-accent-green hover:underline disabled:text-text-muted"
-                          >
-                            {syncingWalletId === w.id
-                              ? 'Синхронизация…'
-                              : w.processing_status === 'completed'
-                                ? 'Обновить сделки'
-                                : 'Синхронизировать'}
-                          </button>
-                        )}
-                      </div>
+                    <div className="source-stat">
+                      <small>Статус</small>
+                      <strong>
+                        <i /> {status.label}
+                      </strong>
+                      <span title={w.error_message}>{status.description}</span>
+                    </div>
+                    <div className="source-stat">
+                      <small>Сделки</small>
+                      <strong>{tradeCount}</strong>
+                      <span>импортировано</span>
+                    </div>
+                    <div className="source-stat">
+                      <small>Последняя синхронизация</small>
+                      <strong>{formatSyncTime(w.last_synced_at)}</strong>
+                      <span>{w.last_synced_at ? 'Автоимпорт включён' : 'Первый запуск'}</span>
+                    </div>
+                    <div className="source-actions">
+                      <button
+                        onClick={() => handleManualSync(w.id)}
+                        disabled={isSyncing}
+                        className="source-sync-button"
+                      >
+                        <Icon name="refresh" size={15} />
+                        {isSyncing ? 'Синхронизация…' : 'Синхронизировать'}
+                      </button>
                       <button
                         onClick={() => handleDelete(w.id)}
-                        className="text-text-muted hover:text-accent-red transition-colors p-1 rounded-lg hover:bg-accent-red/5"
+                        className="source-delete-button"
                         title="Удалить"
+                        aria-label={`Удалить ${w.label || 'источник'}`}
                       >
-                        <Icon name="delete" size={14} />
+                        <Icon name="delete" size={15} />
                       </button>
                     </div>
-                  </div>
-                </Card>
-              ))}
-            </div>
+                    <div className="source-progress">
+                      <header>
+                        <strong>Прогресс синхронизации</strong>
+                        <span>
+                          {w.processing_status === 'failed'
+                            ? 'Импорт остановлен — исправьте ошибку и повторите'
+                            : isSyncing
+                              ? 'Загружаем историю и формируем финальные сделки'
+                              : w.last_synced_at
+                                ? 'Последний цикл автоимпорта завершён'
+                                : 'Готово к первому импорту'}
+                        </span>
+                      </header>
+                      <div className="source-progress-track">
+                        <span className="done">
+                          <i>1</i>
+                          <strong>Источник подключён</strong>
+                          <small>{formatSyncTime(w.added_at)}</small>
+                        </span>
+                        <span
+                          className={cn(
+                            w.processing_status === 'failed'
+                              ? 'failed'
+                              : isSyncing
+                                ? 'active'
+                                : w.last_synced_at && 'done'
+                          )}
+                        >
+                          <i>2</i>
+                          <strong>Загрузка истории</strong>
+                          <small>
+                            {isSyncing ? 'Выполняется' : `${tradeCount} записей найдено`}
+                          </small>
+                        </span>
+                        <span
+                          className={cn(
+                            w.processing_status === 'completed' && 'done',
+                            w.processing_status === 'failed' && 'failed'
+                          )}
+                        >
+                          <i>3</i>
+                          <strong>Сделки импортированы</strong>
+                          <small>
+                            {w.last_synced_at ? formatSyncTime(w.last_synced_at) : 'Ожидает'}
+                          </small>
+                        </span>
+                      </div>
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
           )}
         </>
       )}

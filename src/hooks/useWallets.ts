@@ -21,6 +21,7 @@ interface Wallet {
   last_processed_block?: number;
   error_message?: string;
   added_at: string;
+  _count?: { trades: number };
 }
 
 export function useWallets() {
@@ -29,9 +30,9 @@ export function useWallets() {
   const [error, setError] = useState<string | null>(null);
   const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
 
-  const loadWallets = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const loadWallets = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    if (!silent) setError(null);
     try {
       const data = await api.get<Wallet[]>('/wallets');
       setWallets(data);
@@ -61,35 +62,46 @@ export function useWallets() {
         setError(message);
       }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
-  // Загружаем только при монтировании
   useEffect(() => {
-    loadWallets();
+    void loadWallets();
   }, [loadWallets]);
 
-  const startSync = useCallback(async (walletId: string) => {
-    setSyncStatuses((prev) => ({
-      ...prev,
-      [walletId]: { walletId, progress: 0, status: 'queued' },
-    }));
-
-    try {
-      await api.post(`/wallets/${walletId}/sync`, {});
-      setSyncStatuses((prev) => ({
-        ...prev,
-        [walletId]: { walletId, progress: 100, status: 'completed' },
-      }));
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : 'Ошибка синхронизации';
-      setSyncStatuses((prev) => ({
-        ...prev,
-        [walletId]: { walletId, progress: 0, status: 'failed', error: message },
-      }));
+  useEffect(() => {
+    if (!wallets.some((wallet) => ['pending', 'processing'].includes(wallet.processing_status))) {
+      return;
     }
-  }, []);
+    const timer = window.setInterval(() => void loadWallets(true), 2500);
+    return () => window.clearInterval(timer);
+  }, [loadWallets, wallets]);
+
+  const startSync = useCallback(
+    async (walletId: string) => {
+      setSyncStatuses((prev) => ({
+        ...prev,
+        [walletId]: { walletId, progress: 0, status: 'queued' },
+      }));
+
+      try {
+        await api.post(`/wallets/${walletId}/sync`, {});
+        setSyncStatuses((prev) => ({
+          ...prev,
+          [walletId]: { walletId, progress: 45, status: 'syncing' },
+        }));
+        await loadWallets();
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Ошибка синхронизации';
+        setSyncStatuses((prev) => ({
+          ...prev,
+          [walletId]: { walletId, progress: 0, status: 'failed', error: message },
+        }));
+      }
+    },
+    [loadWallets]
+  );
 
   const refresh = useCallback(() => {
     loadWallets();

@@ -60,6 +60,7 @@ export interface Wallet {
   error_message?: string;
   import_from_date?: string;
   added_at: string;
+  _count?: { trades: number };
 }
 
 export interface Analytics {

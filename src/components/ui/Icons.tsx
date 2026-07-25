@@ -34,6 +34,8 @@ export interface IconProps {
     | 'close'
     | 'menu'
     | 'back'
+    | 'forward'
+    | 'refresh'
     | 'info'
     | 'edit'
     | 'delete'
@@ -213,6 +215,14 @@ export function Icon({ name, size = 20, className = '' }: IconProps) {
     back: (
       <>
         <polyline points="15 18 9 12 15 6" />
+      </>
+    ),
+    forward: <polyline points="9 18 15 12 9 6" />,
+    refresh: (
+      <>
+        <polyline points="23 4 23 10 17 10" />
+        <polyline points="1 20 1 14 7 14" />
+        <path d="M3.5 9a9 9 0 0114.9-3.4L23 10M1 14l4.6 4.4A9 9 0 0020.5 15" />
       </>
     ),
     info: (
