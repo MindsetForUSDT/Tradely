@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icon } from '@/components/ui/Icons';
+import { api } from '@/lib/api';
 
 export function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
+  const [developmentResetUrl, setDevelopmentResetUrl] = useState('');
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,19 +29,13 @@ export function ForgotPassword() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/auth/forgot-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() }),
+      const response = await api.post<{ developmentResetUrl?: string }>('/auth/forgot-password', {
+        email: email.trim(),
       });
-
-      if (!response.ok) {
-        throw new Error('Ошибка отправки');
-      }
-
+      setDevelopmentResetUrl(response.developmentResetUrl || '');
       setSent(true);
-    } catch (err: any) {
-      setError(err.message || 'Ошибка отправки');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Ошибка отправки');
     }
 
     setLoading(false);
@@ -90,6 +86,14 @@ export function ForgotPassword() {
                 <p className="text-xs text-gray-500 mb-6">
                   Ссылка действительна в течение 1 часа. Если письма нет, проверьте папку "Спам".
                 </p>
+                {developmentResetUrl && (
+                  <a
+                    href={developmentResetUrl}
+                    className="block mb-5 text-xs text-emerald-400 hover:underline"
+                  >
+                    Открыть тестовую ссылку восстановления
+                  </a>
+                )}
                 <Link
                   to="/login"
                   className="inline-flex items-center gap-2 text-emerald-400 font-medium hover:underline"

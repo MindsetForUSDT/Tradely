@@ -17,7 +17,13 @@ const validateEmail = (value: string) =>
       ? 'Некорректный формат email'
       : undefined;
 const validatePassword = (value: string) =>
-  !value ? 'Введите пароль' : value.length < 6 ? 'Минимум 6 символов' : undefined;
+  !value
+    ? 'Введите пароль'
+    : value.length < 8
+      ? 'Минимум 8 символов'
+      : !/[0-9]/.test(value)
+        ? 'Добавьте хотя бы одну цифру'
+        : undefined;
 const validateUsername = (value: string) =>
   !value ? 'Введите имя пользователя' : value.length < 2 ? 'Минимум 2 символа' : undefined;
 function getErrorMessage(err: unknown) {
@@ -98,25 +104,20 @@ export function Register() {
           subscription_tier: string;
           created_at: string;
         };
-        token: string;
       }>('/auth/register', {
         username: username.trim(),
         email: email.trim().toLowerCase(),
         password,
       });
-      const { user, token } = response;
-      if (!user || !token) throw new Error('Ошибка регистрации');
-      api.setTokenProvider(() => Promise.resolve(token));
-      setUser(
-        {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          subscription_tier: user.subscription_tier as 'free' | 'pro',
-          created_at: user.created_at,
-        },
-        token
-      );
+      const { user } = response;
+      if (!user) throw new Error('Ошибка регистрации');
+      setUser({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        subscription_tier: user.subscription_tier as 'free' | 'pro',
+        created_at: user.created_at,
+      });
       toast.success('Аккаунт создан!');
       navigate('/dashboard', { replace: true });
     } catch (err: unknown) {
@@ -170,7 +171,14 @@ export function Register() {
       <form className="auth-form" onSubmit={handleRegister}>
         {field('username', 'Имя пользователя', username, setUsername, 'text', 'trader_01')}
         {field('email', 'Email', email, setEmail, 'email', 'trader@example.com')}
-        {field('password', 'Пароль', password, setPassword, 'password', 'Минимум 6 символов')}
+        {field(
+          'password',
+          'Пароль',
+          password,
+          setPassword,
+          'password',
+          'Минимум 8 символов и цифра'
+        )}
         {error && (
           <div className="auth-error" role="alert">
             {error}

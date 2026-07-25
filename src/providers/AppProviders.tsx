@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
-import { ReactNode, useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { ReactNode, useEffect, useState, useCallback, useMemo } from 'react';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { OfflineBanner } from '@/components/ui/OfflineBanner';
 import { Toaster } from 'react-hot-toast';
@@ -22,83 +22,60 @@ const queryClient = new QueryClient({
   },
 });
 
-const STORAGE_KEYS = {
-  USER: 'tradeumdiary-user',
-  USER_ID: 'tradeumdiary-user-id',
-  API_TOKEN: 'tradeumdiary-api-token',
-} as const;
-
-function safelyParseUser(data: string | null): UserProfile | null {
-  if (!data) return null;
-  try {
-    const parsed = JSON.parse(data);
-    if (
-      typeof parsed === 'object' &&
-      parsed !== null &&
-      typeof parsed.id === 'string' &&
-      typeof parsed.username === 'string'
-    ) {
-      return parsed as UserProfile;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
 function AuthProviderInner({ children }: { children: ReactNode }) {
   const [userId, setUserId] = useState<string | null>(null);
   const [user, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const storeSetUser = useStore((s) => s.setUser);
-  const initDone = useRef(false);
 
   useEffect(() => {
-    if (initDone.current) return;
-    initDone.current = true;
-
-    const savedUser = safelyParseUser(localStorage.getItem(STORAGE_KEYS.USER));
-    const savedUserId = localStorage.getItem(STORAGE_KEYS.USER_ID);
-    const savedToken = localStorage.getItem(STORAGE_KEYS.API_TOKEN);
-
-    if (savedUserId && savedUser) {
-      setUserId(savedUserId);
-      setProfile(savedUser);
-      storeSetUser(savedUser);
-      if (savedToken) {
-        api.setTokenProvider(() => Promise.resolve(savedToken));
-      }
-    }
-
-    setIsLoading(false);
+    let active = true;
+    api
+      .get<{ user: UserProfile }>('/auth/me')
+      .then(({ user: sessionUser }) => {
+        if (!active) return;
+        setUserId(sessionUser.id);
+        setProfile(sessionUser);
+        storeSetUser(sessionUser);
+      })
+      .catch(() => {
+        if (!active) return;
+        setUserId(null);
+        setProfile(null);
+        storeSetUser(null);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [storeSetUser]);
 
-  const signOut = useCallback(() => {
-    setUserId(null);
-    setProfile(null);
-    storeSetUser(null);
-    localStorage.removeItem(STORAGE_KEYS.USER);
-    localStorage.removeItem(STORAGE_KEYS.USER_ID);
-    localStorage.removeItem(STORAGE_KEYS.API_TOKEN);
-    api.setTokenProvider(() => Promise.resolve(null));
-    queryClient.clear();
-    return Promise.resolve();
+  const signOut = useCallback(async () => {
+    try {
+      await api.post('/auth/logout');
+    } finally {
+      setUserId(null);
+      setProfile(null);
+      storeSetUser(null);
+      localStorage.removeItem('tradeumdiary-user');
+      localStorage.removeItem('tradeumdiary-user-id');
+      localStorage.removeItem('tradeumdiary-api-token');
+      queryClient.clear();
+    }
   }, [storeSetUser]);
 
   const setUser = useCallback(
-    (newUser: UserProfile | null, token?: string) => {
+    (newUser: UserProfile | null) => {
       if (newUser) {
         setProfile(newUser);
         storeSetUser(newUser);
-        localStorage.setItem(STORAGE_KEYS.USER, JSON.stringify(newUser));
-        localStorage.setItem(STORAGE_KEYS.USER_ID, newUser.id);
-
-        if (token) {
-          localStorage.setItem(STORAGE_KEYS.API_TOKEN, token);
-          api.setTokenProvider(() => Promise.resolve(token));
-        }
-
         setUserId(newUser.id);
+      } else {
+        setProfile(null);
+        storeSetUser(null);
+        setUserId(null);
       }
     },
     [storeSetUser]

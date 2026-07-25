@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import toast from 'react-hot-toast';
 
 interface SyncStatus {
   walletId: string;
@@ -47,18 +46,19 @@ export function useWallets() {
         };
       });
       setSyncStatuses(statusMap);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[useWallets] Error:', e);
+      const message = e instanceof Error ? e.message : 'Ошибка загрузки кошельков';
       // Игнорируем ошибку "Profile not found" - просто нет кошельков
-      if (e.message?.includes('Profile not found')) {
+      if (message.includes('Profile not found')) {
         setWallets([]);
         setError(null);
-      } else if (e.message?.includes('401') || e.message?.includes('403')) {
+      } else if (message.includes('401') || message.includes('403')) {
         // Неавторизован - не показываем ошибку
         setWallets([]);
         setError(null);
       } else {
-        setError(e.message || 'Ошибка загрузки кошельков');
+        setError(message);
       }
     } finally {
       setIsLoading(false);
@@ -82,10 +82,11 @@ export function useWallets() {
         ...prev,
         [walletId]: { walletId, progress: 100, status: 'completed' },
       }));
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : 'Ошибка синхронизации';
       setSyncStatuses((prev) => ({
         ...prev,
-        [walletId]: { walletId, progress: 0, status: 'failed', error: e.message },
+        [walletId]: { walletId, progress: 0, status: 'failed', error: message },
       }));
     }
   }, []);

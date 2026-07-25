@@ -1,94 +1,74 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const NO_REFRESH_ENDPOINTS = new Set([
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/forgot-password',
+  '/auth/reset-password',
+]);
 
 class ApiClient {
-  private baseURL: string;
-  private tokenProvider: (() => Promise<string | null>) | null = null;
+  private refreshPromise: Promise<boolean> | null = null;
 
-  constructor(baseURL: string) {
-    this.baseURL = baseURL;
-  }
+  constructor(private readonly baseURL: string) {}
 
-  setTokenProvider(provider: () => Promise<string | null>) {
-    this.tokenProvider = provider;
-  }
-
-  private async getHeaders(): Promise<HeadersInit> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-
-    let token: string | null = null;
-
-    if (this.tokenProvider) {
-      token = await this.tokenProvider();
-    }
-
-    // Fallback: читаем токен напрямую из localStorage (синхронно)
-    if (!token) {
-      token = localStorage.getItem('tradeumdiary-api-token');
-    }
-
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    return headers;
+  private refreshSession(): Promise<boolean> {
+    if (this.refreshPromise) return this.refreshPromise;
+    this.refreshPromise = fetch(`${this.baseURL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}',
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => {
+        this.refreshPromise = null;
+      });
+    return this.refreshPromise;
   }
 
   private async handleResponse<T>(response: Response): Promise<T> {
     const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      const error = data.error || `HTTP ${response.status}`;
-      throw new Error(error);
-    }
-
-    return data;
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    return data as T;
   }
 
-  async get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
+  private async request<T>(endpoint: string, init: RequestInit, canRefresh = true): Promise<T> {
+    const response = await fetch(`${this.baseURL}${endpoint}`, {
+      ...init,
+      credentials: 'include',
+      headers: {
+        ...(init.body ? { 'Content-Type': 'application/json' } : {}),
+        ...init.headers,
+      },
+    });
+
+    if (response.status === 401 && canRefresh && !NO_REFRESH_ENDPOINTS.has(endpoint)) {
+      const refreshed = await this.refreshSession();
+      if (refreshed) return this.request<T>(endpoint, init, false);
+    }
+
+    return this.handleResponse<T>(response);
+  }
+
+  get<T>(endpoint: string, params?: Record<string, string>): Promise<T> {
     const url = new URL(`${this.baseURL}${endpoint}`, window.location.origin);
-    if (params) {
-      Object.entries(params).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
-    }
-
-    const response = await fetch(url.toString(), {
-      method: 'GET',
-      headers: await this.getHeaders(),
-    });
-
-    return this.handleResponse<T>(response);
+    Object.entries(params || {}).forEach(([key, value]) => url.searchParams.set(key, value));
+    const relativeEndpoint = `${url.pathname}${url.search}`.replace(/^\/api/, '');
+    return this.request<T>(relativeEndpoint, { method: 'GET' });
   }
 
-  async post<T>(endpoint: string, data: unknown): Promise<T> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'POST',
-      headers: await this.getHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    return this.handleResponse<T>(response);
+  post<T>(endpoint: string, data: unknown = {}): Promise<T> {
+    return this.request<T>(endpoint, { method: 'POST', body: JSON.stringify(data) });
   }
 
-  async patch<T>(endpoint: string, data: unknown): Promise<T> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'PATCH',
-      headers: await this.getHeaders(),
-      body: JSON.stringify(data),
-    });
-
-    return this.handleResponse<T>(response);
+  patch<T>(endpoint: string, data: unknown): Promise<T> {
+    return this.request<T>(endpoint, { method: 'PATCH', body: JSON.stringify(data) });
   }
 
-  async delete<T>(endpoint: string): Promise<T> {
-    const response = await fetch(`${this.baseURL}${endpoint}`, {
-      method: 'DELETE',
-      headers: await this.getHeaders(),
-    });
-
-    return this.handleResponse<T>(response);
+  delete<T>(endpoint: string): Promise<T> {
+    return this.request<T>(endpoint, { method: 'DELETE' });
   }
 }
 

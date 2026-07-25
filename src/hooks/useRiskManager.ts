@@ -24,15 +24,13 @@ export function useRiskManager() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadLimits();
+    void loadLimits();
   }, []);
 
   const loadLimits = async () => {
     try {
-      const response: any = await api.get('/profile');
-      if (response.risk_limits) {
-        setLimits(response.risk_limits);
-      }
+      const response = await api.get<RiskLimits>('/risk-limits');
+      setLimits(response);
     } catch (error) {
       console.error('[useRiskManager] Error loading limits:', error);
     } finally {
@@ -42,10 +40,10 @@ export function useRiskManager() {
 
   const saveLimits = async (newLimits: RiskLimits) => {
     try {
-      await api.post('/profile/risk-limits', newLimits);
+      const saved = await api.post<RiskLimits>('/risk-limits', newLimits);
       toast.success('Лимиты сохранены');
-      setLimits(newLimits);
-    } catch (error) {
+      setLimits(saved);
+    } catch {
       toast.error('Ошибка сохранения');
     }
   };

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Icon } from '@/components/ui/Icons';
+import { api } from '@/lib/api';
 
 export function UpdatePassword() {
   const [password, setPassword] = useState('');
@@ -60,19 +61,16 @@ export function UpdatePassword() {
     setLoading(true);
 
     try {
-      // TODO: Добавить endpoint для обновления пароля
-      await fetch('http://localhost:3001/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
-      });
+      const token = new URLSearchParams(window.location.search).get('token');
+      if (!token) throw new Error('Недействительная ссылка восстановления');
+      await api.post('/auth/reset-password', { token, password });
 
       setSuccess(true);
       setTimeout(() => {
         navigate('/login');
       }, 3000);
-    } catch (err: any) {
-      setError(err.message || 'Ошибка обновления пароля');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Ошибка обновления пароля');
     }
 
     setLoading(false);

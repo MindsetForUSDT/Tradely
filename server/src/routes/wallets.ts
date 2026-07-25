@@ -4,8 +4,24 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { encrypt } from '../services/crypto.js';
 import { validateBybitWallet } from '../services/tradeImport.js';
 import { syncWallet } from '../services/walletSync.js';
+import { writeAuditLog } from '../services/audit.js';
 
 const router = Router();
+const publicWalletSelect = {
+  id: true,
+  address: true,
+  chain: true,
+  label: true,
+  web3_provider: true,
+  cex_provider: true,
+  processing_status: true,
+  last_synced_at: true,
+  last_processed_block: true,
+  error_message: true,
+  settings: true,
+  import_from_date: true,
+  added_at: true,
+} as const;
 
 // Debug middleware
 router.use((req, res, next) => {
@@ -16,7 +32,6 @@ router.use((req, res, next) => {
 router.get('/', requireAuth, async (req: AuthRequest, res) => {
   console.log('[Wallets GET] ====== START ======');
   console.log('[Wallets GET] userId:', req.userId);
-  console.log('[Wallets GET] userEmail:', req.userEmail);
 
   try {
     const profile = await prisma.profile.findUnique({
@@ -28,6 +43,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
     const wallets = await prisma.wallet.findMany({
       where: { user_id: profile.id },
       orderBy: { added_at: 'desc' },
+      select: publicWalletSelect,
     });
 
     console.log('[Wallets GET] Wallets found:', wallets.length);
@@ -68,8 +84,10 @@ router.post('/validate', requireAuth, async (req: AuthRequest, res) => {
 router.post('/', requireAuth, async (req: AuthRequest, res) => {
   console.log('[Wallets POST] ====== START ======');
   console.log('[Wallets POST] userId:', req.userId);
-  console.log('[Wallets POST] userEmail:', req.userEmail);
-  console.log('[Wallets POST] Request body:', JSON.stringify(req.body));
+  console.log(
+    '[Wallets POST] provider:',
+    req.body?.cex_provider || req.body?.provider || 'unknown'
+  );
 
   try {
     const profile = await prisma.profile.findUnique({
@@ -139,8 +157,6 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       }),
     };
 
-    console.log('[Wallets POST] Wallet data to insert:', JSON.stringify(walletData));
-
     // Проверка существования кошелька
     const existingWallet = await prisma.wallet.findFirst({
       where: {
@@ -166,12 +182,19 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
 
     const wallet = await prisma.wallet.create({
       data: walletData,
+      select: publicWalletSelect,
     });
 
     console.log('[Wallets POST] Wallet created:', wallet.id);
     console.log('[Wallets POST] ====== SUCCESS ======');
 
-    res.json(wallet);
+    void writeAuditLog({
+      action: 'source.connected',
+      userId: req.userId,
+      request: req,
+      metadata: { provider: wallet.cex_provider || wallet.web3_provider },
+    });
+    res.status(201).json(wallet);
   } catch (error: any) {
     console.error('[Wallets POST] Wallet error:', error.message);
     console.error('[Wallets POST] Wallet stack:', error.stack);
@@ -197,14 +220,22 @@ router.delete('/:id', requireAuth, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
 
-    await prisma.wallet.deleteMany({
+    const deleted = await prisma.wallet.deleteMany({
       where: {
         id: walletId,
         user_id: profile.id,
       },
     });
 
-    res.json({ success: true });
+    if (!deleted.count) return res.status(404).json({ error: 'Источник не найден' });
+    void writeAuditLog({
+      action: 'source.deleted',
+      userId: req.userId,
+      request: req,
+      metadata: { walletId },
+    });
+
+    return res.json({ success: true });
   } catch (error) {
     console.error('[Wallets DELETE]', error);
     res.status(500).json({ error: 'Internal server error' });

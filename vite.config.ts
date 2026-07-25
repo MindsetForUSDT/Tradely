@@ -31,6 +31,16 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: true,
       allowedHosts: ['terminal.local'],
+      proxy: {
+        '/api': {
+          target: 'http://127.0.0.1:3001',
+          changeOrigin: false,
+        },
+        '/health': {
+          target: 'http://127.0.0.1:3001',
+          changeOrigin: false,
+        },
+      },
       headers: {
         'X-Frame-Options': 'DENY',
         'X-Content-Type-Options': 'nosniff',

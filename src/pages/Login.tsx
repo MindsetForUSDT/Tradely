@@ -15,6 +15,7 @@ export function Login() {
   const { isAuthenticated, isLoading: authLoading, setUser } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
@@ -58,21 +59,16 @@ export function Login() {
           subscription_tier: string;
           created_at: string;
         };
-        token: string;
-      }>('/auth/login', { email: email.trim().toLowerCase(), password });
-      const { user, token } = response;
-      if (!user || !token) throw new Error('Ошибка входа');
-      api.setTokenProvider(() => Promise.resolve(token));
-      setUser(
-        {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          subscription_tier: user.subscription_tier as 'free' | 'pro',
-          created_at: user.created_at,
-        },
-        token
-      );
+      }>('/auth/login', { email: email.trim().toLowerCase(), password, remember });
+      const { user } = response;
+      if (!user) throw new Error('Ошибка входа');
+      setUser({
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        subscription_tier: user.subscription_tier as 'free' | 'pro',
+        created_at: user.created_at,
+      });
       localStorage.removeItem('lastRegistrationEmail');
       toast.success('Успешный вход!');
       navigate(returnTo, { replace: true });
@@ -126,7 +122,12 @@ export function Login() {
         </label>
         <div className="auth-form-row">
           <label className="auth-check">
-            <input type="checkbox" /> <span>Запомнить меня</span>
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(event) => setRemember(event.target.checked)}
+            />{' '}
+            <span>Запомнить меня</span>
           </label>
           <Link to="/forgot-password">Забыли пароль?</Link>
         </div>

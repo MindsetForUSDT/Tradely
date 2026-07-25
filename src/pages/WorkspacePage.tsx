@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Icon } from '@/components/ui/Icons';
 import { useAuth } from '@/hooks/useAuth';
+import { api } from '@/lib/api';
 
 type WorkspaceKind = 'ai' | 'goals' | 'achievements' | 'settings';
 
@@ -13,7 +14,6 @@ interface Goal {
   progress: number;
 }
 
-const GOALS_KEY = 'tradeumdiary_goals_v1';
 const SETTINGS_KEY = 'tradeumdiary_workspace_settings_v1';
 
 function PageHeading({
@@ -78,32 +78,51 @@ function AiWorkspace() {
 }
 
 function GoalsWorkspace() {
-  const [goals, setGoals] = useState<Goal[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(GOALS_KEY) || '[]') as Goal[];
-    } catch {
-      return [];
-    }
-  });
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [target, setTarget] = useState('');
 
-  useEffect(() => localStorage.setItem(GOALS_KEY, JSON.stringify(goals)), [goals]);
+  useEffect(() => {
+    let active = true;
+    api
+      .get<Goal[]>('/goals')
+      .then((items) => {
+        if (active) setGoals(items);
+      })
+      .catch((error) =>
+        toast.error(error instanceof Error ? error.message : 'Не удалось загрузить цели')
+      )
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
-  const addGoal = (event: FormEvent) => {
+  const addGoal = async (event: FormEvent) => {
     event.preventDefault();
     if (!title.trim() || !target.trim()) return;
-    setGoals((current) => [
-      ...current,
-      { id: crypto.randomUUID(), title: title.trim(), target: target.trim(), progress: 0 },
-    ]);
-    setTitle('');
-    setTarget('');
-    toast.success('Цель добавлена');
+    try {
+      const goal = await api.post<Goal>('/goals', { title: title.trim(), target: target.trim() });
+      setGoals((current) => [goal, ...current]);
+      setTitle('');
+      setTarget('');
+      toast.success('Цель добавлена');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось добавить цель');
+    }
   };
 
-  const removeGoal = (id: string) =>
-    setGoals((current) => current.filter((goal) => goal.id !== id));
+  const removeGoal = async (id: string) => {
+    try {
+      await api.delete(`/goals/${id}`);
+      setGoals((current) => current.filter((goal) => goal.id !== id));
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось удалить цель');
+    }
+  };
 
   return (
     <section className="workspace-page">
@@ -141,7 +160,11 @@ function GoalsWorkspace() {
             <span>Активные цели</span>
             <small>{goals.length}</small>
           </div>
-          {goals.length ? (
+          {loading ? (
+            <div className="workspace-list-empty">
+              <strong>Загружаем цели…</strong>
+            </div>
+          ) : goals.length ? (
             goals.map((goal) => (
               <article key={goal.id}>
                 <div>

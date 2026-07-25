@@ -17,9 +17,16 @@ interface WeekdayPerformanceChartProps {
   isLoading?: boolean;
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+interface WeekdayTooltipProps {
+  active?: boolean;
+  payload?: Array<{ payload?: WeekdayPerformance }>;
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: WeekdayTooltipProps) {
   if (!active || !payload?.length) return null;
   const d = payload[0]?.payload;
+  if (!d) return null;
   return (
     <div className="glass-card p-3 text-xs shadow-lg">
       <p className="font-semibold mb-1">{label}</p>

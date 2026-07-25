@@ -2,18 +2,42 @@
 
 ## Быстрый запуск
 
-Создайте корневой `.env` только для локальных секретов:
+Скопируйте шаблон окружения и замените секреты. Compose намеренно не запускается со
+стандартными ключами:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Минимальный `.env`:
 
 ```env
-JWT_SECRET=replace-with-a-long-random-secret
-ENCRYPTION_KEY=replace-with-a-different-long-random-secret
+POSTGRES_PASSWORD=replace-with-a-long-database-password
+JWT_SECRET=replace-with-at-least-32-random-characters
+ENCRYPTION_KEY=replace-with-a-different-32-character-secret
+APP_URL=http://localhost:3000
 ```
+
+Для отправки писем восстановления добавьте `RESEND_API_KEY` и `EMAIL_FROM`. Без них
+в локальном режиме API вернёт тестовую ссылку прямо в интерфейс; в production эти
+переменные обязательны.
 
 Затем из корня проекта выполните:
 
 ```bash
 docker compose up --build
 ```
+
+Если Docker использовал старый слой `npm ci` и сборка сообщает `tsc: not found`,
+пересоберите web и API без кэша:
+
+```powershell
+docker compose build --no-cache web api
+docker compose up -d --force-recreate
+```
+
+В Dockerfile зафиксирован npm 10.9.4: npm 11 из обновляемого образа Node Alpine может
+завершать `npm ci` сообщением `Exit handler never called`, оставляя неполный `node_modules`.
 
 После запуска:
 
@@ -23,6 +47,8 @@ docker compose up --build
 - PostgreSQL: `localhost:5433`
 
 API-контейнер автоматически применяет существующие Prisma migrations перед запуском.
+После обновления текущей ветки миграция создаст таблицы сессий, токенов восстановления,
+аудита, риск-лимитов и целей.
 
 ## Полезные команды
 

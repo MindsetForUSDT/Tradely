@@ -8,22 +8,103 @@ datasource db {
 }
 
 model Profile {
-  id                      String           @id @default(uuid())
-  clerk_id                String           @unique
-  email                   String           @unique
-  username                String?          @unique
+  id                      String               @id @default(uuid())
+  email                   String               @unique
+  username                String?              @unique
   hashed_password         String?
   avatar_url              String?
-  subscription_tier       String           @default("free")
+  subscription_tier       String               @default("free")
   subscription_expires_at DateTime?
-  created_at              DateTime         @default(now())
-  updated_at              DateTime         @updatedAt
+  created_at              DateTime             @default(now())
+  updated_at              DateTime             @updatedAt
   analytics               DailyAnalytics[]
   tags                    Tag[]
   trades                  Trade[]
   wallets                 Wallet[]
+  sessions                AuthSession[]
+  password_reset_tokens   PasswordResetToken[]
+  audit_logs              AuditLog[]
+  risk_limits             RiskLimit?
+  goals                   Goal[]
 
   @@map("profiles")
+}
+
+model RiskLimit {
+  id                    String   @id @default(uuid())
+  user_id               String   @unique
+  daily_loss_limit      Decimal  @default(0) @db.Decimal(20, 2)
+  weekly_loss_limit     Decimal  @default(0) @db.Decimal(20, 2)
+  position_size_percent Decimal  @default(2) @db.Decimal(8, 2)
+  max_leverage          Decimal  @default(1) @db.Decimal(8, 2)
+  alert_enabled         Boolean  @default(true)
+  alert_email           String?
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  user                  Profile  @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("risk_limits")
+}
+
+model Goal {
+  id                 String    @id @default(uuid())
+  user_id            String
+  title              String
+  target_description String
+  progress           Int       @default(0)
+  status             String    @default("active")
+  due_at             DateTime?
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+  user               Profile   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, status, created_at])
+  @@map("goals")
+}
+
+model AuthSession {
+  id           String    @id @default(uuid())
+  user_id      String
+  token_hash   String    @unique
+  expires_at   DateTime
+  revoked_at   DateTime?
+  last_used_at DateTime  @default(now())
+  ip_address   String?
+  user_agent   String?
+  persistent   Boolean   @default(false)
+  created_at   DateTime  @default(now())
+  user         Profile   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, expires_at])
+  @@map("auth_sessions")
+}
+
+model PasswordResetToken {
+  id         String    @id @default(uuid())
+  user_id    String
+  token_hash String    @unique
+  expires_at DateTime
+  used_at    DateTime?
+  created_at DateTime  @default(now())
+  user       Profile   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, expires_at])
+  @@map("password_reset_tokens")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  user_id    String?
+  action     String
+  ip_address String?
+  user_agent String?
+  metadata   String?
+  created_at DateTime @default(now())
+  user       Profile? @relation(fields: [user_id], references: [id], onDelete: SetNull)
+
+  @@index([user_id, created_at])
+  @@index([action, created_at])
+  @@map("audit_logs")
 }
 
 model Wallet {

@@ -17,7 +17,7 @@ export interface AuthContextType {
   isLoading: boolean;
   subscriptionTier: 'free' | 'pro';
   signOut: () => Promise<void>;
-  setUser: (user: UserProfile | null, token?: string) => void;
+  setUser: (user: UserProfile | null) => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({

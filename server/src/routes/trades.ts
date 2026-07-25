@@ -1,152 +1,144 @@
 import { Router } from 'express';
+import { Prisma } from '@prisma/client';
+import { z } from 'zod';
 import { prisma } from '../db.js';
-import { requireAuth, AuthRequest } from '../middleware/auth.js';
+import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
+const querySchema = z.object({
+  limit: z.coerce.number().int().min(1).max(500).default(50),
+  offset: z.coerce.number().int().min(0).max(1_000_000).default(0),
+  orderBy: z.enum(['timestamp', 'pnl_realized', 'value_usd']).default('timestamp'),
+  ascending: z.enum(['true', 'false']).default('false'),
+  includeNonFinal: z.enum(['true', 'false']).default('false'),
+  symbol: z.string().trim().max(40).optional(),
+  side: z.enum(['buy', 'sell', 'long', 'short']).optional(),
+  dateFrom: z.string().datetime().optional(),
+  dateTo: z.string().datetime().optional(),
+  walletId: z.string().uuid().optional(),
+});
+const manualTradeSchema = z.object({
+  symbol: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{2,12}([/-][A-Z0-9]{2,12})?$/),
+  side: z.enum(['buy', 'sell']),
+  amount: z.coerce.number().positive().max(1_000_000_000),
+  price_usd: z.coerce.number().positive().max(1_000_000_000),
+  value_usd: z.coerce.number().nonnegative().max(10_000_000_000),
+  fee_usd: z.coerce.number().nonnegative().max(10_000_000),
+  timestamp: z.string().datetime(),
+  raw_data: z.string().max(10_000).optional(),
+});
+const contextUpdateSchema = z
+  .object({
+    raw_data: z.string().max(10_000).optional(),
+  })
+  .strict();
+const bulkWalletSchema = z.object({
+  old_wallet_id: z.string().uuid(),
+  new_wallet_id: z.string().uuid(),
+});
 
 router.get('/', requireAuth, async (req: AuthRequest, res) => {
+  const parsed = querySchema.safeParse(req.query);
+  if (!parsed.success) return res.status(400).json({ error: 'Некорректные параметры фильтра' });
+
   try {
-    const profile = await prisma.profile.findUnique({
-      where: { id: req.userId! },
-    });
-
-    if (!profile) {
-      res.status(404).json({ error: 'Profile not found' });
-      return;
-    }
-
-    const limit = parseInt(req.query.limit as string) || 50;
-    const offset = parseInt(req.query.offset as string) || 0;
-    const orderBy = (req.query.orderBy as string) || 'timestamp';
-    const ascending = req.query.ascending === 'true';
-
-    // Фильтры
-    const where: any = {
-      user_id: profile.id,
-      ...(req.query.includeNonFinal === 'true' ? {} : { status: 'closed' }),
+    const query = parsed.data;
+    const where: Prisma.TradeWhereInput = {
+      user_id: req.userId!,
+      ...(query.includeNonFinal === 'true' ? {} : { status: 'closed' }),
+      ...(query.symbol ? { symbol: { contains: query.symbol, mode: 'insensitive' } } : {}),
+      ...(query.side ? { side: query.side } : {}),
+      ...(query.walletId ? { wallet_id: query.walletId } : {}),
+      ...(query.dateFrom || query.dateTo
+        ? {
+            timestamp: {
+              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
+              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+            },
+          }
+        : {}),
     };
-
-    if (req.query.symbol) {
-      where.symbol = { contains: req.query.symbol as string, mode: 'insensitive' };
-    }
-    if (req.query.side) {
-      where.side = req.query.side as string;
-    }
-    if (req.query.dateFrom) {
-      where.timestamp = { ...where.timestamp, gte: new Date(req.query.dateFrom as string) };
-    }
-    if (req.query.dateTo) {
-      where.timestamp = { ...where.timestamp, lte: new Date(req.query.dateTo as string) };
-    }
-    if (req.query.walletId) {
-      where.wallet_id = req.query.walletId as string;
-    }
-
-    const trades = await prisma.trade.findMany({
-      where,
-      orderBy: { [orderBy]: ascending ? 'asc' : 'desc' },
-      take: limit,
-      skip: offset,
-    });
-
-    const total = await prisma.trade.count({ where });
-
-    res.json({ trades, total });
+    const [trades, total] = await Promise.all([
+      prisma.trade.findMany({
+        where,
+        orderBy: { [query.orderBy]: query.ascending === 'true' ? 'asc' : 'desc' },
+        take: query.limit,
+        skip: query.offset,
+      }),
+      prisma.trade.count({ where }),
+    ]);
+    return res.json({ trades, total });
   } catch (error) {
     console.error('[Trades GET]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Не удалось загрузить сделки' });
   }
 });
 
 router.post('/', requireAuth, async (req: AuthRequest, res) => {
+  const parsed = manualTradeSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res
+      .status(400)
+      .json({ error: parsed.error.issues[0]?.message || 'Некорректная сделка' });
+  }
+
   try {
-    const profile = await prisma.profile.findUnique({
-      where: { id: req.userId! },
-    });
-
-    if (!profile) {
-      res.status(404).json({ error: 'Profile not found' });
-      return;
-    }
-
     const trade = await prisma.trade.create({
       data: {
-        ...req.body,
-        user_id: profile.id,
+        user_id: req.userId!,
+        symbol: parsed.data.symbol,
+        side: parsed.data.side,
+        amount: parsed.data.amount,
+        price_usd: parsed.data.price_usd,
+        value_usd: parsed.data.value_usd,
+        fee_usd: parsed.data.fee_usd,
+        timestamp: new Date(parsed.data.timestamp),
+        raw_data: parsed.data.raw_data,
+        status: 'closed',
+        exchange: 'manual',
+        import_source: 'manual',
       },
     });
-
-    res.json(trade);
+    return res.status(201).json(trade);
   } catch (error) {
     console.error('[Trades POST]', error);
-    res.status(500).json({ error: 'Internal server error' });
+    return res.status(500).json({ error: 'Не удалось добавить сделку' });
   }
 });
 
-// Bulk update wallet for trades
 router.patch('/bulk-update-wallet', requireAuth, async (req: AuthRequest, res) => {
-  try {
-    const { old_wallet_id, new_wallet_id } = req.body;
+  const parsed = bulkWalletSchema.safeParse(req.body);
+  if (!parsed.success) return res.status(400).json({ error: 'Некорректные источники' });
 
-    if (!old_wallet_id || !new_wallet_id) {
-      return res.status(400).json({ error: 'old_wallet_id and new_wallet_id required' });
-    }
+  const ownedWallets = await prisma.wallet.count({
+    where: {
+      id: { in: [parsed.data.old_wallet_id, parsed.data.new_wallet_id] },
+      user_id: req.userId!,
+    },
+  });
+  if (ownedWallets !== 2) return res.status(404).json({ error: 'Источник не найден' });
 
-    const profile = await prisma.profile.findUnique({
-      where: { id: req.userId! },
-    });
-
-    if (!profile) {
-      return res.status(404).json({ error: 'Profile not found' });
-    }
-
-    const updated = await prisma.trade.updateMany({
-      where: {
-        user_id: profile.id,
-        wallet_id: old_wallet_id,
-      },
-      data: {
-        wallet_id: new_wallet_id,
-      },
-    });
-
-    res.json({ success: true, updated: updated.count });
-  } catch (error) {
-    console.error('[Trades PATCH bulk-update-wallet]', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  const updated = await prisma.trade.updateMany({
+    where: { user_id: req.userId!, wallet_id: parsed.data.old_wallet_id },
+    data: { wallet_id: parsed.data.new_wallet_id },
+  });
+  return res.json({ success: true, updated: updated.count });
 });
 
 router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
-  try {
-    const tradeId = String(req.params.id);
-    const profile = await prisma.profile.findUnique({
-      where: { id: req.userId! },
-    });
-
-    if (!profile) {
-      res.status(404).json({ error: 'Profile not found' });
-      return;
-    }
-
-    const trade = await prisma.trade.updateMany({
-      where: {
-        id: tradeId,
-        user_id: profile.id,
-      },
-      data: req.body,
-    });
-
-    if (trade.count === 0) {
-      res.status(404).json({ error: 'Trade not found' });
-      return;
-    }
-
-    res.json({ success: true });
-  } catch (error) {
-    console.error('[Trades PATCH]', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
+  const parsed = contextUpdateSchema.safeParse(req.body);
+  if (!parsed.success)
+    return res.status(400).json({ error: 'Можно изменять только контекст сделки' });
+  const result = await prisma.trade.updateMany({
+    where: { id: String(req.params.id), user_id: req.userId! },
+    data: parsed.data,
+  });
+  if (!result.count) return res.status(404).json({ error: 'Сделка не найдена' });
+  return res.json({ success: true });
 });
 
 export default router;

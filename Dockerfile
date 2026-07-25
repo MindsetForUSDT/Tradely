@@ -1,8 +1,14 @@
-FROM node:20-alpine AS build
+FROM node:20.19.0-alpine AS build
 WORKDIR /app
+ENV HUSKY=0
 
 COPY package.json package-lock.json ./
-RUN npm ci --no-audit --no-fund
+# TypeScript, Vite and the React plugin are build-time devDependencies.
+# --include=dev makes the build deterministic even when the host exports
+# NODE_ENV=production or npm_config_production=true.
+RUN npm ci --include=dev --no-audit --no-fund \
+    && test -x node_modules/.bin/tsc \
+    && test -x node_modules/.bin/vite
 
 COPY . .
 ARG VITE_API_URL=/api
