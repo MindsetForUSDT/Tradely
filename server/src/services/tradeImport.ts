@@ -3,6 +3,10 @@ import { prisma } from '../db.js';
 const BYBIT_API = 'https://api.bybit.com';
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_IMPORT_DAYS = 30;
+// Bybit keeps execution and closed-PnL history for two years. A request made at the
+// exact boundary can become invalid between building the window and reaching Bybit,
+// so keep a small margin inside the supported period.
+const BYBIT_HISTORY_SAFETY_MS = 60 * 1000;
 
 const pause = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
@@ -78,11 +82,19 @@ async function signedBybitGet(
   return data.result as { list?: any[]; nextPageCursor?: string };
 }
 
-function importWindows(startTime?: Date) {
-  const end = Date.now();
+function earliestBybitHistoryTime(now: number) {
+  const earliest = new Date(now);
+  earliest.setUTCFullYear(earliest.getUTCFullYear() - 2);
+  return earliest.getTime() + BYBIT_HISTORY_SAFETY_MS;
+}
+
+export function importWindows(startTime?: Date, end = Date.now()) {
+  const requestedStart = startTime?.getTime();
   const start = Math.max(
-    startTime?.getTime() || end - DEFAULT_IMPORT_DAYS * 24 * 60 * 60 * 1000,
-    end - 2 * 365 * 24 * 60 * 60 * 1000
+    requestedStart !== undefined && Number.isFinite(requestedStart)
+      ? requestedStart
+      : end - DEFAULT_IMPORT_DAYS * 24 * 60 * 60 * 1000,
+    earliestBybitHistoryTime(end)
   );
   const windows: Array<{ start: number; end: number }> = [];
   for (let cursor = start; cursor < end; cursor += SEVEN_DAYS_MS) {
@@ -230,8 +242,8 @@ async function fetchBybitSpotTrades(
   const reportStart = startTime?.getTime() || now - DEFAULT_IMPORT_DAYS * 24 * 60 * 60 * 1000;
   // Cost basis can originate before the selected report period. Load the full API history for
   // inventory matching, then keep only round trips closed inside the requested period.
-  const inventoryStart = new Date(now - 2 * 365 * 24 * 60 * 60 * 1000);
-  for (const window of importWindows(inventoryStart)) {
+  const inventoryStart = new Date(earliestBybitHistoryTime(now));
+  for (const window of importWindows(inventoryStart, now)) {
     const records = await fetchAllPages(
       '/v5/execution/list',
       { category: 'spot', startTime: String(window.start), endTime: String(window.end) },

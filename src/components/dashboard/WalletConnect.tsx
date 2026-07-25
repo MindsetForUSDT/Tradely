@@ -209,6 +209,14 @@ const CATEGORIES: Array<{
   icon: IconProps['name'];
 }> = [{ id: 'crypto', label: 'Крипто', desc: 'Биржи и Web3 кошельки', icon: 'binance' }];
 
+const getBybitHistoryMinDate = () => {
+  const date = new Date();
+  date.setUTCFullYear(date.getUTCFullYear() - 2);
+  return date.toISOString().split('T')[0];
+};
+
+const getTodayDate = () => new Date().toISOString().split('T')[0];
+
 const INITIAL_FORM: WalletFormData = {
   category: null,
   provider: null,
@@ -713,6 +721,8 @@ export function WalletConnect() {
               <input
                 type="date"
                 value={form.startDate}
+                min={form.provider.id === 'bybit' ? getBybitHistoryMinDate() : undefined}
+                max={getTodayDate()}
                 onChange={(e) => setForm({ ...form, startDate: e.target.value })}
                 className="w-full px-3 py-2 bg-surface-overlay border border-surface-border rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30"
               />
