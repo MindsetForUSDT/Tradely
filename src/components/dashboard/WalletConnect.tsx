@@ -517,7 +517,7 @@ export function WalletConnect() {
               exit={{ opacity: 0 }}
             />
             <motion.aside
-              className="premium-connect-sheet"
+              className={`premium-connect-sheet ${sheetStep === 'import' ? 'is-success' : ''}`}
               role="dialog"
               aria-modal="true"
               aria-label="Подключить Bybit"
@@ -565,21 +565,76 @@ export function WalletConnect() {
 
               {sheetStep === 'import' ? (
                 <div className="premium-connect-success">
-                  <span>
-                    <CheckCircle size={30} weight="fill" />
-                  </span>
-                  <h3>Источник подключён</h3>
-                  <p>
-                    Первый импорт уже запущен. Финальные сделки и текущий баланс появятся после
-                    нормализации истории.
-                  </p>
-                  <div>
-                    <Clock size={17} />
-                    Дальше Tradeum будет синхронизировать данные каждые 60 минут.
-                  </div>
-                  <button type="button" onClick={closeSheet}>
-                    Готово
-                  </button>
+                  <header className="premium-connect-success-head">
+                    <span>
+                      <CheckCircle size={30} weight="fill" />
+                    </span>
+                    <div>
+                      <small>Read-only доступ подтверждён</small>
+                      <h3>Источник подключён</h3>
+                      <p>
+                        Первый импорт уже запущен. Tradeum соберёт исполнения в финальные сделки и
+                        только затем обновит аналитику.
+                      </p>
+                    </div>
+                  </header>
+
+                  <section className="premium-first-import" aria-label="Этапы первого импорта">
+                    <article className="active">
+                      <span>
+                        <ArrowClockwise size={18} className="spin" />
+                      </span>
+                      <div>
+                        <small>Сейчас</small>
+                        <strong>Получаем историю</strong>
+                        <p>Запрашиваем закрытые Spot и Linear исполнения с выбранной даты.</p>
+                      </div>
+                      <em>В процессе</em>
+                    </article>
+                    <article>
+                      <span>
+                        <Database size={18} />
+                      </span>
+                      <div>
+                        <small>Следом</small>
+                        <strong>Нормализуем сделки</strong>
+                        <p>Объединим частичные исполнения, комиссии и funding без дублей.</p>
+                      </div>
+                      <em>Ожидает</em>
+                    </article>
+                    <article>
+                      <span>
+                        <CheckCircle size={18} />
+                      </span>
+                      <div>
+                        <small>Результат</small>
+                        <strong>Обновим аналитику</strong>
+                        <p>Пересчитаем капитал, net P&amp;L, риск и поведенческие паттерны.</p>
+                      </div>
+                      <em>Автоматически</em>
+                    </article>
+                  </section>
+
+                  <dl className="premium-import-summary">
+                    <div>
+                      <dt>Данные импорта</dt>
+                      <dd>Вход, выход, объём, комиссии, funding и текущий баланс</dd>
+                    </div>
+                    <div>
+                      <dt>Следующее обновление</dt>
+                      <dd>Автоматически через 60 минут после завершения первого импорта</dd>
+                    </div>
+                  </dl>
+
+                  <footer className="premium-connect-success-actions">
+                    <span>
+                      <Clock size={17} />
+                      Можно закрыть окно — импорт продолжится в фоне.
+                    </span>
+                    <button type="button" onClick={closeSheet}>
+                      Перейти к источникам
+                    </button>
+                  </footer>
                 </div>
               ) : (
                 <div className="premium-connect-body">
