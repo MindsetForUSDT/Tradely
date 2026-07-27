@@ -279,6 +279,20 @@ export function Landing() {
           <small>
             <ShieldCheck size={14} /> Только чтение. Без доступа к средствам.
           </small>
+          <div className="tailark-hero-proof" aria-label="Ключевые возможности">
+            <article>
+              <strong>Автоимпорт</strong>
+              <span>Новые сделки попадают в дневник без ручного переноса.</span>
+            </article>
+            <article>
+              <strong>Финальные позиции</strong>
+              <span>Исполнения объединяются в понятный результат сделки.</span>
+            </article>
+            <article>
+              <strong>Контекст и риск</strong>
+              <span>Цифры связаны с решениями, лимитами и дисциплиной.</span>
+            </article>
+          </div>
         </motion.div>
 
         <div className="tailark-perspective" id="product">
@@ -316,6 +330,42 @@ export function Landing() {
             <b>Web3</b>
             <small>Скоро</small>
           </span>
+        </div>
+      </section>
+
+      <section className="tailark-workflow" aria-labelledby="workflow-title">
+        <header>
+          <span>Как работает система</span>
+          <div>
+            <h2 id="workflow-title">От биржи до решения — один непрерывный процесс.</h2>
+            <p>
+              TradeumDiary не заставляет заполнять пустой журнал. Платформа собирает завершённую
+              торговую историю, приводит данные к единому формату и показывает, где результат
+              создаёт стратегия, а где — случайность или нарушение риска.
+            </p>
+          </div>
+        </header>
+        <div className="tailark-workflow-steps">
+          <article>
+            <span>01</span>
+            <strong>Подключение</strong>
+            <p>Добавьте API-ключ только для чтения и выберите дату начала импорта.</p>
+          </article>
+          <article>
+            <span>02</span>
+            <strong>Нормализация</strong>
+            <p>Частичные исполнения собираются в завершённые позиции с комиссиями и P&amp;L.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Аналитика</strong>
+            <p>Дашборд показывает динамику капитала, серии, сетапы и отклонения от системы.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <strong>Улучшение</strong>
+            <p>Вы фиксируете выводы, корректируете риск и проверяете изменения на дистанции.</p>
+          </article>
         </div>
       </section>
 

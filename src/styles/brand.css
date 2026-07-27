@@ -1,11 +1,11 @@
 /* TradeumDiary Brand System */
 
 :root {
-  --brand-primary: #6366f1;
-  --brand-accent: #8b5cf6;
-  --brand-gradient: linear-gradient(135deg, var(--brand-primary), var(--brand-accent));
-  --brand-cyan: #00f5ff;
-  --brand-magenta: #ff00ff;
+  --brand-primary: #f4f4f1;
+  --brand-accent: #a7abb2;
+  --brand-gradient: linear-gradient(135deg, #ffffff, #9ca1a9);
+  --brand-cyan: #f4f4f1;
+  --brand-magenta: #a7abb2;
 }
 
 .brand {
