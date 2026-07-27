@@ -1,6 +1,11 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildClosedSpotTrades, importWindows, type SpotExecution } from './tradeImport.js';
+import {
+  buildClosedSpotTrades,
+  calculatePnlBreakdown,
+  importWindows,
+  type SpotExecution,
+} from './tradeImport.js';
 
 const execution = (
   partial: Partial<SpotExecution> & Pick<SpotExecution, 'side' | 'amount' | 'price' | 'orderId'>
@@ -78,4 +83,21 @@ test('keeps Bybit import windows safely inside the two-year history boundary', (
   assert.ok(windows[0].start > exactTwoYearBoundary);
   assert.ok(windows.every((window) => window.end - window.start < 7 * 24 * 60 * 60 * 1000));
   assert.equal(windows.at(-1)?.end, now);
+});
+
+test('reconciles gross movement, fees, funding adjustments and Bybit net P&L', () => {
+  const result = calculatePnlBreakdown({
+    side: 'buy',
+    amount: 3.53,
+    entryPrice: 60.06,
+    exitPrice: 60.07,
+    fees: 0.42,
+    netPnl: -0.42,
+  });
+
+  assert.ok(Math.abs(result.grossPnl - 0.0353) < 1e-9);
+  assert.ok(Math.abs(result.fundingAndAdjustments + 0.0353) < 1e-9);
+  assert.ok(
+    Math.abs(result.grossPnl - result.fees + result.fundingAndAdjustments - result.netPnl) < 1e-9
+  );
 });

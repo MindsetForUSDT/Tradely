@@ -5,6 +5,7 @@ import { AppProviders } from '@/providers/AppProviders';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import './index.css';
 import './styles/unified-design.css';
+import './styles/premium-product.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element not found');

@@ -20,12 +20,42 @@ export interface FinalTradeData {
   value_usd: number;
   fee_usd: number;
   pnl_realized: number;
+  grossPnl: number;
+  fundingAndAdjustments: number;
   openedAt: Date;
   closedAt: Date;
   tx_hash: string;
   exchange: string;
   marketType: 'spot' | 'linear';
   raw: Record<string, unknown>;
+}
+
+export function calculatePnlBreakdown({
+  side,
+  amount,
+  entryPrice,
+  exitPrice,
+  fees,
+  netPnl,
+}: {
+  side: 'buy' | 'sell';
+  amount: number;
+  entryPrice: number;
+  exitPrice: number;
+  fees: number;
+  netPnl?: number;
+}) {
+  const multiplier = side === 'buy' ? 1 : -1;
+  const grossPnl = (exitPrice - entryPrice) * amount * multiplier;
+  const normalizedFees = Math.abs(fees);
+  const normalizedNetPnl =
+    netPnl !== undefined && Number.isFinite(netPnl) ? netPnl : grossPnl - normalizedFees;
+  return {
+    grossPnl,
+    fees: normalizedFees,
+    netPnl: normalizedNetPnl,
+    fundingAndAdjustments: normalizedNetPnl - (grossPnl - normalizedFees),
+  };
 }
 
 export interface SpotExecution {
@@ -58,12 +88,22 @@ interface InventoryLot {
   orderId: string;
 }
 
-async function signedBybitGet(
+interface BybitListResult {
+  list?: any[];
+  nextPageCursor?: string;
+}
+
+interface BybitApiKeyInfo {
+  readOnly?: number;
+  ips?: string[];
+}
+
+async function signedBybitGet<T = BybitListResult>(
   path: string,
   params: URLSearchParams,
   apiKey: string,
   apiSecret: string
-) {
+): Promise<T> {
   const timestamp = Date.now();
   const query = params.toString();
   const signature = await signHmac(`${timestamp}${apiKey}5000${query}`, apiSecret);
@@ -79,7 +119,7 @@ async function signedBybitGet(
   if (!response.ok) throw new Error(`Bybit HTTP ${response.status}`);
   const data = await response.json();
   if (data.retCode !== 0) throw new Error(data.retMsg || `Bybit error ${data.retCode}`);
-  return data.result as { list?: any[]; nextPageCursor?: string };
+  return data.result as T;
 }
 
 function earliestBybitHistoryTime(now: number) {
@@ -204,8 +244,14 @@ export function buildClosedSpotTrades(executions: SpotExecution[]): FinalTradeDa
 
     if (matched <= 1e-12) continue;
     const allocatedSellFee = order.feeUsd * (matched / order.amount);
-    const exitValue = matched * order.price;
     const totalFees = buyFees + allocatedSellFee;
+    const breakdown = calculatePnlBreakdown({
+      side: 'buy',
+      amount: matched,
+      entryPrice: entryValue / matched,
+      exitPrice: order.price,
+      fees: totalFees,
+    });
     closed.push({
       symbol: order.symbol,
       side: 'buy',
@@ -214,7 +260,9 @@ export function buildClosedSpotTrades(executions: SpotExecution[]): FinalTradeDa
       exitPrice: order.price,
       value_usd: entryValue,
       fee_usd: totalFees,
-      pnl_realized: exitValue - entryValue - totalFees,
+      pnl_realized: breakdown.netPnl,
+      grossPnl: breakdown.grossPnl,
+      fundingAndAdjustments: breakdown.fundingAndAdjustments,
       openedAt,
       closedAt: order.timestamp,
       tx_hash: `bybit:spot:${order.orderId}`,
@@ -290,15 +338,27 @@ async function fetchBybitClosedLinearTrades(
       const exitPrice = Number(item.avgExitPrice || 0);
       const closingSide = String(item.side).toLowerCase();
       if (!(amount > 0) || !(entryPrice > 0) || !(exitPrice > 0)) continue;
+      const side = closingSide === 'sell' ? 'buy' : 'sell';
+      const feeUsd = Math.abs(Number(item.openFee || 0)) + Math.abs(Number(item.closeFee || 0));
+      const breakdown = calculatePnlBreakdown({
+        side,
+        amount,
+        entryPrice,
+        exitPrice,
+        fees: feeUsd,
+        netPnl: Number(item.closedPnl),
+      });
       trades.push({
         symbol: String(item.symbol),
-        side: closingSide === 'sell' ? 'buy' : 'sell',
+        side,
         amount,
         entryPrice,
         exitPrice,
         value_usd: Number(item.cumEntryValue || amount * entryPrice),
-        fee_usd: Math.abs(Number(item.openFee || 0)) + Math.abs(Number(item.closeFee || 0)),
-        pnl_realized: Number(item.closedPnl || 0),
+        fee_usd: feeUsd,
+        pnl_realized: breakdown.netPnl,
+        grossPnl: breakdown.grossPnl,
+        fundingAndAdjustments: breakdown.fundingAndAdjustments,
         openedAt: new Date(Number(item.createdTime || item.updatedTime)),
         closedAt: new Date(Number(item.updatedTime)),
         tx_hash: `bybit:linear:${item.orderId}:${item.updatedTime}`,
@@ -322,19 +382,45 @@ async function fetchBybitClosedLinearTrades(
 export async function validateBybitWallet(
   apiKey: string,
   apiSecret: string
-): Promise<{ valid: boolean; balance?: number; error?: string }> {
+): Promise<{
+  valid: boolean;
+  balance?: number;
+  readOnly?: boolean;
+  ipBound?: boolean;
+  error?: string;
+}> {
   try {
-    const result = await signedBybitGet(
-      '/v5/account/wallet-balance',
-      new URLSearchParams({ accountType: 'UNIFIED' }),
-      apiKey,
-      apiSecret
-    );
-    const totalBalance = (result.list || []).reduce(
+    const [balanceResult, keyInfo] = await Promise.all([
+      signedBybitGet(
+        '/v5/account/wallet-balance',
+        new URLSearchParams({ accountType: 'UNIFIED' }),
+        apiKey,
+        apiSecret
+      ),
+      signedBybitGet<BybitApiKeyInfo>(
+        '/v5/user/query-api',
+        new URLSearchParams(),
+        apiKey,
+        apiSecret
+      ),
+    ]);
+    if (Number(keyInfo.readOnly) !== 1) {
+      return {
+        valid: false,
+        readOnly: false,
+        error: 'Ключ имеет права записи. Создайте отдельный Bybit API-ключ в режиме Read-Only.',
+      };
+    }
+    const totalBalance = (balanceResult.list || []).reduce(
       (sum, account) => sum + Number(account.totalEquity || 0),
       0
     );
-    return { valid: true, balance: totalBalance };
+    return {
+      valid: true,
+      balance: totalBalance,
+      readOnly: true,
+      ipBound: Boolean(keyInfo.ips?.length),
+    };
   } catch (error) {
     return { valid: false, error: error instanceof Error ? error.message : 'Bybit API error' };
   }
@@ -342,6 +428,7 @@ export async function validateBybitWallet(
 
 export async function getBybitBalance(apiKey: string, apiSecret: string): Promise<number> {
   const result = await validateBybitWallet(apiKey, apiSecret);
+  if (!result.valid) throw new Error(result.error || 'Не удалось получить баланс Bybit');
   return result.balance || 0;
 }
 
@@ -380,6 +467,10 @@ export async function saveTrades(
             exitPrice: trade.exitPrice,
             openedAt: trade.openedAt.toISOString(),
             closedAt: trade.closedAt.toISOString(),
+            grossPnl: trade.grossPnl,
+            tradingFees: trade.fee_usd,
+            fundingAndAdjustments: trade.fundingAndAdjustments,
+            netPnl: trade.pnl_realized,
             ...trade.raw,
           }),
         },

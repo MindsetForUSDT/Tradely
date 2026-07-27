@@ -1,6 +1,9 @@
 import { useMemo, useState } from 'react';
-import { CaretLeft, CaretRight, MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { CaretLeft, CaretRight, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import { SourceLogo, resolveSourceBrand } from '@/components/brand/SourceLogo';
+import { TradeDetailsPanel } from '@/components/dashboard/TradeDetailsPanel';
+import { calculateTradeBreakdown, numeric } from '@/lib/tradeAnalytics';
 import { formatDate, formatUSD } from '@/lib/utils';
 import type { Trade } from '@/types';
 
@@ -10,6 +13,7 @@ interface TradeListProps {
   onTradeClick?: (trade: Trade) => void;
   manualEnabled?: boolean;
   onAddManual?: () => void;
+  onTradeUpdate?: (trade: Trade) => void;
 }
 
 type ResultFilter = 'all' | 'profit' | 'loss';
@@ -17,101 +21,13 @@ type SortMode = 'newest' | 'oldest' | 'pnl-desc' | 'pnl-asc';
 
 const PAGE_SIZE = 15;
 
-function numeric(value: unknown) {
-  const result = typeof value === 'number' ? value : Number(value || 0);
-  return Number.isFinite(result) ? result : 0;
-}
-
-function tradeMeta(trade: Trade) {
-  try {
-    return JSON.parse(trade.raw_data || '{}') as {
-      entryPrice?: number;
-      exitPrice?: number;
-      openedAt?: string;
-      closedAt?: string;
-      marketType?: 'spot' | 'linear';
-      notes?: string;
-      strategy?: string;
-    };
-  } catch {
-    return {};
-  }
-}
-
-function TradeInspector({ trade, onClose }: { trade: Trade; onClose: () => void }) {
-  const pnl = numeric(trade.pnl_realized);
-  const meta = tradeMeta(trade);
-  const entryPrice = numeric(meta.entryPrice || trade.price_usd || trade.price);
-  const exitPrice = numeric(meta.exitPrice || trade.price_usd || trade.price);
-  return (
-    <aside className="trades-v3-inspector">
-      <header>
-        <div>
-          <span>Сделка</span>
-          <h2>{trade.symbol}</h2>
-        </div>
-        <button type="button" onClick={onClose} aria-label="Закрыть">
-          <X size={18} />
-        </button>
-      </header>
-      <div className="trades-v3-inspector-source">
-        <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={27} />
-        <span>
-          <strong>{trade.exchange || 'Источник'}</strong>
-          <small>Импортировано автоматически</small>
-        </span>
-      </div>
-      <dl>
-        <div>
-          <dt>Дата</dt>
-          <dd>{formatDate(meta.closedAt || trade.timestamp)}</dd>
-        </div>
-        <div>
-          <dt>Статус</dt>
-          <dd>Завершена</dd>
-        </div>
-        <div>
-          <dt>Позиция</dt>
-          <dd>{trade.side === 'buy' ? 'Long' : 'Short'}</dd>
-        </div>
-        <div>
-          <dt>Размер</dt>
-          <dd>{numeric(trade.amount).toLocaleString('ru-RU')}</dd>
-        </div>
-        <div>
-          <dt>Цена входа</dt>
-          <dd>{formatUSD(entryPrice)}</dd>
-        </div>
-        <div>
-          <dt>Цена выхода</dt>
-          <dd>{formatUSD(exitPrice)}</dd>
-        </div>
-        <div>
-          <dt>P&amp;L</dt>
-          <dd className={pnl >= 0 ? 'positive' : 'negative'}>{formatUSD(pnl)}</dd>
-        </div>
-        <div>
-          <dt>Комиссия</dt>
-          <dd>{formatUSD(numeric(trade.fee_usd || trade.fee))}</dd>
-        </div>
-      </dl>
-      <section>
-        <span>Заметка</span>
-        <p>{meta.notes || trade.notes || 'Контекст к сделке пока не добавлен.'}</p>
-        {meta.strategy || trade.strategy_tag ? (
-          <em>{meta.strategy || trade.strategy_tag}</em>
-        ) : null}
-      </section>
-    </aside>
-  );
-}
-
 export function TradeList({
   trades,
   isLoading = false,
   onTradeClick,
   manualEnabled = false,
   onAddManual,
+  onTradeUpdate,
 }: TradeListProps) {
   const [search, setSearch] = useState('');
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
@@ -231,10 +147,7 @@ export function TradeList({
           : null}
         {!isLoading && visibleTrades.length
           ? visibleTrades.map((trade) => {
-              const pnl = numeric(trade.pnl_realized);
-              const meta = tradeMeta(trade);
-              const entryPrice = numeric(meta.entryPrice || trade.price_usd || trade.price);
-              const exitPrice = numeric(meta.exitPrice || trade.price_usd || trade.price);
+              const item = calculateTradeBreakdown(trade);
               return (
                 <button
                   type="button"
@@ -252,9 +165,11 @@ export function TradeList({
                   </span>
                   <span>{formatUSD(numeric(trade.value_usd))}</span>
                   <span>
-                    {formatUSD(entryPrice)} → {formatUSD(exitPrice)}
+                    {formatUSD(item.entryPrice)} → {formatUSD(item.exitPrice)}
                   </span>
-                  <span className={pnl >= 0 ? 'positive' : 'negative'}>{formatUSD(pnl)}</span>
+                  <span className={item.netPnl >= 0 ? 'positive' : 'negative'}>
+                    {formatUSD(item.netPnl)}
+                  </span>
                   <span className="trades-v3-source">
                     <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={20} />
                     {trade.exchange || 'Источник'}
@@ -305,17 +220,29 @@ export function TradeList({
         </div>
       </footer>
 
-      {selectedTrade ? (
-        <TradeInspector trade={selectedTrade} onClose={() => setSelectedTrade(null)} />
-      ) : null}
-      {selectedTrade ? (
-        <button
-          type="button"
-          className="overview-drawer-backdrop"
-          aria-label="Закрыть детали"
-          onClick={() => setSelectedTrade(null)}
-        />
-      ) : null}
+      <AnimatePresence>
+        {selectedTrade ? (
+          <>
+            <motion.button
+              type="button"
+              className="premium-sheet-backdrop"
+              aria-label="Закрыть детали"
+              onClick={() => setSelectedTrade(null)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <TradeDetailsPanel
+              trade={selectedTrade}
+              onClose={() => setSelectedTrade(null)}
+              onTradeUpdate={(updatedTrade) => {
+                setSelectedTrade(updatedTrade);
+                onTradeUpdate?.(updatedTrade);
+              }}
+            />
+          </>
+        ) : null}
+      </AnimatePresence>
     </section>
   );
 }

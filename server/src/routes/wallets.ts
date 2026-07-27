@@ -102,14 +102,40 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
     const profileId = profile.id;
-    // Шифруем API ключи если есть
-    const bodySettings = req.body.settings ? JSON.parse(req.body.settings) : {};
+    const provider =
+      typeof req.body.cex_provider === 'string' ? req.body.cex_provider.trim().toLowerCase() : null;
+    if (provider && provider !== 'bybit') {
+      return res.status(400).json({ error: 'Сейчас поддерживается только Bybit' });
+    }
+
+    let bodySettings: Record<string, unknown> = {};
+    try {
+      const decoded =
+        typeof req.body.settings === 'string' ? JSON.parse(req.body.settings) : req.body.settings;
+      if (decoded && typeof decoded === 'object' && !Array.isArray(decoded)) {
+        bodySettings = decoded as Record<string, unknown>;
+      }
+    } catch {
+      return res.status(400).json({ error: 'Некорректные настройки источника' });
+    }
     let encryptedCreds: { encrypted: string; iv: string; tag: string } | null = null;
 
     // API ключи передаются отдельно в теле запроса (не в settings)
-    const apiKey = req.body.apiKey || bodySettings.apiKey;
-    const apiSecret = req.body.apiSecret || bodySettings.apiSecret;
-    const passphrase = req.body.apiPassphrase || bodySettings.passphrase;
+    const apiKey = String(req.body.apiKey || bodySettings.apiKey || '').trim();
+    const apiSecret = String(req.body.apiSecret || bodySettings.apiSecret || '').trim();
+    const passphrase = String(req.body.apiPassphrase || bodySettings.passphrase || '').trim();
+
+    let verifiedBalance: number | undefined;
+    if (provider === 'bybit') {
+      if (!apiKey || !apiSecret) {
+        return res.status(400).json({ error: 'Для Bybit нужны API key и API secret' });
+      }
+      const validation = await validateBybitWallet(apiKey, apiSecret);
+      if (!validation.valid) {
+        return res.status(400).json({ error: validation.error || 'Bybit отклонил API-ключ' });
+      }
+      verifiedBalance = validation.balance || 0;
+    }
 
     if (apiKey && apiSecret) {
       const creds = JSON.stringify({
@@ -129,6 +155,18 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       apiKey: undefined,
       apiSecret: undefined,
       passphrase: undefined,
+      ...(provider === 'bybit'
+        ? {
+            category: 'crypto',
+            providerType: 'cex',
+            providerId: 'bybit',
+            autoSync: true,
+            syncInterval: 60,
+            initialBalance: verifiedBalance,
+            currentBalance: verifiedBalance,
+            balanceUpdatedAt: new Date().toISOString(),
+          }
+        : {}),
     };
 
     // Обработка import_from_date
@@ -139,6 +177,13 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
         if (isNaN(importFromDate.getTime())) {
           throw new Error('Invalid date');
         }
+        if (provider === 'bybit') {
+          const now = new Date();
+          const earliest = new Date(now);
+          earliest.setUTCFullYear(earliest.getUTCFullYear() - 2);
+          if (importFromDate < earliest) importFromDate = earliest;
+          if (importFromDate > now) importFromDate = now;
+        }
       } catch (e) {
         console.error('[Wallets POST] Invalid import_from_date:', req.body.import_from_date);
         importFromDate = null;
@@ -146,12 +191,15 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
     }
 
     const walletData: any = {
-      address: req.body.address || 'test',
+      address: String(req.body.address || 'test').slice(0, 200),
       chain: req.body.chain || 'ethereum',
-      label: req.body.label || 'Wallet',
-      processing_status: req.body.processing_status || 'pending',
+      label:
+        String(req.body.label || 'Wallet')
+          .trim()
+          .slice(0, 80) || 'Wallet',
+      processing_status: provider ? 'pending' : req.body.processing_status || 'pending',
       user_id: profileId,
-      cex_provider: req.body.cex_provider || null,
+      cex_provider: provider,
       web3_provider: req.body.web3_provider || null,
       settings: JSON.stringify(safeSettings),
       import_from_date: importFromDate,

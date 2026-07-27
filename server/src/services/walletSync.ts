@@ -1,10 +1,14 @@
 import { prisma } from '../db.js';
 import { decrypt } from './crypto.js';
-import { importTradesFromExchange, saveTrades } from './tradeImport.js';
+import { getBybitBalance, importTradesFromExchange, saveTrades } from './tradeImport.js';
 
 interface SyncSettings {
   autoSync?: boolean;
   syncInterval?: number;
+  initialBalance?: number;
+  currentBalance?: number;
+  balanceUpdatedAt?: string;
+  [key: string]: unknown;
 }
 
 const activeWalletSyncs = new Set<string>();
@@ -50,17 +54,32 @@ export async function syncWallet(walletId: string): Promise<number> {
       throw new Error('Не удалось прочитать API-ключи источника');
     }
 
-    const trades = await importTradesFromExchange(
-      wallet.cex_provider,
-      credentials.apiKey,
-      credentials.apiSecret,
-      credentials.passphrase,
-      wallet.import_from_date || undefined
-    );
+    const [trades, currentBalance] = await Promise.all([
+      importTradesFromExchange(
+        wallet.cex_provider,
+        credentials.apiKey,
+        credentials.apiSecret,
+        credentials.passphrase,
+        wallet.import_from_date || undefined
+      ),
+      wallet.cex_provider.toLowerCase() === 'bybit'
+        ? getBybitBalance(credentials.apiKey, credentials.apiSecret)
+        : Promise.resolve(0),
+    ]);
     const saved = await saveTrades(wallet.user_id, wallet.id, trades);
+    const settings = readSettings(wallet.settings);
     await prisma.wallet.update({
       where: { id: wallet.id },
-      data: { processing_status: 'completed', last_synced_at: new Date(), error_message: null },
+      data: {
+        processing_status: 'completed',
+        last_synced_at: new Date(),
+        error_message: null,
+        settings: JSON.stringify({
+          ...settings,
+          currentBalance,
+          balanceUpdatedAt: new Date().toISOString(),
+        }),
+      },
     });
     return saved;
   } catch (error) {

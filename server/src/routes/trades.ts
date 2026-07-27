@@ -6,7 +6,7 @@ import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 
 const router = Router();
 const querySchema = z.object({
-  limit: z.coerce.number().int().min(1).max(500).default(50),
+  limit: z.coerce.number().int().min(1).max(5_000).default(50),
   offset: z.coerce.number().int().min(0).max(1_000_000).default(0),
   orderBy: z.enum(['timestamp', 'pnl_realized', 'value_usd']).default('timestamp'),
   ascending: z.enum(['true', 'false']).default('false'),
@@ -17,23 +17,42 @@ const querySchema = z.object({
   dateTo: z.string().datetime().optional(),
   walletId: z.string().uuid().optional(),
 });
-const manualTradeSchema = z.object({
-  symbol: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .regex(/^[A-Z0-9]{2,12}([/-][A-Z0-9]{2,12})?$/),
-  side: z.enum(['buy', 'sell']),
-  amount: z.coerce.number().positive().max(1_000_000_000),
-  price_usd: z.coerce.number().positive().max(1_000_000_000),
-  value_usd: z.coerce.number().nonnegative().max(10_000_000_000),
-  fee_usd: z.coerce.number().nonnegative().max(10_000_000),
-  timestamp: z.string().datetime(),
-  raw_data: z.string().max(10_000).optional(),
-});
+const manualTradeSchema = z
+  .object({
+    symbol: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .regex(/^[A-Z0-9]{2,12}([/-][A-Z0-9]{2,12})?$/),
+    side: z.enum(['buy', 'sell']),
+    amount: z.coerce.number().positive().max(1_000_000_000),
+    entry_price: z.coerce.number().positive().max(1_000_000_000),
+    exit_price: z.coerce.number().positive().max(1_000_000_000),
+    fee_usd: z.coerce.number().nonnegative().max(10_000_000),
+    opened_at: z.string().datetime(),
+    closed_at: z.string().datetime(),
+    stop_loss: z.coerce.number().positive().max(1_000_000_000).optional(),
+    strategy: z.string().trim().max(100).optional(),
+    notes: z.string().trim().max(4_000).optional(),
+    mistake: z.string().trim().max(100).optional(),
+    emotion: z.string().trim().max(100).optional(),
+    plan_score: z.coerce.number().min(0).max(10).optional(),
+  })
+  .refine((trade) => new Date(trade.closed_at) >= new Date(trade.opened_at), {
+    message: 'Время закрытия должно быть позже времени открытия',
+    path: ['closed_at'],
+  });
 const contextUpdateSchema = z
   .object({
-    raw_data: z.string().max(10_000).optional(),
+    strategy: z.string().trim().max(100).nullable().optional(),
+    mistake: z
+      .enum(['early-entry', 'late-exit', 'oversize', 'revenge', 'no-plan'])
+      .nullable()
+      .optional(),
+    emotion: z.enum(['calm', 'fear', 'fomo', 'greed', 'anger']).nullable().optional(),
+    planScore: z.coerce.number().min(0).max(10).nullable().optional(),
+    stopLoss: z.coerce.number().positive().max(1_000_000_000).nullable().optional(),
+    notes: z.string().trim().max(4_000).nullable().optional(),
   })
   .strict();
 const bulkWalletSchema = z.object({
@@ -87,17 +106,40 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
   }
 
   try {
+    const input = parsed.data;
+    const multiplier = input.side === 'buy' ? 1 : -1;
+    const grossPnl = (input.exit_price - input.entry_price) * input.amount * multiplier;
+    const netPnl = grossPnl - input.fee_usd;
     const trade = await prisma.trade.create({
       data: {
         user_id: req.userId!,
-        symbol: parsed.data.symbol,
-        side: parsed.data.side,
-        amount: parsed.data.amount,
-        price_usd: parsed.data.price_usd,
-        value_usd: parsed.data.value_usd,
-        fee_usd: parsed.data.fee_usd,
-        timestamp: new Date(parsed.data.timestamp),
-        raw_data: parsed.data.raw_data,
+        symbol: input.symbol,
+        side: input.side,
+        amount: input.amount,
+        price_usd: input.exit_price,
+        value_usd: input.entry_price * input.amount,
+        fee_usd: input.fee_usd,
+        pnl_realized: netPnl,
+        timestamp: new Date(input.closed_at),
+        raw_data: JSON.stringify({
+          version: 3,
+          finalTrade: true,
+          marketType: 'manual',
+          entryPrice: input.entry_price,
+          exitPrice: input.exit_price,
+          openedAt: input.opened_at,
+          closedAt: input.closed_at,
+          grossPnl,
+          tradingFees: input.fee_usd,
+          fundingAndAdjustments: 0,
+          netPnl,
+          stopLoss: input.stop_loss,
+          strategy: input.strategy,
+          notes: input.notes,
+          mistake: input.mistake,
+          emotion: input.emotion,
+          planScore: input.plan_score,
+        }),
         status: 'closed',
         exchange: 'manual',
         import_source: 'manual',
@@ -133,12 +175,30 @@ router.patch('/:id', requireAuth, async (req: AuthRequest, res) => {
   const parsed = contextUpdateSchema.safeParse(req.body);
   if (!parsed.success)
     return res.status(400).json({ error: 'Можно изменять только контекст сделки' });
-  const result = await prisma.trade.updateMany({
+  const existing = await prisma.trade.findFirst({
     where: { id: String(req.params.id), user_id: req.userId! },
-    data: parsed.data,
+    select: { id: true, raw_data: true },
   });
-  if (!result.count) return res.status(404).json({ error: 'Сделка не найдена' });
-  return res.json({ success: true });
+  if (!existing) return res.status(404).json({ error: 'Сделка не найдена' });
+
+  let metadata: Record<string, unknown> = {};
+  try {
+    const decoded = existing.raw_data ? JSON.parse(existing.raw_data) : {};
+    if (decoded && typeof decoded === 'object' && !Array.isArray(decoded)) metadata = decoded;
+  } catch {
+    metadata = {};
+  }
+
+  for (const [key, value] of Object.entries(parsed.data)) {
+    if (value === null || value === '') delete metadata[key];
+    else if (value !== undefined) metadata[key] = value;
+  }
+
+  const trade = await prisma.trade.update({
+    where: { id: existing.id },
+    data: { raw_data: JSON.stringify(metadata) },
+  });
+  return res.json(trade);
 });
 
 export default router;

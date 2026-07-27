@@ -1,6 +1,7 @@
 // hooks/useTradesOptimized.ts
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { api } from '@/lib/api';
+import { numeric } from '@/lib/tradeAnalytics';
 import type { Trade } from '@/types';
 
 interface UseTradesOptions {
@@ -34,6 +35,24 @@ interface UseTradesResult {
   tokenVolumes: Array<{ token: string; volume: number; percentage: number }>;
   totalVolume: number;
   totalTrades: number;
+}
+
+export function normalizeTrade(trade: Trade): Trade {
+  const priceUsd = numeric(trade.price_usd, numeric(trade.price));
+  const feeUsd = numeric(trade.fee_usd, numeric(trade.fee));
+  return {
+    ...trade,
+    amount: numeric(trade.amount),
+    price: numeric(trade.price, priceUsd),
+    price_usd: priceUsd,
+    value_usd: numeric(trade.value_usd),
+    fee: numeric(trade.fee, feeUsd),
+    fee_usd: feeUsd,
+    pnl_realized: numeric(trade.pnl_realized),
+    pnl_percent: trade.pnl_percent === undefined ? undefined : numeric(trade.pnl_percent),
+    holding_time_minutes:
+      trade.holding_time_minutes === undefined ? undefined : numeric(trade.holding_time_minutes),
+  };
 }
 
 export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesResult {
@@ -98,11 +117,9 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
 
         const data = await api.get<{ trades: Trade[]; total: number }>('/trades', params);
 
-        if (append) {
-          setTrades((prev) => [...prev, ...(data.trades || [])]);
-        } else {
-          setTrades(data.trades || []);
-        }
+        const normalizedTrades = (data.trades || []).map(normalizeTrade);
+        if (append) setTrades((prev) => [...prev, ...normalizedTrades]);
+        else setTrades(normalizedTrades);
 
         setTotalCount(data.total || 0);
         offsetRef.current = offset + (data.trades?.length || 0);
