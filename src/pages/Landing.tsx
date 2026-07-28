@@ -3,33 +3,137 @@ import { Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowRight,
+  ArrowUpRight,
   ArrowsLeftRight,
-  ChartLineUp,
+  ChartDonut,
   Check,
+  CheckCircle,
+  ClipboardText,
+  LockKey,
+  Play,
   ShieldCheck,
   Sparkle,
 } from '@phosphor-icons/react';
-import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  ReferenceDot,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 import { SourceLogo } from '@/components/brand/SourceLogo';
 import { useAuth } from '@/hooks/useAuth';
 
-type PreviewTab = 'overview' | 'trades' | 'risk';
+type PreviewPeriod = '7 дней' | '30 дней' | '90 дней';
+type DecisionId = 'plan' | 'entry' | 'manage' | 'exit';
 
-const equity = [
-  { day: '01', value: 10000 },
-  { day: '05', value: 10240 },
-  { day: '09', value: 10110 },
-  { day: '13', value: 10580 },
-  { day: '17', value: 10490 },
-  { day: '21', value: 10940 },
-  { day: '25', value: 11280 },
-  { day: '30', value: 11640 },
-];
+interface EquityPoint {
+  day: string;
+  value: number;
+}
 
-const trades = [
-  ['BTCUSDT', 'Long', '$63,420 → $64,910', '+$372.40'],
-  ['ETHUSDT', 'Short', '$3,540 → $3,498', '+$126.00'],
-  ['SOLUSDT', 'Long', '$146.20 → $143.80', '−$72.00'],
+interface PreviewPeriodData {
+  range: string;
+  capital: number;
+  change: string;
+  chart: EquityPoint[];
+}
+
+interface Decision {
+  id: DecisionId;
+  time: string;
+  title: string;
+  detail: string;
+}
+
+const previewPeriods: PreviewPeriod[] = ['7 дней', '30 дней', '90 дней'];
+
+const previewData: Record<PreviewPeriod, PreviewPeriodData> = {
+  '7 дней': {
+    range: '2026-07-22 — 2026-07-28',
+    capital: 11640,
+    change: '+4.9% за период',
+    chart: [
+      { day: '22 июл', value: 11100 },
+      { day: '23 июл', value: 11240 },
+      { day: '24 июл', value: 11180 },
+      { day: '25 июл', value: 11420 },
+      { day: '26 июл', value: 11380 },
+      { day: '27 июл', value: 11520 },
+      { day: '28 июл', value: 11640 },
+    ],
+  },
+  '30 дней': {
+    range: '2026-06-28 — 2026-07-28',
+    capital: 11640,
+    change: '+16.4% за период',
+    chart: [
+      { day: '28 июн', value: 8200 },
+      { day: '30 июн', value: 8460 },
+      { day: '02 июл', value: 9050 },
+      { day: '04 июл', value: 8740 },
+      { day: '06 июл', value: 9160 },
+      { day: '08 июл', value: 9520 },
+      { day: '10 июл', value: 9700 },
+      { day: '12 июл', value: 9900 },
+      { day: '14 июл', value: 10280 },
+      { day: '16 июл', value: 10190 },
+      { day: '18 июл', value: 10610 },
+      { day: '20 июл', value: 10820 },
+      { day: '22 июл', value: 11020 },
+      { day: '24 июл', value: 11360 },
+      { day: '26 июл', value: 11410 },
+      { day: '28 июл', value: 11640 },
+    ],
+  },
+  '90 дней': {
+    range: '2026-04-30 — 2026-07-28',
+    capital: 11640,
+    change: '+32.6% за период',
+    chart: [
+      { day: '30 апр', value: 8780 },
+      { day: '10 мая', value: 9120 },
+      { day: '20 мая', value: 8950 },
+      { day: '30 мая', value: 9480 },
+      { day: '09 июн', value: 9760 },
+      { day: '19 июн', value: 10040 },
+      { day: '29 июн', value: 10220 },
+      { day: '09 июл', value: 10860 },
+      { day: '19 июл', value: 11140 },
+      { day: '28 июл', value: 11640 },
+    ],
+  },
+};
+
+const decisions: Decision[] = [
+  {
+    id: 'plan',
+    time: '09:12',
+    title: 'План',
+    detail: 'Сценарий: пробой + ретест',
+  },
+  {
+    id: 'entry',
+    time: '09:25',
+    title: 'Вход в сделку',
+    detail: 'BTCUSDT · Лонг · $68,240',
+  },
+  {
+    id: 'manage',
+    time: '10:07',
+    title: 'Частичная фиксация',
+    detail: 'Закрыто 50% · +0.96R',
+  },
+  {
+    id: 'exit',
+    time: '10:42',
+    title: 'Выход по плану',
+    detail: 'Остаток · +1.92R',
+  },
 ];
 
 const plans = [
@@ -47,198 +151,205 @@ const plans = [
   },
 ];
 
-function BrandMark() {
-  return (
-    <span className="tailark-brand-mark" aria-hidden="true">
-      <i />
-      <i />
-      <i />
-      <i />
-    </span>
-  );
+function DecisionIcon({ id }: { id: DecisionId }) {
+  if (id === 'plan') return <ClipboardText size={17} />;
+  if (id === 'entry') return <ArrowUpRight size={17} />;
+  if (id === 'manage') return <ChartDonut size={17} />;
+  return <CheckCircle size={17} />;
 }
 
-function OverviewPreview() {
+function AnalyticsScene({ reduceMotion }: { reduceMotion: boolean }) {
+  const [period, setPeriod] = useState<PreviewPeriod>('30 дней');
+  const [activeDecisionId, setActiveDecisionId] = useState<DecisionId>('exit');
+  const data = previewData[period];
+  const activeDecision =
+    decisions.find((decision) => decision.id === activeDecisionId) ?? decisions[3];
+
+  const cyclePeriod = () => {
+    const currentIndex = previewPeriods.indexOf(period);
+    setPeriod(previewPeriods[(currentIndex + 1) % previewPeriods.length]);
+  };
+
   return (
-    <div className="tailark-preview-overview">
-      <div className="tailark-preview-metrics">
-        <article>
-          <span>Капитал</span>
-          <strong>$11,640</strong>
-          <small>текущий equity</small>
-        </article>
-        <article>
-          <span>P&amp;L · 30 дней</span>
-          <strong className="positive">+$1,640</strong>
-          <small>+16.4% за период</small>
-        </article>
-        <article>
-          <span>Завершено</span>
-          <strong>24</strong>
-          <small>финальные сделки</small>
-        </article>
-        <article>
-          <span>Win rate</span>
-          <strong>62.5%</strong>
-          <small>15 прибыльных</small>
-        </article>
+    <motion.div
+      className="cinematic-analytics-scene"
+      id="product"
+      initial={reduceMotion ? false : { opacity: 0, x: 28 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.85, delay: 0.12 }}
+    >
+      <div className="cinematic-scene-head">
+        <div>
+          <span>
+            Кривая капитала <i />
+          </span>
+          <strong>${data.capital.toLocaleString('en-US')}</strong>
+          <small>{data.change}</small>
+        </div>
+        <button type="button" onClick={cyclePeriod} aria-label="Изменить период графика">
+          <span>Период: {period}</span>
+          <small>{data.range}</small>
+        </button>
       </div>
-      <div className="tailark-preview-chart">
-        <header>
-          <span>Динамика капитала</span>
-          <small>Последние 30 дней</small>
-        </header>
+
+      <div className="cinematic-equity-chart" aria-label={`Кривая капитала за ${period}`}>
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={equity} margin={{ top: 15, right: 4, left: 4, bottom: 0 }}>
+          <AreaChart data={data.chart} margin={{ top: 26, right: 8, left: 0, bottom: 0 }}>
             <defs>
-              <linearGradient id="landingEquity" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#f3f3f1" stopOpacity={0.2} />
-                <stop offset="100%" stopColor="#f3f3f1" stopOpacity={0} />
+              <linearGradient id="cinematicEquityFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#d8c6af" stopOpacity={0.2} />
+                <stop offset="100%" stopColor="#d8c6af" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke="#24272c" vertical={false} />
+            <CartesianGrid stroke="rgba(237, 230, 220, 0.075)" vertical />
             <XAxis
               dataKey="day"
               axisLine={false}
               tickLine={false}
-              tick={{ fill: '#62666d', fontSize: 8 }}
+              minTickGap={28}
+              tick={{ fill: '#5d5a56', fontSize: 10 }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              orientation="right"
+              domain={['dataMin - 250', 'dataMax + 250']}
+              tick={{ fill: '#5d5a56', fontSize: 10 }}
+              tickFormatter={(value: number) => `$${Math.round(value / 1000)}K`}
+              width={42}
             />
             <Tooltip
-              contentStyle={{ background: '#0b0d10', border: '1px solid #34383e', fontSize: 10 }}
+              cursor={{ stroke: 'rgba(216, 198, 175, 0.35)', strokeDasharray: '4 5' }}
+              contentStyle={{
+                background: '#0b0c0e',
+                border: '1px solid rgba(237, 230, 220, 0.2)',
+                borderRadius: 6,
+                color: '#eee8df',
+                fontSize: 11,
+              }}
+              formatter={(value: number) => [`$${value.toLocaleString('en-US')}`, 'Капитал']}
             />
+            {period === '30 дней' ? (
+              <>
+                <ReferenceLine
+                  x="02 июл"
+                  stroke="rgba(216, 198, 175, 0.35)"
+                  strokeDasharray="3 4"
+                />
+                <ReferenceLine
+                  x="20 июл"
+                  stroke="rgba(216, 198, 175, 0.35)"
+                  strokeDasharray="3 4"
+                />
+                <ReferenceDot
+                  x="02 июл"
+                  y={9050}
+                  r={5}
+                  fill="#0b0c0e"
+                  stroke="#e8dccd"
+                  strokeWidth={2}
+                />
+                <ReferenceDot
+                  x="20 июл"
+                  y={10820}
+                  r={5}
+                  fill="#0b0c0e"
+                  stroke="#e8dccd"
+                  strokeWidth={2}
+                />
+              </>
+            ) : null}
             <Area
               type="monotone"
               dataKey="value"
-              stroke="#f3f3f1"
+              stroke="#e8dccd"
               strokeWidth={1.7}
-              fill="url(#landingEquity)"
+              fill="url(#cinematicEquityFill)"
+              isAnimationActive={!reduceMotion}
+              animationDuration={1100}
+              dot={false}
+              activeDot={{ r: 4, fill: '#0b0c0e', stroke: '#eee8df', strokeWidth: 2 }}
             />
           </AreaChart>
         </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
-
-function TradesPreview() {
-  return (
-    <div className="tailark-preview-table">
-      <header>
-        <span>Инструмент</span>
-        <span>Позиция</span>
-        <span>Вход → выход</span>
-        <span>P&amp;L</span>
-      </header>
-      {trades.map((trade) => (
-        <div key={trade[0]}>
-          <span>
-            <SourceLogo brand="bybit" size={18} />
-            <strong>{trade[0]}</strong>
-          </span>
-          <span>{trade[1]}</span>
-          <span>{trade[2]}</span>
-          <span className={trade[3].startsWith('+') ? 'positive' : 'negative'}>{trade[3]}</span>
-        </div>
-      ))}
-      <footer>Частичные исполнения объединены в финальные сделки</footer>
-    </div>
-  );
-}
-
-function RiskPreview() {
-  return (
-    <div className="tailark-preview-risk">
-      <div>
-        <ShieldCheck size={28} />
-        <span>Статус риска</span>
-        <strong>В пределах системы</strong>
-      </div>
-      <section>
-        <article>
-          <span>Риск на сделку</span>
-          <strong>0.8%</strong>
-          <i>
-            <b style={{ width: '40%' }} />
-          </i>
-          <small>лимит 2.0%</small>
-        </article>
-        <article>
-          <span>Дневная просадка</span>
-          <strong>1.2%</strong>
-          <i>
-            <b style={{ width: '24%' }} />
-          </i>
-          <small>лимит 5.0%</small>
-        </article>
-        <article>
-          <span>Серия убытков</span>
-          <strong>1</strong>
-          <i>
-            <b style={{ width: '20%' }} />
-          </i>
-          <small>пауза после 3</small>
-        </article>
-      </section>
-    </div>
-  );
-}
-
-function ProductPreview() {
-  const [tab, setTab] = useState<PreviewTab>('overview');
-  const labels: Array<[PreviewTab, string]> = [
-    ['overview', 'Обзор'],
-    ['trades', 'Сделки'],
-    ['risk', 'Риск'],
-  ];
-  return (
-    <div className="tailark-product-window">
-      <header>
-        <div>
-          <BrandMark />
-          <strong>TradeumDiary</strong>
-        </div>
-        <span>
-          <i /> Данные синхронизированы
-        </span>
-      </header>
-      <div className="tailark-product-body">
-        <aside>
-          {labels.map(([value, label]) => (
+        {period === '30 дней' ? (
+          <>
             <button
-              key={value}
-              className={tab === value ? 'active' : ''}
-              onClick={() => setTab(value)}
+              className={`cinematic-chart-note note-risk ${
+                activeDecisionId === 'entry' ? 'active' : ''
+              }`}
               type="button"
+              onClick={() => setActiveDecisionId('entry')}
             >
-              {value === 'overview' ? (
-                <ChartLineUp size={15} />
-              ) : value === 'trades' ? (
-                <ArrowsLeftRight size={15} />
-              ) : (
-                <ShieldCheck size={15} />
-              )}
-              {label}
+              <strong>Риск соблюдён</strong>
+              <span>0.62% от капитала</span>
             </button>
-          ))}
-        </aside>
-        <main>
-          <div className="tailark-product-heading">
-            <div>
-              <small>Рабочее пространство</small>
-              <h2>{labels.find(([value]) => value === tab)?.[1]}</h2>
-            </div>
-            <span>30 дней</span>
-          </div>
-          {tab === 'overview' ? (
-            <OverviewPreview />
-          ) : tab === 'trades' ? (
-            <TradesPreview />
-          ) : (
-            <RiskPreview />
-          )}
-        </main>
+            <button
+              className={`cinematic-chart-note note-exit ${
+                activeDecisionId === 'exit' ? 'active' : ''
+              }`}
+              type="button"
+              onClick={() => setActiveDecisionId('exit')}
+            >
+              <strong>Выход по плану</strong>
+              <span>RR 1.92</span>
+            </button>
+          </>
+        ) : null}
       </div>
-    </div>
+
+      <div className="cinematic-decision-grid">
+        <section className="cinematic-decision-feed" aria-label="Лента решений">
+          <h2>Лента решений</h2>
+          <div>
+            {decisions.map((decision) => (
+              <button
+                className={decision.id === activeDecisionId ? 'active' : ''}
+                type="button"
+                key={decision.id}
+                onClick={() => setActiveDecisionId(decision.id)}
+              >
+                <time>{decision.time}</time>
+                <i />
+                <span>
+                  <strong>{decision.title}</strong>
+                  <small>{decision.detail}</small>
+                </span>
+                <DecisionIcon id={decision.id} />
+              </button>
+            ))}
+          </div>
+        </section>
+
+        <section className="cinematic-trade-summary" aria-label="Итоги по сделке">
+          <header>
+            <h2>Итоги по сделке</h2>
+            <span>2026-07-18 · BTCUSDT Лонг</span>
+          </header>
+          <dl>
+            <div>
+              <dt>P&amp;L</dt>
+              <dd>+$1,640</dd>
+              <small>+1.92R</small>
+            </div>
+            <div>
+              <dt>Profit factor</dt>
+              <dd>1.84</dd>
+              <small>Хорошо</small>
+            </div>
+            <div>
+              <dt>Дисциплина</dt>
+              <dd>91%</dd>
+              <small>Стабильно</small>
+            </div>
+          </dl>
+          <p>
+            <span>Контекст</span>
+            {activeDecision.title}: {activeDecision.detail}
+          </p>
+        </section>
+      </div>
+    </motion.div>
   );
 }
 
@@ -248,61 +359,48 @@ export function Landing() {
   if (!isLoading && isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="tailark-landing">
-      <section className="tailark-hero">
-        <div className="tailark-light-beams" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </div>
+    <div className="tailark-landing cinematic-landing">
+      <section className="cinematic-landing-hero">
+        <div className="cinematic-hero-field" aria-hidden="true" />
         <motion.div
-          className="tailark-hero-copy"
-          initial={reduceMotion ? false : { opacity: 0, y: 20 }}
+          className="cinematic-hero-copy"
+          initial={reduceMotion ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7 }}
+          transition={{ duration: 0.72 }}
         >
           <h1>
             Торговые решения.
             <br />
             Без слепых зон.
           </h1>
-          <p>
-            TradeumDiary объединяет завершённые сделки, риск и контекст в одну ясную систему — чтобы
-            вы улучшали процесс, а не смотрели на случайные цифры.
-          </p>
-          <div>
-            <Link to="/register">
-              Начать бесплатно <ArrowRight size={16} />
+          <p>Завершённые сделки, риск и контекст — в одной ясной системе.</p>
+          <div className="cinematic-hero-actions">
+            <Link className="cinematic-action cinematic-hero-primary" to="/register">
+              <span>Начать бесплатно</span>
+              <i>
+                <ArrowRight size={18} />
+              </i>
             </Link>
-            <a href="#product">Смотреть продукт</a>
+            <a className="cinematic-hero-secondary" href="#product">
+              <i>
+                <Play size={13} weight="fill" />
+              </i>
+              Смотреть демо 90 сек
+            </a>
           </div>
-          <small>
-            <ShieldCheck size={14} /> Только чтение. Без доступа к средствам.
+          <small className="cinematic-security-note">
+            <LockKey size={15} /> Только чтение. Без доступа к средствам.
           </small>
-          <div className="tailark-hero-proof" aria-label="Ключевые возможности">
-            <article>
-              <strong>Автоимпорт</strong>
-              <span>Новые сделки попадают в дневник без ручного переноса.</span>
-            </article>
-            <article>
-              <strong>Финальные позиции</strong>
-              <span>Исполнения объединяются в понятный результат сделки.</span>
-            </article>
-            <article>
-              <strong>Контекст и риск</strong>
-              <span>Цифры связаны с решениями, лимитами и дисциплиной.</span>
-            </article>
-          </div>
         </motion.div>
 
-        <div className="tailark-perspective" id="product">
-          <div>
-            <ProductPreview />
-          </div>
-        </div>
+        <AnalyticsScene reduceMotion={Boolean(reduceMotion)} />
       </section>
 
-      <section className="tailark-sources" aria-labelledby="sources-title">
+      <section
+        className="tailark-sources cinematic-sources"
+        id="workspace"
+        aria-labelledby="sources-title"
+      >
         <h2 id="sources-title">Данные приходят из источника. Выводы принадлежат вам.</h2>
         <div>
           <span>
