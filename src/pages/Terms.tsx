@@ -1,10 +1,10 @@
 export function Terms() {
   return (
-    <div className="min-h-screen pt-24 pb-16 px-4 bg-bg-default">
-      <div className="max-w-4xl mx-auto">
+    <div className="legal-page min-h-screen pt-24 pb-16 px-4 bg-bg-default">
+      <div className="legal-document max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-text-primary mb-8">Условия использования</h1>
 
-        <div className="prose prose-invert max-w-none">
+        <div className="legal-content prose prose-invert max-w-none">
           <p className="text-text-secondary mb-6">
             Последнее обновление: {new Date().toLocaleDateString('ru-RU')}
           </p>

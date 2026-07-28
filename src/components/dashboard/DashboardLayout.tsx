@@ -244,7 +244,7 @@ export function DashboardLayout() {
   const recentTrades = trades.slice(0, 6);
   const syncError = walletsError || tradesError;
   const firstName = (user?.username || 'Трейдер').trim().split(/\s+/)[0];
-  const chartTone = summary.netPnl >= 0 ? '#75d79a' : '#ef7777';
+  const chartTone = '#cbb79f';
 
   const insights = [
     {
@@ -290,8 +290,8 @@ export function DashboardLayout() {
         transition={{ duration: 0.35 }}
       >
         <div>
-          <h1>Добрый день, {firstName}</h1>
-          <p>Результат важен. Но качество решений важнее.</p>
+          <h1>Обзор</h1>
+          <p>{firstName}, здесь результат отделён от комиссий, риска и качества решений.</p>
         </div>
         <div className="premium-range-control" aria-label="Период аналитики">
           {ranges.map((value) => (
@@ -317,6 +317,66 @@ export function DashboardLayout() {
         </div>
       ) : null}
 
+      <section
+        className={`premium-metric-rail ${tradesLoading || walletsLoading ? 'loading' : ''}`}
+      >
+        <Metric
+          label="Капитал"
+          value={summary.hasCapital ? formatUSD(summary.capital) : 'Нет данных'}
+          detail="текущий equity"
+        />
+        <Metric
+          label="Чистый P&L"
+          value={formatSignedUSD(summary.netPnl)}
+          detail={
+            summary.hasCapital
+              ? `${summary.pnlPercent >= 0 ? '+' : ''}${summary.pnlPercent.toFixed(2)}% за период`
+              : 'за выбранный период'
+          }
+          tone={summary.netPnl >= 0 ? 'positive' : 'negative'}
+        />
+        <Metric
+          label="Результат брутто"
+          value={formatSignedUSD(summary.grossPnl)}
+          detail="до комиссий и funding"
+          tone={summary.grossPnl >= 0 ? 'positive' : 'negative'}
+        />
+        <Metric
+          label="Комиссии"
+          value={formatSignedUSD(-summary.fees)}
+          detail="стоимость исполнений"
+          tone={summary.fees > 0 ? 'negative' : undefined}
+        />
+        <Metric label="Сделки" value={String(trades.length)} detail="финальные записи" />
+        <Metric
+          label="Win rate"
+          value={`${summary.winRate.toFixed(1)}%`}
+          detail={`${trades.filter((trade) => numeric(trade.pnl_realized) > 0).length} прибыльных`}
+        />
+        <Metric
+          label="Expectancy"
+          value={formatSignedUSD(summary.expectancy)}
+          detail="чистый результат / сделку"
+          tone={summary.expectancy >= 0 ? 'positive' : 'negative'}
+        />
+        <Metric
+          label="Макс. просадка"
+          value={formatSignedUSD(-summary.maxDrawdownAmount)}
+          detail={
+            summary.hasCapital
+              ? `${summary.maxDrawdownPercent.toFixed(2)}% от капитала`
+              : 'по накопленному P&L'
+          }
+          tone={summary.maxDrawdownAmount > 0 ? 'negative' : undefined}
+        />
+        <Metric
+          label="Дисциплина"
+          value={`${summary.contextCoverage.toFixed(0)}%`}
+          detail={`${summary.contextCount} сделок с контекстом`}
+          tone={summary.contextCoverage >= 70 ? 'positive' : undefined}
+        />
+      </section>
+
       <motion.section
         className="premium-performance-hero"
         initial={{ opacity: 0, y: 12 }}
@@ -325,15 +385,15 @@ export function DashboardLayout() {
       >
         <div className="premium-hero-result">
           <span>
-            Чистый P&amp;L <Info size={14} />
+            Кривая капитала <Info size={14} />
           </span>
-          <strong className={summary.netPnl >= 0 ? 'positive' : 'negative'}>
-            {formatSignedUSD(summary.netPnl)}
+          <strong>
+            {summary.hasCapital ? formatUSD(summary.capital) : formatSignedUSD(summary.netPnl)}
           </strong>
           <small className={summary.pnlPercent >= 0 ? 'positive' : 'negative'}>
             {summary.hasCapital
-              ? `${summary.pnlPercent >= 0 ? '+' : ''}${summary.pnlPercent.toFixed(2)}%`
-              : 'за выбранный период'}
+              ? `${formatSignedUSD(summary.netPnl)} · ${summary.pnlPercent >= 0 ? '+' : ''}${summary.pnlPercent.toFixed(2)}%`
+              : 'Накопленный чистый P&L'}
           </small>
         </div>
 
@@ -415,42 +475,6 @@ export function DashboardLayout() {
           </div>
         </dl>
       </motion.section>
-
-      <section
-        className={`premium-metric-rail ${tradesLoading || walletsLoading ? 'loading' : ''}`}
-      >
-        <Metric
-          label="Win rate"
-          value={`${summary.winRate.toFixed(1)}%`}
-          detail={`${trades.filter((trade) => numeric(trade.pnl_realized) > 0).length} из ${trades.length} прибыльных`}
-        />
-        <Metric
-          label="Profit factor"
-          value={Number.isFinite(summary.profitFactor) ? summary.profitFactor.toFixed(2) : '∞'}
-          detail={
-            summary.profitFactor >= 1.5
-              ? 'устойчивое соотношение'
-              : 'нужна выборка и контроль риска'
-          }
-          tone={summary.profitFactor >= 1 ? 'positive' : 'negative'}
-        />
-        <Metric
-          label="Ожидание / сделку"
-          value={formatSignedUSD(summary.expectancy)}
-          detail="чистый средний результат"
-          tone={summary.expectancy >= 0 ? 'positive' : 'negative'}
-        />
-        <Metric
-          label="Макс. просадка"
-          value={formatSignedUSD(-summary.maxDrawdownAmount)}
-          detail={
-            summary.hasCapital
-              ? `${summary.maxDrawdownPercent.toFixed(2)}% от стартового капитала`
-              : 'по накопленному P&L'
-          }
-          tone={summary.maxDrawdownAmount > 0 ? 'negative' : undefined}
-        />
-      </section>
 
       <div className="premium-dashboard-grid">
         <section className="premium-trades-panel">

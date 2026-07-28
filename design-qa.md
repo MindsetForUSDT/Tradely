@@ -1,35 +1,62 @@
-# Design QA — Dashboard workspace v3
+# TradeumDiary cinematic system — design QA
 
-## Visual target
+## Result
 
-- Approved combined dashboard concept: option 2 as the primary layout, with the source clarity of option 1 and on-demand risk/trade details from option 3.
-- Target viewport: desktop 1440 × 1024 plus mobile portrait 390 × 844.
+**Passed.** The implemented authentication and workspace surfaces follow the approved cinematic
+graphite direction and preserve the existing product logic.
 
-## Fidelity ledger
+## Reference targets
 
-| Comparison point    | Target evidence                                                | Implementation                                                                                      | Result             |
-| ------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ------------------ |
-| Information density | Calm overview with advanced detail outside the primary surface | Overview contains five metrics, one equity chart, five recent trades and one import summary         | Source-level match |
-| Navigation          | Compact product sidebar with clearly separated workflows       | Overview, Trades, Analytics, Risk and Sources are separate routes; AI and Goals are secondary       | Source-level match |
-| Trade detail        | Detail appears only after selecting a row                      | Overview and Trades open a dismissible right-side inspector                                         | Source-level match |
-| Source branding     | Each exchange and wallet has its real mark and brand color     | Logos come from `@web3icons/core`; the previous generic and duplicated exchange glyphs were removed | Source-level match |
-| Automation model    | Connected sources sync without manual bookkeeping              | Automatic import is always on; manual entry is hidden unless enabled in Settings                    | Source-level match |
-| Color system        | True black/graphite with semantic green, red and amber only    | New workspace classes use neutral surfaces and semantic data colors without neon decoration         | Source-level match |
-| Mobile reading path | Metrics stack before chart, trades and source state            | Responsive CSS reduces to two-column metrics, then a single-column content flow                     | Source-level match |
+- `design-references/auth-system-approved.png`
+- `design-references/workspace-overview-approved.png`
+- `design-references/trades-approved.png`
+- `design-references/sources-approved.png`
+- `design-references/landing-cinematic-approved.png`
 
-## Functional checks
+## Browser coverage
 
-- TypeScript and Vite production build: passed.
-- Targeted ESLint for every changed TypeScript/React file: passed with zero warnings.
-- Diff whitespace validation: passed.
-- Playwright scenario prepared for authenticated desktop/mobile overview, range switching, trade drawer and manual-entry setting.
+- Login and registration
+- Workspace overview and equity curve
+- Trade journal, filters, search, pagination, selected row and trade-detail sheet
+- Data sources and Bybit connection states
+- Risk, goals, settings, Pro analytics, features and subscription routing
+- Desktop viewport: 1363 × 936
+- Responsive rules reviewed at the 1280, 1024, 760, 560 and 480 px breakpoints
 
-## Verification blocker
+No application errors remained in the clean browser session. The only browser log entry came from
+the host Chrome extension and was unrelated to TradeumDiary.
 
-The Browser plugin is not available in this session. The Playwright fallback could not launch because the environment has no Chromium executable, and no browser runtime was downloaded as an unrequested dependency.
+## Corrections made during QA
 
-## Final result
+1. **Dashboard density:** removed an inherited four-row grid rule that stretched the P&L breakdown
+   and produced a large empty area.
+2. **Chart palette:** changed the equity curve from generic exchange green to the approved warm
+   metallic neutral. Positive and negative numbers retain semantic colors.
+3. **Authentication typography:** overrode a higher-specificity historical selector that forced the
+   supporting sentence to 10 px uppercase text.
+4. **Sources page density:** added data coverage, imported fields, synchronization cadence and
+   security context beneath the connected source.
+5. **Risk form stability:** normalized incomplete API values so numeric inputs never switch between
+   controlled and uncontrolled React states.
 
-**blocked**
+## Fidelity and usability
 
-Implementation and source-level checks are complete, but screenshot-based fidelity QA cannot pass until the project is rendered in a browser at 1440 × 1024 and 390 × 844.
+- Typography uses the approved large editorial hierarchy with restrained labels and tabular numeric
+  values.
+- Surfaces use thin graphite dividers, low-contrast depth and limited ivory/copper accents instead of
+  generic glowing cards.
+- Search, filters, sync actions, forms, pagination, selected trades and details remain interactive.
+- Read-only security messaging and gross/fees/funding/net P&L explanations are visible at the point
+  of use.
+- Compact layouts remove the sidebar at mobile breakpoints, stack auth content, collapse source and
+  dashboard grids, and keep forms and controls full-width.
+- Controls have semantic labels, keyboard focus support, practical touch heights and reduced-motion
+  handling.
+
+## Verification
+
+- Production build: passed
+- ESLint: passed
+- Frontend tests: 8/8 passed
+- Backend build: passed
+- Backend trade-import tests: 5/5 passed

@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { CaretLeft, CaretRight, MagnifyingGlass, Plus } from '@phosphor-icons/react';
 import { SourceLogo, resolveSourceBrand } from '@/components/brand/SourceLogo';
 import { TradeDetailsPanel } from '@/components/dashboard/TradeDetailsPanel';
-import { calculateTradeBreakdown, numeric } from '@/lib/tradeAnalytics';
+import { calculateTradeBreakdown, formatSignedUSD, numeric } from '@/lib/tradeAnalytics';
 import { formatDate, formatUSD } from '@/lib/utils';
 import type { Trade } from '@/types';
 
@@ -18,6 +19,7 @@ interface TradeListProps {
 
 type ResultFilter = 'all' | 'profit' | 'loss';
 type SortMode = 'newest' | 'oldest' | 'pnl-desc' | 'pnl-asc';
+type DirectionFilter = 'all' | 'long' | 'short';
 
 const PAGE_SIZE = 15;
 
@@ -29,11 +31,27 @@ export function TradeList({
   onAddManual,
   onTradeUpdate,
 }: TradeListProps) {
-  const [search, setSearch] = useState('');
+  const [searchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [resultFilter, setResultFilter] = useState<ResultFilter>('all');
+  const [directionFilter, setDirectionFilter] = useState<DirectionFilter>('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [page, setPage] = useState(1);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+
+  useEffect(() => {
+    setSearch(searchParams.get('search') || '');
+    setPage(1);
+  }, [searchParams]);
+
+  const sources = useMemo(
+    () =>
+      [...new Set(trades.map((trade) => trade.exchange).filter(Boolean) as string[])].sort((a, b) =>
+        a.localeCompare(b)
+      ),
+    [trades]
+  );
 
   const filteredTrades = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -46,7 +64,10 @@ export function TradeList({
         trade.tx_hash?.toLowerCase().includes(query);
       const matchesResult =
         resultFilter === 'all' || (resultFilter === 'profit' ? pnl > 0 : pnl < 0);
-      return matchesSearch && matchesResult;
+      const direction = trade.side === 'sell' ? 'short' : 'long';
+      const matchesDirection = directionFilter === 'all' || directionFilter === direction;
+      const matchesSource = sourceFilter === 'all' || trade.exchange === sourceFilter;
+      return matchesSearch && matchesResult && matchesDirection && matchesSource;
     });
 
     return result.sort((a, b) => {
@@ -57,7 +78,7 @@ export function TradeList({
       const difference = numeric(b.pnl_realized) - numeric(a.pnl_realized);
       return sortMode === 'pnl-desc' ? difference : -difference;
     });
-  }, [trades, search, resultFilter, sortMode]);
+  }, [trades, search, resultFilter, directionFilter, sourceFilter, sortMode]);
 
   const pageCount = Math.max(1, Math.ceil(filteredTrades.length / PAGE_SIZE));
   const safePage = Math.min(page, pageCount);
@@ -73,7 +94,7 @@ export function TradeList({
       <header className="trades-v3-heading">
         <div>
           <h1>Сделки</h1>
-          <p>Единая история из подключённых бирж и кошельков. Импорт работает автоматически.</p>
+          <p>Импортированные финальные сделки. Net P&amp;L уже включает комиссии и funding.</p>
         </div>
         <div className="trades-v3-heading-actions">
           {manualEnabled ? (
@@ -119,6 +140,33 @@ export function TradeList({
           />
         </label>
         <select
+          value={sourceFilter}
+          onChange={(event) => {
+            setSourceFilter(event.target.value);
+            setPage(1);
+          }}
+          aria-label="Фильтр по источнику"
+        >
+          <option value="all">Все источники</option>
+          {sources.map((source) => (
+            <option value={source} key={source}>
+              {source}
+            </option>
+          ))}
+        </select>
+        <select
+          value={directionFilter}
+          onChange={(event) => {
+            setDirectionFilter(event.target.value as DirectionFilter);
+            setPage(1);
+          }}
+          aria-label="Фильтр по направлению"
+        >
+          <option value="all">Любое направление</option>
+          <option value="long">Long</option>
+          <option value="short">Short</option>
+        </select>
+        <select
           value={sortMode}
           onChange={(event) => setSortMode(event.target.value as SortMode)}
           aria-label="Сортировка сделок"
@@ -134,11 +182,13 @@ export function TradeList({
         <div className="trades-v3-table-head">
           <span>Дата и время</span>
           <span>Инструмент</span>
-          <span>Позиция</span>
-          <span>Объём</span>
+          <span>Направление</span>
           <span>Вход → выход</span>
-          <span>P&amp;L</span>
-          <span>Источник</span>
+          <span>Количество</span>
+          <span>Брутто</span>
+          <span>Комиссии</span>
+          <span>Net P&amp;L</span>
+          <span>R / сетап</span>
         </div>
         {isLoading
           ? Array.from({ length: 8 }).map((_, index) => (
@@ -151,28 +201,42 @@ export function TradeList({
               return (
                 <button
                   type="button"
-                  className="trades-v3-row"
+                  className={`trades-v3-row ${selectedTrade?.id === trade.id ? 'selected' : ''}`}
                   key={trade.id}
                   onClick={() => selectTrade(trade)}
                 >
                   <span>{formatDate(trade.timestamp)}</span>
                   <span>
                     <strong>{trade.symbol}</strong>
-                    <small>{trade.status === 'closed' ? 'Закрыта' : 'Открыта'}</small>
+                    <small>
+                      <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={15} />
+                      {trade.exchange || 'Источник'}
+                    </small>
                   </span>
-                  <span className={trade.side === 'buy' ? 'positive' : 'negative'}>
-                    {trade.side === 'buy' ? 'Long' : 'Short'}
+                  <span className={item.direction}>
+                    {item.direction === 'long' ? 'Long' : 'Short'}
                   </span>
-                  <span>{formatUSD(numeric(trade.value_usd))}</span>
                   <span>
                     {formatUSD(item.entryPrice)} → {formatUSD(item.exitPrice)}
                   </span>
-                  <span className={item.netPnl >= 0 ? 'positive' : 'negative'}>
-                    {formatUSD(item.netPnl)}
+                  <span>
+                    {item.amount.toLocaleString('ru-RU', { maximumFractionDigits: 6 })}{' '}
+                    {trade.symbol.replace(/USDT$/i, '') || 'ед.'}
                   </span>
-                  <span className="trades-v3-source">
-                    <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={20} />
-                    {trade.exchange || 'Источник'}
+                  <span className={item.grossPnl >= 0 ? 'positive' : 'negative'}>
+                    {formatSignedUSD(item.grossPnl)}
+                  </span>
+                  <span className="negative">{formatSignedUSD(-item.fees)}</span>
+                  <span className={item.netPnl >= 0 ? 'positive' : 'negative'}>
+                    {formatSignedUSD(item.netPnl)}
+                  </span>
+                  <span className="trades-v3-context">
+                    <strong>
+                      {item.rMultiple === null ? '—' : `${item.rMultiple.toFixed(2)}R`}
+                    </strong>
+                    <small>
+                      {String(item.meta.strategy || trade.strategy_tag || 'Без сетапа')}
+                    </small>
                     <CaretRight size={13} />
                   </span>
                 </button>
@@ -182,10 +246,18 @@ export function TradeList({
         {!isLoading && !visibleTrades.length ? (
           <div className="trades-v3-empty">
             <strong>
-              {search || resultFilter !== 'all' ? 'Ничего не найдено' : 'История пока пуста'}
+              {search ||
+              resultFilter !== 'all' ||
+              directionFilter !== 'all' ||
+              sourceFilter !== 'all'
+                ? 'Ничего не найдено'
+                : 'История пока пуста'}
             </strong>
             <span>
-              {search || resultFilter !== 'all'
+              {search ||
+              resultFilter !== 'all' ||
+              directionFilter !== 'all' ||
+              sourceFilter !== 'all'
                 ? 'Измените поиск или фильтр результата.'
                 : 'Подключите источник — сделки будут добавляться автоматически.'}
             </span>

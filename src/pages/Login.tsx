@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { ArrowRight } from '@phosphor-icons/react';
 import { AuthFrame } from '@/components/auth/AuthFrame';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -83,8 +84,8 @@ export function Login() {
 
   return (
     <AuthFrame
-      title="С возвращением"
-      description="Войдите, чтобы продолжить работу с торговой историей."
+      title="Войти в рабочее пространство"
+      description="Продолжите разбор сделок, риска и решений."
       footer={
         <>
           <span>Нет аккаунта?</span> <Link to="/register">Создать бесплатно</Link>
@@ -137,7 +138,10 @@ export function Login() {
           </div>
         )}
         <button className="auth-submit" type="submit" disabled={loading}>
-          {loading ? 'Входим…' : 'Войти'}
+          <span>{loading ? 'Входим…' : 'Войти'}</span>
+          <i aria-hidden="true">
+            <ArrowRight size={18} />
+          </i>
         </button>
       </form>
     </AuthFrame>

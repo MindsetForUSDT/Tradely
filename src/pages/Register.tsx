@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { ArrowRight } from '@phosphor-icons/react';
 import { AuthFrame } from '@/components/auth/AuthFrame';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
@@ -185,7 +186,10 @@ export function Register() {
           </div>
         )}
         <button className="auth-submit" type="submit" disabled={loading}>
-          {loading ? 'Создаём аккаунт…' : 'Создать аккаунт'}
+          <span>{loading ? 'Создаём аккаунт…' : 'Создать аккаунт'}</span>
+          <i aria-hidden="true">
+            <ArrowRight size={18} />
+          </i>
         </button>
         <p className="auth-terms">
           Продолжая, вы соглашаетесь с <Link to="/terms">условиями</Link> и{' '}

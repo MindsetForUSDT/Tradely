@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Link } from 'react-router-dom';
 import {
   ArrowClockwise,
   ArrowRight,
@@ -443,6 +444,78 @@ export function WalletConnect() {
             </button>
           </div>
         )}
+      </section>
+
+      <section className="premium-source-detail-grid" aria-label="Покрытие и безопасность данных">
+        <article>
+          <header>
+            <Database size={17} />
+            <span>
+              <small>Покрытие истории</small>
+              <strong>
+                {totalTrades ? `${totalTrades} финальных сделок` : 'Ожидает подключения'}
+              </strong>
+            </span>
+          </header>
+          <p>
+            В журнал попадают только завершённые сделки. Внутренние ордера объединяются в одну
+            понятную позицию без дублей.
+          </p>
+          <dl>
+            <div>
+              <dt>Период</dt>
+              <dd>
+                {wallets[0]?.import_from_date
+                  ? `с ${new Intl.DateTimeFormat('ru-RU').format(
+                      new Date(wallets[0].import_from_date)
+                    )}`
+                  : 'задаётся при подключении'}
+              </dd>
+            </div>
+            <div>
+              <dt>Обновление</dt>
+              <dd>{nextSyncLabel(wallets)}</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article>
+          <header>
+            <Clock size={17} />
+            <span>
+              <small>Что импортируется</small>
+              <strong>Полная экономика сделки</strong>
+            </span>
+          </header>
+          <ul>
+            <li>
+              <CheckCircle size={14} weight="fill" /> Вход, выход, направление и количество
+            </li>
+            <li>
+              <CheckCircle size={14} weight="fill" /> Комиссии и funding отдельно от gross P&amp;L
+            </li>
+            <li>
+              <CheckCircle size={14} weight="fill" /> Текущий капитал и время исполнения
+            </li>
+          </ul>
+        </article>
+
+        <article>
+          <header>
+            <ShieldCheck size={17} />
+            <span>
+              <small>Контур безопасности</small>
+              <strong>Только чтение</strong>
+            </span>
+          </header>
+          <p>
+            Ключ с правами вывода средств не будет сохранён. Секрет шифруется на сервере и не
+            возвращается в браузер.
+          </p>
+          <Link to="/dashboard/trades">
+            Проверить импорт в журнале <ArrowRight size={14} />
+          </Link>
+        </article>
       </section>
 
       <section className="premium-source-catalog">
