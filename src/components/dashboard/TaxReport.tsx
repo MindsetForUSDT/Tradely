@@ -1,71 +1,70 @@
-// Обновленный TaxReport.tsx
-import { useState, useMemo } from 'react';
-import { Card } from '@/components/ui/Card';
+import { useMemo, useState } from 'react';
+import { Calculator, Info } from '@phosphor-icons/react';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
-import { formatUSD } from '@/lib/utils';
-import { Icon } from '@/components/ui/Icons';
 import { calculateFIFOTax } from '@/lib/taxCalculator';
+import { formatUSD } from '@/lib/utils';
 
 export function TaxReport() {
-  const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 365 });
+  const { trades } = useTradesOptimized({ limit: 500, daysAgo: 365 });
   const [year, setYear] = useState(new Date().getFullYear());
-
-  const report = useMemo(() => {
-    return calculateFIFOTax(trades, year);
-  }, [trades, year]);
+  const report = useMemo(() => calculateFIFOTax(trades, year), [trades, year]);
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
-      <Card padding="lg" className="space-y-5">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-accent-green/10 flex items-center justify-center">
-            <Icon name="tax" size={18} className="text-accent-green" />
+    <section className="workspace-form-page">
+      <header>
+        <span>Отчёты</span>
+        <h1>Налоговый расчёт</h1>
+        <p>Предварительная оценка по методу FIFO на основе импортированной истории.</p>
+      </header>
+      <div className="workspace-tax-panel">
+        <div className="workspace-form-title">
+          <Calculator size={21} />
+          <div>
+            <strong>РФ · FIFO</strong>
+            <small>Выберите календарный год.</small>
           </div>
-          <h3 className="text-base font-semibold">Налоговый отчёт (РФ, FIFO)</h3>
+          <select value={year} onChange={(event) => setYear(Number(event.target.value))}>
+            {[2024, 2025, 2026].map((value) => (
+              <option key={value} value={value}>
+                {value} год
+              </option>
+            ))}
+          </select>
         </div>
-        <select
-          value={year}
-          onChange={(e) => setYear(+e.target.value)}
-          className="w-full px-4 py-2 mb-4 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white"
-        >
-          {[2024, 2025, 2026].map((y) => (
-            <option key={y} value={y}>
-              {y} год
-            </option>
-          ))}
-        </select>
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-text-muted">Сделок</span>
-            <span>{report.trades}</span>
+        <dl>
+          <div>
+            <dt>Сделок</dt>
+            <dd>{report.trades}</dd>
           </div>
-          <div className="flex justify-between">
-            <span className="text-text-muted">Выручка</span>
-            <span>{formatUSD(report.totalProceeds)}</span>
+          <div>
+            <dt>Выручка</dt>
+            <dd>{formatUSD(report.totalProceeds)}</dd>
           </div>
-          <div className="flex justify-between">
-            <span className="text-text-muted">Затраты (FIFO)</span>
-            <span>{formatUSD(report.totalCostBasis)}</span>
+          <div>
+            <dt>Затраты по FIFO</dt>
+            <dd>{formatUSD(report.totalCostBasis)}</dd>
           </div>
-          <div className="flex justify-between font-semibold border-t border-surface-border pt-2">
-            <span>Результат</span>
-            <span className={report.netGain >= 0 ? 'text-accent-green' : 'text-accent-red'}>
+          <div>
+            <dt>Налоговая база</dt>
+            <dd className={report.netGain >= 0 ? 'positive' : 'negative'}>
               {formatUSD(report.netGain)}
-            </span>
+            </dd>
           </div>
-          <div className="flex justify-between">
-            <span className="text-text-muted">Ставка</span>
-            <span>{report.taxRate}%</span>
+          <div>
+            <dt>Расчётная ставка</dt>
+            <dd>{report.taxRate}%</dd>
           </div>
-          <div className="flex justify-between text-lg font-bold pt-2 border-t border-surface-border">
-            <span>Налог к уплате</span>
-            <span className="text-accent-green">{formatUSD(report.taxAmount)}</span>
+          <div className="total">
+            <dt>Предварительный налог</dt>
+            <dd>{formatUSD(report.taxAmount)}</dd>
           </div>
-        </div>
-        <p className="text-xs text-text-muted pt-2">
-          Расчёт по методу FIFO. Ознакомьтесь с актуальным законодательством.
+        </dl>
+        <p>
+          <Info size={15} />
+          Это аналитическая оценка, а не налоговая или юридическая консультация. Сверьте расчёт с
+          актуальным законодательством и документами биржи.
         </p>
-      </Card>
-    </div>
+      </div>
+    </section>
   );
 }

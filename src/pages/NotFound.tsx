@@ -4,8 +4,12 @@ import { Button } from '@/components/ui/Button';
 
 export function NotFound() {
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+    <div className="not-found-page min-h-screen flex items-center justify-center px-4">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="not-found-content text-center"
+      >
         <div className="relative w-32 h-32 mx-auto mb-8">
           <div className="absolute inset-0 bg-accent-green/5 rounded-full animate-glow-pulse" />
           <div className="absolute inset-4 bg-accent-green/10 rounded-full" />
@@ -14,8 +18,14 @@ export function NotFound() {
           </div>
         </div>
         <h1 className="text-2xl font-bold mb-2">Страница не найдена</h1>
-        <p className="text-text-muted mb-8 max-w-md mx-auto">Вернитесь на главную и продолжите анализировать сделки.</p>
-        <Link to="/"><Button variant="primary" size="lg">На главную</Button></Link>
+        <p className="text-text-muted mb-8 max-w-md mx-auto">
+          Вернитесь на главную и продолжите анализировать сделки.
+        </p>
+        <Link to="/">
+          <Button variant="primary" size="lg">
+            На главную
+          </Button>
+        </Link>
       </motion.div>
     </div>
   );

@@ -10,6 +10,9 @@ export function Layout() {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
   const isLanding = location.pathname === '/';
+  const isAuth = ['/login', '/register', '/forgot-password', '/update-password'].includes(
+    location.pathname
+  );
   const isWorkspace = ['/dashboard', '/pro', '/ai', '/goals', '/achievements', '/settings'].some(
     (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
   );
@@ -19,18 +22,18 @@ export function Layout() {
   return (
     <div className="relative min-h-screen min-h-dvh flex flex-col">
       <OfflineBanner />
-      {!isWorkspace && <Header />}
+      {!isWorkspace && !isAuth && <Header />}
       <main
         className={cn(
           'flex-1 relative z-10 transition-opacity duration-300',
           isLoading && !isLanding && 'opacity-50',
-          isWorkspace ? 'pt-0' : isLanding ? 'pt-16' : 'pt-20 md:pt-24',
+          isWorkspace || isAuth ? 'pt-0' : isLanding ? 'pt-16' : 'pt-20 md:pt-24',
           isAuthenticated ? 'pb-20 md:pb-0' : ''
         )}
       >
         <Outlet />
       </main>
-      {!isWorkspace && !isAuthenticated && !isLoading && <Footer />}
+      {!isWorkspace && !isAuth && !isAuthenticated && !isLoading && <Footer />}
       {!isWorkspace && isAuthenticated && <MobileNav />}
     </div>
   );

@@ -1,693 +1,541 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
+import {
+  ArrowRight,
+  ArrowUpRight,
+  ArrowsLeftRight,
+  ChartDonut,
+  Check,
+  CheckCircle,
+  ClipboardText,
+  LockKey,
+  Play,
+  ShieldCheck,
+  Sparkle,
+} from '@phosphor-icons/react';
 import {
   Area,
   AreaChart,
   CartesianGrid,
-  Line,
-  LineChart,
+  ReferenceDot,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from 'recharts';
-import { Icon } from '@/components/ui/Icons';
+import { SourceLogo } from '@/components/brand/SourceLogo';
 import { useAuth } from '@/hooks/useAuth';
 
-const productScenes = [
+type PreviewPeriod = '7 дней' | '30 дней' | '90 дней';
+type DecisionId = 'plan' | 'entry' | 'manage' | 'exit';
+
+interface EquityPoint {
+  day: string;
+  value: number;
+}
+
+interface PreviewPeriodData {
+  range: string;
+  capital: number;
+  change: string;
+  chart: EquityPoint[];
+}
+
+interface Decision {
+  id: DecisionId;
+  time: string;
+  title: string;
+  detail: string;
+}
+
+const previewPeriods: PreviewPeriod[] = ['7 дней', '30 дней', '90 дней'];
+
+const previewData: Record<PreviewPeriod, PreviewPeriodData> = {
+  '7 дней': {
+    range: '2026-07-22 — 2026-07-28',
+    capital: 11640,
+    change: '+4.9% за период',
+    chart: [
+      { day: '22 июл', value: 11100 },
+      { day: '23 июл', value: 11240 },
+      { day: '24 июл', value: 11180 },
+      { day: '25 июл', value: 11420 },
+      { day: '26 июл', value: 11380 },
+      { day: '27 июл', value: 11520 },
+      { day: '28 июл', value: 11640 },
+    ],
+  },
+  '30 дней': {
+    range: '2026-06-28 — 2026-07-28',
+    capital: 11640,
+    change: '+16.4% за период',
+    chart: [
+      { day: '28 июн', value: 8200 },
+      { day: '30 июн', value: 8460 },
+      { day: '02 июл', value: 9050 },
+      { day: '04 июл', value: 8740 },
+      { day: '06 июл', value: 9160 },
+      { day: '08 июл', value: 9520 },
+      { day: '10 июл', value: 9700 },
+      { day: '12 июл', value: 9900 },
+      { day: '14 июл', value: 10280 },
+      { day: '16 июл', value: 10190 },
+      { day: '18 июл', value: 10610 },
+      { day: '20 июл', value: 10820 },
+      { day: '22 июл', value: 11020 },
+      { day: '24 июл', value: 11360 },
+      { day: '26 июл', value: 11410 },
+      { day: '28 июл', value: 11640 },
+    ],
+  },
+  '90 дней': {
+    range: '2026-04-30 — 2026-07-28',
+    capital: 11640,
+    change: '+32.6% за период',
+    chart: [
+      { day: '30 апр', value: 8780 },
+      { day: '10 мая', value: 9120 },
+      { day: '20 мая', value: 8950 },
+      { day: '30 мая', value: 9480 },
+      { day: '09 июн', value: 9760 },
+      { day: '19 июн', value: 10040 },
+      { day: '29 июн', value: 10220 },
+      { day: '09 июл', value: 10860 },
+      { day: '19 июл', value: 11140 },
+      { day: '28 июл', value: 11640 },
+    ],
+  },
+};
+
+const decisions: Decision[] = [
   {
-    id: 'journal',
-    number: '01',
-    title: 'Журнал сделок',
-    copy: 'Контекст, риск, эмоции и заметки — в одной последовательной истории.',
+    id: 'plan',
+    time: '09:12',
+    title: 'План',
+    detail: 'Сценарий: пробой + ретест',
   },
   {
-    id: 'analytics',
-    number: '02',
-    title: 'Аналитика',
-    copy: 'Паттерны появляются только после подключения ваших реальных данных.',
+    id: 'entry',
+    time: '09:25',
+    title: 'Вход в сделку',
+    detail: 'BTCUSDT · Лонг · $68,240',
   },
   {
-    id: 'risk',
-    number: '03',
-    title: 'Риск-менеджмент',
-    copy: 'Лимиты на сделку, день и просадку превращают дисциплину в систему.',
+    id: 'manage',
+    time: '10:07',
+    title: 'Частичная фиксация',
+    detail: 'Закрыто 50% · +0.96R',
   },
   {
-    id: 'ai',
-    number: '04',
-    title: 'AI-разборы',
-    copy: 'Конкретные наблюдения о ваших решениях — без шума и общих советов.',
+    id: 'exit',
+    time: '10:42',
+    title: 'Выход по плану',
+    detail: 'Остаток · +1.92R',
   },
-] as const;
+];
 
 const plans = [
-  {
-    name: 'Free',
-    price: '0 ₽',
-    note: 'Навсегда',
-    items: ['Ручной ввод и CSV', 'Основные метрики', 'Теги и заметки'],
-    cta: 'Начать бесплатно',
-  },
+  { name: 'Free', price: '0 ₽', items: ['Основные метрики', 'CSV-импорт', 'История сделок'] },
   {
     name: 'Trader',
     price: '499 ₽',
-    note: 'в месяц',
-    items: ['CEX и кошельки', 'Риск-менеджер', 'Расширенные отчёты'],
-    cta: 'Выбрать Trader',
+    items: ['Автоматическая синхронизация', 'Риск-менеджер', 'Полная аналитика'],
     featured: true,
   },
   {
     name: 'PRO + AI',
     price: 'По запросу',
-    note: 'для глубокой работы',
-    items: ['PRO-перекосы и серии', 'AI-разбор контекста', 'Приоритетный sync'],
-    cta: 'Попробовать PRO',
+    items: ['Разбор паттернов', 'AI-наблюдения', 'Расширенные отчёты'],
   },
 ];
 
-const faq = [
-  [
-    'Безопасно ли подключать биржу?',
-    'Да. Используется доступ только для чтения — без вывода средств и торговли.',
-  ],
-  [
-    'Какие биржи поддерживаются?',
-    'Источники подключаются через CEX API, криптокошелёк или импорт файла.',
-  ],
-  [
-    'Что такое AI-разбор?',
-    'Это анализ повторяющихся решений и контекста на основе вашей торговой истории.',
-  ],
-  [
-    'Можно ли экспортировать данные?',
-    'Да, сделки и отчёты можно выгрузить из рабочего пространства.',
-  ],
-];
-
-const demoEquity = [
-  { day: '01.07', value: 10000, r: 0 },
-  { day: '03.07', value: 10240, r: 1.2 },
-  { day: '05.07', value: 10110, r: -0.65 },
-  { day: '07.07', value: 10580, r: 2.35 },
-  { day: '09.07', value: 10490, r: -0.45 },
-  { day: '11.07', value: 10940, r: 2.25 },
-  { day: '13.07', value: 11280, r: 1.7 },
-];
-
-const demoTrades = [
-  ['BTCUSDT', 'Long', 'Breakout', '+2.35R', '+470 USDT'],
-  ['ETHUSDT', 'Short', 'Retest', '-0.65R', '-130 USDT'],
-  ['SOLUSDT', 'Long', 'Momentum', '+1.70R', '+340 USDT'],
-];
-
-function DynamicMarketWave() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointerRef = useRef({ x: 0.5, y: 0.5 });
-  const reduceMotion = useReducedMotion();
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const context = canvas.getContext('2d');
-    if (!context) return;
-
-    let frame = 0;
-    let width = 0;
-    let height = 0;
-    const resize = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      width = rect.width;
-      height = rect.height;
-      canvas.width = Math.round(width * dpr);
-      canvas.height = Math.round(height * dpr);
-      context.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    const draw = (time: number) => {
-      context.clearRect(0, 0, width, height);
-      const pointer = pointerRef.current;
-      const phase = reduceMotion ? 0 : time * 0.00032;
-      context.globalCompositeOperation = 'lighter';
-
-      for (let band = 0; band < 9; band += 1) {
-        const alpha = 0.09 + band * 0.012;
-        const amplitude = 26 + band * 5;
-        const offset = (band - 4) * 10;
-        context.beginPath();
-        for (let point = 0; point <= 120; point += 1) {
-          const x = (point / 120) * width;
-          const normalized = x / Math.max(width, 1);
-          const influence = Math.exp(-Math.pow(normalized - pointer.x, 2) / 0.035);
-          const y =
-            height * 0.53 +
-            offset +
-            Math.sin(normalized * 9.5 + phase * (1 + band * 0.05) + band * 0.65) * amplitude +
-            Math.sin(normalized * 22 - phase * 1.7 + band) * 7 -
-            influence * (pointer.y - 0.5) * 80;
-          if (point === 0) context.moveTo(x, y);
-          else context.lineTo(x, y);
-          if (point % 5 === band % 5) {
-            context.moveTo(x + 0.01, y);
-            context.arc(x, y, 0.55 + influence * 1.5, 0, Math.PI * 2);
-          }
-        }
-        context.strokeStyle = `rgba(245,245,245,${alpha})`;
-        context.lineWidth = band === 4 ? 1.15 : 0.55;
-        context.stroke();
-      }
-
-      context.globalCompositeOperation = 'source-over';
-      if (!reduceMotion) frame = requestAnimationFrame(draw);
-    };
-
-    const onPointerMove = (event: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      pointerRef.current = {
-        x: Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)),
-        y: Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height)),
-      };
-    };
-
-    resize();
-    window.addEventListener('resize', resize);
-    canvas.addEventListener('pointermove', onPointerMove, { passive: true });
-    draw(0);
-
-    return () => {
-      cancelAnimationFrame(frame);
-      window.removeEventListener('resize', resize);
-      canvas.removeEventListener('pointermove', onPointerMove);
-    };
-  }, [reduceMotion]);
-
-  return <canvas ref={canvasRef} className="spatial-wave-canvas" aria-hidden="true" />;
+function DecisionIcon({ id }: { id: DecisionId }) {
+  if (id === 'plan') return <ClipboardText size={17} />;
+  if (id === 'entry') return <ArrowUpRight size={17} />;
+  if (id === 'manage') return <ChartDonut size={17} />;
+  return <CheckCircle size={17} />;
 }
 
-function DemoProductPanel({ scene }: { scene: (typeof productScenes)[number] }) {
+function AnalyticsScene({ reduceMotion }: { reduceMotion: boolean }) {
+  const [period, setPeriod] = useState<PreviewPeriod>('30 дней');
+  const [activeDecisionId, setActiveDecisionId] = useState<DecisionId>('exit');
+  const data = previewData[period];
+  const activeDecision =
+    decisions.find((decision) => decision.id === activeDecisionId) ?? decisions[3];
+
+  const cyclePeriod = () => {
+    const currentIndex = previewPeriods.indexOf(period);
+    setPeriod(previewPeriods[(currentIndex + 1) % previewPeriods.length]);
+  };
+
   return (
-    <div className="spatial-product-panel">
-      <div className="spatial-product-topbar">
-        <span>TradeumDiary / {scene.title}</span>
-        <span className="spatial-demo-status">Интерактивное демо</span>
-      </div>
-      <div className="spatial-product-body">
-        <aside>
-          {productScenes.map((item) => (
-            <span className={item.id === scene.id ? 'active' : ''} key={item.id}>
-              {item.number} {item.title}
-            </span>
-          ))}
-        </aside>
-        <div className="spatial-demo-workspace">
-          {scene.id === 'journal' ? <JournalDemo /> : null}
-          {scene.id === 'analytics' ? <AnalyticsDemo /> : null}
-          {scene.id === 'risk' ? <RiskDemo /> : null}
-          {scene.id === 'ai' ? <AiDemo /> : null}
+    <motion.div
+      className="cinematic-analytics-scene"
+      id="product"
+      initial={reduceMotion ? false : { opacity: 0, x: 28 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.85, delay: 0.12 }}
+    >
+      <div className="cinematic-scene-head">
+        <div>
+          <span>
+            Кривая капитала <i />
+          </span>
+          <strong>${data.capital.toLocaleString('en-US')}</strong>
+          <small>{data.change}</small>
         </div>
+        <button type="button" onClick={cyclePeriod} aria-label="Изменить период графика">
+          <span>Период: {period}</span>
+          <small>{data.range}</small>
+        </button>
       </div>
-    </div>
-  );
-}
 
-function DemoMetrics() {
-  return (
-    <div className="spatial-demo-metrics">
-      <div>
-        <span>Баланс</span>
-        <strong>11 280 USDT</strong>
-        <small>+12,8% за период</small>
+      <div className="cinematic-equity-chart" aria-label={`Кривая капитала за ${period}`}>
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={data.chart} margin={{ top: 26, right: 8, left: 0, bottom: 0 }}>
+            <defs>
+              <linearGradient id="cinematicEquityFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#d8c6af" stopOpacity={0.2} />
+                <stop offset="100%" stopColor="#d8c6af" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="rgba(237, 230, 220, 0.075)" vertical />
+            <XAxis
+              dataKey="day"
+              axisLine={false}
+              tickLine={false}
+              minTickGap={28}
+              tick={{ fill: '#5d5a56', fontSize: 10 }}
+            />
+            <YAxis
+              axisLine={false}
+              tickLine={false}
+              orientation="right"
+              domain={['dataMin - 250', 'dataMax + 250']}
+              tick={{ fill: '#5d5a56', fontSize: 10 }}
+              tickFormatter={(value: number) => `$${Math.round(value / 1000)}K`}
+              width={42}
+            />
+            <Tooltip
+              cursor={{ stroke: 'rgba(216, 198, 175, 0.35)', strokeDasharray: '4 5' }}
+              contentStyle={{
+                background: '#0b0c0e',
+                border: '1px solid rgba(237, 230, 220, 0.2)',
+                borderRadius: 6,
+                color: '#eee8df',
+                fontSize: 11,
+              }}
+              formatter={(value: number) => [`$${value.toLocaleString('en-US')}`, 'Капитал']}
+            />
+            {period === '30 дней' ? (
+              <>
+                <ReferenceLine
+                  x="02 июл"
+                  stroke="rgba(216, 198, 175, 0.35)"
+                  strokeDasharray="3 4"
+                />
+                <ReferenceLine
+                  x="20 июл"
+                  stroke="rgba(216, 198, 175, 0.35)"
+                  strokeDasharray="3 4"
+                />
+                <ReferenceDot
+                  x="02 июл"
+                  y={9050}
+                  r={5}
+                  fill="#0b0c0e"
+                  stroke="#e8dccd"
+                  strokeWidth={2}
+                />
+                <ReferenceDot
+                  x="20 июл"
+                  y={10820}
+                  r={5}
+                  fill="#0b0c0e"
+                  stroke="#e8dccd"
+                  strokeWidth={2}
+                />
+              </>
+            ) : null}
+            <Area
+              type="monotone"
+              dataKey="value"
+              stroke="#e8dccd"
+              strokeWidth={1.7}
+              fill="url(#cinematicEquityFill)"
+              isAnimationActive={!reduceMotion}
+              animationDuration={1100}
+              dot={false}
+              activeDot={{ r: 4, fill: '#0b0c0e', stroke: '#eee8df', strokeWidth: 2 }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+        {period === '30 дней' ? (
+          <>
+            <button
+              className={`cinematic-chart-note note-risk ${
+                activeDecisionId === 'entry' ? 'active' : ''
+              }`}
+              type="button"
+              onClick={() => setActiveDecisionId('entry')}
+            >
+              <strong>Риск соблюдён</strong>
+              <span>0.62% от капитала</span>
+            </button>
+            <button
+              className={`cinematic-chart-note note-exit ${
+                activeDecisionId === 'exit' ? 'active' : ''
+              }`}
+              type="button"
+              onClick={() => setActiveDecisionId('exit')}
+            >
+              <strong>Выход по плану</strong>
+              <span>RR 1.92</span>
+            </button>
+          </>
+        ) : null}
       </div>
-      <div>
-        <span>Win rate</span>
-        <strong>62,5%</strong>
-        <small>15 из 24 сделок</small>
-      </div>
-      <div>
-        <span>Profit factor</span>
-        <strong>1,84</strong>
-        <small>цель ≥ 1,50</small>
-      </div>
-      <div>
-        <span>Средний R</span>
-        <strong>+0,53R</strong>
-        <small>на сделку</small>
-      </div>
-    </div>
-  );
-}
 
-function JournalDemo() {
-  return (
-    <div className="spatial-demo-stack">
-      <DemoMetrics />
-      <div className="spatial-demo-chart-row">
-        <div className="spatial-demo-chart">
-          <header>
-            <span>Динамика капитала</span>
-            <small>01–13 июля</small>
-          </header>
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={demoEquity} margin={{ top: 18, right: 8, left: -22, bottom: 0 }}>
-              <CartesianGrid stroke="#202020" vertical={false} />
-              <XAxis
-                dataKey="day"
-                tick={{ fontSize: 8, fill: '#666' }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 8, fill: '#666' }}
-                tickLine={false}
-                axisLine={false}
-                domain={[9800, 11400]}
-              />
-              <Tooltip
-                contentStyle={{ background: '#0b0b0b', border: '1px solid #333', fontSize: 10 }}
-              />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="#f1f1ef"
-                fill="#222"
-                strokeWidth={1.7}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="spatial-demo-context">
-          <span>Последняя запись</span>
-          <strong>BTCUSDT · Breakout</strong>
-          <p>Вход после ретеста уровня. Риск соблюдён, импульс подтверждён объёмом.</p>
+      <div className="cinematic-decision-grid">
+        <section className="cinematic-decision-feed" aria-label="Лента решений">
+          <h2>Лента решений</h2>
           <div>
-            <span>Результат</span>
-            <b>+2.35R</b>
-          </div>
-        </div>
-      </div>
-      <DemoTrades />
-    </div>
-  );
-}
-
-function DemoTrades() {
-  return (
-    <div className="spatial-demo-table" role="table" aria-label="Пример журнала сделок">
-      <div className="head" role="row">
-        <span>Инструмент</span>
-        <span>Сторона</span>
-        <span>Сетап</span>
-        <span>R</span>
-        <span>P&amp;L</span>
-      </div>
-      {demoTrades.map((trade) => (
-        <div role="row" key={trade[0]}>
-          {trade.map((cell) => (
-            <span key={cell}>{cell}</span>
-          ))}
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function AnalyticsDemo() {
-  return (
-    <div className="spatial-demo-stack">
-      <DemoMetrics />
-      <div className="spatial-analytics-grid">
-        <div className="spatial-demo-chart wide">
-          <header>
-            <span>Результат в R</span>
-            <small>24 сделки</small>
-          </header>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={demoEquity} margin={{ top: 18, right: 12, left: -28 }}>
-              <CartesianGrid stroke="#202020" vertical={false} />
-              <XAxis dataKey="day" hide />
-              <YAxis tick={{ fontSize: 8, fill: '#666' }} tickLine={false} axisLine={false} />
-              <Tooltip
-                contentStyle={{ background: '#0b0b0b', border: '1px solid #333', fontSize: 10 }}
-              />
-              <Line
-                type="monotone"
-                dataKey="r"
-                stroke="#eee"
-                dot={{ r: 2, fill: '#eee' }}
-                strokeWidth={1.5}
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <div className="spatial-setup-list">
-          <span>Сетапы</span>
-          <div>
-            <b>Breakout</b>
-            <em>+7.2R</em>
-          </div>
-          <div>
-            <b>Retest</b>
-            <em>+3.8R</em>
-          </div>
-          <div>
-            <b>Momentum</b>
-            <em>+1.7R</em>
-          </div>
-        </div>
-      </div>
-      <DemoTrades />
-    </div>
-  );
-}
-
-function RiskDemo() {
-  return (
-    <div className="spatial-demo-stack">
-      <div className="spatial-demo-risk-cards">
-        {[
-          ['Риск на сделку', '1,0%', '62%'],
-          ['Лимит на день', '3,0%', '38%'],
-          ['Макс. просадка', '8,0%', '46%'],
-        ].map(([label, value, progress]) => (
-          <div key={label}>
-            <span>{label}</span>
-            <strong>{value}</strong>
-            <div>
-              <i style={{ width: progress }} />
-            </div>
-            <small>В пределах правила</small>
-          </div>
-        ))}
-      </div>
-      <div className="spatial-risk-timeline">
-        <header>
-          <span>Контроль сессии</span>
-          <small>Сегодня</small>
-        </header>
-        {[
-          ['09:42', 'BTCUSDT', 'Риск 0,8%', 'Разрешено'],
-          ['11:18', 'ETHUSDT', 'Риск 1,0%', 'Разрешено'],
-          ['14:06', 'SOLUSDT', 'Дневной риск 2,8%', 'Предупреждение'],
-        ].map((row) => (
-          <div key={row[0]}>
-            {row.map((cell) => (
-              <span key={cell}>{cell}</span>
+            {decisions.map((decision) => (
+              <button
+                className={decision.id === activeDecisionId ? 'active' : ''}
+                type="button"
+                key={decision.id}
+                onClick={() => setActiveDecisionId(decision.id)}
+              >
+                <time>{decision.time}</time>
+                <i />
+                <span>
+                  <strong>{decision.title}</strong>
+                  <small>{decision.detail}</small>
+                </span>
+                <DecisionIcon id={decision.id} />
+              </button>
             ))}
           </div>
-        ))}
-      </div>
-      <div className="spatial-demo-rule">
-        <Icon name="shield" size={18} />
-        <div>
-          <strong>Правила активны</strong>
-          <span>Следующая сделка будет заблокирована при достижении дневного лимита.</span>
-        </div>
-      </div>
-    </div>
-  );
-}
+        </section>
 
-function AiDemo() {
-  return (
-    <div className="spatial-demo-stack spatial-ai-demo">
-      <div className="spatial-ai-score">
-        <span>Дисциплина</span>
-        <strong>8,7</strong>
-        <small>/ 10</small>
-        <p>Стабильнее, чем в предыдущем периоде</p>
+        <section className="cinematic-trade-summary" aria-label="Итоги по сделке">
+          <header>
+            <h2>Итоги по сделке</h2>
+            <span>2026-07-18 · BTCUSDT Лонг</span>
+          </header>
+          <dl>
+            <div>
+              <dt>P&amp;L</dt>
+              <dd>+$1,640</dd>
+              <small>+1.92R</small>
+            </div>
+            <div>
+              <dt>Profit factor</dt>
+              <dd>1.84</dd>
+              <small>Хорошо</small>
+            </div>
+            <div>
+              <dt>Дисциплина</dt>
+              <dd>91%</dd>
+              <small>Стабильно</small>
+            </div>
+          </dl>
+          <p>
+            <span>Контекст</span>
+            {activeDecision.title}: {activeDecision.detail}
+          </p>
+        </section>
       </div>
-      <div className="spatial-ai-insight">
-        <span>Обнаруженный паттерн</span>
-        <h3>После двух прибыльных сделок вы повышаете риск в 1,6 раза</h3>
-        <p>
-          Это увеличивает среднюю просадку следующей сделки. Сохраните базовый риск 1% до конца
-          сессии.
-        </p>
-        <div>
-          <b>Основано на 18 сессиях</b>
-          <em>Высокая уверенность</em>
-        </div>
-      </div>
-      <div className="spatial-ai-actions">
-        <button type="button">Добавить правило риска</button>
-        <button type="button">Посмотреть сделки</button>
-      </div>
-    </div>
-  );
-}
-
-function HeroConstellation() {
-  const reduceMotion = useReducedMotion();
-  return (
-    <div className="spatial-constellation" aria-label="Интерфейс TradeumDiary">
-      <motion.div
-        className="spatial-layer spatial-layer-main"
-        animate={reduceMotion ? undefined : { y: [0, -10, 0], rotateX: [0, 1.2, 0] }}
-        transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <div className="spatial-layer-head">
-          <span>Демо-портфель</span>
-          <span>13 июля</span>
-        </div>
-        <div className="spatial-layer-title">Динамика капитала</div>
-        <div className="spatial-chart-live">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={demoEquity} margin={{ top: 18, right: 4, left: -28, bottom: 0 }}>
-              <CartesianGrid stroke="#202020" vertical={false} />
-              <XAxis dataKey="day" hide />
-              <YAxis hide domain={[9800, 11400]} />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="#f1f1ef"
-                fill="#202020"
-                strokeWidth={1.8}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-          <div>
-            <span>Баланс</span>
-            <strong>11 280 USDT</strong>
-            <small>+12,8%</small>
-          </div>
-        </div>
-      </motion.div>
-      <motion.div
-        className="spatial-layer spatial-layer-trade"
-        animate={reduceMotion ? undefined : { y: [0, 9, 0], rotateZ: [-5, -3.5, -5] }}
-        transition={{ duration: 6.2, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <span className="spatial-mono">ПОСЛЕДНЯЯ СДЕЛКА</span>
-        <h3>BTCUSDT · Long</h3>
-        <p>Breakout · риск 0,8% · результат +2.35R</p>
-        <div className="spatial-trade-result">
-          <strong>+470 USDT</strong>
-          <span>План соблюдён</span>
-        </div>
-      </motion.div>
-      <motion.div
-        className="spatial-layer spatial-layer-ai"
-        animate={reduceMotion ? undefined : { y: [0, -7, 0], rotateZ: [4, 5.5, 4] }}
-        transition={{ duration: 5.6, repeat: Infinity, ease: 'easeInOut' }}
-      >
-        <span className="spatial-mono">AI-РАЗБОР · ДЕМО</span>
-        <h3>Риск растёт после серии побед</h3>
-        <p>Сохраняйте базовый риск 1% до завершения сессии.</p>
-        <div className="spatial-confidence">
-          <span>Уверенность</span>
-          <strong>87%</strong>
-        </div>
-      </motion.div>
-    </div>
+    </motion.div>
   );
 }
 
 export function Landing() {
   const { isAuthenticated, isLoading } = useAuth();
-  const [activeScene, setActiveScene] = useState(0);
-  const [openFaq, setOpenFaq] = useState<number | null>(0);
-
+  const reduceMotion = useReducedMotion();
   if (!isLoading && isAuthenticated) return <Navigate to="/dashboard" replace />;
 
-  const scene = productScenes[activeScene];
-
   return (
-    <main className="spatial-landing">
-      <section className="spatial-hero">
-        <div className="spatial-hero-copy">
-          <motion.h1
-            initial={{ opacity: 0, y: 28 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
-          >
-            Ваш журнал.
-            <br />
-            Ваше преимущество.
-          </motion.h1>
-          <motion.p
-            initial={{ opacity: 0, y: 18 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, delay: 0.12 }}
-          >
-            Посмотрите интерактивное демо, а затем подключите свои сделки, чтобы превратить риск и
-            контекст в ясную систему решений.
-          </motion.p>
-          <motion.div
-            className="spatial-actions"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <Link className="spatial-primary" to="/register">
-              Начать бесплатно <span>↗</span>
-            </Link>
-            <a href="#workspace">
-              Смотреть продукт <span>↓</span>
-            </a>
-          </motion.div>
-          <div className="spatial-trust">
-            <Icon name="shield" size={14} /> Только чтение. Средства не переводятся.
-          </div>
-        </div>
-        <HeroConstellation />
-        <DynamicMarketWave />
-      </section>
-
-      <section className="spatial-stage" id="workspace">
-        <div className="spatial-stage-nav">
-          <span>{scene.number} — 04</span>
-          <h2>
-            Журнал, аналитика,
-            <br />
-            риск и AI в одном
-            <br />
-            рабочем пространстве.
-          </h2>
-          <p>Каждая сделка. Каждый контекст. Каждое решение под контролем.</p>
-          <div role="tablist" aria-label="Возможности продукта">
-            {productScenes.map((item, index) => (
-              <button
-                key={item.id}
-                className={activeScene === index ? 'active' : ''}
-                type="button"
-                role="tab"
-                aria-selected={activeScene === index}
-                onClick={() => setActiveScene(index)}
-              >
-                <span>{item.number}</span>
-                {item.title}
-              </button>
-            ))}
-          </div>
-        </div>
+    <div className="tailark-landing cinematic-landing">
+      <section className="cinematic-landing-hero">
+        <div className="cinematic-hero-field" aria-hidden="true" />
         <motion.div
-          key={scene.id}
-          initial={{ opacity: 0, y: 22, scale: 0.985 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ duration: 0.42 }}
-          className="spatial-stage-screen"
+          className="cinematic-hero-copy"
+          initial={reduceMotion ? false : { opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.72 }}
         >
-          <DemoProductPanel scene={scene} />
-          <div className="spatial-scene-caption">
-            <span>{scene.number}</span>
-            <p>{scene.copy}</p>
-          </div>
-        </motion.div>
-      </section>
-
-      <section className="spatial-discipline" id="analytics">
-        <div>
-          <span>Риск-дисциплина</span>
-          <h2>
-            Защищает капитал
+          <h1>
+            Торговые решения.
             <br />
-            до входа в сделку.
-          </h2>
-        </div>
-        <div className="spatial-risk-panel">
-          {[
-            ['Риск на сделку', '1,0%', 'Базовый лимит'],
-            ['Лимит на день', '3,0%', 'Остановка после −3R'],
-            ['Макс. просадка', '8,0%', 'Защита капитала'],
-          ].map(([label, value, note]) => (
-            <div key={label}>
-              <span>{label}</span>
-              <strong>{value}</strong>
-              <small>{note}</small>
-            </div>
-          ))}
-          <div className="spatial-risk-status">
-            <Icon name="shield" size={20} />
-            <span>Демо-набор правил активен · настройте собственные после регистрации</span>
+            Без слепых зон.
+          </h1>
+          <p>Завершённые сделки, риск и контекст — в одной ясной системе.</p>
+          <div className="cinematic-hero-actions">
+            <Link className="cinematic-action cinematic-hero-primary" to="/register">
+              <span>Начать бесплатно</span>
+              <i>
+                <ArrowRight size={18} />
+              </i>
+            </Link>
+            <a className="cinematic-hero-secondary" href="#product">
+              <i>
+                <Play size={13} weight="fill" />
+              </i>
+              Смотреть демо 90 сек
+            </a>
           </div>
+          <small className="cinematic-security-note">
+            <LockKey size={15} /> Только чтение. Без доступа к средствам.
+          </small>
+        </motion.div>
+
+        <AnalyticsScene reduceMotion={Boolean(reduceMotion)} />
+      </section>
+
+      <section
+        className="tailark-sources cinematic-sources"
+        id="workspace"
+        aria-labelledby="sources-title"
+      >
+        <h2 id="sources-title">Данные приходят из источника. Выводы принадлежат вам.</h2>
+        <div>
+          <span>
+            <SourceLogo brand="bybit" size={28} />
+            <b>Bybit</b>
+            <small>Доступно</small>
+          </span>
+          <span>
+            <SourceLogo brand="binance" size={28} />
+            <b>Binance</b>
+            <small>Скоро</small>
+          </span>
+          <span>
+            <SourceLogo brand="okx" size={28} />
+            <b>OKX</b>
+            <small>Скоро</small>
+          </span>
+          <span>
+            <SourceLogo brand="coinbase" size={28} />
+            <b>Coinbase</b>
+            <small>Скоро</small>
+          </span>
+          <span>
+            <SourceLogo brand="metamask" size={28} />
+            <b>Web3</b>
+            <small>Скоро</small>
+          </span>
         </div>
       </section>
 
-      <section className="spatial-benefits">
-        {[
-          ['01', 'Фокус на процессе', 'Анализируйте решения, а не только результат.'],
-          ['02', 'Данные из первых рук', 'Объединяйте источники в единой истории.'],
-          ['03', 'Лучшие решения', 'Находите повторяемые паттерны поведения.'],
-          ['04', 'AI как ко-пилот', 'Получайте структурную обратную связь без шума.'],
-        ].map(([number, title, copy]) => (
-          <article key={number}>
-            <span>{number}</span>
-            <h3>{title}</h3>
-            <p>{copy}</p>
+      <section className="tailark-workflow" aria-labelledby="workflow-title">
+        <header>
+          <span>Как работает система</span>
+          <div>
+            <h2 id="workflow-title">От биржи до решения — один непрерывный процесс.</h2>
+            <p>
+              TradeumDiary не заставляет заполнять пустой журнал. Платформа собирает завершённую
+              торговую историю, приводит данные к единому формату и показывает, где результат
+              создаёт стратегия, а где — случайность или нарушение риска.
+            </p>
+          </div>
+        </header>
+        <div className="tailark-workflow-steps">
+          <article>
+            <span>01</span>
+            <strong>Подключение</strong>
+            <p>Добавьте API-ключ только для чтения и выберите дату начала импорта.</p>
           </article>
-        ))}
+          <article>
+            <span>02</span>
+            <strong>Нормализация</strong>
+            <p>Частичные исполнения собираются в завершённые позиции с комиссиями и P&amp;L.</p>
+          </article>
+          <article>
+            <span>03</span>
+            <strong>Аналитика</strong>
+            <p>Дашборд показывает динамику капитала, серии, сетапы и отклонения от системы.</p>
+          </article>
+          <article>
+            <span>04</span>
+            <strong>Улучшение</strong>
+            <p>Вы фиксируете выводы, корректируете риск и проверяете изменения на дистанции.</p>
+          </article>
+        </div>
       </section>
 
-      <section className="spatial-pricing" id="pricing">
-        <div className="spatial-section-title">
+      <section className="tailark-principles" id="analytics">
+        <header>
+          <span>Один продукт — три уровня контроля</span>
+          <h2>
+            Видеть результат недостаточно.
+            <br />
+            Нужно понимать, как он появился.
+          </h2>
+        </header>
+        <div>
+          <article>
+            <ArrowsLeftRight size={21} />
+            <span>01</span>
+            <h3>Финальные сделки</h3>
+            <p>
+              Частичные исполнения объединяются в завершённые позиции с ценой входа, выхода,
+              комиссиями и реальным P&amp;L.
+            </p>
+          </article>
+          <article>
+            <ShieldCheck size={21} />
+            <span>02</span>
+            <h3>Контроль риска</h3>
+            <p>
+              Лимиты на сделку, день и просадку показывают нарушение системы до того, как оно
+              становится большой потерей.
+            </p>
+          </article>
+          <article>
+            <Sparkle size={21} />
+            <span>03</span>
+            <h3>Разбор решений</h3>
+            <p>
+              Аналитика связывает результат с поведением и помогает находить повторяющиеся сильные и
+              слабые паттерны.
+            </p>
+          </article>
+        </div>
+      </section>
+
+      <section className="tailark-pricing" id="pricing">
+        <header>
           <span>Тарифы</span>
           <h2>
-            Начните с дневника.
+            Начните с истории.
             <br />
-            Расширяйте систему.
+            Добавляйте глубину по мере роста.
           </h2>
-        </div>
-        <div className="spatial-pricing-frame">
+        </header>
+        <div>
           {plans.map((plan) => (
             <article className={plan.featured ? 'featured' : ''} key={plan.name}>
               <span>{plan.name}</span>
-              <h3>{plan.price}</h3>
-              <p>{plan.note}</p>
+              <strong>{plan.price}</strong>
               <ul>
                 {plan.items.map((item) => (
-                  <li key={item}>{item}</li>
+                  <li key={item}>
+                    <Check size={13} />
+                    {item}
+                  </li>
                 ))}
               </ul>
-              <Link to="/register">{plan.cta}</Link>
+              <Link to="/register">
+                Выбрать тариф <ArrowRight size={14} />
+              </Link>
             </article>
           ))}
         </div>
       </section>
-
-      <section className="spatial-faq">
-        <h2>FAQ</h2>
-        <div>
-          {faq.map(([question, answer], index) => (
-            <article key={question}>
-              <button
-                type="button"
-                onClick={() => setOpenFaq(openFaq === index ? null : index)}
-                aria-expanded={openFaq === index}
-              >
-                {question}
-                <span>{openFaq === index ? '−' : '+'}</span>
-              </button>
-              {openFaq === index ? (
-                <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}>
-                  {answer}
-                </motion.p>
-              ) : null}
-            </article>
-          ))}
-        </div>
-      </section>
-    </main>
+    </div>
   );
 }

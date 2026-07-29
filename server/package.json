@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "server": "tsx src/index.ts",
     "build": "tsc",
-    "test": "npm run build && node --test dist/services/tradeImport.test.js",
+    "test": "npm run build && node --test dist/services/tradeImport.test.js dist/import/normalizers/linear.test.js dist/import/raw-ingestion.test.js dist/import/cycle-persistence.test.js dist/integrations/bybit/client.test.js dist/integrations/bybit/raw-collector.test.js dist/jobs/sync-worker.test.js",
     "start": "node dist/index.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
@@ -19,19 +19,22 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "@clerk/clerk-sdk-node": "^4.13.23",
     "@prisma/client": "^5.22.0",
     "bcryptjs": "^3.0.3",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.6.0",
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.21.0",
-    "prisma": "^5.22.0"
+    "prisma": "^5.22.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",

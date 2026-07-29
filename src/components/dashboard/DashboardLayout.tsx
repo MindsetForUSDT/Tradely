@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   ArrowRight,
-  Bell,
   CalendarBlank,
   CaretRight,
   CheckCircle,
-  ClockCounterClockwise,
+  Clock,
+  Info,
   PlugsConnected,
-  X,
+  ShieldCheck,
+  Sparkle,
+  Target,
+  WarningCircle,
 } from '@phosphor-icons/react';
 import {
   Area,
@@ -20,66 +24,66 @@ import {
   YAxis,
 } from 'recharts';
 import { SourceLogo, resolveSourceBrand } from '@/components/brand/SourceLogo';
+import { TradeDetailsPanel } from '@/components/dashboard/TradeDetailsPanel';
+import { useAuth } from '@/hooks/useAuth';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { useWallets } from '@/hooks/useWallets';
-import { formatDate, formatUSD } from '@/lib/utils';
+import {
+  calculateTradeBreakdown,
+  formatSignedUSD,
+  numeric,
+  parseTradeMeta,
+} from '@/lib/tradeAnalytics';
+import { formatUSD } from '@/lib/utils';
 import type { Trade } from '@/types';
 
 type RangeDays = 7 | 30 | 90;
 
 const ranges: RangeDays[] = [7, 30, 90];
+const weekdayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
-function numeric(value: unknown) {
-  const result = typeof value === 'number' ? value : Number(value || 0);
-  return Number.isFinite(result) ? result : 0;
-}
-
-function tradeMeta(trade: Trade) {
+function readWalletBalance(settingsValue: unknown) {
   try {
-    return JSON.parse(trade.raw_data || '{}') as {
-      entryPrice?: number;
-      exitPrice?: number;
-      openedAt?: string;
-      closedAt?: string;
-      notes?: string;
-      strategy?: string;
-    };
+    const settings = typeof settingsValue === 'string' ? JSON.parse(settingsValue) : settingsValue;
+    if (!settings || typeof settings !== 'object') return { value: 0, available: false };
+    if ('currentBalance' in settings) {
+      return { value: numeric(settings.currentBalance), available: true };
+    }
+    if ('initialBalance' in settings) {
+      return { value: numeric(settings.initialBalance), available: true };
+    }
+    return { value: 0, available: false };
   } catch {
-    return {};
+    return { value: 0, available: false };
   }
 }
 
-function getInitialBalance(wallets: ReturnType<typeof useWallets>['wallets']) {
-  return wallets.reduce((total, wallet) => {
-    try {
-      const settings =
-        typeof wallet.settings === 'string' ? JSON.parse(wallet.settings) : wallet.settings;
-      const value =
-        settings && typeof settings === 'object' && 'initialBalance' in settings
-          ? numeric(settings.initialBalance)
-          : 0;
-      return total + value;
-    } catch {
-      return total;
-    }
-  }, 0);
+function formatTradeDate(value: string) {
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(new Date(value));
 }
 
 function DashboardTooltip({
   active,
   payload,
   label,
+  hasCapital,
 }: {
   active?: boolean;
   payload?: Array<{ value?: number }>;
   label?: string;
+  hasCapital: boolean;
 }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="overview-chart-tooltip">
+    <div className="premium-chart-tooltip">
       <span>{label}</span>
-      <strong>{formatUSD(payload[0]?.value || 0)}</strong>
-      <small>Капитал на выбранную дату</small>
+      <strong>{formatSignedUSD(payload[0]?.value || 0)}</strong>
+      <small>{hasCapital ? 'Капитал на эту дату' : 'Накопленный чистый P&L'}</small>
     </div>
   );
 }
@@ -96,395 +100,551 @@ function Metric({
   tone?: 'positive' | 'negative';
 }) {
   return (
-    <article className="overview-metric">
-      <span>{label}</span>
+    <article className="premium-metric">
+      <span>
+        {label} <Info size={13} />
+      </span>
       <strong className={tone || ''}>{value}</strong>
       <small>{detail}</small>
     </article>
   );
 }
 
-function TradeDetails({ trade, onClose }: { trade: Trade; onClose: () => void }) {
-  const pnl = numeric(trade.pnl_realized);
-  const meta = tradeMeta(trade);
-  return (
-    <aside className="overview-trade-drawer" aria-label="Детали сделки">
-      <header>
-        <div>
-          <span>Детали сделки</span>
-          <h2>{trade.symbol}</h2>
-        </div>
-        <button type="button" onClick={onClose} aria-label="Закрыть детали">
-          <X size={18} />
-        </button>
-      </header>
-      <div className="overview-drawer-source">
-        <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={24} />
-        <div>
-          <strong>{trade.exchange || 'Подключённый источник'}</strong>
-          <span>Завершена</span>
-        </div>
-      </div>
-      <dl>
-        <div>
-          <dt>Дата и время</dt>
-          <dd>{formatDate(meta.closedAt || trade.timestamp)}</dd>
-        </div>
-        <div>
-          <dt>Позиция</dt>
-          <dd>{trade.side === 'buy' ? 'Long' : 'Short'}</dd>
-        </div>
-        <div>
-          <dt>Размер</dt>
-          <dd>
-            {numeric(trade.amount).toLocaleString('ru-RU')} {trade.symbol.split('/')[0]}
-          </dd>
-        </div>
-        <div>
-          <dt>Цена входа</dt>
-          <dd>{formatUSD(numeric(meta.entryPrice || trade.price_usd || trade.price))}</dd>
-        </div>
-        <div>
-          <dt>Цена выхода</dt>
-          <dd>{formatUSD(numeric(meta.exitPrice || trade.price_usd || trade.price))}</dd>
-        </div>
-        <div>
-          <dt>Комиссия</dt>
-          <dd>{formatUSD(numeric(trade.fee_usd || trade.fee))}</dd>
-        </div>
-        <div>
-          <dt>P&amp;L</dt>
-          <dd className={pnl >= 0 ? 'positive' : 'negative'}>{formatUSD(pnl)}</dd>
-        </div>
-      </dl>
-      <section>
-        <span>Контекст</span>
-        <p>{meta.notes || trade.notes || 'Заметка к этой сделке пока не добавлена.'}</p>
-        {meta.strategy || trade.strategy_tag ? (
-          <em>{meta.strategy || trade.strategy_tag}</em>
-        ) : null}
-      </section>
-      <Link to="/dashboard/trades">
-        Открыть в сделках <ArrowRight size={15} />
-      </Link>
-    </aside>
-  );
-}
-
 export function DashboardLayout() {
   const [range, setRange] = useState<RangeDays>(30);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const { user } = useAuth();
   const { wallets, isLoading: walletsLoading, error: walletsError } = useWallets();
   const {
     trades,
-    pnlData,
     isLoading: tradesLoading,
     error: tradesError,
+    optimisticUpdate,
   } = useTradesOptimized({
-    limit: 1000,
+    limit: 500,
     daysAgo: range,
   });
 
   const summary = useMemo(() => {
-    const currentBalance = getInitialBalance(wallets);
+    const breakdowns = trades.map(calculateTradeBreakdown);
+    const balanceState = wallets.reduce(
+      (result, wallet) => {
+        const walletBalance = readWalletBalance(wallet.settings);
+        return {
+          value: result.value + walletBalance.value,
+          available: result.available || walletBalance.available,
+        };
+      },
+      { value: 0, available: false }
+    );
+
+    let grossPnl = 0;
+    let fees = 0;
+    let adjustments = 0;
     let grossProfit = 0;
     let grossLoss = 0;
     let wins = 0;
-    const periodPnl = pnlData.reduce((total, point) => total + numeric(point.pnl), 0);
-    const openingBalance = Math.max(0, currentBalance - periodPnl);
-    let equity = openingBalance;
-    let peak = equity;
-    let maxDrawdown = 0;
+    let peak = balanceState.available ? balanceState.value : 0;
+    let equity = balanceState.available
+      ? balanceState.value - breakdowns.reduce((sum, item) => sum + item.netPnl, 0)
+      : 0;
+    peak = equity;
+    let maxDrawdownAmount = 0;
 
-    const chartData = pnlData.map((point) => {
-      equity += numeric(point.pnl);
+    const chronological = [...trades].sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    );
+    const chartData = chronological.map((trade) => {
+      const item = calculateTradeBreakdown(trade);
+      equity += item.netPnl;
       peak = Math.max(peak, equity);
-      if (peak > 0) maxDrawdown = Math.max(maxDrawdown, ((peak - equity) / peak) * 100);
+      maxDrawdownAmount = Math.max(maxDrawdownAmount, peak - equity);
       return {
-        date: new Date(point.date).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' }),
-        equity,
+        date: new Intl.DateTimeFormat('ru-RU', { day: '2-digit', month: 'short' }).format(
+          new Date(trade.timestamp)
+        ),
+        value: equity,
       };
     });
 
-    trades.forEach((trade) => {
-      const pnl = numeric(trade.pnl_realized);
-      if (pnl > 0) {
-        grossProfit += pnl;
+    breakdowns.forEach((item) => {
+      grossPnl += item.grossPnl;
+      fees += item.fees;
+      adjustments += item.fundingAndAdjustments;
+      if (item.netPnl > 0) {
         wins += 1;
-      } else if (pnl < 0) {
-        grossLoss += Math.abs(pnl);
+        grossProfit += item.netPnl;
+      } else if (item.netPnl < 0) {
+        grossLoss += Math.abs(item.netPnl);
       }
     });
 
-    const pnl = grossProfit - grossLoss;
-    const capital = currentBalance;
+    const netPnl = breakdowns.reduce((sum, item) => sum + item.netPnl, 0);
+    const openingCapital = balanceState.available ? balanceState.value - netPnl : 0;
+    const maxDrawdownPercent = openingCapital > 0 ? (maxDrawdownAmount / openingCapital) * 100 : 0;
+
+    const hourly = new Map<number, { pnl: number; count: number }>();
+    const weekdays = new Map<number, { pnl: number; count: number }>();
+    trades.forEach((trade) => {
+      const pnl = calculateTradeBreakdown(trade).netPnl;
+      const date = new Date(trade.timestamp);
+      const hour = date.getHours();
+      const day = date.getDay();
+      const hourValue = hourly.get(hour) || { pnl: 0, count: 0 };
+      const dayValue = weekdays.get(day) || { pnl: 0, count: 0 };
+      hourValue.pnl += pnl;
+      hourValue.count += 1;
+      dayValue.pnl += pnl;
+      dayValue.count += 1;
+      hourly.set(hour, hourValue);
+      weekdays.set(day, dayValue);
+    });
+
+    const bestHour = [...hourly.entries()]
+      .filter(([, value]) => value.count >= 2)
+      .sort((a, b) => b[1].pnl / b[1].count - a[1].pnl / a[1].count)[0];
+    const weakestDay = [...weekdays.entries()]
+      .filter(([, value]) => value.count >= 2)
+      .sort((a, b) => a[1].pnl - b[1].pnl)[0];
+
+    const contextCount = trades.filter((trade) => {
+      const meta = parseTradeMeta(trade.raw_data);
+      return Boolean(meta.notes || meta.strategy || meta.planScore !== undefined);
+    }).length;
+
+    let streak = 0;
+    for (let index = chronological.length - 1; index >= 0; index -= 1) {
+      const pnl = calculateTradeBreakdown(chronological[index]).netPnl;
+      if (pnl >= 0) break;
+      streak += 1;
+    }
+
     return {
-      capital,
-      pnl,
-      pnlPercent: openingBalance > 0 ? (pnl / openingBalance) * 100 : 0,
+      capital: balanceState.value,
+      hasCapital: balanceState.available,
+      netPnl,
+      grossPnl,
+      fees,
+      adjustments,
+      pnlPercent: openingCapital > 0 ? (netPnl / openingCapital) * 100 : 0,
       winRate: trades.length ? (wins / trades.length) * 100 : 0,
       profitFactor: grossLoss ? grossProfit / grossLoss : grossProfit ? Infinity : 0,
-      maxDrawdown,
+      expectancy: trades.length ? netPnl / trades.length : 0,
+      maxDrawdownAmount,
+      maxDrawdownPercent,
       chartData,
+      contextCount,
+      contextCoverage: trades.length ? (contextCount / trades.length) * 100 : 0,
+      bestHour,
+      weakestDay,
+      lossStreak: streak,
     };
-  }, [pnlData, trades, wallets]);
+  }, [trades, wallets]);
 
-  const isLoading = walletsLoading || tradesLoading;
-  const hasSource = wallets.length > 0;
-  const recentTrades = trades.slice(0, 5);
+  const recentTrades = trades.slice(0, 6);
   const syncError = walletsError || tradesError;
+  const firstName = (user?.username || 'Трейдер').trim().split(/\s+/)[0];
+  const chartTone = '#cbb79f';
+
+  const insights = [
+    {
+      icon: summary.fees > 0 ? WarningCircle : CheckCircle,
+      title:
+        summary.fees > 0 && Math.abs(summary.grossPnl) > 0
+          ? `Комиссии: ${((summary.fees / Math.abs(summary.grossPnl)) * 100).toFixed(0)}% валового движения`
+          : 'Комиссионная нагрузка пока не выявлена',
+      copy: `${formatSignedUSD(-summary.fees)} комиссий · ${formatSignedUSD(summary.grossPnl)} валового P&L`,
+      tone: summary.fees > Math.abs(summary.grossPnl) * 0.25 ? 'negative' : 'neutral',
+    },
+    {
+      icon: Clock,
+      title: summary.bestHour
+        ? `Лучшее окно: ${String(summary.bestHour[0]).padStart(2, '0')}:00–${String(
+            (summary.bestHour[0] + 1) % 24
+          ).padStart(2, '0')}:00`
+        : 'Нужно больше сделок для анализа времени',
+      copy: summary.bestHour
+        ? `${summary.bestHour[1].count} сделок · ${formatSignedUSD(summary.bestHour[1].pnl)}`
+        : 'Минимум две сделки в одном часовом окне',
+      tone: 'positive',
+    },
+    {
+      icon: Target,
+      title:
+        summary.contextCoverage >= 70
+          ? 'Контекст решений заполнен хорошо'
+          : `Контекст есть у ${summary.contextCount} из ${trades.length} сделок`,
+      copy: summary.weakestDay
+        ? `Слабый день: ${weekdayNames[summary.weakestDay[0]]} · ${formatSignedUSD(summary.weakestDay[1].pnl)}`
+        : 'Добавляйте сетап, ошибку и оценку плана',
+      tone: summary.contextCoverage >= 70 ? 'positive' : 'neutral',
+    },
+  ] as const;
 
   return (
-    <div className="dashboard-overview-v3">
-      <header className="overview-topbar">
+    <div className="premium-dashboard">
+      <motion.header
+        className="premium-dashboard-head"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+      >
         <div>
           <h1>Обзор</h1>
-          <p>Ключевые показатели и состояние автоматического импорта.</p>
+          <p>{firstName}, здесь результат отделён от комиссий, риска и качества решений.</p>
         </div>
-        <div className="overview-topbar-actions">
-          <button type="button" aria-label="Уведомления">
-            <Bell size={18} />
-          </button>
+        <div className="premium-range-control" aria-label="Период аналитики">
+          {ranges.map((value) => (
+            <button
+              type="button"
+              key={value}
+              className={range === value ? 'active' : ''}
+              onClick={() => setRange(value)}
+            >
+              {value}Д
+            </button>
+          ))}
           <span>
-            <CalendarBlank size={16} /> Последние {range} дней
+            <CalendarBlank size={17} />
           </span>
         </div>
-      </header>
+      </motion.header>
 
       {syncError ? (
-        <div className="overview-inline-alert">
-          Не удалось обновить часть данных. Последняя доступная информация сохранена.
+        <div className="premium-inline-alert">
+          <WarningCircle size={17} />
+          Часть данных временно недоступна. Показана последняя успешно загруженная версия.
         </div>
       ) : null}
 
       <section
-        className={`overview-metrics ${isLoading ? 'is-loading' : ''}`}
-        aria-label="Основные показатели"
+        className={`premium-metric-rail ${tradesLoading || walletsLoading ? 'loading' : ''}`}
       >
         <Metric
-          label="Текущий капитал"
-          value={hasSource ? formatUSD(summary.capital) : '—'}
-          detail={hasSource ? 'по подключённым источникам' : 'подключите источник'}
+          label="Капитал"
+          value={summary.hasCapital ? formatUSD(summary.capital) : 'Нет данных'}
+          detail="текущий equity"
         />
         <Metric
-          label={`P&L · ${range} дней`}
-          value={formatUSD(summary.pnl)}
-          detail={`${summary.pnlPercent >= 0 ? '+' : ''}${summary.pnlPercent.toFixed(2)}% за период`}
-          tone={summary.pnl >= 0 ? 'positive' : 'negative'}
+          label="Чистый P&L"
+          value={formatSignedUSD(summary.netPnl)}
+          detail={
+            summary.hasCapital
+              ? `${summary.pnlPercent >= 0 ? '+' : ''}${summary.pnlPercent.toFixed(2)}% за период`
+              : 'за выбранный период'
+          }
+          tone={summary.netPnl >= 0 ? 'positive' : 'negative'}
         />
-        <Metric label="Сделки" value={String(trades.length)} detail="автоматически импортировано" />
+        <Metric
+          label="Результат брутто"
+          value={formatSignedUSD(summary.grossPnl)}
+          detail="до комиссий и funding"
+          tone={summary.grossPnl >= 0 ? 'positive' : 'negative'}
+        />
+        <Metric
+          label="Комиссии"
+          value={formatSignedUSD(-summary.fees)}
+          detail="стоимость исполнений"
+          tone={summary.fees > 0 ? 'negative' : undefined}
+        />
+        <Metric label="Сделки" value={String(trades.length)} detail="финальные записи" />
         <Metric
           label="Win rate"
           value={`${summary.winRate.toFixed(1)}%`}
-          detail={
-            trades.length
-              ? `${trades.filter((trade) => numeric(trade.pnl_realized) > 0).length} прибыльных`
-              : 'недостаточно данных'
-          }
+          detail={`${trades.filter((trade) => numeric(trade.pnl_realized) > 0).length} прибыльных`}
         />
         <Metric
-          label="Статус риска"
-          value={summary.maxDrawdown < 5 ? 'Норма' : 'Внимание'}
-          detail={`макс. просадка ${summary.maxDrawdown.toFixed(2)}%`}
-          tone={summary.maxDrawdown >= 5 ? 'negative' : 'positive'}
+          label="Expectancy"
+          value={formatSignedUSD(summary.expectancy)}
+          detail="чистый результат / сделку"
+          tone={summary.expectancy >= 0 ? 'positive' : 'negative'}
+        />
+        <Metric
+          label="Макс. просадка"
+          value={formatSignedUSD(-summary.maxDrawdownAmount)}
+          detail={
+            summary.hasCapital
+              ? `${summary.maxDrawdownPercent.toFixed(2)}% от капитала`
+              : 'по накопленному P&L'
+          }
+          tone={summary.maxDrawdownAmount > 0 ? 'negative' : undefined}
+        />
+        <Metric
+          label="Дисциплина"
+          value={`${summary.contextCoverage.toFixed(0)}%`}
+          detail={`${summary.contextCount} сделок с контекстом`}
+          tone={summary.contextCoverage >= 70 ? 'positive' : undefined}
         />
       </section>
 
-      <section className="overview-chart-section">
-        <header>
-          <div>
-            <h2>Динамика капитала</h2>
-            <p>
-              {trades.length
-                ? `${trades.length} сделок в расчёте`
-                : 'График появится после первой синхронизации'}
-            </p>
-          </div>
-          <div className="overview-range" aria-label="Период графика">
-            {ranges.map((value) => (
-              <button
-                type="button"
-                key={value}
-                className={range === value ? 'active' : ''}
-                onClick={() => setRange(value)}
-              >
-                {value}Д
-              </button>
-            ))}
-          </div>
-        </header>
-        <div className="overview-chart-canvas">
+      <motion.section
+        className="premium-performance-hero"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: 0.04 }}
+      >
+        <div className="premium-hero-result">
+          <span>
+            Кривая капитала <Info size={14} />
+          </span>
+          <strong>
+            {summary.hasCapital ? formatUSD(summary.capital) : formatSignedUSD(summary.netPnl)}
+          </strong>
+          <small className={summary.pnlPercent >= 0 ? 'positive' : 'negative'}>
+            {summary.hasCapital
+              ? `${formatSignedUSD(summary.netPnl)} · ${summary.pnlPercent >= 0 ? '+' : ''}${summary.pnlPercent.toFixed(2)}%`
+              : 'Накопленный чистый P&L'}
+          </small>
+        </div>
+
+        <div className="premium-hero-chart">
           {summary.chartData.length ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={summary.chartData}
-                margin={{ top: 18, right: 10, left: 2, bottom: 0 }}
+                margin={{ top: 18, right: 12, left: 4, bottom: 0 }}
               >
                 <defs>
-                  <linearGradient id="overviewEquityFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#50c878" stopOpacity={0.24} />
-                    <stop offset="100%" stopColor="#50c878" stopOpacity={0} />
+                  <linearGradient id="premiumEquityFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor={chartTone} stopOpacity={0.22} />
+                    <stop offset="100%" stopColor={chartTone} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#202328" vertical={false} />
+                <CartesianGrid stroke="rgba(255,255,255,0.07)" vertical={false} />
                 <XAxis
                   dataKey="date"
                   axisLine={false}
                   tickLine={false}
-                  minTickGap={32}
-                  tick={{ fill: '#6f747c', fontSize: 10 }}
+                  minTickGap={34}
+                  tick={{ fill: '#727780', fontSize: 10 }}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
-                  width={66}
-                  tick={{ fill: '#6f747c', fontSize: 10 }}
+                  width={58}
+                  tick={{ fill: '#727780', fontSize: 10 }}
                   tickFormatter={(value: number) =>
                     `$${Intl.NumberFormat('en', { notation: 'compact' }).format(value)}`
                   }
                 />
                 <Tooltip
-                  content={<DashboardTooltip />}
-                  cursor={{ stroke: '#737983', strokeDasharray: '3 3' }}
+                  content={<DashboardTooltip hasCapital={summary.hasCapital} />}
+                  cursor={{ stroke: '#8c929b', strokeDasharray: '3 3' }}
                 />
                 <Area
                   type="monotone"
-                  dataKey="equity"
-                  stroke="#50c878"
+                  dataKey="value"
+                  stroke={chartTone}
                   strokeWidth={2}
-                  fill="url(#overviewEquityFill)"
-                  activeDot={{ r: 4, fill: '#50c878', stroke: '#f5f5f3', strokeWidth: 2 }}
+                  fill="url(#premiumEquityFill)"
+                  activeDot={{ r: 4, fill: chartTone, stroke: '#f5f5f2', strokeWidth: 2 }}
+                  animationDuration={700}
                 />
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="overview-chart-empty">
-              <ClockCounterClockwise size={28} />
-              <strong>Ожидаем торговую историю</strong>
-              <span>Автоматический импорт заполнит график без ручного ввода.</span>
+            <div className="premium-chart-empty">
+              <Sparkle size={24} />
+              <strong>Здесь появится ваша реальная кривая</strong>
+              <span>Подключите Bybit — Tradeum импортирует только завершённые сделки.</span>
               <Link to="/dashboard/wallets">Подключить источник</Link>
             </div>
           )}
         </div>
-      </section>
 
-      <div className="overview-lower-grid">
-        <section className="overview-recent-trades">
+        <dl className="premium-hero-breakdown">
+          <div>
+            <dt>Валовый результат</dt>
+            <dd className={summary.grossPnl >= 0 ? 'positive' : 'negative'}>
+              {formatSignedUSD(summary.grossPnl)}
+            </dd>
+          </div>
+          <div>
+            <dt>Комиссии</dt>
+            <dd className="negative">{formatSignedUSD(-summary.fees)}</dd>
+          </div>
+          <div>
+            <dt>Funding / корректировки</dt>
+            <dd className={summary.adjustments >= 0 ? 'positive' : 'negative'}>
+              {formatSignedUSD(summary.adjustments)}
+            </dd>
+          </div>
+          <div>
+            <dt>Текущий капитал</dt>
+            <dd>{summary.hasCapital ? formatUSD(summary.capital) : 'Нет данных'}</dd>
+          </div>
+        </dl>
+      </motion.section>
+
+      <div className="premium-dashboard-grid">
+        <section className="premium-trades-panel">
           <header>
             <div>
               <h2>Последние сделки</h2>
-              <p>Краткая выборка, полный список находится в отдельном разделе.</p>
+              <p>Net P&amp;L уже включает комиссии и биржевые корректировки.</p>
             </div>
             <Link to="/dashboard/trades">
-              Все сделки <CaretRight size={14} />
+              Смотреть все <CaretRight size={15} />
             </Link>
           </header>
-          <div className="overview-trades-table">
-            <div className="overview-trade-head">
+          <div className="premium-trades-table">
+            <div className="premium-trade-table-head">
+              <span>Время</span>
               <span>Инструмент</span>
               <span>Позиция</span>
-              <span>Объём</span>
-              <span>P&amp;L</span>
-              <span>Источник</span>
+              <span>Вход</span>
+              <span>Выход</span>
+              <span>Net P&amp;L</span>
+              <span />
             </div>
             {recentTrades.length ? (
               recentTrades.map((trade) => {
-                const pnl = numeric(trade.pnl_realized);
+                const item = calculateTradeBreakdown(trade);
                 return (
                   <button
                     type="button"
-                    className="overview-trade-row"
+                    className="premium-trade-row"
                     key={trade.id}
                     onClick={() => setSelectedTrade(trade)}
                   >
+                    <span>{formatTradeDate(trade.timestamp)}</span>
                     <span>
+                      <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={19} />
                       <strong>{trade.symbol}</strong>
-                      <small>{formatDate(trade.timestamp)}</small>
                     </span>
-                    <span className={trade.side === 'buy' ? 'positive' : 'negative'}>
-                      {trade.side === 'buy' ? 'Long' : 'Short'}
+                    <span className={item.direction}>
+                      {item.direction === 'long' ? 'Long' : 'Short'}
                     </span>
-                    <span>{formatUSD(numeric(trade.value_usd))}</span>
-                    <span className={pnl >= 0 ? 'positive' : 'negative'}>{formatUSD(pnl)}</span>
-                    <span className="overview-source-cell">
-                      <SourceLogo brand={resolveSourceBrand(trade.exchange)} size={19} />{' '}
-                      {trade.exchange || 'Источник'}
+                    <span>{formatUSD(item.entryPrice)}</span>
+                    <span>{formatUSD(item.exitPrice)}</span>
+                    <span className={item.netPnl >= 0 ? 'positive' : 'negative'}>
+                      {formatSignedUSD(item.netPnl)}
+                    </span>
+                    <span>
+                      <ArrowRight size={15} />
                     </span>
                   </button>
                 );
               })
             ) : (
-              <div className="overview-table-empty">
-                Сделки появятся здесь после синхронизации источника.
+              <div className="premium-table-empty">
+                <PlugsConnected size={22} />
+                <strong>Сделок пока нет</strong>
+                <span>Первая синхронизация заполнит таблицу автоматически.</span>
               </div>
             )}
           </div>
         </section>
 
-        <aside className="overview-sync-panel">
+        <aside className="premium-insights-panel">
           <header>
             <div>
-              <h2>Автоматический импорт</h2>
-              <p>
-                {hasSource
-                  ? 'Источники синхронизируются автоматически'
-                  : 'Добавьте первый источник данных'}
-              </p>
+              <h2>Что требует внимания</h2>
+              <p>Только выводы, которые можно подтвердить вашими данными.</p>
             </div>
-            <PlugsConnected size={22} />
+            <Sparkle size={19} />
           </header>
-          {wallets.length ? (
-            <div className="overview-source-list">
-              {wallets.slice(0, 4).map((wallet) => {
-                const source = wallet.label || wallet.chain || 'Источник';
-                return (
-                  <div key={wallet.id}>
-                    <SourceLogo brand={resolveSourceBrand(source)} size={25} />
-                    <span>
-                      <strong>{source}</strong>
-                      <small>
-                        {wallet.processing_status === 'failed'
-                          ? 'Требует внимания'
-                          : 'Автоимпорт активен'}
-                      </small>
-                    </span>
-                    <i className={wallet.processing_status === 'failed' ? 'error' : ''} />
+          <div>
+            {insights.map((insight) => {
+              const InsightIcon = insight.icon;
+              return (
+                <article className={insight.tone} key={insight.title}>
+                  <span>
+                    <InsightIcon size={18} />
+                  </span>
+                  <div>
+                    <strong>{insight.title}</strong>
+                    <small>{insight.copy}</small>
                   </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="overview-supported-sources">
-              {(['binance', 'bybit', 'okx', 'metamask', 'coinbase'] as const).map((brand) => (
-                <SourceLogo key={brand} brand={brand} size={28} />
-              ))}
-              <p>API бирж, Web3-кошельки и импорт файлов.</p>
-            </div>
-          )}
-          <div className="overview-sync-status">
-            <CheckCircle size={17} weight="fill" />
-            <span>
-              <strong>{hasSource ? 'Синхронизация включена' : 'Готово к подключению'}</strong>
-              <small>Ручное добавление не требуется</small>
-            </span>
+                  <CaretRight size={15} />
+                </article>
+              );
+            })}
           </div>
-          <Link to="/dashboard/wallets">
-            {hasSource ? 'Управлять источниками' : 'Подключить источник'} <ArrowRight size={15} />
-          </Link>
+          {summary.lossStreak >= 2 ? (
+            <Link to="/dashboard/risk">
+              <ShieldCheck size={16} />
+              Серия из {summary.lossStreak} убытков — проверьте дневной лимит
+            </Link>
+          ) : null}
+        </aside>
+
+        <aside className="premium-discipline-panel">
+          <header>
+            <div>
+              <h2>Дисциплина</h2>
+              <p>Контекст отличает удачу от повторяемого процесса.</p>
+            </div>
+            <Target size={20} />
+          </header>
+          <div className="premium-discipline-score">
+            <strong>{summary.contextCoverage.toFixed(0)}%</strong>
+            <span>
+              <i style={{ width: `${summary.contextCoverage}%` }} />
+            </span>
+            <small>
+              {summary.contextCount} из {trades.length} сделок имеют сетап, заметку или оценку плана
+            </small>
+          </div>
+          <div className="premium-discipline-actions">
+            <Link to="/dashboard/trades">
+              <CheckCircle size={16} /> Добавить контекст
+            </Link>
+            <Link to="/goals">
+              <Target size={16} /> Цели процесса
+            </Link>
+          </div>
         </aside>
       </div>
 
-      {selectedTrade ? (
-        <TradeDetails trade={selectedTrade} onClose={() => setSelectedTrade(null)} />
-      ) : null}
-      {selectedTrade ? (
-        <button
-          type="button"
-          className="overview-drawer-backdrop"
-          aria-label="Закрыть детали"
-          onClick={() => setSelectedTrade(null)}
-        />
-      ) : null}
+      <section className="premium-review-loop">
+        <header>
+          <span>Цикл улучшения</span>
+          <h2>После сделки должно меняться правило, а не настроение</h2>
+          <p>
+            Tradeum отделяет результат от качества решения: сначала проверяет цифры, затем собирает
+            контекст и только после достаточной выборки показывает паттерн.
+          </p>
+        </header>
+        <div>
+          {[
+            ['01', 'Проверить данные', 'Вход, выход, размер, комиссии и net P&L.'],
+            ['02', 'Добавить контекст', 'Сетап, ошибка, эмоция и соблюдение плана.'],
+            ['03', 'Найти паттерн', 'Время, стратегия, серия, риск и стоимость ошибок.'],
+            ['04', 'Изменить правило', 'Одна проверяемая корректировка в торговом плане.'],
+          ].map(([number, title, copy]) => (
+            <article key={number}>
+              <span>{number}</span>
+              <strong>{title}</strong>
+              <p>{copy}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <AnimatePresence>
+        {selectedTrade ? (
+          <>
+            <motion.button
+              type="button"
+              className="premium-sheet-backdrop"
+              aria-label="Закрыть детали сделки"
+              onClick={() => setSelectedTrade(null)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            />
+            <TradeDetailsPanel
+              trade={selectedTrade}
+              onClose={() => setSelectedTrade(null)}
+              onTradeUpdate={(updatedTrade) => {
+                optimisticUpdate(updatedTrade.id, updatedTrade);
+                setSelectedTrade(updatedTrade);
+              }}
+            />
+          </>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

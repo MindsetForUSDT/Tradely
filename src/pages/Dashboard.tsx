@@ -34,7 +34,10 @@ const LoadingFallback = () => (
 );
 
 function TradesPage() {
-  const { trades, isLoading, refresh } = useTradesOptimized({ limit: 200, daysAgo: 90 });
+  const { trades, isLoading, refresh, optimisticUpdate } = useTradesOptimized({
+    limit: 200,
+    daysAgo: 90,
+  });
   const [manualOpen, setManualOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   let manualEnabled = false;
@@ -68,6 +71,7 @@ function TradesPage() {
         isLoading={isLoading}
         manualEnabled={manualEnabled}
         onAddManual={() => setManualOpen(true)}
+        onTradeUpdate={(trade) => optimisticUpdate(trade.id, trade)}
       />
       {manualOpen ? (
         <div

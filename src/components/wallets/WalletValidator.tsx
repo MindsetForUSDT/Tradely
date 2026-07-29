@@ -10,6 +10,12 @@ interface WalletValidatorProps {
   onValidation: (valid: boolean, balance?: number) => void;
 }
 
+interface ValidationResult {
+  valid: boolean;
+  balance?: number;
+  error?: string;
+}
+
 export function WalletValidator({
   provider,
   apiKey,
@@ -32,7 +38,7 @@ export function WalletValidator({
     setValid(null);
 
     try {
-      const result = await api.post<any>('/wallets/validate', {
+      const result = await api.post<ValidationResult>('/wallets/validate', {
         provider,
         apiKey,
         apiSecret,
@@ -47,9 +53,9 @@ export function WalletValidator({
         setError(result.error || 'Неверные API ключи');
         onValidation(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       setValid(false);
-      setError(err.message || 'Ошибка проверки');
+      setError(err instanceof Error ? err.message : 'Ошибка проверки');
       onValidation(false);
     } finally {
       setValidating(false);

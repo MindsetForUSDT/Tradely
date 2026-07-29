@@ -5,7 +5,7 @@ import { formatUSD } from '@/lib/utils';
 import { calculateProfitFactor, calculateExpectancy, calculateStreakAnalysis } from '@/lib/metrics';
 
 export function StrategyComparison() {
-  const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 365 });
+  const { trades } = useTradesOptimized({ limit: 500, daysAgo: 365 });
   const [selectedStrategies, setSelectedStrategies] = useState<Set<string>>(new Set());
 
   const strategies = useMemo(() => {

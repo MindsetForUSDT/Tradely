@@ -18,7 +18,13 @@ interface EquityCurveChartProps {
   isLoading?: boolean;
 }
 
-function CustomTooltip({ active, payload, label }: any) {
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value?: number }>;
+  label?: string;
+}
+
+function CustomTooltip({ active, payload, label }: ChartTooltipProps) {
   if (!active || !payload?.length) return null;
   const equity = payload[0]?.value || 0;
   const drawdown = payload[1]?.value || 0;

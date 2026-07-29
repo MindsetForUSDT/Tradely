@@ -1,11 +1,13 @@
 import { createCipheriv, createDecipheriv, createSecretKey, randomBytes, scryptSync } from 'crypto';
+import { requiredSecret } from '../config/env.js';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'tradeumdiary-default-key-change-me!';
 const ALGORITHM = 'aes-256-gcm';
 
 // Деривация ключа фиксированной длины
 function getKey() {
-  return createSecretKey(new Uint8Array(scryptSync(ENCRYPTION_KEY, 'tradeumdiary-salt', 32)));
+  return createSecretKey(
+    new Uint8Array(scryptSync(requiredSecret('ENCRYPTION_KEY'), 'tradeumdiary-salt', 32))
+  );
 }
 
 export interface EncryptedData {

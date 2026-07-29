@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Card } from '@/components/ui/Card';
-import { Icon } from '@/components/ui/Icons';
+import { Bell, CheckCircle, ShieldCheck } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
+import { api } from '@/lib/api';
 
 interface AlertConfig {
   name: string;
@@ -17,88 +17,108 @@ export function AlertSettings() {
   const [saving, setSaving] = useState(false);
 
   const saveAlerts = async () => {
-    setSaving(true);
     const alerts: AlertConfig[] = [];
-    const pnlVal = parseFloat(pnlTarget);
-    const ddVal = parseFloat(drawdownLimit);
-    if (!isNaN(pnlVal) && pnlVal > 0)
+    const pnlValue = Number(pnlTarget);
+    const drawdownValue = Number(drawdownLimit);
+    if (Number.isFinite(pnlValue) && pnlValue > 0) {
       alerts.push({
         name: 'P&L Цель',
         alert_type: 'pnl_target',
-        condition_config: { metric: 'pnl_daily', operator: 'gte', value: pnlVal },
+        condition_config: { metric: 'pnl_daily', operator: 'gte', value: pnlValue },
         channels: email ? ['email'] : [],
       });
-    if (!isNaN(ddVal) && ddVal > 0)
+    }
+    if (Number.isFinite(drawdownValue) && drawdownValue > 0) {
       alerts.push({
         name: 'Макс. просадка',
         alert_type: 'drawdown',
-        condition_config: { metric: 'drawdown', operator: 'gte', value: ddVal },
+        condition_config: { metric: 'drawdown', operator: 'gte', value: drawdownValue },
         channels: email ? ['email'] : [],
       });
-    if (alerts.length) {
-      try {
-        await fetch('http://localhost:3001/api/profile/alerts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ alerts, email }),
-        });
-        toast.success('Алерты сохранены!');
-      } catch {
-        toast.error('Ошибка сохранения');
-      }
     }
-    setSaving(false);
+    if (!alerts.length) {
+      toast.error('Укажите хотя бы один лимит');
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await api.post('/profile/alerts', { alerts, email });
+      toast.success('Алерты сохранены');
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Не удалось сохранить алерты');
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
-    <div className="max-w-md mx-auto px-4 py-6">
-      <Card padding="lg" className="space-y-5">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="w-9 h-9 rounded-xl bg-accent-green/10 flex items-center justify-center">
-            <Icon name="alert" size={18} className="text-accent-green" />
+    <section className="workspace-form-page">
+      <header>
+        <span>Контроль риска</span>
+        <h1>Уведомления и лимиты</h1>
+        <p>Фиксируйте границы до торговой сессии, а не после эмоционального решения.</p>
+      </header>
+      <div className="workspace-form-layout">
+        <div className="workspace-form-panel">
+          <div className="workspace-form-title">
+            <Bell size={21} />
+            <div>
+              <strong>Триггеры сессии</strong>
+              <small>Tradeum сообщит о достижении заданного уровня.</small>
+            </div>
           </div>
-          <h3 className="text-base font-semibold">Настройка алертов</h3>
-        </div>
-        <div className="space-y-4">
-          <div className="space-y-1.5">
-            <label className="text-xs text-text-muted font-medium">Цель P&L ($)</label>
+          <label>
+            Дневная цель P&amp;L, $
             <input
               type="number"
               placeholder="Например, 1000"
               value={pnlTarget}
-              onChange={(e) => setPnlTarget(e.target.value)}
-              className="w-full px-4 py-3 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
+              onChange={(event) => setPnlTarget(event.target.value)}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-text-muted font-medium">Лимит просадки ($)</label>
+          </label>
+          <label>
+            Максимальная просадка, $
             <input
               type="number"
               placeholder="Например, 500"
               value={drawdownLimit}
-              onChange={(e) => setDrawdownLimit(e.target.value)}
-              className="w-full px-4 py-3 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
+              onChange={(event) => setDrawdownLimit(event.target.value)}
             />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-xs text-text-muted font-medium">Email для уведомлений</label>
+          </label>
+          <label>
+            Email для уведомлений
             <input
               type="email"
-              placeholder="your@email.com"
+              placeholder="name@domain.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-surface-elevated border border-surface-border rounded-xl text-sm text-white focus:outline-none focus:ring-2 focus:ring-accent-green/30 transition-all"
+              onChange={(event) => setEmail(event.target.value)}
             />
-          </div>
-          <button
-            onClick={saveAlerts}
-            disabled={saving}
-            className="w-full py-3 bg-accent-green text-surface rounded-xl font-semibold disabled:opacity-50 hover:bg-accent-green-dim transition-all active:scale-[0.98]"
-          >
-            {saving ? 'Сохранение...' : 'Сохранить алерты'}
+          </label>
+          <button type="button" onClick={() => void saveAlerts()} disabled={saving}>
+            {saving ? 'Сохраняем…' : 'Сохранить лимиты'}
           </button>
         </div>
-      </Card>
-    </div>
+        <aside className="workspace-context-rail">
+          <ShieldCheck size={24} />
+          <h2>Лимит — это правило, а не прогноз</h2>
+          <p>
+            Уведомление не останавливает торговлю автоматически. Оно возвращает внимание к вашему
+            заранее принятому решению.
+          </p>
+          <ul>
+            <li>
+              <CheckCircle size={15} /> Используйте дневной лимит вместе с риском на сделку
+            </li>
+            <li>
+              <CheckCircle size={15} /> Пересматривайте пороги только вне сессии
+            </li>
+            <li>
+              <CheckCircle size={15} /> Не повышайте лимит после серии убытков
+            </li>
+          </ul>
+        </aside>
+      </div>
+    </section>
   );
 }

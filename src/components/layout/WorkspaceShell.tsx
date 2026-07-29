@@ -1,15 +1,18 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowsLeftRight,
+  ArrowRight,
   ChartLineUp,
   GearSix,
   House,
   List,
+  MagnifyingGlass,
   PlugsConnected,
   ShieldCheck,
   SignOut,
   Sparkle,
+  SquaresFour,
   Target,
   X,
   type Icon as PhosphorIcon,
@@ -98,6 +101,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading, subscriptionTier, signOut } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState('');
 
   useEffect(() => {
     const applyWorkspaceSettings = () => {
@@ -126,6 +130,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   };
 
   const closeMobile = () => setMobileOpen(false);
+  const searchTrades = (event: FormEvent) => {
+    event.preventDefault();
+    const query = globalSearch.trim();
+    navigate(query ? `/dashboard/trades?search=${encodeURIComponent(query)}` : '/dashboard/trades');
+  };
 
   return (
     <div className="workspace-shell workspace-shell-v3">
@@ -147,11 +156,11 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
       <aside className={`workspace-sidebar workspace-sidebar-v3 ${mobileOpen ? 'is-open' : ''}`}>
         <Link className="workspace-brand workspace-brand-v3" to="/dashboard" onClick={closeMobile}>
           <span>
-            <ChartLineUp size={18} weight="bold" />
+            <SquaresFour size={18} weight="regular" />
           </span>
           <div>
             <strong>TradeumDiary</strong>
-            <small>Trading intelligence</small>
+            <small>Trading journal</small>
           </div>
         </Link>
 
@@ -197,7 +206,31 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         />
       ) : null}
 
-      <main className="workspace-main">{children}</main>
+      <main className="workspace-main">
+        <header className="workspace-topbar">
+          <form onSubmit={searchTrades}>
+            <MagnifyingGlass size={16} />
+            <input
+              value={globalSearch}
+              onChange={(event) => setGlobalSearch(event.target.value)}
+              placeholder="Поиск по сделкам, тегам, заметкам…"
+              aria-label="Поиск по торговой истории"
+            />
+            <kbd>⌘ K</kbd>
+          </form>
+          <span className="workspace-sync-state">
+            <i />
+            Данные синхронизированы
+          </span>
+          <Link className="workspace-primary-action" to="/dashboard/trades">
+            Открыть сделки
+            <i aria-hidden="true">
+              <ArrowRight size={16} />
+            </i>
+          </Link>
+        </header>
+        <div className="workspace-main-view">{children}</div>
+      </main>
     </div>
   );
 }

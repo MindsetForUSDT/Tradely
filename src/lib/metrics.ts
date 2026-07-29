@@ -17,7 +17,8 @@ export function calculateExpectancy(trades: Trade[]): number {
   const winners = trades.filter((t) => (t.pnl_realized ?? 0) > 0);
   const losers = trades.filter((t) => (t.pnl_realized ?? 0) < 0);
 
-  const winRate = safeDivide(winners.length, trades.length);
+  const winRate = winners.length / trades.length;
+  const lossRate = losers.length / trades.length;
 
   const avgWin = winners.length
     ? winners.reduce((s, t) => s + (t.pnl_realized ?? 0), 0) / winners.length
@@ -27,7 +28,7 @@ export function calculateExpectancy(trades: Trade[]): number {
     ? Math.abs(losers.reduce((s, t) => s + (t.pnl_realized ?? 0), 0)) / losers.length
     : 0;
 
-  const expectancy = winRate * avgWin - (1 - winRate) * avgLoss;
+  const expectancy = winRate * avgWin - lossRate * avgLoss;
   return isFinite(expectancy) ? +expectancy.toFixed(2) : 0;
 }
 
@@ -92,14 +93,13 @@ export function calculateStreakAnalysis(trades: Trade[]): StreakAnalysis {
     // pnl === 0 игнорируется (нейтральные сделки не прерывают серию)
   }
 
-  const lastTrade = trades[trades.length - 1];
-  const lastPnl = lastTrade?.pnl_realized ?? 0;
+  const currentStreak = currentWin > 0 ? currentWin : currentLoss > 0 ? -currentLoss : 0;
 
   return {
     maxWinStreak: maxWin,
     maxLossStreak: maxLoss,
-    currentStreak: lastPnl > 0 ? currentWin : lastPnl < 0 ? -currentLoss : 0,
-    currentStreakType: lastPnl > 0 ? 'win' : lastPnl < 0 ? 'loss' : 'none',
+    currentStreak,
+    currentStreakType: currentStreak > 0 ? 'win' : currentStreak < 0 ? 'loss' : 'none',
   };
 }
 
@@ -113,7 +113,7 @@ export function calculateRecoveryFactor(trades: Trade[]): number {
   const totalPnl = trades.reduce((s, t) => s + (t.pnl_realized ?? 0), 0);
   const drawdown = calculateMaxDrawdown(trades);
 
-  return safeDivide(Math.abs(totalPnl), Math.abs(drawdown.minPnl), totalPnl > 0 ? 999 : 0);
+  return safeDivide(totalPnl, Math.abs(drawdown.minPnl), totalPnl > 0 ? 999 : 0);
 }
 
 /**

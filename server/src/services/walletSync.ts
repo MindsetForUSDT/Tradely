@@ -1,11 +1,17 @@
 import { prisma } from '../db.js';
 import { decrypt } from './crypto.js';
-import { importTradesFromExchange, saveTrades } from './tradeImport.js';
+import { getBybitBalance, importTradesFromExchange, saveTrades } from './tradeImport.js';
 
 interface SyncSettings {
   autoSync?: boolean;
   syncInterval?: number;
+  initialBalance?: number;
+  currentBalance?: number;
+  balanceUpdatedAt?: string;
+  [key: string]: unknown;
 }
+
+const activeWalletSyncs = new Set<string>();
 
 function readSettings(value: string | null): SyncSettings {
   try {
@@ -16,15 +22,20 @@ function readSettings(value: string | null): SyncSettings {
 }
 
 export async function syncWallet(walletId: string): Promise<number> {
-  const claimed = await prisma.wallet.updateMany({
-    where: { id: walletId, processing_status: { not: 'processing' } },
-    data: { processing_status: 'processing', error_message: null },
-  });
-  if (!claimed.count) return 0;
+  // `processing` lives in PostgreSQL, while the actual job lives in this process.
+  // After an API restart the database may retain a stale processing flag. The
+  // in-memory lease lets a new process safely resume it instead of leaving the
+  // source stuck forever.
+  if (activeWalletSyncs.has(walletId)) return 0;
+  activeWalletSyncs.add(walletId);
 
   try {
     const wallet = await prisma.wallet.findUnique({ where: { id: walletId } });
     if (!wallet) throw new Error('Источник не найден');
+    await prisma.wallet.update({
+      where: { id: walletId },
+      data: { processing_status: 'processing', error_message: null },
+    });
     if (!wallet.cex_provider)
       throw new Error('Автоимпорт для этого типа источника ещё не подключён');
     if (!wallet.encrypted_credentials || !wallet.credentials_iv || !wallet.credentials_tag) {
@@ -43,17 +54,32 @@ export async function syncWallet(walletId: string): Promise<number> {
       throw new Error('Не удалось прочитать API-ключи источника');
     }
 
-    const trades = await importTradesFromExchange(
-      wallet.cex_provider,
-      credentials.apiKey,
-      credentials.apiSecret,
-      credentials.passphrase,
-      wallet.import_from_date || undefined
-    );
+    const [trades, currentBalance] = await Promise.all([
+      importTradesFromExchange(
+        wallet.cex_provider,
+        credentials.apiKey,
+        credentials.apiSecret,
+        credentials.passphrase,
+        wallet.import_from_date || undefined
+      ),
+      wallet.cex_provider.toLowerCase() === 'bybit'
+        ? getBybitBalance(credentials.apiKey, credentials.apiSecret)
+        : Promise.resolve(0),
+    ]);
     const saved = await saveTrades(wallet.user_id, wallet.id, trades);
+    const settings = readSettings(wallet.settings);
     await prisma.wallet.update({
       where: { id: wallet.id },
-      data: { processing_status: 'completed', last_synced_at: new Date(), error_message: null },
+      data: {
+        processing_status: 'completed',
+        last_synced_at: new Date(),
+        error_message: null,
+        settings: JSON.stringify({
+          ...settings,
+          currentBalance,
+          balanceUpdatedAt: new Date().toISOString(),
+        }),
+      },
     });
     return saved;
   } catch (error) {
@@ -63,17 +89,23 @@ export async function syncWallet(walletId: string): Promise<number> {
       data: { processing_status: 'failed', error_message: message },
     });
     throw error;
+  } finally {
+    activeWalletSyncs.delete(walletId);
   }
 }
 
 export async function syncDueWallets() {
   const wallets = await prisma.wallet.findMany({
-    where: { cex_provider: { not: null }, processing_status: { not: 'processing' } },
+    where: { cex_provider: { not: null } },
   });
   const now = Date.now();
   const due = wallets.filter((wallet) => {
+    if (activeWalletSyncs.has(wallet.id)) return false;
     const settings = readSettings(wallet.settings);
     if (settings.autoSync === false) return false;
+    // A processing row without an in-memory lease belongs to an interrupted
+    // process and should be resumed on the next scheduler tick.
+    if (wallet.processing_status === 'processing') return true;
     const intervalMinutes = Math.max(5, Number(settings.syncInterval || 60));
     return (
       !wallet.last_synced_at || now - wallet.last_synced_at.getTime() >= intervalMinutes * 60_000

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ArrowRight } from '@phosphor-icons/react';
 import { Icon } from '@/components/ui/Icons';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -32,7 +33,13 @@ export function Header() {
     <header className={`mono-header ${scrolled ? 'is-scrolled' : ''}`}>
       <div className="mono-header-inner">
         <Link className="mono-logo" to={isAuthenticated ? '/dashboard' : '/'}>
-          TradeumDiary
+          <span className="tailark-brand-mark" aria-hidden="true">
+            <i />
+            <i />
+            <i />
+            <i />
+          </span>
+          <strong>TradeumDiary</strong>
         </Link>
         <nav className={open ? 'open' : ''} aria-label="Основная навигация">
           {isAuthenticated ? (
@@ -54,7 +61,10 @@ export function Header() {
               ))}
               <Link to="/login">Войти</Link>
               <Link className="mono-header-cta" to="/register">
-                Создать дневник
+                <span>Создать дневник</span>
+                <i aria-hidden="true">
+                  <ArrowRight size={16} />
+                </i>
               </Link>
             </>
           )}

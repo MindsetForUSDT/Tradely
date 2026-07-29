@@ -12,27 +12,38 @@ interface RiskLimits {
   alert_email: string;
 }
 
+const defaultLimits: RiskLimits = {
+  daily_loss_limit: 0,
+  weekly_loss_limit: 0,
+  position_size_percent: 2,
+  max_leverage: 1,
+  alert_enabled: true,
+  alert_email: '',
+};
+
 export function useRiskManager() {
-  const [limits, setLimits] = useState<RiskLimits>({
-    daily_loss_limit: 0,
-    weekly_loss_limit: 0,
-    position_size_percent: 2,
-    max_leverage: 1,
-    alert_enabled: true,
-    alert_email: '',
-  });
+  const [limits, setLimits] = useState<RiskLimits>(defaultLimits);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadLimits();
+    void loadLimits();
   }, []);
 
   const loadLimits = async () => {
     try {
-      const response: any = await api.get('/profile');
-      if (response.risk_limits) {
-        setLimits(response.risk_limits);
-      }
+      const response = await api.get<RiskLimits>('/risk-limits');
+      setLimits({
+        ...defaultLimits,
+        ...response,
+        daily_loss_limit: Number(response.daily_loss_limit ?? defaultLimits.daily_loss_limit),
+        weekly_loss_limit: Number(response.weekly_loss_limit ?? defaultLimits.weekly_loss_limit),
+        position_size_percent: Number(
+          response.position_size_percent ?? defaultLimits.position_size_percent
+        ),
+        max_leverage: Number(response.max_leverage ?? defaultLimits.max_leverage),
+        alert_enabled: response.alert_enabled ?? defaultLimits.alert_enabled,
+        alert_email: response.alert_email ?? defaultLimits.alert_email,
+      });
     } catch (error) {
       console.error('[useRiskManager] Error loading limits:', error);
     } finally {
@@ -42,10 +53,10 @@ export function useRiskManager() {
 
   const saveLimits = async (newLimits: RiskLimits) => {
     try {
-      await api.post('/profile/risk-limits', newLimits);
+      const saved = await api.post<RiskLimits>('/risk-limits', newLimits);
       toast.success('Лимиты сохранены');
-      setLimits(newLimits);
-    } catch (error) {
+      setLimits(saved);
+    } catch {
       toast.error('Ошибка сохранения');
     }
   };

@@ -31,13 +31,13 @@ export class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  async componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    const errorId = await this.logError(error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    const errorId = this.logError(error, errorInfo);
     this.setState({ errorId });
     this.props.onError?.(error, errorInfo);
   }
 
-  private async logError(error: Error, errorInfo: React.ErrorInfo): Promise<string | null> {
+  private logError(error: Error, errorInfo: React.ErrorInfo): string | null {
     // Локальное логирование ошибок (без Supabase)
     try {
       const errorPayload = {

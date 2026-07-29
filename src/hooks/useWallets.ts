@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '@/lib/api';
-import toast from 'react-hot-toast';
 
 interface SyncStatus {
   walletId: string;
@@ -22,6 +21,7 @@ interface Wallet {
   last_processed_block?: number;
   error_message?: string;
   added_at: string;
+  _count?: { trades: number };
 }
 
 export function useWallets() {
@@ -30,9 +30,9 @@ export function useWallets() {
   const [error, setError] = useState<string | null>(null);
   const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
 
-  const loadWallets = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  const loadWallets = useCallback(async (silent = false) => {
+    if (!silent) setIsLoading(true);
+    if (!silent) setError(null);
     try {
       const data = await api.get<Wallet[]>('/wallets');
       setWallets(data);
@@ -47,48 +47,61 @@ export function useWallets() {
         };
       });
       setSyncStatuses(statusMap);
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('[useWallets] Error:', e);
+      const message = e instanceof Error ? e.message : 'Ошибка загрузки кошельков';
       // Игнорируем ошибку "Profile not found" - просто нет кошельков
-      if (e.message?.includes('Profile not found')) {
+      if (message.includes('Profile not found')) {
         setWallets([]);
         setError(null);
-      } else if (e.message?.includes('401') || e.message?.includes('403')) {
+      } else if (message.includes('401') || message.includes('403')) {
         // Неавторизован - не показываем ошибку
         setWallets([]);
         setError(null);
       } else {
-        setError(e.message || 'Ошибка загрузки кошельков');
+        setError(message);
       }
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   }, []);
 
-  // Загружаем только при монтировании
   useEffect(() => {
-    loadWallets();
+    void loadWallets();
   }, [loadWallets]);
 
-  const startSync = useCallback(async (walletId: string) => {
-    setSyncStatuses((prev) => ({
-      ...prev,
-      [walletId]: { walletId, progress: 0, status: 'queued' },
-    }));
-
-    try {
-      await api.post(`/wallets/${walletId}/sync`, {});
-      setSyncStatuses((prev) => ({
-        ...prev,
-        [walletId]: { walletId, progress: 100, status: 'completed' },
-      }));
-    } catch (e: any) {
-      setSyncStatuses((prev) => ({
-        ...prev,
-        [walletId]: { walletId, progress: 0, status: 'failed', error: e.message },
-      }));
+  useEffect(() => {
+    if (!wallets.some((wallet) => ['pending', 'processing'].includes(wallet.processing_status))) {
+      return;
     }
-  }, []);
+    const timer = window.setInterval(() => void loadWallets(true), 2500);
+    return () => window.clearInterval(timer);
+  }, [loadWallets, wallets]);
+
+  const startSync = useCallback(
+    async (walletId: string) => {
+      setSyncStatuses((prev) => ({
+        ...prev,
+        [walletId]: { walletId, progress: 0, status: 'queued' },
+      }));
+
+      try {
+        await api.post(`/wallets/${walletId}/sync`, {});
+        setSyncStatuses((prev) => ({
+          ...prev,
+          [walletId]: { walletId, progress: 45, status: 'syncing' },
+        }));
+        await loadWallets();
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : 'Ошибка синхронизации';
+        setSyncStatuses((prev) => ({
+          ...prev,
+          [walletId]: { walletId, progress: 0, status: 'failed', error: message },
+        }));
+      }
+    },
+    [loadWallets]
+  );
 
   const refresh = useCallback(() => {
     loadWallets();

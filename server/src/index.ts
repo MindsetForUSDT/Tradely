@@ -1,9 +1,12 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import { rateLimit } from 'express-rate-limit';
+import { validateRuntimeConfig } from './config/env.js';
 
-dotenv.config();
+validateRuntimeConfig();
 
 console.log('[Server] ====== SERVER START ======');
 console.log('[Server] ENV:', process.env.NODE_ENV);
@@ -26,12 +29,15 @@ import profileRouter from './routes/profile.js';
 import walletsRouter from './routes/wallets.js';
 import tradesRouter from './routes/trades.js';
 import analyticsRouter from './routes/analytics.js';
-import webhookRouter from './routes/webhook.js';
 import authRouter from './routes/auth.js';
+import riskLimitsRouter from './routes/riskLimits.js';
+import goalsRouter from './routes/goals.js';
 import { syncDueWallets } from './services/walletSync.js';
+import { runSyncWorkerBatch } from './jobs/sync-scheduler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+if (process.env.NODE_ENV === 'production') app.set('trust proxy', 1);
 
 // Краткий access log без заголовков и токенов авторизации.
 app.use((req, res, next) => {
@@ -56,13 +62,62 @@ app.use(
     credentials: true,
   })
 );
-app.use(express.json());
+app.use('/api', (req, res, next) => {
+  if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return next();
+  const origin = req.get('origin');
+  if (origin && !allowedOrigins.includes(origin)) {
+    return res.status(403).json({ error: 'Недопустимый источник запроса' });
+  }
+  return next();
+});
+app.use(cookieParser());
+app.use(express.json({ limit: '256kb' }));
+app.use(
+  '/api',
+  rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 300,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    message: { error: 'Слишком много запросов. Попробуйте позже.' },
+  })
+);
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  skip: (req) => ['/me', '/refresh', '/logout'].includes(req.path),
+  message: { error: 'Слишком много попыток. Повторите через 15 минут.' },
+});
 
 console.log('[Server] ✅ Middleware configured');
 
-app.get('/health', (req, res) => {
-  console.log('[Server] Health check');
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+const schedulerState: {
+  running: boolean;
+  lastStartedAt: string | null;
+  lastCompletedAt: string | null;
+  lastError: string | null;
+} = { running: false, lastStartedAt: null, lastCompletedAt: null, lastError: null };
+
+app.get('/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      database: 'connected',
+      scheduler: schedulerState,
+    });
+  } catch {
+    res.status(503).json({
+      status: 'degraded',
+      timestamp: new Date().toISOString(),
+      database: 'unavailable',
+      scheduler: schedulerState,
+    });
+  }
 });
 
 app.get('/api', (req, res) => {
@@ -75,19 +130,21 @@ app.get('/api', (req, res) => {
       wallets: '/api/wallets',
       trades: '/api/trades',
       analytics: '/api/analytics',
-      webhook: '/api/webhook',
+      riskLimits: '/api/risk-limits',
+      goals: '/api/goals',
       health: '/health',
     },
   });
 });
 
 console.log('[Server] Registering routes...');
-app.use('/api/auth', authRouter);
-app.use('/api/webhook', webhookRouter);
+app.use('/api/auth', authLimiter, authRouter);
 app.use('/api/profile', profileRouter);
 app.use('/api/wallets', walletsRouter);
 app.use('/api/trades', tradesRouter);
 app.use('/api/analytics', analyticsRouter);
+app.use('/api/risk-limits', riskLimitsRouter);
+app.use('/api/goals', goalsRouter);
 console.log('[Server] ✅ Routes registered');
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
@@ -101,14 +158,30 @@ app.listen(PORT, () => {
 });
 
 const initialSync = setTimeout(() => {
-  void syncDueWallets().catch((error) => console.error('[Auto Sync] Initial run failed:', error));
+  void runScheduledSync();
 }, 5_000);
 initialSync.unref();
 
 const syncTimer = setInterval(() => {
-  void syncDueWallets().catch((error) => console.error('[Auto Sync] Scheduler failed:', error));
+  void runScheduledSync();
 }, 60_000);
 syncTimer.unref();
+
+async function runScheduledSync() {
+  if (schedulerState.running) return;
+  schedulerState.running = true;
+  schedulerState.lastStartedAt = new Date().toISOString();
+  schedulerState.lastError = null;
+  try {
+    await Promise.all([syncDueWallets(), runSyncWorkerBatch()]);
+    schedulerState.lastCompletedAt = new Date().toISOString();
+  } catch (error) {
+    schedulerState.lastError = error instanceof Error ? error.message : 'Unknown sync error';
+    console.error('[Auto Sync] Scheduler failed:', error);
+  } finally {
+    schedulerState.running = false;
+  }
+}
 
 const shutdown = async (signal: string) => {
   console.log(`[Server] ${signal}: shutting down`);

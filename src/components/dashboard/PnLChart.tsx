@@ -21,42 +21,46 @@ interface PnLChartProps {
 }
 
 // ✅ Мемоизированный компонент тултипа
-const CustomTooltip = ({ active, payload, label }: any) => {
-  return useMemo(() => {
-    if (!active || !payload?.length) return null;
-    const pnl = payload[0]?.value ?? 0;
-    const cumulative = payload[1]?.value ?? 0;
+interface ChartTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value?: number }>;
+  label?: string;
+}
 
-    return (
-      <div className="glass-card p-4 text-xs shadow-xl border border-surface-border">
-        <p className="text-text-muted mb-2">{label}</p>
-        <div className="space-y-1">
-          <div className="flex items-center justify-between gap-4">
-            <span>Дневной P&L:</span>
-            <span
-              className={cn(
-                'font-mono font-semibold',
-                pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
-              )}
-            >
-              {formatUSD(pnl)}
-            </span>
-          </div>
-          <div className="flex items-center justify-between gap-4">
-            <span>Накопленный:</span>
-            <span
-              className={cn(
-                'font-mono font-semibold',
-                cumulative >= 0 ? 'text-accent-green' : 'text-accent-red'
-              )}
-            >
-              {formatUSD(cumulative)}
-            </span>
-          </div>
+const CustomTooltip = ({ active, payload, label }: ChartTooltipProps) => {
+  if (!active || !payload?.length) return null;
+  const pnl = payload[0]?.value ?? 0;
+  const cumulative = payload[1]?.value ?? 0;
+
+  return (
+    <div className="glass-card p-4 text-xs shadow-xl border border-surface-border">
+      <p className="text-text-muted mb-2">{label}</p>
+      <div className="space-y-1">
+        <div className="flex items-center justify-between gap-4">
+          <span>Дневной P&L:</span>
+          <span
+            className={cn(
+              'font-mono font-semibold',
+              pnl >= 0 ? 'text-accent-green' : 'text-accent-red'
+            )}
+          >
+            {formatUSD(pnl)}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-4">
+          <span>Накопленный:</span>
+          <span
+            className={cn(
+              'font-mono font-semibold',
+              cumulative >= 0 ? 'text-accent-green' : 'text-accent-red'
+            )}
+          >
+            {formatUSD(cumulative)}
+          </span>
         </div>
       </div>
-    );
-  }, [active, payload, label]);
+    </div>
+  );
 };
 
 // ✅ Константы вне компонента (не пересоздаются)
