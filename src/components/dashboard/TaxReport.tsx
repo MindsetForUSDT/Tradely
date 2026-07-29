@@ -5,7 +5,7 @@ import { calculateFIFOTax } from '@/lib/taxCalculator';
 import { formatUSD } from '@/lib/utils';
 
 export function TaxReport() {
-  const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 365 });
+  const { trades } = useTradesOptimized({ limit: 500, daysAgo: 365 });
   const [year, setYear] = useState(new Date().getFullYear());
   const report = useMemo(() => calculateFIFOTax(trades, year), [trades, year]);
 

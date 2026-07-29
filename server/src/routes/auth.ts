@@ -131,7 +131,7 @@ router.post('/register', async (req, res) => {
     const { email, password, username } = parsed.data;
     const [existingEmail, existingUsername] = await Promise.all([
       prisma.profile.findUnique({ where: { email }, select: { id: true } }),
-      prisma.profile.findUnique({ where: { username }, select: { id: true } }),
+      prisma.profile.findFirst({ where: { username }, select: { id: true } }),
     ]);
 
     if (existingEmail)

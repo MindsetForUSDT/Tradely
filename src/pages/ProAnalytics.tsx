@@ -11,7 +11,7 @@ import { formatUSD } from '@/lib/utils';
 
 export function ProAnalytics() {
   const { subscriptionTier } = useAuth();
-  const { trades, pnlData, isLoading } = useTradesOptimized({ limit: 5000, daysAgo: 90 });
+  const { trades, pnlData, isLoading } = useTradesOptimized({ limit: 500, daysAgo: 90 });
 
   const metrics = useMemo(() => {
     const winners = trades.filter((trade) => (trade.pnl_realized || 0) > 0);
