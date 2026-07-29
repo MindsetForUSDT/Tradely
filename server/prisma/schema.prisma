@@ -7,6 +7,51 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SourceProvider {
+  BYBIT
+  CSV
+  MANUAL
+}
+
+enum SourceStatus {
+  PENDING
+  READY
+  SYNCING
+  DEGRADED
+  REVOKED
+}
+
+enum MarketType {
+  SPOT
+  LINEAR
+}
+
+enum PositionDirection {
+  LONG
+  SHORT
+}
+
+enum DataQuality {
+  VERIFIED
+  ESTIMATED
+  NEEDS_REVIEW
+  INCOMPLETE
+}
+
+enum SyncJobStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  PARTIAL
+  FAILED
+  CANCELED
+}
+
+enum ReviewStatus {
+  UNREVIEWED
+  REVIEWED
+}
+
 model Profile {
   id                      String               @id @default(uuid())
   email                   String               @unique
@@ -26,6 +71,9 @@ model Profile {
   audit_logs              AuditLog[]
   risk_limits             RiskLimit?
   goals                   Goal[]
+  trading_sources         TradingSource[]
+  position_cycles         PositionCycle[]
+  strategies              Strategy[]
 
   @@map("profiles")
 }
@@ -136,28 +184,29 @@ model Wallet {
 }
 
 model Trade {
-  id             String     @id @default(uuid())
-  user_id        String
-  wallet_id      String?
-  tx_hash        String?
-  timestamp      DateTime   @default(now())
-  block_number   Int?
-  symbol         String
-  side           String
-  amount         Decimal    @default(0) @db.Decimal(20, 8)
-  price_usd      Decimal    @default(0) @db.Decimal(20, 8)
-  value_usd      Decimal    @default(0) @db.Decimal(20, 8)
-  fee_usd        Decimal    @default(0) @db.Decimal(20, 8)
-  pnl_realized   Decimal    @default(0) @db.Decimal(20, 8)
-  pnl_unrealized Decimal    @default(0) @db.Decimal(20, 8)
-  status         String     @default("completed")
-  exchange       String?
-  import_source  String     @default("manual")
-  raw_data       String?
-  created_at     DateTime   @default(now())
-  tags           TradeTag[]
-  user           Profile    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  wallet         Wallet?    @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
+  id               String          @id @default(uuid())
+  user_id          String
+  wallet_id        String?
+  tx_hash          String?
+  timestamp        DateTime        @default(now())
+  block_number     Int?
+  symbol           String
+  side             String
+  amount           Decimal         @default(0) @db.Decimal(20, 8)
+  price_usd        Decimal         @default(0) @db.Decimal(20, 8)
+  value_usd        Decimal         @default(0) @db.Decimal(20, 8)
+  fee_usd          Decimal         @default(0) @db.Decimal(20, 8)
+  pnl_realized     Decimal         @default(0) @db.Decimal(20, 8)
+  pnl_unrealized   Decimal         @default(0) @db.Decimal(20, 8)
+  status           String          @default("completed")
+  exchange         String?
+  import_source    String          @default("manual")
+  raw_data         String?
+  created_at       DateTime        @default(now())
+  tags             TradeTag[]
+  legacy_cycle_map LegacyTradeMap?
+  user             Profile         @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  wallet           Wallet?         @relation(fields: [wallet_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, tx_hash], name: "unique_user_tx")
   @@index([user_id, wallet_id])
@@ -208,4 +257,195 @@ model DailyAnalytics {
 
   @@unique([user_id, date])
   @@map("daily_analytics")
+}
+
+model TradingSource {
+  id                     String             @id @default(uuid())
+  user_id                String
+  provider               SourceProvider
+  external_account_hash  String?
+  label                  String
+  status                 SourceStatus       @default(PENDING)
+  encrypted_credentials  String?
+  credentials_iv         String?
+  credentials_tag        String?
+  encryption_version     Int                @default(1)
+  is_read_only           Boolean?
+  is_ip_bound            Boolean?
+  import_from            DateTime?          @db.Timestamptz(3)
+  sync_cursor            Json?
+  settings               Json?
+  last_sync_started_at   DateTime?          @db.Timestamptz(3)
+  last_sync_succeeded_at DateTime?          @db.Timestamptz(3)
+  last_error_code        String?
+  last_error_message     String?
+  created_at             DateTime           @default(now()) @db.Timestamptz(3)
+  updated_at             DateTime           @updatedAt @db.Timestamptz(3)
+  user                   Profile            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  jobs                   SyncJob[]
+  raw_events             RawExchangeEvent[]
+  cycles                 PositionCycle[]
+
+  @@unique([user_id, provider, external_account_hash])
+  @@index([user_id, status])
+  @@map("trading_sources")
+}
+
+model SyncJob {
+  id               String             @id @default(uuid())
+  source_id        String
+  requested_by     String
+  status           SyncJobStatus      @default(QUEUED)
+  requested_from   DateTime?          @db.Timestamptz(3)
+  requested_to     DateTime?          @db.Timestamptz(3)
+  phase            String?
+  progress         Int                @default(0)
+  fetched_count    Int                @default(0)
+  inserted_count   Int                @default(0)
+  cycle_count      Int                @default(0)
+  warning_count    Int                @default(0)
+  attempt          Int                @default(0)
+  max_attempts     Int                @default(5)
+  lease_owner      String?
+  lease_expires_at DateTime?          @db.Timestamptz(3)
+  next_attempt_at  DateTime?          @db.Timestamptz(3)
+  error_code       String?
+  error_message    String?
+  started_at       DateTime?          @db.Timestamptz(3)
+  finished_at      DateTime?          @db.Timestamptz(3)
+  created_at       DateTime           @default(now()) @db.Timestamptz(3)
+  source           TradingSource      @relation(fields: [source_id], references: [id], onDelete: Cascade)
+  raw_events       RawExchangeEvent[]
+
+  @@index([status, next_attempt_at])
+  @@index([source_id, created_at])
+  @@map("sync_jobs")
+}
+
+model RawExchangeEvent {
+  id             String         @id @default(uuid())
+  source_id      String
+  job_id         String?
+  provider       SourceProvider
+  event_kind     String
+  external_id    String
+  symbol         String?
+  market_type    MarketType?
+  occurred_at    DateTime       @db.Timestamptz(3)
+  payload        Json
+  payload_hash   String
+  schema_version Int            @default(1)
+  imported_at    DateTime       @default(now()) @db.Timestamptz(3)
+  source         TradingSource  @relation(fields: [source_id], references: [id], onDelete: Cascade)
+  job            SyncJob?       @relation(fields: [job_id], references: [id], onDelete: SetNull)
+  cycle_links    CycleEvent[]
+
+  @@unique([source_id, event_kind, external_id])
+  @@index([source_id, occurred_at])
+  @@index([source_id, symbol, occurred_at])
+  @@index([job_id])
+  @@map("raw_exchange_events")
+}
+
+model PositionCycle {
+  id                       String            @id @default(uuid())
+  user_id                  String
+  source_id                String
+  cycle_key                String
+  symbol                   String
+  market_type              MarketType
+  direction                PositionDirection
+  position_index           Int?
+  opened_at                DateTime          @db.Timestamptz(3)
+  closed_at                DateTime          @db.Timestamptz(3)
+  quantity                 Decimal           @db.Decimal(24, 10)
+  average_entry_price      Decimal           @db.Decimal(24, 10)
+  average_exit_price       Decimal           @db.Decimal(24, 10)
+  entry_value_usd          Decimal           @db.Decimal(24, 8)
+  exit_value_usd           Decimal           @db.Decimal(24, 8)
+  gross_pnl_usd            Decimal           @db.Decimal(24, 8)
+  trading_fees_usd         Decimal           @db.Decimal(24, 8)
+  funding_usd              Decimal           @db.Decimal(24, 8)
+  adjustments_usd          Decimal           @db.Decimal(24, 8)
+  net_pnl_usd              Decimal           @db.Decimal(24, 8)
+  data_quality             DataQuality
+  quality_reasons          Json?
+  algorithm_version        Int               @default(1)
+  source_closed_pnl_usd    Decimal?          @db.Decimal(24, 8)
+  reconciliation_delta_usd Decimal?          @db.Decimal(24, 8)
+  created_at               DateTime          @default(now()) @db.Timestamptz(3)
+  updated_at               DateTime          @updatedAt @db.Timestamptz(3)
+  user                     Profile           @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  source                   TradingSource     @relation(fields: [source_id], references: [id], onDelete: Cascade)
+  review                   TradeReview?
+  event_links              CycleEvent[]
+  legacy_trade_maps        LegacyTradeMap[]
+
+  @@unique([source_id, cycle_key])
+  @@index([user_id, closed_at])
+  @@index([user_id, symbol, closed_at])
+  @@index([user_id, data_quality, closed_at])
+  @@map("position_cycles")
+}
+
+model CycleEvent {
+  cycle_id             String
+  event_id             String
+  role                 String
+  allocated_quantity   Decimal?         @db.Decimal(24, 10)
+  allocated_amount_usd Decimal?         @db.Decimal(24, 8)
+  cycle                PositionCycle    @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
+  event                RawExchangeEvent @relation(fields: [event_id], references: [id], onDelete: Restrict)
+
+  @@id([cycle_id, event_id, role])
+  @@index([event_id])
+  @@map("cycle_events")
+}
+
+model TradeReview {
+  id               String        @id @default(uuid())
+  cycle_id         String        @unique
+  strategy_id      String?
+  status           ReviewStatus  @default(UNREVIEWED)
+  mistake_code     String?
+  emotion_before   String?
+  emotion_after    String?
+  plan_score       Int?
+  planned_stop     Decimal?      @db.Decimal(24, 10)
+  planned_risk_usd Decimal?      @db.Decimal(24, 8)
+  notes            String?
+  reviewed_at      DateTime?     @db.Timestamptz(3)
+  created_at       DateTime      @default(now()) @db.Timestamptz(3)
+  updated_at       DateTime      @updatedAt @db.Timestamptz(3)
+  cycle            PositionCycle @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
+  strategy         Strategy?     @relation(fields: [strategy_id], references: [id], onDelete: SetNull)
+
+  @@index([strategy_id])
+  @@map("trade_reviews")
+}
+
+model Strategy {
+  id         String        @id @default(uuid())
+  user_id    String
+  name       String
+  color      String        @default("#C9BDA8")
+  archived   Boolean       @default(false)
+  created_at DateTime      @default(now()) @db.Timestamptz(3)
+  updated_at DateTime      @updatedAt @db.Timestamptz(3)
+  user       Profile       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  reviews    TradeReview[]
+
+  @@unique([user_id, name])
+  @@map("strategies")
+}
+
+model LegacyTradeMap {
+  legacy_trade_id String        @id
+  cycle_id        String
+  created_at      DateTime      @default(now()) @db.Timestamptz(3)
+  legacy_trade    Trade         @relation(fields: [legacy_trade_id], references: [id], onDelete: Cascade)
+  cycle           PositionCycle @relation(fields: [cycle_id], references: [id], onDelete: Cascade)
+
+  @@index([cycle_id])
+  @@map("legacy_trade_maps")
 }
