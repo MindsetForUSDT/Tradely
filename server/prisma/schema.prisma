@@ -294,6 +294,7 @@ model TradingSource {
 model SyncJob {
   id               String             @id @default(uuid())
   source_id        String
+  active_key       String?            @unique
   requested_by     String
   status           SyncJobStatus      @default(QUEUED)
   requested_from   DateTime?          @db.Timestamptz(3)

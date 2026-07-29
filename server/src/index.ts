@@ -33,6 +33,7 @@ import authRouter from './routes/auth.js';
 import riskLimitsRouter from './routes/riskLimits.js';
 import goalsRouter from './routes/goals.js';
 import { syncDueWallets } from './services/walletSync.js';
+import { runSyncWorkerBatch } from './jobs/sync-scheduler.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -172,7 +173,7 @@ async function runScheduledSync() {
   schedulerState.lastStartedAt = new Date().toISOString();
   schedulerState.lastError = null;
   try {
-    await syncDueWallets();
+    await Promise.all([syncDueWallets(), runSyncWorkerBatch()]);
     schedulerState.lastCompletedAt = new Date().toISOString();
   } catch (error) {
     schedulerState.lastError = error instanceof Error ? error.message : 'Unknown sync error';

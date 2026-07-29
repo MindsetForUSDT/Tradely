@@ -1,12 +1,8 @@
 import { prisma } from '../db.js';
+import { BybitClient } from '../integrations/bybit/client.js';
+import { bybitHistoryWindows, earliestBybitHistoryTime } from '../integrations/bybit/history.js';
 
-const BYBIT_API = 'https://api.bybit.com';
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_IMPORT_DAYS = 30;
-// Bybit keeps execution and closed-PnL history for two years. A request made at the
-// exact boundary can become invalid between building the window and reaching Bybit,
-// so keep a small margin inside the supported period.
-const BYBIT_HISTORY_SAFETY_MS = 60 * 1000;
 
 const pause = (milliseconds: number) =>
   new Promise<void>((resolve) => setTimeout(resolve, milliseconds));
@@ -88,76 +84,12 @@ interface InventoryLot {
   orderId: string;
 }
 
-interface BybitListResult {
-  list?: any[];
-  nextPageCursor?: string;
-}
-
-interface BybitApiKeyInfo {
-  readOnly?: number;
-  ips?: string[];
-}
-
-async function signedBybitGet<T = BybitListResult>(
-  path: string,
-  params: URLSearchParams,
-  apiKey: string,
-  apiSecret: string
-): Promise<T> {
-  const timestamp = Date.now();
-  const query = params.toString();
-  const signature = await signHmac(`${timestamp}${apiKey}5000${query}`, apiSecret);
-  const response = await fetch(`${BYBIT_API}${path}?${query}`, {
-    headers: {
-      'X-BAPI-API-KEY': apiKey,
-      'X-BAPI-TIMESTAMP': String(timestamp),
-      'X-BAPI-SIGN': signature,
-      'X-BAPI-RECV-WINDOW': '5000',
-    },
-  });
-
-  if (!response.ok) throw new Error(`Bybit HTTP ${response.status}`);
-  const data = await response.json();
-  if (data.retCode !== 0) throw new Error(data.retMsg || `Bybit error ${data.retCode}`);
-  return data.result as T;
-}
-
-function earliestBybitHistoryTime(now: number) {
-  const earliest = new Date(now);
-  earliest.setUTCFullYear(earliest.getUTCFullYear() - 2);
-  return earliest.getTime() + BYBIT_HISTORY_SAFETY_MS;
-}
-
 export function importWindows(startTime?: Date, end = Date.now()) {
-  const requestedStart = startTime?.getTime();
-  const start = Math.max(
-    requestedStart !== undefined && Number.isFinite(requestedStart)
-      ? requestedStart
-      : end - DEFAULT_IMPORT_DAYS * 24 * 60 * 60 * 1000,
-    earliestBybitHistoryTime(end)
-  );
-  const windows: Array<{ start: number; end: number }> = [];
-  for (let cursor = start; cursor < end; cursor += SEVEN_DAYS_MS) {
-    windows.push({ start: cursor, end: Math.min(cursor + SEVEN_DAYS_MS - 1, end) });
-  }
-  return windows;
+  return bybitHistoryWindows(startTime, end);
 }
 
-async function fetchAllPages(
-  path: string,
-  baseParams: Record<string, string>,
-  apiKey: string,
-  apiSecret: string
-) {
-  const records: any[] = [];
-  let cursor: string | undefined;
-  do {
-    const params = new URLSearchParams({ ...baseParams, limit: '100', ...(cursor && { cursor }) });
-    const result = await signedBybitGet(path, params, apiKey, apiSecret);
-    records.push(...(result.list || []));
-    cursor = result.nextPageCursor || undefined;
-  } while (cursor);
-  return records;
+function fetchAllPages(client: BybitClient, path: string, baseParams: Record<string, string>) {
+  return client.getAllPages<any>(path, baseParams, 100);
 }
 
 function normalizeSpotFee(execution: any) {
@@ -281,8 +213,7 @@ export function buildClosedSpotTrades(executions: SpotExecution[]): FinalTradeDa
 }
 
 async function fetchBybitSpotTrades(
-  apiKey: string,
-  apiSecret: string,
+  client: BybitClient,
   startTime?: Date
 ): Promise<FinalTradeData[]> {
   const executions: SpotExecution[] = [];
@@ -292,12 +223,11 @@ async function fetchBybitSpotTrades(
   // inventory matching, then keep only round trips closed inside the requested period.
   const inventoryStart = new Date(earliestBybitHistoryTime(now));
   for (const window of importWindows(inventoryStart, now)) {
-    const records = await fetchAllPages(
-      '/v5/execution/list',
-      { category: 'spot', startTime: String(window.start), endTime: String(window.end) },
-      apiKey,
-      apiSecret
-    );
+    const records = await fetchAllPages(client, '/v5/execution/list', {
+      category: 'spot',
+      startTime: String(window.start),
+      endTime: String(window.end),
+    });
     executions.push(
       ...records
         .filter((item) => item.execType === 'Trade')
@@ -320,18 +250,16 @@ async function fetchBybitSpotTrades(
 }
 
 async function fetchBybitClosedLinearTrades(
-  apiKey: string,
-  apiSecret: string,
+  client: BybitClient,
   startTime?: Date
 ): Promise<FinalTradeData[]> {
   const trades: FinalTradeData[] = [];
   for (const window of importWindows(startTime)) {
-    const records = await fetchAllPages(
-      '/v5/position/closed-pnl',
-      { category: 'linear', startTime: String(window.start), endTime: String(window.end) },
-      apiKey,
-      apiSecret
-    );
+    const records = await fetchAllPages(client, '/v5/position/closed-pnl', {
+      category: 'linear',
+      startTime: String(window.start),
+      endTime: String(window.end),
+    });
     for (const item of records) {
       const amount = Number(item.closedSize || item.qty || 0);
       const entryPrice = Number(item.avgEntryPrice || 0);
@@ -390,19 +318,10 @@ export async function validateBybitWallet(
   error?: string;
 }> {
   try {
+    const client = new BybitClient({ apiKey, apiSecret });
     const [balanceResult, keyInfo] = await Promise.all([
-      signedBybitGet(
-        '/v5/account/wallet-balance',
-        new URLSearchParams({ accountType: 'UNIFIED' }),
-        apiKey,
-        apiSecret
-      ),
-      signedBybitGet<BybitApiKeyInfo>(
-        '/v5/user/query-api',
-        new URLSearchParams(),
-        apiKey,
-        apiSecret
-      ),
+      client.getWalletBalance(),
+      client.getApiKeyInfo(),
     ]);
     if (Number(keyInfo.readOnly) !== 1) {
       return {
@@ -490,24 +409,10 @@ export async function importTradesFromExchange(
   if (exchange.toLowerCase() !== 'bybit') {
     throw new Error(`Exchange ${exchange} not supported yet`);
   }
+  const client = new BybitClient({ apiKey, apiSecret });
   const [spot, linear] = await Promise.all([
-    fetchBybitSpotTrades(apiKey, apiSecret, startTime),
-    fetchBybitClosedLinearTrades(apiKey, apiSecret, startTime),
+    fetchBybitSpotTrades(client, startTime),
+    fetchBybitClosedLinearTrades(client, startTime),
   ]);
   return [...spot, ...linear].sort((a, b) => b.closedAt.getTime() - a.closedAt.getTime());
-}
-
-async function signHmac(message: string, secret: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const key = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['sign']
-  );
-  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
-  return Array.from(new Uint8Array(signature))
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('');
 }
