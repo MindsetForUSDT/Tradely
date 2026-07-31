@@ -26,6 +26,7 @@ import {
   YAxis,
 } from 'recharts';
 import { SourceLogo } from '@/components/brand/SourceLogo';
+import { FAQSection } from '@/components/landing/FAQSection';
 import { useAuth } from '@/hooks/useAuth';
 
 type PreviewPeriod = '7 дней' | '30 дней' | '90 дней';
@@ -369,11 +370,14 @@ export function Landing() {
           transition={{ duration: 0.72 }}
         >
           <h1>
-            Торговые решения.
+            Видите не только P&amp;L.
             <br />
-            Без слепых зон.
+            Понимаете свои решения.
           </h1>
-          <p>Завершённые сделки, риск и контекст — в одной ясной системе.</p>
+          <p>
+            TradeumDiary объединяет завершённые сделки, комиссии, риск и контекст в одну честную
+            картину.
+          </p>
           <div className="cinematic-hero-actions">
             <Link className="cinematic-action cinematic-hero-primary" to="/register">
               <span>Начать бесплатно</span>
@@ -535,6 +539,16 @@ export function Landing() {
             </article>
           ))}
         </div>
+      </section>
+      <FAQSection />
+      <section className="landing-v7-final">
+        <div>
+          <h2>Начните видеть полную картину своей торговли.</h2>
+          <p>Подключите источник и получите первую честную сводку по завершённым сделкам.</p>
+        </div>
+        <Link to="/register">
+          Создать дневник <ArrowRight size={17} />
+        </Link>
       </section>
     </div>
   );

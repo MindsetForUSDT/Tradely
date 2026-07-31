@@ -1,5 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { api } from '@/lib/api';
+import {
+  dispatchCompletedWalletSyncs,
+  findCompletedWalletSyncs,
+  getWalletPollInterval,
+} from '@/lib/syncEvents';
 
 interface SyncStatus {
   walletId: string;
@@ -9,7 +14,14 @@ interface SyncStatus {
   tradesFound?: number;
 }
 
-interface Wallet {
+export interface WalletSyncState {
+  enabled: boolean;
+  interval_minutes: number;
+  next_sync_at: string | null;
+  is_due: boolean;
+}
+
+export interface Wallet {
   id: string;
   user_id: string;
   address: string;
@@ -21,7 +33,19 @@ interface Wallet {
   last_processed_block?: number;
   error_message?: string;
   added_at: string;
+  sync_state?: WalletSyncState;
   _count?: { trades: number };
+}
+
+let activeWalletRequest: Promise<Wallet[]> | null = null;
+
+function fetchWallets() {
+  if (!activeWalletRequest) {
+    activeWalletRequest = api.get<Wallet[]>('/wallets').finally(() => {
+      activeWalletRequest = null;
+    });
+  }
+  return activeWalletRequest;
 }
 
 export function useWallets() {
@@ -29,13 +53,18 @@ export function useWallets() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [syncStatuses, setSyncStatuses] = useState<Record<string, SyncStatus>>({});
+  const previousWalletsRef = useRef<Wallet[] | null>(null);
 
   const loadWallets = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
     if (!silent) setError(null);
     try {
-      const data = await api.get<Wallet[]>('/wallets');
+      const data = await fetchWallets();
+      const completedWalletIds = findCompletedWalletSyncs(previousWalletsRef.current, data);
+      previousWalletsRef.current = data;
       setWallets(data);
+      setError(null);
+      dispatchCompletedWalletSyncs(completedWalletIds);
 
       const statusMap: Record<string, SyncStatus> = {};
       data.forEach((w) => {
@@ -71,10 +100,7 @@ export function useWallets() {
   }, [loadWallets]);
 
   useEffect(() => {
-    if (!wallets.some((wallet) => ['pending', 'processing'].includes(wallet.processing_status))) {
-      return;
-    }
-    const timer = window.setInterval(() => void loadWallets(true), 2500);
+    const timer = window.setInterval(() => void loadWallets(true), getWalletPollInterval(wallets));
     return () => window.clearInterval(timer);
   }, [loadWallets, wallets]);
 
@@ -103,8 +129,8 @@ export function useWallets() {
     [loadWallets]
   );
 
-  const refresh = useCallback(() => {
-    loadWallets();
+  const refresh = useCallback(async () => {
+    await loadWallets();
   }, [loadWallets]);
 
   return {

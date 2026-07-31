@@ -1,4 +1,5 @@
 import { prisma } from '../db.js';
+import type { Prisma } from '@prisma/client';
 import { decrypt } from './crypto.js';
 import { getBybitBalance, importTradesFromExchange, saveTrades } from './tradeImport.js';
 
@@ -11,7 +12,39 @@ interface SyncSettings {
   [key: string]: unknown;
 }
 
+interface SchedulableWallet {
+  id: string;
+  settings: string | null;
+  last_synced_at: Date | null;
+  processing_status: string;
+}
+
+interface WalletSyncSchedulerDependencies {
+  findWallets?: () => Promise<SchedulableWallet[]>;
+  sync?: (walletId: string) => Promise<number>;
+}
+
+export interface WalletSyncState {
+  enabled: boolean;
+  interval_minutes: number;
+  next_sync_at: string | null;
+  is_due: boolean;
+}
+
+export const DEFAULT_SYNC_INTERVAL_MINUTES = 60;
+const MIN_SYNC_INTERVAL_MINUTES = 5;
 const activeWalletSyncs = new Set<string>();
+
+interface WalletSyncRequestDependencies {
+  updateMany?: (args: Prisma.WalletUpdateManyArgs) => Promise<{ count: number }>;
+  sync?: (walletId: string) => Promise<number>;
+  onBackgroundError?: (error: unknown) => void;
+}
+
+export interface WalletSyncRequestResult {
+  started: boolean;
+  processing_status: 'processing';
+}
 
 function readSettings(value: string | null): SyncSettings {
   try {
@@ -19,6 +52,29 @@ function readSettings(value: string | null): SyncSettings {
   } catch {
     return {};
   }
+}
+
+export function getWalletSyncState(
+  settingsValue: string | null,
+  lastSyncedAt: Date | null,
+  now = Date.now()
+): WalletSyncState {
+  const settings = readSettings(settingsValue);
+  const enabled = settings.autoSync !== false;
+  const requestedInterval = Number(settings.syncInterval || DEFAULT_SYNC_INTERVAL_MINUTES);
+  const intervalMinutes = Number.isFinite(requestedInterval)
+    ? Math.max(MIN_SYNC_INTERVAL_MINUTES, requestedInterval)
+    : DEFAULT_SYNC_INTERVAL_MINUTES;
+  const nextSyncAt = lastSyncedAt
+    ? new Date(lastSyncedAt.getTime() + intervalMinutes * 60_000)
+    : null;
+
+  return {
+    enabled,
+    interval_minutes: intervalMinutes,
+    next_sync_at: nextSyncAt?.toISOString() || null,
+    is_due: enabled && (!nextSyncAt || nextSyncAt.getTime() <= now),
+  };
 }
 
 export async function syncWallet(walletId: string): Promise<number> {
@@ -94,24 +150,69 @@ export async function syncWallet(walletId: string): Promise<number> {
   }
 }
 
-export async function syncDueWallets() {
-  const wallets = await prisma.wallet.findMany({
-    where: { cex_provider: { not: null } },
+export async function requestWalletSync(
+  walletId: string,
+  userId: string,
+  dependencies: WalletSyncRequestDependencies = {}
+): Promise<WalletSyncRequestResult> {
+  const updateMany =
+    dependencies.updateMany ??
+    ((args: Prisma.WalletUpdateManyArgs) => prisma.wallet.updateMany(args));
+  const claim = await updateMany({
+    where: {
+      id: walletId,
+      user_id: userId,
+      processing_status: { not: 'processing' },
+    },
+    data: {
+      processing_status: 'processing',
+      error_message: null,
+    },
   });
+
+  if (claim.count === 0) {
+    return { started: false, processing_status: 'processing' };
+  }
+
+  const runSync = dependencies.sync ?? syncWallet;
+  void runSync(walletId).catch(
+    dependencies.onBackgroundError ??
+      ((error) => {
+        console.error('[Wallets SYNC] Background error:', error);
+      })
+  );
+
+  return { started: true, processing_status: 'processing' };
+}
+
+export async function syncDueWallets(dependencies: WalletSyncSchedulerDependencies = {}) {
+  const findWallets =
+    dependencies.findWallets ??
+    (() =>
+      prisma.wallet.findMany({
+        where: { cex_provider: { not: null } },
+        select: {
+          id: true,
+          settings: true,
+          last_synced_at: true,
+          processing_status: true,
+        },
+      }));
+  const runSync = dependencies.sync ?? syncWallet;
+  const wallets = await findWallets();
   const now = Date.now();
   const due = wallets.filter((wallet) => {
     if (activeWalletSyncs.has(wallet.id)) return false;
-    const settings = readSettings(wallet.settings);
-    if (settings.autoSync === false) return false;
+    const schedule = getWalletSyncState(wallet.settings, wallet.last_synced_at, now);
+    if (!schedule.enabled) return false;
     // A processing row without an in-memory lease belongs to an interrupted
     // process and should be resumed on the next scheduler tick.
     if (wallet.processing_status === 'processing') return true;
-    const intervalMinutes = Math.max(5, Number(settings.syncInterval || 60));
-    return (
-      !wallet.last_synced_at || now - wallet.last_synced_at.getTime() >= intervalMinutes * 60_000
-    );
+    return schedule.is_due;
   });
 
   // Limit concurrent exchange requests; the next scheduler tick handles the remaining sources.
-  await Promise.allSettled(due.slice(0, 3).map((wallet) => syncWallet(wallet.id)));
+  const selected = due.slice(0, 3);
+  await Promise.allSettled(selected.map((wallet) => runSync(wallet.id)));
+  return { due: due.length, started: selected.length };
 }

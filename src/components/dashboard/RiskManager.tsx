@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Calculator, CheckCircle, ShieldCheck, WarningCircle } from '@phosphor-icons/react';
+import { Calculator, CheckCircle, Minus, ShieldCheck, WarningCircle } from '@phosphor-icons/react';
 import toast from 'react-hot-toast';
 import { useRiskManager } from '@/hooks/useRiskManager';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
+import { buildDisciplineHistory } from '@/lib/productExperience';
 import { calculatePositionSize, checkRiskLimits } from '@/lib/riskCalculator';
+import { calculateTradeBreakdown, formatSignedUSD } from '@/lib/tradeAnalytics';
 import { formatUSD } from '@/lib/utils';
 
 function safeParseFloat(value: string, fallback = 0) {
@@ -13,7 +15,7 @@ function safeParseFloat(value: string, fallback = 0) {
 
 export function RiskManager() {
   const { limits, saveLimits } = useRiskManager();
-  const { trades } = useTradesOptimized({ limit: 500, daysAgo: 7 });
+  const { trades } = useTradesOptimized({ limit: 5000, daysAgo: 14 });
   const [dailyLimit, setDailyLimit] = useState(limits.daily_loss_limit);
   const [weeklyLimit, setWeeklyLimit] = useState(limits.weekly_loss_limit);
   const [positionRisk, setPositionRisk] = useState(limits.position_size_percent);
@@ -42,10 +44,29 @@ export function RiskManager() {
   const todayPnl = useMemo(() => {
     const today = new Date().toDateString();
     return trades.reduce((total, trade) => {
-      if (new Date(trade.timestamp).toDateString() !== today) return total;
-      return total + (trade.pnl_realized || 0);
+      if (trade.status !== 'closed' || new Date(trade.timestamp).toDateString() !== today) {
+        return total;
+      }
+      return total + calculateTradeBreakdown(trade).netPnl;
     }, 0);
   }, [trades]);
+
+  const disciplineHistory = useMemo(
+    () => buildDisciplineHistory(trades, limits.daily_loss_limit, new Date(), 14),
+    [trades, limits.daily_loss_limit]
+  );
+  const disciplineSummary = useMemo(() => {
+    const activeDays = disciplineHistory.filter((day) => day.trades > 0);
+    const configuredDays = activeDays.filter((day) => day.limitUsage !== null);
+    return {
+      activeDays: activeDays.length,
+      violations: disciplineHistory.filter((day) => day.status === 'breached').length,
+      averageUsage: configuredDays.length
+        ? configuredDays.reduce((sum, day) => sum + (day.limitUsage || 0), 0) /
+          configuredDays.length
+        : null,
+    };
+  }, [disciplineHistory]);
 
   const { dailyBreached } = checkRiskLimits(
     todayPnl,
@@ -279,6 +300,101 @@ export function RiskManager() {
           </button>
         </section>
       </div>
+
+      <section className="risk-v6-history">
+        <header>
+          <div>
+            <h2>История дисциплины за 14 дней</h2>
+            <p>Только реальные закрытые сделки и сохранённый дневной лимит.</p>
+          </div>
+          <span>14 дней</span>
+        </header>
+        <div className="risk-v6-history-scroll">
+          <div className="risk-v6-history-table" role="table" aria-label="История дисциплины">
+            <div className="risk-v6-history-row risk-v6-history-dates" role="row">
+              <span role="columnheader">Дата</span>
+              {disciplineHistory.map((day) => (
+                <strong role="columnheader" key={day.key}>
+                  {day.label}
+                </strong>
+              ))}
+            </div>
+            <div className="risk-v6-history-row" role="row">
+              <span role="rowheader">Net P&amp;L</span>
+              {disciplineHistory.map((day) => (
+                <b
+                  role="cell"
+                  key={day.key}
+                  className={!day.trades ? '' : day.netPnl >= 0 ? 'positive' : 'negative'}
+                >
+                  {day.trades ? formatSignedUSD(day.netPnl) : '—'}
+                </b>
+              ))}
+            </div>
+            <div className="risk-v6-history-row" role="row">
+              <span role="rowheader">Использование лимита</span>
+              {disciplineHistory.map((day) => (
+                <b
+                  role="cell"
+                  key={day.key}
+                  className={day.status === 'breached' ? 'negative' : ''}
+                >
+                  {day.limitUsage === null
+                    ? day.trades
+                      ? 'Не задан'
+                      : '—'
+                    : `${day.limitUsage.toFixed(0)}%`}
+                </b>
+              ))}
+            </div>
+            <div className="risk-v6-history-row risk-v6-history-status" role="row">
+              <span role="rowheader">Правило</span>
+              {disciplineHistory.map((day) => (
+                <i
+                  role="cell"
+                  key={day.key}
+                  className={day.status}
+                  title={
+                    day.status === 'breached'
+                      ? 'Лимит нарушен'
+                      : day.status === 'kept'
+                        ? 'Лимит соблюдён'
+                        : day.status === 'not-configured'
+                          ? 'Лимит не настроен'
+                          : 'Сделок не было'
+                  }
+                >
+                  {day.status === 'breached' ? (
+                    <WarningCircle size={17} weight="fill" />
+                  ) : day.status === 'kept' ? (
+                    <CheckCircle size={17} weight="fill" />
+                  ) : (
+                    <Minus size={16} />
+                  )}
+                </i>
+              ))}
+            </div>
+          </div>
+        </div>
+        <footer>
+          <CheckCircle size={18} weight="fill" />
+          <p>
+            <strong>Вывод за период</strong>
+            {limits.daily_loss_limit > 0 ? (
+              <span>
+                Активных дней: {disciplineSummary.activeDays}. Нарушений:{' '}
+                {disciplineSummary.violations}. Среднее использование лимита:{' '}
+                {disciplineSummary.averageUsage === null
+                  ? 'нет данных'
+                  : `${disciplineSummary.averageUsage.toFixed(0)}%`}
+                .
+              </span>
+            ) : (
+              <span>Установите дневной лимит, чтобы Tradeum мог проверять соблюдение правила.</span>
+            )}
+          </p>
+        </footer>
+      </section>
     </section>
   );
 }

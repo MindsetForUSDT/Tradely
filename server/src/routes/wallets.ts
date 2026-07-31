@@ -3,7 +3,7 @@ import { prisma } from '../db.js';
 import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { encrypt } from '../services/crypto.js';
 import { validateBybitWallet } from '../services/tradeImport.js';
-import { syncWallet } from '../services/walletSync.js';
+import { getWalletSyncState, requestWalletSync } from '../services/walletSync.js';
 import { writeAuditLog } from '../services/audit.js';
 
 const router = Router();
@@ -54,7 +54,12 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
     console.log('[Wallets GET] Wallets found:', wallets.length);
     console.log('[Wallets GET] ====== SUCCESS ======');
 
-    res.json(wallets);
+    res.json(
+      wallets.map((wallet) => ({
+        ...wallet,
+        sync_state: getWalletSyncState(wallet.settings, wallet.last_synced_at),
+      }))
+    );
   } catch (error: any) {
     console.error('[Wallets GET] Wallets error:', error.message);
     console.error('[Wallets GET] Wallets stack:', error.stack);
@@ -239,6 +244,19 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
     });
 
     console.log('[Wallets POST] Wallet created:', wallet.id);
+    let autoSyncStarted = false;
+    if (wallet.cex_provider) {
+      try {
+        const syncRequest = await requestWalletSync(wallet.id, profileId);
+        autoSyncStarted = syncRequest.started;
+        console.log('[Wallets POST] Automatic first sync queued:', autoSyncStarted);
+      } catch (syncError) {
+        // The source is already persisted and can be picked up by the scheduler.
+        // Do not turn a recoverable background-start failure into a duplicate
+        // connection attempt in the browser.
+        console.error('[Wallets POST] Automatic first sync could not start:', syncError);
+      }
+    }
     console.log('[Wallets POST] ====== SUCCESS ======');
 
     void writeAuditLog({
@@ -247,7 +265,12 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       request: req,
       metadata: { provider: wallet.cex_provider || wallet.web3_provider },
     });
-    res.status(201).json(wallet);
+    res.status(201).json({
+      ...wallet,
+      processing_status: autoSyncStarted ? 'processing' : wallet.processing_status,
+      sync_started: autoSyncStarted,
+      sync_state: getWalletSyncState(wallet.settings, wallet.last_synced_at),
+    });
   } catch (error: any) {
     console.error('[Wallets POST] Wallet error:', error.message);
     console.error('[Wallets POST] Wallet stack:', error.stack);
@@ -323,15 +346,20 @@ router.post('/:id/sync', requireAuth, async (req: AuthRequest, res) => {
       return;
     }
 
-    console.log('[Wallets SYNC] Started sync for wallet:', walletId);
-    void syncWallet(wallet.id).catch((error) => {
-      console.error('[Wallets SYNC] Background error:', error);
-    });
+    const syncRequest = await requestWalletSync(wallet.id, profile.id);
+    console.log(
+      syncRequest.started
+        ? '[Wallets SYNC] Started sync for wallet:'
+        : '[Wallets SYNC] Sync already processing for wallet:',
+      walletId
+    );
 
-    res.json({
+    res.status(202).json({
       success: true,
-      message: 'Синхронизация запущена',
+      message: syncRequest.started ? 'Синхронизация запущена' : 'Синхронизация уже выполняется',
       walletId,
+      processing_status: syncRequest.processing_status,
+      started: syncRequest.started,
     });
   } catch (error) {
     console.error('[Wallets SYNC]', error);

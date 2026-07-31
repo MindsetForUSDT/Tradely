@@ -1,5 +1,5 @@
 // pages/Dashboard.tsx — ОПТИМИЗИРОВАННЫЙ РОУТИНГ
-import { lazy, Suspense, useState } from 'react';
+import { lazy, Suspense, useMemo, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { WalletConnect } from '@/components/dashboard/WalletConnect';
@@ -10,6 +10,7 @@ import { ProFeature } from '@/components/guards/ProFeature';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { TradeList } from '@/components/dashboard/TradeList';
 import { api } from '@/lib/api';
+import { getCalendarRangeStart, type ProductRangeDays } from '@/lib/productExperience';
 import toast from 'react-hot-toast';
 
 // ✅ Ленивая загрузка тяжелых компонентов
@@ -34,9 +35,20 @@ const LoadingFallback = () => (
 );
 
 function TradesPage() {
-  const { trades, isLoading, refresh, optimisticUpdate } = useTradesOptimized({
-    limit: 200,
-    daysAgo: 90,
+  const [rangeDays, setRangeDays] = useState<ProductRangeDays>(30);
+  const dateFrom = useMemo(() => getCalendarRangeStart(rangeDays).toISOString(), [rangeDays]);
+  const {
+    trades,
+    totalCount,
+    isLoading,
+    isFetchingMore,
+    hasMore,
+    loadMore,
+    refresh,
+    optimisticUpdate,
+  } = useTradesOptimized({
+    limit: 5000,
+    filters: { dateFrom },
   });
   const [manualOpen, setManualOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -68,7 +80,13 @@ function TradesPage() {
     <>
       <TradeList
         trades={trades}
+        totalCount={totalCount}
+        hasMore={hasMore}
         isLoading={isLoading}
+        isFetchingMore={isFetchingMore}
+        loadMore={loadMore}
+        rangeDays={rangeDays}
+        onRangeChange={setRangeDays}
         manualEnabled={manualEnabled}
         onAddManual={() => setManualOpen(true)}
         onTradeUpdate={(trade) => optimisticUpdate(trade.id, trade)}

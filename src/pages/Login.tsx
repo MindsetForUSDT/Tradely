@@ -3,8 +3,10 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowRight } from '@phosphor-icons/react';
 import { AuthFrame } from '@/components/auth/AuthFrame';
+import { PasswordInput } from '@/components/auth/PasswordInput';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
+import { safeInternalPath } from '@/lib/productExperience';
 
 function getErrorMessage(err: unknown): string {
   if (err instanceof Error) return err.message;
@@ -21,14 +23,14 @@ export function Login() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const location = useLocation();
-  const returnTo =
+  const requestedReturnTo =
     typeof location.state === 'object' &&
     location.state !== null &&
     'from' in location.state &&
-    typeof location.state.from === 'string' &&
-    location.state.from.startsWith('/')
+    typeof location.state.from === 'string'
       ? location.state.from
-      : '/dashboard';
+      : null;
+  const returnTo = safeInternalPath(requestedReturnTo);
 
   useEffect(() => {
     const saved = localStorage.getItem('lastRegistrationEmail');
@@ -109,8 +111,7 @@ export function Login() {
         </label>
         <label>
           Пароль
-          <input
-            type="password"
+          <PasswordInput
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);

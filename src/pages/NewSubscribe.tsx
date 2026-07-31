@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/components/ui/Icons';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -8,55 +8,52 @@ const plans = [
     name: 'Free',
     price: '0 ₽',
     note: 'Навсегда',
-    description: 'Для начала системной работы со сделками.',
-    features: ['Ручной ввод и CSV', 'Основные метрики', 'Теги и заметки', '30 дней истории'],
+    description: 'Необходимый минимум для ведения торгового дневника.',
+    features: [
+      'Обзор и базовые метрики',
+      'Разбор отдельных сделок',
+      'Сетапы, эмоции и заметки',
+      'История за последние 30 дней',
+    ],
     action: 'Начать бесплатно',
     kind: 'free' as const,
   },
   {
-    name: 'Trader',
+    name: 'PRO',
     price: '499 ₽',
     note: 'в месяц',
-    description: 'Полный дневник, автоматизация и риск-контроль.',
+    description: 'Автоматизация, глубокая аналитика и контроль риска.',
     features: [
-      'CEX и криптокошельки',
+      'Автосинхронизация Bybit',
       'Полная история',
-      'Риск-менеджер',
-      'Расширенные отчёты',
-      'Экспорт CSV, Excel и PDF',
+      'Диагностика убытков и комиссий',
+      'Правила и история дисциплины',
+      'PRO-аналитика торговых паттернов',
     ],
-    action: 'Выбрать Trader',
-    kind: 'trader' as const,
+    action: 'Выбрать PRO',
+    kind: 'pro' as const,
     featured: true,
-  },
-  {
-    name: 'PRO + AI',
-    price: 'Скоро',
-    note: 'ранний доступ',
-    description: 'Глубокий разбор поведения и торгового контекста.',
-    features: [
-      'PRO-перекосы и серии',
-      'AI-разбор ошибок',
-      'Слабые сетапы',
-      'Персональные рекомендации',
-    ],
-    action: 'Открывается позже',
-    kind: 'ai' as const,
-    disabled: true,
   },
 ];
 
 export function NewSubscribe() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [periodOpen, setPeriodOpen] = useState(false);
+
+  useEffect(() => {
+    if (user && searchParams.get('selected') === 'pro') setPeriodOpen(true);
+  }, [searchParams, user]);
+
   if (user?.subscription_tier === 'pro') return <Navigate to="/dashboard" replace />;
 
-  const selectPlan = (kind: 'free' | 'trader' | 'ai') => {
-    if (kind === 'ai') return;
+  const selectPlan = (kind: 'free' | 'pro') => {
     if (!user) {
-      localStorage.setItem('selectedPlan', kind === 'trader' ? 'pro' : 'free');
-      navigate('/register');
+      localStorage.setItem('selectedPlan', kind);
+      navigate('/register', {
+        state: { from: kind === 'pro' ? '/subscribe?selected=pro' : '/dashboard' },
+      });
       return;
     }
     if (kind === 'free') {
@@ -90,7 +87,7 @@ export function NewSubscribe() {
           <article key={plan.name} className={plan.featured ? 'featured' : ''}>
             <div className="subscribe-plan-head">
               <span>{plan.name}</span>
-              {plan.featured && <small>Основной тариф</small>}
+              {plan.featured && <small>Полный доступ</small>}
             </div>
             <h2>
               {plan.price} <small>{plan.note}</small>
@@ -101,7 +98,7 @@ export function NewSubscribe() {
                 <li key={feature}>{feature}</li>
               ))}
             </ul>
-            <button type="button" disabled={plan.disabled} onClick={() => selectPlan(plan.kind)}>
+            <button type="button" onClick={() => selectPlan(plan.kind)}>
               {plan.action}
             </button>
           </article>
@@ -126,7 +123,7 @@ export function NewSubscribe() {
           <div className="period-modal">
             <div className="period-modal-head">
               <div>
-                <p>Тариф Trader</p>
+                <p>Тариф PRO</p>
                 <h2>Выберите период</h2>
               </div>
               <button type="button" onClick={() => setPeriodOpen(false)} aria-label="Закрыть">
@@ -143,7 +140,7 @@ export function NewSubscribe() {
             <button type="button" className="recommended" onClick={() => selectPeriod('year')}>
               <span>
                 <strong>Ежегодно</strong>
-                <small>Два месяца бесплатно</small>
+                <small>Экономия 998 ₽ за год</small>
               </span>
               <b>4 990 ₽</b>
             </button>

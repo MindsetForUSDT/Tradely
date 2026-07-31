@@ -1280,6 +1280,14 @@ body {
   background: transparent;
 }
 
+.trades-v3-pagination .trades-v3-load-more {
+  width: auto;
+  padding: 0 12px;
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
 .premium-sheet-backdrop {
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(3px);

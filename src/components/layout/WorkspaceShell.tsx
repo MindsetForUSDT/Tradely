@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import {
   ArrowsLeftRight,
   ArrowRight,
+  ArrowClockwise,
   ChartLineUp,
   GearSix,
   House,
@@ -11,13 +12,13 @@ import {
   PlugsConnected,
   ShieldCheck,
   SignOut,
-  Sparkle,
   SquaresFour,
-  Target,
   X,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
 import { useAuth } from '@/hooks/useAuth';
+import { useWallets } from '@/hooks/useWallets';
+import '@/styles/sync-runtime-v5.css';
 
 interface WorkspaceSettings {
   compact: boolean;
@@ -39,11 +40,6 @@ const primarySections: NavigationItem[] = [
   { label: 'Аналитика', href: '/pro', icon: ChartLineUp, pro: true },
   { label: 'Риск', href: '/dashboard/risk', icon: ShieldCheck, pro: true },
   { label: 'Источники', href: '/dashboard/wallets', icon: PlugsConnected },
-];
-
-const secondarySections: NavigationItem[] = [
-  { label: 'AI-разбор', href: '/ai', icon: Sparkle, pro: true },
-  { label: 'Цели', href: '/goals', icon: Target },
 ];
 
 function readWorkspaceSettings(): WorkspaceSettings {
@@ -96,10 +92,41 @@ function WorkspaceNavigation({
   );
 }
 
+function WorkspaceSyncState() {
+  const { wallets, isLoading } = useWallets();
+  const isProcessing = wallets.some((wallet) =>
+    ['pending', 'processing'].includes(wallet.processing_status)
+  );
+  const hasError = wallets.some((wallet) => wallet.processing_status === 'failed');
+  const tone = hasError
+    ? 'failed'
+    : isProcessing
+      ? 'processing'
+      : wallets.length
+        ? 'ready'
+        : 'empty';
+  const label = isLoading
+    ? 'Проверяем свежесть данных'
+    : hasError
+      ? 'Последняя синхронизация с ошибкой'
+      : isProcessing
+        ? 'Синхронизация выполняется'
+        : wallets.length
+          ? 'Автосинхронизация активна'
+          : 'Источник не подключён';
+
+  return (
+    <span className={`workspace-sync-state ${tone}`} aria-live="polite">
+      {isProcessing ? <ArrowClockwise size={13} className="spin" /> : <i />}
+      {label}
+    </span>
+  );
+}
+
 export function WorkspaceShell({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, isLoading, subscriptionTier, signOut } = useAuth();
+  const { user, isAuthenticated, isLoading, subscriptionTier } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
 
@@ -123,11 +150,6 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location.pathname }} replace />;
   }
-
-  const logout = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   const closeMobile = () => setMobileOpen(false);
   const searchTrades = (event: FormEvent) => {
@@ -170,15 +192,6 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           onNavigate={closeMobile}
         />
 
-        <div className="workspace-sidebar-secondary">
-          <p>Инструменты</p>
-          <WorkspaceNavigation
-            items={secondarySections}
-            pathname={location.pathname}
-            onNavigate={closeMobile}
-          />
-        </div>
-
         <div className="workspace-sidebar-bottom">
           <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>
             <GearSix size={17} />
@@ -188,9 +201,9 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             <span>{(user?.username || 'TR').slice(0, 2).toUpperCase()}</span>
             <div>
               <strong>{user?.username || 'Trader'}</strong>
-              <small>{subscriptionTier === 'pro' ? 'PRO + AI' : 'Free'} · синхронизация</small>
+              <small>{subscriptionTier === 'pro' ? 'PRO' : 'Free'} · синхронизация</small>
             </div>
-            <button type="button" onClick={logout} aria-label="Выйти">
+            <button type="button" onClick={() => navigate('/logout')} aria-label="Выйти">
               <SignOut size={16} />
             </button>
           </div>
@@ -218,10 +231,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
             />
             <kbd>⌘ K</kbd>
           </form>
-          <span className="workspace-sync-state">
-            <i />
-            Данные синхронизированы
-          </span>
+          <WorkspaceSyncState />
           <Link className="workspace-primary-action" to="/dashboard/trades">
             Открыть сделки
             <i aria-hidden="true">

@@ -1,0 +1,47 @@
+.workspace-sync-state.ready {
+  color: #88948d;
+}
+
+.workspace-sync-state.failed {
+  color: #c98181;
+}
+
+.workspace-sync-state.failed > i {
+  background: #e17f7f;
+  box-shadow: 0 0 12px rgba(225, 127, 127, 0.35);
+}
+
+.workspace-sync-state.empty {
+  color: #737983;
+}
+
+.workspace-sync-state.empty > i {
+  background: #656c76;
+  box-shadow: none;
+}
+
+.workspace-sync-state.processing {
+  color: #9aa9e7;
+}
+
+.workspace-sync-state.processing > svg {
+  color: #8fa5ff;
+}
+
+.workspace-sync-state.processing .spin,
+.dashboard-v5 .spin {
+  animation: tradeum-sync-spin 0.9s linear infinite;
+}
+
+@keyframes tradeum-sync-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-sync-state.processing .spin,
+  .dashboard-v5 .spin {
+    animation: none;
+  }
+}

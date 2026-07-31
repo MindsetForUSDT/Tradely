@@ -12,6 +12,7 @@ import { Register } from '@/pages/Register';
 import { Login } from '@/pages/Login';
 import { ForgotPassword } from '@/pages/ForgotPassword';
 import { UpdatePassword } from '@/pages/UpdatePassword';
+import { Logout } from '@/pages/Logout';
 import { NotFound } from '@/pages/NotFound';
 import { WorkspacePage } from '@/pages/WorkspacePage';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
@@ -26,6 +27,7 @@ export default function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/update-password" element={<UpdatePassword />} />
+        <Route path="/logout" element={<Logout />} />
         <Route path="/subscribe" element={<Subscribe />} />
         <Route path="/payment" element={<Payment />} />
         <Route
@@ -46,30 +48,9 @@ export default function App() {
             </WorkspaceShell>
           }
         />
-        <Route
-          path="/ai"
-          element={
-            <WorkspaceShell>
-              <WorkspacePage kind="ai" />
-            </WorkspaceShell>
-          }
-        />
-        <Route
-          path="/goals"
-          element={
-            <WorkspaceShell>
-              <WorkspacePage kind="goals" />
-            </WorkspaceShell>
-          }
-        />
-        <Route
-          path="/achievements"
-          element={
-            <WorkspaceShell>
-              <WorkspacePage kind="achievements" />
-            </WorkspaceShell>
-          }
-        />
+        <Route path="/ai" element={<Navigate to="/pro" replace />} />
+        <Route path="/goals" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/achievements" element={<Navigate to="/dashboard" replace />} />
         <Route
           path="/settings"
           element={

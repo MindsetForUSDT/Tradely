@@ -21,7 +21,7 @@ import {
   formatSignedUSD,
   numeric,
 } from '@/lib/tradeAnalytics';
-import { formatUSD } from '@/lib/utils';
+import { formatUSD, formatUSDPrice } from '@/lib/utils';
 import type { Trade } from '@/types';
 
 interface TradeDetailsPanelProps {
@@ -29,6 +29,22 @@ interface TradeDetailsPanelProps {
   onClose: () => void;
   onTradeUpdate?: (trade: Trade) => void;
 }
+
+const mistakeOptions = [
+  { value: 'early-entry', label: 'Ранний вход' },
+  { value: 'late-exit', label: 'Поздний выход' },
+  { value: 'oversize', label: 'Завышенный риск' },
+  { value: 'revenge', label: 'Revenge trading' },
+  { value: 'no-plan', label: 'Без плана' },
+] as const;
+
+const emotionOptions = [
+  { value: 'calm', label: 'Спокойно' },
+  { value: 'fear', label: 'Страх' },
+  { value: 'fomo', label: 'FOMO' },
+  { value: 'greed', label: 'Жадность' },
+  { value: 'anger', label: 'Злость' },
+] as const;
 
 function formatDateTime(value: string) {
   return new Intl.DateTimeFormat('ru-RU', {
@@ -196,7 +212,7 @@ export function TradeDetailsPanel({ trade, onClose, onTradeUpdate }: TradeDetail
         <dl>
           <div>
             <dt>Цена входа</dt>
-            <dd>{formatUSD(breakdown.entryPrice)}</dd>
+            <dd>{formatUSDPrice(breakdown.entryPrice)}</dd>
           </div>
           <div>
             <dt>Открыта</dt>
@@ -204,7 +220,7 @@ export function TradeDetailsPanel({ trade, onClose, onTradeUpdate }: TradeDetail
           </div>
           <div>
             <dt>Цена выхода</dt>
-            <dd>{formatUSD(breakdown.exitPrice)}</dd>
+            <dd>{formatUSDPrice(breakdown.exitPrice)}</dd>
           </div>
           <div>
             <dt>Закрыта</dt>
@@ -235,7 +251,7 @@ export function TradeDetailsPanel({ trade, onClose, onTradeUpdate }: TradeDetail
       <section className="premium-execution-strip">
         <div>
           <span>Вход</span>
-          <strong>{formatUSD(breakdown.entryPrice)}</strong>
+          <strong>{formatUSDPrice(breakdown.entryPrice)}</strong>
         </div>
         <span className={breakdown.netPnl >= 0 ? 'positive' : 'negative'}>
           <i />
@@ -244,7 +260,7 @@ export function TradeDetailsPanel({ trade, onClose, onTradeUpdate }: TradeDetail
         </span>
         <div>
           <span>Выход</span>
-          <strong>{formatUSD(breakdown.exitPrice)}</strong>
+          <strong>{formatUSDPrice(breakdown.exitPrice)}</strong>
         </div>
       </section>
 
@@ -300,27 +316,41 @@ export function TradeDetailsPanel({ trade, onClose, onTradeUpdate }: TradeDetail
               placeholder="Например, пробой диапазона"
             />
           </label>
-          <label>
+          <label className="premium-context-choice">
             Ошибка
-            <select value={mistake} onChange={(event) => setMistake(event.target.value)}>
-              <option value="">Не отмечена</option>
-              <option value="early-entry">Ранний вход</option>
-              <option value="late-exit">Поздний выход</option>
-              <option value="oversize">Завышенный риск</option>
-              <option value="revenge">Revenge trading</option>
-              <option value="no-plan">Сделка без плана</option>
-            </select>
+            <span role="group" aria-label="Быстрая отметка ошибки">
+              {mistakeOptions.map((option) => (
+                <button
+                  type="button"
+                  key={option.value}
+                  aria-pressed={mistake === option.value}
+                  className={mistake === option.value ? 'active' : ''}
+                  onClick={() =>
+                    setMistake((value) => (value === option.value ? '' : option.value))
+                  }
+                >
+                  {option.label}
+                </button>
+              ))}
+            </span>
           </label>
-          <label>
+          <label className="premium-context-choice">
             Эмоция
-            <select value={emotion} onChange={(event) => setEmotion(event.target.value)}>
-              <option value="">Не отмечена</option>
-              <option value="calm">Спокойствие</option>
-              <option value="fear">Страх</option>
-              <option value="fomo">FOMO</option>
-              <option value="greed">Жадность</option>
-              <option value="anger">Злость</option>
-            </select>
+            <span role="group" aria-label="Быстрая отметка эмоции">
+              {emotionOptions.map((option) => (
+                <button
+                  type="button"
+                  key={option.value}
+                  aria-pressed={emotion === option.value}
+                  className={emotion === option.value ? 'active' : ''}
+                  onClick={() =>
+                    setEmotion((value) => (value === option.value ? '' : option.value))
+                  }
+                >
+                  {option.label}
+                </button>
+              ))}
+            </span>
           </label>
           <label>
             Исходный стоп

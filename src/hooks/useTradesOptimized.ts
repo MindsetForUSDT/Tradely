@@ -1,6 +1,7 @@
 // hooks/useTradesOptimized.ts
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { api } from '@/lib/api';
+import { SYNC_COMPLETED_EVENT } from '@/lib/syncEvents';
 import { numeric } from '@/lib/tradeAnalytics';
 import type { Trade } from '@/types';
 
@@ -55,6 +56,10 @@ export function normalizeTrade(trade: Trade): Trade {
   };
 }
 
+export function hasMoreTrades(offset: number, receivedCount: number, totalCount: number): boolean {
+  return offset + receivedCount < totalCount;
+}
+
 export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesResult {
   const { limit = 50, daysAgo, orderBy = 'timestamp', ascending = false, filters = {} } = options;
 
@@ -63,7 +68,7 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingMore, setIsFetchingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
+  const [hasMore, setHasMore] = useState(false);
 
   const offsetRef = useRef(0);
   const isFetchingRef = useRef(false);
@@ -87,17 +92,17 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
 
   // Загрузка данных через API
   const fetchTrades = useCallback(
-    async (append = false) => {
+    async (append = false, silent = false) => {
       // Защита от параллельных запросов
       if (isFetchingRef.current) return;
       isFetchingRef.current = true;
 
       if (append) {
         setIsFetchingMore(true);
-      } else {
+      } else if (!silent) {
         setIsLoading(true);
       }
-      setError(null);
+      if (!silent) setError(null);
 
       try {
         const offset = append ? offsetRef.current : 0;
@@ -121,16 +126,24 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
         if (append) setTrades((prev) => [...prev, ...normalizedTrades]);
         else setTrades(normalizedTrades);
 
-        setTotalCount(data.total || 0);
-        offsetRef.current = offset + (data.trades?.length || 0);
-        setHasMore((data.trades?.length || 0) === limit);
+        const receivedCount = data.trades?.length || 0;
+        const nextOffset = offset + receivedCount;
+        const nextTotalCount = data.total || 0;
+
+        setTotalCount(nextTotalCount);
+        offsetRef.current = nextOffset;
+        setHasMore(hasMoreTrades(offset, receivedCount, nextTotalCount));
+        setError(null);
       } catch (e: unknown) {
         const message = e instanceof Error ? e.message : 'Ошибка загрузки сделок';
         console.error('[useTradesOptimized] Error:', e);
         setError(message);
-        if (!append) setTrades([]);
+        if (!append && !silent) {
+          setTrades([]);
+          setHasMore(false);
+        }
       } finally {
-        setIsLoading(false);
+        if (!silent) setIsLoading(false);
         setIsFetchingMore(false);
         isFetchingRef.current = false;
       }
@@ -141,6 +154,20 @@ export function useTradesOptimized(options: UseTradesOptions = {}): UseTradesRes
   // Обновляем выборку при изменении периода, сортировки или фильтров.
   useEffect(() => {
     fetchTrades();
+  }, [fetchTrades]);
+
+  useEffect(() => {
+    const refreshInBackground = () => {
+      if (document.visibilityState === 'visible') void fetchTrades(false, true);
+    };
+    const timer = window.setInterval(refreshInBackground, 60_000);
+    window.addEventListener(SYNC_COMPLETED_EVENT, refreshInBackground);
+    window.addEventListener('focus', refreshInBackground);
+    return () => {
+      window.clearInterval(timer);
+      window.removeEventListener(SYNC_COMPLETED_EVENT, refreshInBackground);
+      window.removeEventListener('focus', refreshInBackground);
+    };
   }, [fetchTrades]);
 
   // Пагинация

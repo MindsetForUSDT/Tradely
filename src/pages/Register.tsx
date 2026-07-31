@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { ArrowRight } from '@phosphor-icons/react';
 import { AuthFrame } from '@/components/auth/AuthFrame';
+import { PasswordInput } from '@/components/auth/PasswordInput';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
+import { safeInternalPath } from '@/lib/productExperience';
 
 interface ValidationErrors {
   email?: string;
@@ -40,12 +42,24 @@ export function Register() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const selectedPlan = localStorage.getItem('selectedPlan');
+  const requestedDestination =
+    typeof location.state === 'object' && location.state !== null && 'from' in location.state
+      ? location.state.from
+      : null;
+  const returnTo = safeInternalPath(
+    requestedDestination,
+    selectedPlan === 'pro' ? '/subscribe?selected=pro' : '/dashboard'
+  );
   const validateField = useCallback((name: keyof ValidationErrors, value: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(
@@ -68,7 +82,7 @@ export function Register() {
     },
     []
   );
-  if (!authLoading && isAuthenticated) return <Navigate to="/dashboard" replace />;
+  if (!authLoading && isAuthenticated) return <Navigate to={returnTo} replace />;
   if (authLoading)
     return (
       <div className="auth-loading">
@@ -91,6 +105,14 @@ export function Register() {
     setTouched({ username: true, email: true, password: true });
     if (errors.username || errors.email || errors.password) {
       setError('Проверьте введённые данные');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('Пароли не совпадают');
+      return;
+    }
+    if (!acceptedTerms) {
+      setError('Подтвердите согласие с условиями и политикой конфиденциальности');
       return;
     }
     setLoading(true);
@@ -120,7 +142,8 @@ export function Register() {
         created_at: user.created_at,
       });
       toast.success('Аккаунт создан!');
-      navigate('/dashboard', { replace: true });
+      if (selectedPlan !== 'pro') localStorage.removeItem('selectedPlan');
+      navigate(returnTo, { replace: true });
     } catch (err: unknown) {
       const message = getErrorMessage(err);
       toast.error(message);
@@ -140,19 +163,35 @@ export function Register() {
   ) => (
     <label>
       {label}
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          setError('');
-          if (touched[name]) validateField(name, e.target.value);
-        }}
-        onBlur={() => blur(name, value)}
-        placeholder={placeholder}
-        disabled={loading}
-        aria-invalid={!!fieldErrors[name] && !!touched[name]}
-      />
+      {type === 'password' ? (
+        <PasswordInput
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setError('');
+            if (touched[name]) validateField(name, e.target.value);
+          }}
+          onBlur={() => blur(name, value)}
+          placeholder={placeholder}
+          disabled={loading}
+          autoComplete="new-password"
+          aria-invalid={!!fieldErrors[name] && !!touched[name]}
+        />
+      ) : (
+        <input
+          type={type}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            setError('');
+            if (touched[name]) validateField(name, e.target.value);
+          }}
+          onBlur={() => blur(name, value)}
+          placeholder={placeholder}
+          disabled={loading}
+          aria-invalid={!!fieldErrors[name] && !!touched[name]}
+        />
+      )}
       {fieldErrors[name] && touched[name] && (
         <small className="auth-field-error">{fieldErrors[name]}</small>
       )}
@@ -180,6 +219,34 @@ export function Register() {
           'password',
           'Минимум 8 символов и цифра'
         )}
+        <label>
+          Подтвердите пароль
+          <PasswordInput
+            value={confirmPassword}
+            onChange={(event) => {
+              setConfirmPassword(event.target.value);
+              setError('');
+            }}
+            placeholder="Повторите пароль"
+            disabled={loading}
+            autoComplete="new-password"
+            aria-invalid={Boolean(confirmPassword && confirmPassword !== password)}
+          />
+          {confirmPassword && confirmPassword !== password ? (
+            <small className="auth-field-error">Пароли не совпадают</small>
+          ) : null}
+        </label>
+        <label className="auth-check auth-terms-check">
+          <input
+            type="checkbox"
+            checked={acceptedTerms}
+            onChange={(event) => setAcceptedTerms(event.target.checked)}
+          />
+          <span>
+            Я принимаю <Link to="/terms">условия</Link> и{' '}
+            <Link to="/privacy">политику конфиденциальности</Link>.
+          </span>
+        </label>
         {error && (
           <div className="auth-error" role="alert">
             {error}
@@ -191,10 +258,6 @@ export function Register() {
             <ArrowRight size={18} />
           </i>
         </button>
-        <p className="auth-terms">
-          Продолжая, вы соглашаетесь с <Link to="/terms">условиями</Link> и{' '}
-          <Link to="/privacy">политикой конфиденциальности</Link>.
-        </p>
       </form>
     </AuthFrame>
   );

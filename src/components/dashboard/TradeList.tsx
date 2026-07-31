@@ -1,16 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
-import { CaretLeft, CaretRight, MagnifyingGlass, Plus } from '@phosphor-icons/react';
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  CaretLeft,
+  CaretRight,
+  MagnifyingGlass,
+  Plus,
+} from '@phosphor-icons/react';
 import { SourceLogo, resolveSourceBrand } from '@/components/brand/SourceLogo';
 import { TradeDetailsPanel } from '@/components/dashboard/TradeDetailsPanel';
 import { calculateTradeBreakdown, formatSignedUSD, numeric } from '@/lib/tradeAnalytics';
-import { formatDate, formatUSD } from '@/lib/utils';
+import { summarizeTradePeriod, type ProductRangeDays } from '@/lib/productExperience';
+import { formatDate, formatUSDPrice } from '@/lib/utils';
 import type { Trade } from '@/types';
 
 interface TradeListProps {
   trades: Trade[];
+  totalCount: number;
+  hasMore: boolean;
   isLoading?: boolean;
+  isFetchingMore?: boolean;
+  loadMore: () => Promise<void>;
+  rangeDays: ProductRangeDays;
+  onRangeChange: (days: ProductRangeDays) => void;
   onTradeClick?: (trade: Trade) => void;
   manualEnabled?: boolean;
   onAddManual?: () => void;
@@ -25,7 +39,13 @@ const PAGE_SIZE = 15;
 
 export function TradeList({
   trades,
+  totalCount,
+  hasMore,
   isLoading = false,
+  isFetchingMore = false,
+  loadMore,
+  rangeDays,
+  onRangeChange,
   onTradeClick,
   manualEnabled = false,
   onAddManual,
@@ -39,6 +59,7 @@ export function TradeList({
   const [sortMode, setSortMode] = useState<SortMode>('newest');
   const [page, setPage] = useState(1);
   const [selectedTrade, setSelectedTrade] = useState<Trade | null>(null);
+  const periodSummary = useMemo(() => summarizeTradePeriod(trades), [trades]);
 
   useEffect(() => {
     setSearch(searchParams.get('search') || '');
@@ -97,14 +118,60 @@ export function TradeList({
           <p>Импортированные финальные сделки. Net P&amp;L уже включает комиссии и funding.</p>
         </div>
         <div className="trades-v3-heading-actions">
+          <div className="trades-v6-period" role="group" aria-label="Период сделок">
+            {([7, 30, 90] as ProductRangeDays[]).map((days) => (
+              <button
+                type="button"
+                key={days}
+                className={rangeDays === days ? 'active' : ''}
+                aria-pressed={rangeDays === days}
+                onClick={() => {
+                  onRangeChange(days);
+                  setPage(1);
+                  setSelectedTrade(null);
+                }}
+              >
+                {days} дней
+              </button>
+            ))}
+          </div>
           {manualEnabled ? (
             <button type="button" onClick={onAddManual}>
               <Plus size={14} /> Добавить вручную
             </button>
           ) : null}
-          <span>{trades.length} записей</span>
+          <span>
+            Загружено {trades.length} из {totalCount}
+          </span>
         </div>
       </header>
+
+      <div className="trades-v6-summary" aria-label={`Итог за ${rangeDays} дней`}>
+        <article>
+          <span>Net P&amp;L</span>
+          <strong className={periodSummary.netPnl >= 0 ? 'positive' : 'negative'}>
+            {formatSignedUSD(periodSummary.netPnl)}
+          </strong>
+          <small>после комиссий и funding</small>
+        </article>
+        <article>
+          <span>Комиссии</span>
+          <strong className="negative">{formatSignedUSD(-periodSummary.fees)}</strong>
+          <small>по закрытым сделкам</small>
+        </article>
+        <article>
+          <span>Win rate</span>
+          <strong>{periodSummary.winRate.toFixed(1)}%</strong>
+          <small>
+            {periodSummary.winners} из {periodSummary.closedTrades} прибыльных
+          </small>
+        </article>
+        <article>
+          <span>Закрытые сделки</span>
+          <strong>{periodSummary.closedTrades}</strong>
+          <small>выборка за {rangeDays} дней</small>
+        </article>
+      </div>
 
       <div className="trades-v3-toolbar">
         <div className="trades-v3-tabs" aria-label="Фильтр результата">
@@ -201,7 +268,9 @@ export function TradeList({
               return (
                 <button
                   type="button"
-                  className={`trades-v3-row ${selectedTrade?.id === trade.id ? 'selected' : ''}`}
+                  className={`trades-v3-row ${item.netPnl >= 0 ? 'profit' : 'loss'} ${
+                    selectedTrade?.id === trade.id ? 'selected' : ''
+                  }`}
                   key={trade.id}
                   onClick={() => selectTrade(trade)}
                 >
@@ -213,11 +282,16 @@ export function TradeList({
                       {trade.exchange || 'Источник'}
                     </small>
                   </span>
-                  <span className={item.direction}>
+                  <span className={`trades-v3-direction ${item.direction}`}>
+                    {item.direction === 'long' ? (
+                      <ArrowUpRight size={14} weight="bold" />
+                    ) : (
+                      <ArrowDownRight size={14} weight="bold" />
+                    )}
                     {item.direction === 'long' ? 'Long' : 'Short'}
                   </span>
                   <span>
-                    {formatUSD(item.entryPrice)} → {formatUSD(item.exitPrice)}
+                    {formatUSDPrice(item.entryPrice)} → {formatUSDPrice(item.exitPrice)}
                   </span>
                   <span>
                     {item.amount.toLocaleString('ru-RU', { maximumFractionDigits: 6 })}{' '}
@@ -270,6 +344,18 @@ export function TradeList({
           Показано {visibleTrades.length} из {filteredTrades.length}
         </span>
         <div>
+          {hasMore ? (
+            <button
+              type="button"
+              className="trades-v3-load-more"
+              onClick={() => void loadMore()}
+              disabled={isFetchingMore}
+            >
+              {isFetchingMore
+                ? 'Загружаем…'
+                : `Загрузить ещё (${Math.max(0, totalCount - trades.length)})`}
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={() => setPage((current) => Math.max(1, current - 1))}

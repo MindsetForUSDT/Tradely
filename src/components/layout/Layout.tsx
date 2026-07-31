@@ -10,9 +10,13 @@ export function Layout() {
   const location = useLocation();
   const { isAuthenticated, isLoading } = useAuth();
   const isLanding = location.pathname === '/';
-  const isAuth = ['/login', '/register', '/forgot-password', '/update-password'].includes(
-    location.pathname
-  );
+  const isAuth = [
+    '/login',
+    '/register',
+    '/forgot-password',
+    '/update-password',
+    '/logout',
+  ].includes(location.pathname);
   const isWorkspace = ['/dashboard', '/pro', '/ai', '/goals', '/achievements', '/settings'].some(
     (path) => location.pathname === path || location.pathname.startsWith(`${path}/`)
   );

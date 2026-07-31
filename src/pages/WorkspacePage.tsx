@@ -1,7 +1,8 @@
-import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { FormEvent, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Icon } from '@/components/ui/Icons';
+import { SettingsWorkspace } from '@/components/settings/SettingsWorkspace';
 import { useAuth } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 
@@ -14,7 +15,23 @@ interface Goal {
   progress: number;
 }
 
-const SETTINGS_KEY = 'tradeumdiary_workspace_settings_v1';
+const goalTemplates = [
+  {
+    title: 'Соблюдать дневной лимит',
+    target: '20 торговых дней без превышения',
+    caption: 'Контроль риска',
+  },
+  {
+    title: 'Повысить win rate до 50%',
+    target: 'Минимум 30 сделок по одному сетапу',
+    caption: 'Качество входов',
+  },
+  {
+    title: 'Снизить долю комиссий',
+    target: 'Комиссии ниже 12% валового P&L',
+    caption: 'Эффективность',
+  },
+];
 
 function PageHeading({
   eyebrow,
@@ -45,34 +62,56 @@ function AiWorkspace() {
         title="AI-разбор торговых решений"
         description="Находите повторяющиеся ошибки во входах, выходах и управлении риском."
       />
-      <div className="workspace-state workspace-state-split">
-        <div className="workspace-icon">
-          <Icon name="info" size={28} />
-        </div>
-        {locked ? (
-          <>
-            <p className="workspace-state-label">Функция тарифа PRO + AI</p>
+      {locked ? (
+        <div className="workspace-ai-showcase">
+          <div className="workspace-ai-preview" aria-hidden="true">
+            <header>
+              <span>Разбор недели</span>
+              <strong>3 паттерна найдены</strong>
+            </header>
+            <article>
+              <small>Повторяющаяся ошибка</small>
+              <strong>Увеличение риска после прибыльной сделки</strong>
+              <span>7 случаев · влияние на результат −$84.20</span>
+            </article>
+            <article>
+              <small>Сильная сторона</small>
+              <strong>Выход по плану снижает средний убыток</strong>
+              <span>Соблюдено в 82% размеченных сделок</span>
+            </article>
+            <article>
+              <small>Следующий эксперимент</small>
+              <strong>Зафиксировать риск до открытия позиции</strong>
+              <span>Проверить на следующих 10 сделках</span>
+            </article>
+          </div>
+          <div className="workspace-ai-unlock">
+            <span className="workspace-icon">
+              <Icon name="info" size={24} />
+            </span>
+            <p className="workspace-state-label">Предварительный анализ готов</p>
             <h2>Разбирайте не только результат, но и решение</h2>
             <p>
               AI сопоставляет заметки, риск, сетап и результат, чтобы находить повторяющиеся
               поведенческие паттерны.
             </p>
-            <div className="workspace-feature-list">
-              <span>Серии импульсивных входов</span>
-              <span>Изменение риска после побед</span>
-              <span>Слабые торговые сетапы</span>
-            </div>
-            <Link to="/subscribe">Сравнить тарифы</Link>
-          </>
-        ) : (
+            <Link to="/subscribe">Разблокировать AI-разбор</Link>
+            <small>499 ₽ в месяц · журнал остаётся доступен бесплатно</small>
+          </div>
+        </div>
+      ) : (
+        <div className="workspace-state workspace-state-split">
+          <div className="workspace-icon">
+            <Icon name="info" size={28} />
+          </div>
           <>
             <p className="workspace-state-label">Шаг 1</p>
             <h2>Добавьте сделки и контекст</h2>
             <p>Первый разбор появится, когда истории будет достаточно для обоснованного вывода.</p>
             <Link to="/dashboard/wallets">Подключить источник</Link>
           </>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }
@@ -82,6 +121,7 @@ function GoalsWorkspace() {
   const [loading, setLoading] = useState(true);
   const [title, setTitle] = useState('');
   const [target, setTarget] = useState('');
+  const [creatingTemplate, setCreatingTemplate] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -101,11 +141,12 @@ function GoalsWorkspace() {
     };
   }, []);
 
-  const addGoal = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!title.trim() || !target.trim()) return;
+  const createGoal = async (goalTitle: string, goalTarget: string) => {
     try {
-      const goal = await api.post<Goal>('/goals', { title: title.trim(), target: target.trim() });
+      const goal = await api.post<Goal>('/goals', {
+        title: goalTitle.trim(),
+        target: goalTarget.trim(),
+      });
       setGoals((current) => [goal, ...current]);
       setTitle('');
       setTarget('');
@@ -113,6 +154,18 @@ function GoalsWorkspace() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Не удалось добавить цель');
     }
+  };
+
+  const addGoal = async (event: FormEvent) => {
+    event.preventDefault();
+    if (!title.trim() || !target.trim()) return;
+    await createGoal(title, target);
+  };
+
+  const addGoalTemplate = async (template: (typeof goalTemplates)[number]) => {
+    setCreatingTemplate(template.title);
+    await createGoal(template.title, template.target);
+    setCreatingTemplate(null);
   };
 
   const removeGoal = async (id: string) => {
@@ -135,6 +188,26 @@ function GoalsWorkspace() {
         <form className="workspace-goal-form" onSubmit={addGoal}>
           <span>Новая цель</span>
           <h2>Что вы хотите улучшить?</h2>
+          <div className="workspace-goal-templates">
+            <small>Добавить в один клик</small>
+            {goalTemplates.map((template) => (
+              <button
+                type="button"
+                key={template.title}
+                onClick={() => void addGoalTemplate(template)}
+                disabled={creatingTemplate !== null}
+              >
+                <span>
+                  <strong>{template.title}</strong>
+                  <small>{template.caption}</small>
+                </span>
+                <b>{creatingTemplate === template.title ? '…' : '+'}</b>
+              </button>
+            ))}
+          </div>
+          <div className="workspace-goal-divider">
+            <span>или своя цель</span>
+          </div>
           <label>
             Название
             <input
@@ -185,9 +258,14 @@ function GoalsWorkspace() {
             ))
           ) : (
             <div className="workspace-list-empty">
-              <Icon name="risk" size={24} />
+              <span className="workspace-goal-empty-icon">
+                <Icon name="risk" size={27} />
+              </span>
+              <small>Здесь появится ваш маршрут улучшения</small>
               <strong>Пока нет активных целей</strong>
-              <span>Создайте первую — источник данных для этого не требуется.</span>
+              <span>
+                Начните с готового шаблона слева или сформулируйте собственное проверяемое правило.
+              </span>
             </div>
           )}
         </div>
@@ -224,117 +302,6 @@ function AchievementsWorkspace() {
             <small>{item.unlocked ? 'Получено' : 'Заблокировано'}</small>
           </article>
         ))}
-      </div>
-    </section>
-  );
-}
-
-function SettingsWorkspace() {
-  const { user, subscriptionTier } = useAuth();
-  const [settings, setSettings] = useState(() => {
-    try {
-      return JSON.parse(
-        localStorage.getItem(SETTINGS_KEY) ||
-          '{"riskAlerts":true,"weeklyDigest":true,"compact":false,"manualTrades":false}'
-      ) as {
-        riskAlerts: boolean;
-        weeklyDigest: boolean;
-        compact: boolean;
-        manualTrades: boolean;
-      };
-    } catch {
-      return { riskAlerts: true, weeklyDigest: true, compact: false, manualTrades: false };
-    }
-  });
-  const changed = useMemo(
-    () => JSON.stringify(settings) !== localStorage.getItem(SETTINGS_KEY),
-    [settings]
-  );
-  const save = () => {
-    localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-    window.dispatchEvent(new Event('tradeumdiary:settings'));
-    toast.success('Настройки сохранены');
-  };
-  const toggle = (key: keyof typeof settings) =>
-    setSettings((current) => ({ ...current, [key]: !current[key] }));
-
-  return (
-    <section className="workspace-page">
-      <PageHeading
-        eyebrow="Рабочее пространство"
-        title="Настройки"
-        description="Профиль, автоматизация импорта и поведение интерфейса."
-      />
-      <div className="workspace-settings-grid">
-        <section>
-          <span>Профиль</span>
-          <div className="workspace-profile-row">
-            <div>{(user?.username || 'TR').slice(0, 2).toUpperCase()}</div>
-            <p>
-              <strong>{user?.username || 'Trader'}</strong>
-              <small>{user?.email || 'Email не указан'}</small>
-            </p>
-          </div>
-        </section>
-        <section>
-          <span>Тариф</span>
-          <div className="workspace-plan-row">
-            <p>
-              <strong>{subscriptionTier === 'pro' ? 'PRO + AI' : 'Free'}</strong>
-              <small>
-                {subscriptionTier === 'pro'
-                  ? 'Расширенная аналитика активна'
-                  : 'Базовый торговый дневник'}
-              </small>
-            </p>
-            <Link to="/subscribe">Управлять</Link>
-          </div>
-        </section>
-        <section className="workspace-settings-wide">
-          <span>Автоматизация и интерфейс</span>
-          <div className="workspace-setting-static">
-            <span>
-              <strong>Автоматический импорт сделок</strong>
-              <small>
-                Всегда включён для подключённых источников. Новые сделки синхронизируются без
-                ручного ввода.
-              </small>
-            </span>
-            <em>Всегда включён</em>
-          </div>
-          {[
-            [
-              'riskAlerts',
-              'Предупреждения о риске',
-              'Сообщать о приближении к установленному лимиту.',
-            ],
-            [
-              'weeklyDigest',
-              'Еженедельный отчёт',
-              'Краткий итог по дисциплине и торговым паттернам.',
-            ],
-            ['compact', 'Компактный режим', 'Уменьшить отступы в таблицах и аналитике.'],
-            [
-              'manualTrades',
-              'Ручное добавление сделок',
-              'Показывать действие «Добавить вручную» внутри раздела «Сделки».',
-            ],
-          ].map(([key, title, copy]) => (
-            <button type="button" onClick={() => toggle(key as keyof typeof settings)} key={key}>
-              <span>
-                <strong>{title}</strong>
-                <small>{copy}</small>
-              </span>
-              <i className={settings[key as keyof typeof settings] ? 'on' : ''} />
-            </button>
-          ))}
-          <div className="workspace-settings-actions">
-            <small>Настройки сохраняются в этом браузере.</small>
-            <button type="button" onClick={save} disabled={!changed}>
-              Сохранить изменения
-            </button>
-          </div>
-        </section>
       </div>
     </section>
   );

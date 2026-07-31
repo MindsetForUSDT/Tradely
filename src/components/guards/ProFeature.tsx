@@ -29,11 +29,13 @@ export function ProFeature({ children, fallback, size = 'md', blur = true }: Pro
           <div className="pro-gate-icon">
             <Icon name="pro" size={21} />
           </div>
-          <p>Trader</p>
-          <h3>Расширенная функция</h3>
-          <span>Доступна на тарифе за 499 ₽ в месяц.</span>
+          <p>Персональная аналитика готова</p>
+          <h3>Посмотрите, где торговая система теряет преимущество</h3>
+          <span>
+            Под размытием — расчёт по вашим сделкам: риск, серии и устойчивость результата.
+          </span>
           <button type="button" onClick={() => setOpen(true)}>
-            Открыть доступ
+            Разблокировать PRO
           </button>
         </div>
       </div>

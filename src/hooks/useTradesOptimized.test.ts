@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeTrade } from './useTradesOptimized';
+import { hasMoreTrades, normalizeTrade } from './useTradesOptimized';
 
 describe('normalizeTrade', () => {
   it('converts Prisma decimal strings before arithmetic reaches UI components', () => {
@@ -24,5 +24,15 @@ describe('normalizeTrade', () => {
     expect(normalized.fee).toBe(8.25);
     expect(normalized.pnl_realized).toBe(120.75);
     expect(normalized.value_usd + (normalized.pnl_realized || 0)).toBe(16120.875);
+  });
+});
+
+describe('hasMoreTrades', () => {
+  it('keeps pagination available when 200 of 213 trades are loaded', () => {
+    expect(hasMoreTrades(0, 200, 213)).toBe(true);
+  });
+
+  it('stops pagination when the loaded offset reaches the API total', () => {
+    expect(hasMoreTrades(200, 13, 213)).toBe(false);
   });
 });

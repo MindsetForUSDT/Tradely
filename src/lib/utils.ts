@@ -29,6 +29,29 @@ export function formatUSD(value: number): string {
   }).format(value);
 }
 
+export function formatUSDPrice(value: number): string {
+  const absoluteValue = Math.abs(value);
+  const fractionDigits =
+    absoluteValue === 0
+      ? 2
+      : absoluteValue >= 100
+        ? 2
+        : absoluteValue >= 1
+          ? 4
+          : absoluteValue >= 0.01
+            ? 6
+            : absoluteValue >= 0.0001
+              ? 8
+              : 10;
+
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: fractionDigits,
+  }).format(value);
+}
+
 export function formatDate(date: string | Date): string {
   const d = new Date(date);
   if (isToday(d)) return 'Сегодня';

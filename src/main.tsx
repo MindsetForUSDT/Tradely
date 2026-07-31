@@ -7,6 +7,10 @@ import './index.css';
 import './styles/unified-design.css';
 import './styles/premium-product.css';
 import './styles/cinematic-system.css';
+import './styles/commercial-workspace.css';
+import './styles/loss-diagnostics.css';
+import './styles/product-surfaces-v6.css';
+import './styles/settings-auth-v7.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element not found');

@@ -25,6 +25,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { SourceLogo } from '@/components/brand/SourceLogo';
 import { api } from '@/lib/api';
+import { getWalletPollInterval } from '@/lib/syncEvents';
 import { formatUSD } from '@/lib/utils';
 
 interface Wallet {
@@ -39,6 +40,12 @@ interface Wallet {
   cex_provider?: string;
   settings?: string;
   added_at: string;
+  sync_state?: {
+    enabled: boolean;
+    interval_minutes: number;
+    next_sync_at: string | null;
+    is_due: boolean;
+  };
   _count?: { trades: number };
 }
 
@@ -71,14 +78,16 @@ function formatSyncTime(value?: string) {
 }
 
 function nextSyncLabel(wallets: Wallet[]) {
-  const latest = wallets
-    .map((wallet) => wallet.last_synced_at)
+  if (wallets.some((wallet) => ['pending', 'processing'].includes(wallet.processing_status))) {
+    return 'выполняется сейчас';
+  }
+  const next = wallets
+    .map((wallet) => wallet.sync_state?.next_sync_at)
     .filter(Boolean)
     .sort()
-    .at(-1);
-  if (!latest) return 'после подключения';
-  const elapsed = Math.floor((Date.now() - new Date(latest).getTime()) / 60_000);
-  const left = Math.max(0, 60 - elapsed);
+    .at(0);
+  if (!next) return wallets.length ? 'в ближайшее время' : 'после подключения';
+  const left = Math.max(0, Math.ceil((new Date(next).getTime() - Date.now()) / 60_000));
   return left === 0 ? 'в ближайшее время' : `через ${left} мин`;
 }
 
@@ -153,10 +162,7 @@ export function WalletConnect() {
   }, [loadWallets]);
 
   useEffect(() => {
-    if (!wallets.some((wallet) => ['pending', 'processing'].includes(wallet.processing_status))) {
-      return;
-    }
-    const timer = window.setInterval(() => void loadWallets(true), 2500);
+    const timer = window.setInterval(() => void loadWallets(true), getWalletPollInterval(wallets));
     return () => window.clearInterval(timer);
   }, [loadWallets, wallets]);
 
@@ -242,11 +248,21 @@ export function WalletConnect() {
   const startSync = useCallback(
     async (walletId: string) => {
       setSyncingWalletId(walletId);
+      setWallets((current) =>
+        current.map((wallet) =>
+          wallet.id === walletId
+            ? { ...wallet, processing_status: 'processing', error_message: undefined }
+            : wallet
+        )
+      );
       try {
-        await api.post(`/wallets/${walletId}/sync`, {});
-        toast.success('Импорт запущен');
-        await loadWallets(true);
+        const result = await api.post<{
+          processing_status: 'processing';
+          started: boolean;
+        }>(`/wallets/${walletId}/sync`, {});
+        toast.success(result.started ? 'Импорт запущен' : 'Синхронизация уже выполняется');
       } catch (error) {
+        await loadWallets(true);
         toast.error(error instanceof Error ? error.message : 'Не удалось запустить импорт');
       } finally {
         setSyncingWalletId(null);
@@ -284,7 +300,9 @@ export function WalletConnect() {
       });
       setSheetStep('import');
       await loadWallets(true);
-      void startSync(wallet.id);
+      if (wallet.processing_status !== 'processing') {
+        toast('Источник подключён. Планировщик подхватит импорт автоматически.');
+      }
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Не удалось подключить Bybit');
     } finally {
@@ -395,10 +413,10 @@ export function WalletConnect() {
                   </div>
                   <div className="premium-source-meta">
                     <span>
-                      <Lock size={14} /> Read-only API
+                      <Lock size={14} /> Только чтение
                     </span>
-                    <small>
-                      История с{' '}
+                    <small title="Ключ не может размещать ордера или выводить средства">
+                      Без доступа к торговле · история с{' '}
                       {wallet.import_from_date
                         ? new Intl.DateTimeFormat('ru-RU').format(new Date(wallet.import_from_date))
                         : 'даты подключения'}

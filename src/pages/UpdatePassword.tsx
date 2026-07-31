@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, CheckCircle } from '@phosphor-icons/react';
 import { AuthFrame } from '@/components/auth/AuthFrame';
+import { PasswordInput } from '@/components/auth/PasswordInput';
 import { api } from '@/lib/api';
 
 function passwordScore(password: string) {
@@ -88,8 +89,7 @@ export function UpdatePassword() {
         <form className="auth-form" onSubmit={handleSubmit}>
           <label>
             Новый пароль
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(event) => {
                 setPassword(event.target.value);
@@ -109,8 +109,7 @@ export function UpdatePassword() {
           </label>
           <label>
             Подтвердите пароль
-            <input
-              type="password"
+            <PasswordInput
               value={confirmPassword}
               onChange={(event) => {
                 setConfirmPassword(event.target.value);

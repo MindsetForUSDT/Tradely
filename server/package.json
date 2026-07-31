@@ -7,7 +7,7 @@
     "dev": "tsx watch src/index.ts",
     "server": "tsx src/index.ts",
     "build": "tsc",
-    "test": "npm run build && node --test dist/services/tradeImport.test.js dist/import/normalizers/linear.test.js dist/import/raw-ingestion.test.js dist/import/cycle-persistence.test.js dist/integrations/bybit/client.test.js dist/integrations/bybit/raw-collector.test.js dist/jobs/sync-worker.test.js",
+    "test": "npm run build && node --test dist/services/tradeImport.test.js dist/services/walletSync.test.js dist/import/normalizers/linear.test.js dist/import/raw-ingestion.test.js dist/import/cycle-persistence.test.js dist/integrations/bybit/client.test.js dist/integrations/bybit/raw-collector.test.js dist/jobs/sync-worker.test.js",
     "start": "node dist/index.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",

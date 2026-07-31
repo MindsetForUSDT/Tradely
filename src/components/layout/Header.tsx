@@ -6,12 +6,13 @@ import { useAuth } from '@/hooks/useAuth';
 
 const publicLinks = [
   { label: 'Продукт', href: '/#workspace' },
-  { label: 'Аналитика', href: '/#analytics' },
+  { label: 'Как работает', href: '/#product' },
   { label: 'Тарифы', href: '/#pricing' },
+  { label: 'FAQ', href: '/#faq' },
 ];
 
 export function Header() {
-  const { isAuthenticated, signOut } = useAuth();
+  const { isAuthenticated } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -23,11 +24,6 @@ export function Header() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
   useEffect(() => setOpen(false), [location.pathname]);
-
-  const logout = async () => {
-    await signOut();
-    navigate('/');
-  };
 
   return (
     <header className={`mono-header ${scrolled ? 'is-scrolled' : ''}`}>
@@ -48,7 +44,7 @@ export function Header() {
               <Link to="/dashboard/trades">Сделки</Link>
               <Link to="/dashboard/wallets">Источники</Link>
               <Link to="/pro">PRO</Link>
-              <button type="button" onClick={logout}>
+              <button type="button" onClick={() => navigate('/logout')}>
                 Выйти
               </button>
             </>
