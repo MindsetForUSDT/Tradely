@@ -1,4 +1,6 @@
 // types/index.ts — ОБНОВЛЕННЫЕ ТИПЫ
+import type { WalletDataQuality } from '@/lib/dataQuality';
+
 export interface Trade {
   id: string;
   user_id: string;
@@ -60,6 +62,7 @@ export interface Wallet {
   error_message?: string;
   import_from_date?: string;
   added_at: string;
+  data_quality?: WalletDataQuality;
   _count?: { trades: number };
 }
 

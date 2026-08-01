@@ -124,16 +124,21 @@ export async function syncWallet(walletId: string): Promise<number> {
     ]);
     const saved = await saveTrades(wallet.user_id, wallet.id, trades);
     const settings = readSettings(wallet.settings);
+    const completedAt = new Date();
     await prisma.wallet.update({
       where: { id: wallet.id },
       data: {
         processing_status: 'completed',
-        last_synced_at: new Date(),
+        last_synced_at: completedAt,
         error_message: null,
         settings: JSON.stringify({
           ...settings,
           currentBalance,
-          balanceUpdatedAt: new Date().toISOString(),
+          balanceUpdatedAt: completedAt.toISOString(),
+          lastSync: {
+            completedAt: completedAt.toISOString(),
+            importedTrades: saved,
+          },
         }),
       },
     });

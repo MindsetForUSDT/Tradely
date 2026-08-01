@@ -4,6 +4,7 @@ import { requireAuth, AuthRequest } from '../middleware/auth.js';
 import { encrypt } from '../services/crypto.js';
 import { validateBybitWallet } from '../services/tradeImport.js';
 import { getWalletSyncState, requestWalletSync } from '../services/walletSync.js';
+import { buildWalletDataQuality } from '../services/dataQuality.js';
 import { writeAuditLog } from '../services/audit.js';
 
 const router = Router();
@@ -54,10 +55,62 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
     console.log('[Wallets GET] Wallets found:', wallets.length);
     console.log('[Wallets GET] ====== SUCCESS ======');
 
+    const walletIds = wallets.map((wallet) => wallet.id);
+    const [finalCounts, incompleteCounts, latestTrades] = walletIds.length
+      ? await Promise.all([
+          prisma.trade.groupBy({
+            by: ['wallet_id'],
+            where: {
+              user_id: req.userId!,
+              wallet_id: { in: walletIds },
+              status: 'closed',
+            },
+            _count: { _all: true },
+          }),
+          prisma.trade.groupBy({
+            by: ['wallet_id'],
+            where: {
+              user_id: req.userId!,
+              wallet_id: { in: walletIds },
+              status: 'closed',
+              OR: [
+                { symbol: '' },
+                { amount: { lte: 0 } },
+                { price_usd: { lte: 0 } },
+                { value_usd: { lte: 0 } },
+                { raw_data: null },
+              ],
+            },
+            _count: { _all: true },
+          }),
+          prisma.trade.groupBy({
+            by: ['wallet_id'],
+            where: { user_id: req.userId!, wallet_id: { in: walletIds } },
+            _max: { timestamp: true },
+          }),
+        ])
+      : [[], [], []];
+    const finalByWallet = new Map(finalCounts.map((item) => [item.wallet_id, item._count._all]));
+    const incompleteByWallet = new Map(
+      incompleteCounts.map((item) => [item.wallet_id, item._count._all])
+    );
+    const latestByWallet = new Map(
+      latestTrades.map((item) => [item.wallet_id, item._max.timestamp])
+    );
+
     res.json(
       wallets.map((wallet) => ({
         ...wallet,
         sync_state: getWalletSyncState(wallet.settings, wallet.last_synced_at),
+        data_quality: buildWalletDataQuality({
+          processingStatus: wallet.processing_status,
+          totalTrades: wallet._count.trades,
+          finalTrades: finalByWallet.get(wallet.id) || 0,
+          incompleteTrades: incompleteByWallet.get(wallet.id) || 0,
+          lastTradeAt: latestByWallet.get(wallet.id) || null,
+          lastSyncedAt: wallet.last_synced_at,
+          settings: wallet.settings,
+        }),
       }))
     );
   } catch (error: any) {

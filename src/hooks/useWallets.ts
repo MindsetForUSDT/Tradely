@@ -5,6 +5,7 @@ import {
   findCompletedWalletSyncs,
   getWalletPollInterval,
 } from '@/lib/syncEvents';
+import type { WalletDataQuality } from '@/lib/dataQuality';
 
 interface SyncStatus {
   walletId: string;
@@ -34,6 +35,7 @@ export interface Wallet {
   error_message?: string;
   added_at: string;
   sync_state?: WalletSyncState;
+  data_quality?: WalletDataQuality;
   _count?: { trades: number };
 }
 

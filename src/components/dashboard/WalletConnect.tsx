@@ -24,7 +24,9 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { SourceLogo } from '@/components/brand/SourceLogo';
+import { DataQualityPanel } from '@/components/dashboard/DataQualityPanel';
 import { api } from '@/lib/api';
+import type { WalletDataQuality } from '@/lib/dataQuality';
 import { getWalletPollInterval } from '@/lib/syncEvents';
 import { formatUSD } from '@/lib/utils';
 
@@ -46,6 +48,7 @@ interface Wallet {
     next_sync_at: string | null;
     is_due: boolean;
   };
+  data_quality?: WalletDataQuality;
   _count?: { trades: number };
 }
 
@@ -463,6 +466,12 @@ export function WalletConnect() {
           </div>
         )}
       </section>
+
+      <DataQualityPanel
+        sources={wallets}
+        syncingWalletId={syncingWalletId}
+        onSync={(walletId) => void startSync(walletId)}
+      />
 
       <section className="premium-source-detail-grid" aria-label="Покрытие и безопасность данных">
         <article>
