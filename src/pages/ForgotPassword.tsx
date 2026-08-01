@@ -40,6 +40,7 @@ export function ForgotPassword() {
 
   return (
     <AuthFrame
+      mode="recovery"
       title={sent ? 'Проверьте почту' : 'Восстановить доступ'}
       description={
         sent

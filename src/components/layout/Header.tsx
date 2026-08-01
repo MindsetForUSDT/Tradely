@@ -5,9 +5,9 @@ import { Icon } from '@/components/ui/Icons';
 import { useAuth } from '@/hooks/useAuth';
 
 const publicLinks = [
-  { label: 'Продукт', href: '/#workspace' },
-  { label: 'Как работает', href: '/#product' },
-  { label: 'Тарифы', href: '/#pricing' },
+  { label: 'Возможности', href: '/features' },
+  { label: 'Как работает', href: '/#workspace' },
+  { label: 'Тарифы', href: '/subscribe' },
   { label: 'FAQ', href: '/#faq' },
 ];
 
@@ -51,7 +51,11 @@ export function Header() {
           ) : (
             <>
               {publicLinks.map((item) => (
-                <a href={item.href} key={item.href}>
+                <a
+                  href={item.href}
+                  key={item.href}
+                  aria-current={location.pathname === item.href ? 'page' : undefined}
+                >
                   {item.label}
                 </a>
               ))}

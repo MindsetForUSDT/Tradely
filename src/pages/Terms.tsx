@@ -1,14 +1,33 @@
+import { ArrowLeft, FileText, ShieldCheck } from '@phosphor-icons/react';
+import { Link } from 'react-router-dom';
+
 export function Terms() {
   return (
-    <div className="legal-page min-h-screen pt-24 pb-16 px-4 bg-bg-default">
-      <div className="legal-document max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-text-primary mb-8">Условия использования</h1>
+    <div className="legal-page legal-v9-page">
+      <div className="legal-document">
+        <Link className="legal-v9-back" to="/">
+          <ArrowLeft size={16} /> На главную
+        </Link>
+        <header className="legal-v9-head">
+          <span>
+            <FileText size={21} />
+          </span>
+          <div>
+            <p>Правила сервиса</p>
+            <h1>Условия использования</h1>
+            <small>Редакция от 1 августа 2026 года</small>
+          </div>
+        </header>
+        <aside className="legal-v9-summary">
+          <ShieldCheck size={20} />
+          <p>
+            Коротко: Tradeum анализирует торговые данные, не управляет средствами и не обещает
+            доходность. Пользователь сохраняет право на свои данные.
+          </p>
+          <Link to="/privacy">Политика конфиденциальности</Link>
+        </aside>
 
         <div className="legal-content prose prose-invert max-w-none">
-          <p className="text-text-secondary mb-6">
-            Последнее обновление: {new Date().toLocaleDateString('ru-RU')}
-          </p>
-
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-text-primary mb-4">1. Общие положения</h2>
             <div className="space-y-3 text-text-secondary">
@@ -66,12 +85,15 @@ export function Terms() {
 
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-text-primary mb-4">
-              4. Работа с криптокошельками
+              4. Работа с биржевыми источниками
             </h2>
             <div className="space-y-3 text-text-secondary">
-              <p>4.1. Сервис работает исключительно с публичными данными блокчейна.</p>
               <p>
-                4.2. Сервис не хранит приватные ключи и не имеет доступа к средствам пользователя.
+                4.1. Сервис импортирует торговые данные через подключённые пользователем источники.
+              </p>
+              <p>
+                4.2. Для поддерживаемых бирж допускаются только ключи с правами чтения без вывода и
+                торговли.
               </p>
               <p>4.3. Пользователь самостоятельно отвечает за безопасность своих кошельков.</p>
               <p>
@@ -154,7 +176,7 @@ export function Terms() {
                 </a>
               </p>
               <p>
-                <strong>Регистрация:</strong> ИП / Самозанятый (указать при регистрации)
+                <strong>Реквизиты:</strong> будут опубликованы до начала приёма платежей
               </p>
             </div>
           </section>

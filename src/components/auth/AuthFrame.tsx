@@ -27,19 +27,65 @@ const authCurve = [
   { value: 11640 },
 ];
 
+type AuthMode = 'login' | 'register' | 'recovery' | 'update' | 'logout';
+
+const authStories: Record<
+  AuthMode,
+  { index: string; title: string; copy: string; result: string; note: string }
+> = {
+  login: {
+    index: '01',
+    title: 'Вернитесь к системе, а не к шуму.',
+    copy: 'История решений, риск и фактический результат ждут в одном рабочем пространстве.',
+    result: '+1.92R',
+    note: 'Выход выполнен по плану',
+  },
+  register: {
+    index: '02',
+    title: 'Начните с фактов о своей торговле.',
+    copy: 'Первый честный обзор появится после подключения read-only источника. Карта не нужна.',
+    result: '30 дней',
+    note: 'истории доступны на Free',
+  },
+  recovery: {
+    index: '03',
+    title: 'Доступ можно восстановить безопасно.',
+    copy: 'Одноразовая ссылка меняет только пароль Tradeum и никогда не касается доступа к бирже.',
+    result: '1 час',
+    note: 'срок действия ссылки',
+  },
+  update: {
+    index: '04',
+    title: 'Новый пароль — отдельный от биржи.',
+    copy: 'Используйте уникальную комбинацию. Tradeum не запрашивает пароль или ключ вывода средств.',
+    result: 'Read-only',
+    note: 'единственный режим источника',
+  },
+  logout: {
+    index: '05',
+    title: 'Сессия закрывается, история остаётся.',
+    copy: 'Выход удаляет авторизацию из браузера, но не затрагивает сделки и подключённые источники.',
+    result: 'Защищено',
+    note: 'данные рабочего пространства',
+  },
+};
+
 export function AuthFrame({
   title,
   description,
   children,
   footer,
+  mode = 'login',
 }: {
   title: string;
   description: string;
   children: ReactNode;
   footer: ReactNode;
+  mode?: AuthMode;
 }) {
+  const story = authStories[mode];
   return (
-    <div className="auth-page">
+    <div className={`auth-page auth-page-v9 auth-page-${mode}`}>
       <aside className="auth-story">
         <Link to="/" className="auth-story-brand">
           <span className="tradeum-mark" aria-hidden="true">
@@ -50,20 +96,18 @@ export function AuthFrame({
           </span>
           TradeumDiary
         </Link>
+        <span className="auth-story-index">{story.index} / 05</span>
         <div className="auth-story-copy">
-          <h2>
-            Ваш системный подход
-            <br />к торговле.
-          </h2>
-          <p>Завершённые сделки, риск и контекст — в одной ясной системе.</p>
+          <h2>{story.title}</h2>
+          <p>{story.copy}</p>
         </div>
 
         <div className="auth-market-scene" aria-hidden="true">
           <div className="auth-market-result">
-            <span>Итог по последней сделке</span>
-            <strong>+1.92R</strong>
+            <span>Контрольная точка</span>
+            <strong>{story.result}</strong>
             <small>
-              <ShieldCheck size={14} /> Риск соблюдён
+              <ShieldCheck size={14} /> {story.note}
             </small>
           </div>
           <div className="auth-market-chart">

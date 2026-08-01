@@ -1,14 +1,33 @@
+import { ArrowLeft, Database, LockKey } from '@phosphor-icons/react';
+import { Link } from 'react-router-dom';
+
 export function Privacy() {
   return (
-    <div className="legal-page min-h-screen pt-24 pb-16 px-4 bg-bg-default">
-      <div className="legal-document max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold text-text-primary mb-8">Политика конфиденциальности</h1>
+    <div className="legal-page legal-v9-page">
+      <div className="legal-document">
+        <Link className="legal-v9-back" to="/">
+          <ArrowLeft size={16} /> На главную
+        </Link>
+        <header className="legal-v9-head">
+          <span>
+            <Database size={21} />
+          </span>
+          <div>
+            <p>Работа с данными</p>
+            <h1>Политика конфиденциальности</h1>
+            <small>Редакция от 1 августа 2026 года</small>
+          </div>
+        </header>
+        <aside className="legal-v9-summary">
+          <LockKey size={20} />
+          <p>
+            Tradeum не запрашивает приватные ключи или право вывода средств. Доступ к бирже должен
+            оставаться в режиме read-only.
+          </p>
+          <Link to="/terms">Условия использования</Link>
+        </aside>
 
         <div className="legal-content prose prose-invert max-w-none">
-          <p className="text-text-secondary mb-6">
-            Последнее обновление: {new Date().toLocaleDateString('ru-RU')}
-          </p>
-
           <section className="mb-8">
             <h2 className="text-xl font-semibold text-text-primary mb-4">1. Общие положения</h2>
             <div className="space-y-3 text-text-secondary">
@@ -39,13 +58,13 @@ export function Privacy() {
               <ul className="list-disc pl-6 space-y-2">
                 <li>Адрес электронной почты</li>
                 <li>Пароль (в зашифрованном виде)</li>
-                <li>Адреса криптокошельков (публичные)</li>
+                <li>Идентификаторы подключённых биржевых источников</li>
                 <li>История торговых операций</li>
                 <li>Настройки аккаунта и предпочтения</li>
               </ul>
               <p>2.2. Мы не собираем и не обрабатываем следующие категории данных:</p>
               <ul className="list-disc pl-6 space-y-2">
-                <li>Приватные ключи криптокошельков</li>
+                <li>Приватные ключи и права вывода средств</li>
                 <li>Пароли от бирж и кошельков</li>
                 <li>Биометрические данные</li>
                 <li>Специальные категории персональных данных</li>

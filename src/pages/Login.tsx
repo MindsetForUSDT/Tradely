@@ -86,6 +86,7 @@ export function Login() {
 
   return (
     <AuthFrame
+      mode="login"
       title="Войти в рабочее пространство"
       description="Продолжите разбор сделок, риска и решений."
       footer={

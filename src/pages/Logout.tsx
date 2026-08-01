@@ -20,6 +20,7 @@ export function Logout() {
 
   return (
     <AuthFrame
+      mode="logout"
       title={finished ? 'Выход выполнен' : 'Завершаем сессию'}
       description={
         finished

@@ -61,7 +61,7 @@ export function Features() {
   const actionHref = user ? '/dashboard' : '/register';
 
   return (
-    <div className="features-page">
+    <div className="features-page public-v9-features">
       <header className="features-hero">
         <div>
           <Link to="/">TradeumDiary</Link>
@@ -84,6 +84,18 @@ export function Features() {
           </Link>
         </div>
       </header>
+
+      <section className="features-proof" aria-label="Принципы продукта">
+        <span>
+          <strong>Read-only</strong> без доступа к средствам
+        </span>
+        <span>
+          <strong>Net P&amp;L</strong> с комиссиями и funding
+        </span>
+        <span>
+          <strong>2 тарифа</strong> Free и PRO 499 ₽
+        </span>
+      </section>
 
       <section className="features-index" aria-label="Возможности TradeumDiary">
         {features.map((feature) => {

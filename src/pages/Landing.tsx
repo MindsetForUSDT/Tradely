@@ -12,7 +12,7 @@ import {
   LockKey,
   Play,
   ShieldCheck,
-  Sparkle,
+  TrendUp,
 } from '@phosphor-icons/react';
 import {
   Area,
@@ -138,17 +138,20 @@ const decisions: Decision[] = [
 ];
 
 const plans = [
-  { name: 'Free', price: '0 ₽', items: ['Основные метрики', 'CSV-импорт', 'История сделок'] },
   {
-    name: 'Trader',
-    price: '499 ₽',
-    items: ['Автоматическая синхронизация', 'Риск-менеджер', 'Полная аналитика'],
-    featured: true,
+    name: 'Free',
+    price: '0 ₽',
+    note: 'навсегда',
+    items: ['Обзор и базовые метрики', 'Разбор отдельных сделок', 'История за 30 дней'],
+    href: '/register',
   },
   {
-    name: 'PRO + AI',
-    price: 'По запросу',
-    items: ['Разбор паттернов', 'AI-наблюдения', 'Расширенные отчёты'],
+    name: 'PRO',
+    price: '499 ₽',
+    note: 'в месяц',
+    items: ['Автосинхронизация Bybit', 'Полная история и аналитика', 'Риск и дисциплина'],
+    href: '/subscribe?selected=pro',
+    featured: true,
   },
 ];
 
@@ -360,7 +363,7 @@ export function Landing() {
   if (!isLoading && isAuthenticated) return <Navigate to="/dashboard" replace />;
 
   return (
-    <div className="tailark-landing cinematic-landing">
+    <div className="tailark-landing cinematic-landing public-v9-landing">
       <section className="cinematic-landing-hero">
         <div className="cinematic-hero-field" aria-hidden="true" />
         <motion.div
@@ -389,7 +392,7 @@ export function Landing() {
               <i>
                 <Play size={13} weight="fill" />
               </i>
-              Смотреть демо 90 сек
+              Посмотреть продукт
             </a>
           </div>
           <small className="cinematic-security-note">
@@ -500,12 +503,12 @@ export function Landing() {
             </p>
           </article>
           <article>
-            <Sparkle size={21} />
+            <TrendUp size={21} />
             <span>03</span>
             <h3>Разбор решений</h3>
             <p>
-              Аналитика связывает результат с поведением и помогает находить повторяющиеся сильные и
-              слабые паттерны.
+              Аналитика связывает результат с поведением и помогает проверять повторяющиеся сильные
+              и слабые паттерны на дистанции.
             </p>
           </article>
         </div>
@@ -524,7 +527,9 @@ export function Landing() {
           {plans.map((plan) => (
             <article className={plan.featured ? 'featured' : ''} key={plan.name}>
               <span>{plan.name}</span>
-              <strong>{plan.price}</strong>
+              <strong>
+                {plan.price} <small>{plan.note}</small>
+              </strong>
               <ul>
                 {plan.items.map((item) => (
                   <li key={item}>
@@ -533,7 +538,7 @@ export function Landing() {
                   </li>
                 ))}
               </ul>
-              <Link to="/register">
+              <Link to={plan.href}>
                 Выбрать тариф <ArrowRight size={14} />
               </Link>
             </article>

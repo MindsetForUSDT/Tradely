@@ -200,6 +200,7 @@ export function Register() {
 
   return (
     <AuthFrame
+      mode="register"
       title="Создайте торговый дневник"
       description="Бесплатно, без карты. Первые данные появятся после подключения источника."
       footer={

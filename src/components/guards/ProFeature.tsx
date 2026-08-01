@@ -40,7 +40,7 @@ export function ProFeature({ children, fallback, size = 'md', blur = true }: Pro
         </div>
       </div>
       {open && (
-        <div className="pro-modal" role="dialog" aria-modal="true" aria-label="Тариф Trader">
+        <div className="pro-modal" role="dialog" aria-modal="true" aria-label="Тариф PRO">
           <button
             className="pro-modal-backdrop"
             type="button"
@@ -56,7 +56,7 @@ export function ProFeature({ children, fallback, size = 'md', blur = true }: Pro
             >
               <Icon name="close" size={19} />
             </button>
-            <p>Тариф Trader</p>
+            <p>Тариф PRO</p>
             <h2>
               Больше контекста.
               <br />
@@ -67,9 +67,9 @@ export function ProFeature({ children, fallback, size = 'md', blur = true }: Pro
             </span>
             <ul>
               <li>Безлимитная история сделок</li>
-              <li>Риск-менеджер и PRO-метрики</li>
-              <li>Экспорт CSV, Excel и PDF</li>
-              <li>Подготовка к AI-разбору</li>
+              <li>Автосинхронизация Bybit</li>
+              <li>Диагностика убытков и комиссий</li>
+              <li>Риск-менеджер и PRO-аналитика</li>
             </ul>
             <div>
               <strong>
@@ -82,7 +82,7 @@ export function ProFeature({ children, fallback, size = 'md', blur = true }: Pro
                   navigate('/subscribe');
                 }}
               >
-                Выбрать Trader
+                Выбрать PRO
               </button>
             </div>
           </section>

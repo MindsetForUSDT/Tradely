@@ -12,6 +12,7 @@ import './styles/loss-diagnostics.css';
 import './styles/product-surfaces-v6.css';
 import './styles/settings-auth-v7.css';
 import './styles/progress-v8.css';
+import './styles/public-v9.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element not found');

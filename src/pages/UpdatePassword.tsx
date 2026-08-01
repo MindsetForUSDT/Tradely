@@ -62,6 +62,7 @@ export function UpdatePassword() {
 
   return (
     <AuthFrame
+      mode="update"
       title={success ? 'Пароль обновлён' : 'Создайте новый пароль'}
       description={
         success

@@ -1,31 +1,35 @@
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Button } from '@/components/ui/Button';
+import { motion, useReducedMotion } from 'framer-motion';
+import { ArrowRight, ChartLineUp, House } from '@phosphor-icons/react';
 
 export function NotFound() {
+  const reduceMotion = useReducedMotion();
   return (
-    <div className="not-found-page min-h-screen flex items-center justify-center px-4">
+    <div className="not-found-page public-v9-not-found">
       <motion.div
-        initial={{ opacity: 0, y: 12 }}
+        initial={reduceMotion ? false : { opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        className="not-found-content text-center"
+        className="not-found-content"
       >
-        <div className="relative w-32 h-32 mx-auto mb-8">
-          <div className="absolute inset-0 bg-accent-green/5 rounded-full animate-glow-pulse" />
-          <div className="absolute inset-4 bg-accent-green/10 rounded-full" />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <span className="text-5xl font-bold text-gradient">404</span>
-          </div>
+        <div className="not-found-code" aria-hidden="true">
+          <span>4</span>
+          <i />
+          <span>4</span>
         </div>
-        <h1 className="text-2xl font-bold mb-2">Страница не найдена</h1>
-        <p className="text-text-muted mb-8 max-w-md mx-auto">
-          Вернитесь на главную и продолжите анализировать сделки.
+        <p>Маршрут не найден</p>
+        <h1>Здесь нет торгового решения.</h1>
+        <span>Адрес мог измениться. Вернитесь к продукту или откройте рабочее пространство.</span>
+        <div className="not-found-actions">
+          <Link to="/">
+            <House size={17} /> На главную
+          </Link>
+          <Link to="/dashboard">
+            <ChartLineUp size={17} /> Открыть обзор <ArrowRight size={16} />
+          </Link>
+        </div>
+        <p className="not-found-hint">
+          Код ошибки <strong>404</strong> · данные аккаунта не затронуты
         </p>
-        <Link to="/">
-          <Button variant="primary" size="lg">
-            На главную
-          </Button>
-        </Link>
       </motion.div>
     </div>
   );

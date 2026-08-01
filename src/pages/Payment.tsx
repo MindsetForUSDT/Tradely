@@ -16,7 +16,7 @@ export function Payment() {
   const price = selectedPeriod === 'year' ? '4 990 ₽ в год' : '499 ₽ в месяц';
 
   return (
-    <main className="payment-v6-page">
+    <main className="payment-v6-page public-v9-payment">
       <Link className="payment-v6-back" to="/subscribe">
         <ArrowLeft size={17} />
         Вернуться к тарифам
@@ -79,6 +79,9 @@ export function Payment() {
           <p>Сейчас платёж не создан, деньги не списаны, тариф аккаунта не изменён.</p>
         </aside>
       </section>
+      <p className="payment-v9-footnote">
+        Этот экран фиксирует выбранный тариф, но не создаёт платёж и не списывает средства.
+      </p>
     </main>
   );
 }

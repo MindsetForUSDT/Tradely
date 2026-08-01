@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { Icon } from '@/components/ui/Icons';
 import { useAuth } from '@/hooks/useAuth';
+import { Check, ShieldCheck, X } from '@phosphor-icons/react';
 
 const plans = [
   {
@@ -70,7 +71,7 @@ export function NewSubscribe() {
   };
 
   return (
-    <div className="subscribe-page">
+    <div className="subscribe-page public-v9-subscribe">
       <header className="subscribe-head">
         <p>Тарифы TradeumDiary</p>
         <h1>
@@ -103,6 +104,47 @@ export function NewSubscribe() {
             </button>
           </article>
         ))}
+      </section>
+      <section className="subscribe-compare" aria-labelledby="compare-title">
+        <header>
+          <p>Сравнение без мелкого шрифта</p>
+          <h2 id="compare-title">Что именно меняется после перехода на PRO</h2>
+        </header>
+        <div role="table" aria-label="Сравнение тарифов">
+          <div role="row" className="subscribe-compare-head">
+            <span role="columnheader">Возможность</span>
+            <span role="columnheader">Free</span>
+            <span role="columnheader">PRO</span>
+          </div>
+          {[
+            ['История сделок', '30 дней', 'Полная'],
+            ['Синхронизация Bybit', false, true],
+            ['Диагностика убытков', false, true],
+            ['Риск и дисциплина', 'Базово', 'Полностью'],
+            ['Заметки и контекст', true, true],
+          ].map(([label, free, pro]) => (
+            <div role="row" key={String(label)}>
+              <strong role="cell">{label}</strong>
+              <span role="cell">
+                {typeof free === 'boolean' ? free ? <Check size={16} /> : <X size={15} /> : free}
+              </span>
+              <span role="cell">
+                {typeof pro === 'boolean' ? pro ? <Check size={16} /> : <X size={15} /> : pro}
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="subscribe-safety">
+        <ShieldCheck size={24} />
+        <div>
+          <strong>Оплата ещё не подключена</strong>
+          <p>
+            До запуска защищённого checkout Tradeum не запросит карту и не изменит тариф без
+            подтверждённого платежа.
+          </p>
+        </div>
+        <Link to="/features">Изучить возможности</Link>
       </section>
       <div className="subscribe-note">
         <span>Без скрытых платежей</span>
