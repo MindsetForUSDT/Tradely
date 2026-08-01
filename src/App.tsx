@@ -16,6 +16,7 @@ import { Logout } from '@/pages/Logout';
 import { NotFound } from '@/pages/NotFound';
 import { WorkspacePage } from '@/pages/WorkspacePage';
 import { WorkspaceShell } from '@/components/layout/WorkspaceShell';
+import { ProgressWorkspace } from '@/components/progress/ProgressWorkspace';
 
 export default function App() {
   return (
@@ -49,8 +50,22 @@ export default function App() {
           }
         />
         <Route path="/ai" element={<Navigate to="/pro" replace />} />
-        <Route path="/goals" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/achievements" element={<Navigate to="/dashboard" replace />} />
+        <Route
+          path="/goals/*"
+          element={
+            <WorkspaceShell>
+              <ProgressWorkspace />
+            </WorkspaceShell>
+          }
+        />
+        <Route
+          path="/achievements"
+          element={
+            <WorkspaceShell>
+              <ProgressWorkspace />
+            </WorkspaceShell>
+          }
+        />
         <Route
           path="/settings"
           element={

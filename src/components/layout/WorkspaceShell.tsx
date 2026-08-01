@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   SignOut,
   SquaresFour,
+  Target,
   X,
   type Icon as PhosphorIcon,
 } from '@phosphor-icons/react';
@@ -30,6 +31,7 @@ interface NavigationItem {
   href: string;
   icon: PhosphorIcon;
   pro?: boolean;
+  aliases?: string[];
 }
 
 const SETTINGS_KEY = 'tradeumdiary_workspace_settings_v1';
@@ -40,6 +42,7 @@ const primarySections: NavigationItem[] = [
   { label: 'Аналитика', href: '/pro', icon: ChartLineUp, pro: true },
   { label: 'Риск', href: '/dashboard/risk', icon: ShieldCheck, pro: true },
   { label: 'Источники', href: '/dashboard/wallets', icon: PlugsConnected },
+  { label: 'Прогресс', href: '/goals', icon: Target, aliases: ['/achievements'] },
 ];
 
 function readWorkspaceSettings(): WorkspaceSettings {
@@ -56,9 +59,9 @@ function readWorkspaceSettings(): WorkspaceSettings {
   }
 }
 
-function isCurrent(pathname: string, href: string) {
+function isCurrent(pathname: string, href: string, aliases: string[] = []) {
   if (href === '/dashboard') return pathname === '/dashboard';
-  return pathname.startsWith(href);
+  return pathname.startsWith(href) || aliases.some((alias) => pathname.startsWith(alias));
 }
 
 function WorkspaceNavigation({
@@ -73,7 +76,7 @@ function WorkspaceNavigation({
   return (
     <nav aria-label="Разделы рабочего пространства">
       {items.map((section) => {
-        const active = isCurrent(pathname, section.href);
+        const active = isCurrent(pathname, section.href, section.aliases);
         const NavigationIcon = section.icon;
         return (
           <Link
