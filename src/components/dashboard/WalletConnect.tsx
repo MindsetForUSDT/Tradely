@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ArrowClockwise,
   ArrowRight,
@@ -25,6 +25,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { SourceLogo } from '@/components/brand/SourceLogo';
 import { DataQualityPanel } from '@/components/dashboard/DataQualityPanel';
+import { FirstRunJourney } from '@/components/dashboard/FirstRunJourney';
 import { api } from '@/lib/api';
 import type { WalletDataQuality } from '@/lib/dataQuality';
 import { getWalletPollInterval } from '@/lib/syncEvents';
@@ -130,6 +131,7 @@ function statusMeta(wallet: Wallet) {
 }
 
 export function WalletConnect() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [wallets, setWallets] = useState<Wallet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -145,6 +147,8 @@ export function WalletConnect() {
   const [adding, setAdding] = useState(false);
   const [syncingWalletId, setSyncingWalletId] = useState<string | null>(null);
   const queryClient = useQueryClient();
+  const autoOpenedRef = useRef(false);
+  const onboardingRequested = searchParams.get('onboarding') === '1';
 
   const loadWallets = useCallback(async (silent = false) => {
     if (!silent) setIsLoading(true);
@@ -163,6 +167,12 @@ export function WalletConnect() {
   useEffect(() => {
     void loadWallets();
   }, [loadWallets]);
+
+  useEffect(() => {
+    if (isLoading || !onboardingRequested || wallets.length || autoOpenedRef.current) return;
+    autoOpenedRef.current = true;
+    setSheetOpen(true);
+  }, [isLoading, onboardingRequested, wallets.length]);
 
   useEffect(() => {
     const timer = window.setInterval(() => void loadWallets(true), getWalletPollInterval(wallets));
@@ -192,6 +202,14 @@ export function WalletConnect() {
   const closeSheet = () => {
     if (adding) return;
     setSheetOpen(false);
+  };
+
+  const finishFirstImport = () => {
+    setSheetOpen(false);
+    if (!onboardingRequested) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('onboarding');
+    setSearchParams(next, { replace: true });
   };
 
   useEffect(() => {
@@ -353,6 +371,14 @@ export function WalletConnect() {
           </button>
         ) : null}
       </motion.header>
+
+      {!isLoading ? (
+        <FirstRunJourney
+          sources={wallets}
+          onConnect={openSheet}
+          onSync={(walletId) => void startSync(walletId)}
+        />
+      ) : null}
 
       <section className="premium-source-health" aria-label="Состояние импорта">
         <article>
@@ -731,8 +757,8 @@ export function WalletConnect() {
                       <Clock size={17} />
                       Можно закрыть окно — импорт продолжится в фоне.
                     </span>
-                    <button type="button" onClick={closeSheet}>
-                      Перейти к источникам
+                    <button type="button" onClick={finishFirstImport}>
+                      Следить за импортом
                     </button>
                   </footer>
                 </div>

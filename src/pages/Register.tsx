@@ -58,7 +58,7 @@ export function Register() {
       : null;
   const returnTo = safeInternalPath(
     requestedDestination,
-    selectedPlan === 'pro' ? '/subscribe?selected=pro' : '/dashboard'
+    selectedPlan === 'pro' ? '/subscribe?selected=pro' : '/dashboard/wallets?onboarding=1'
   );
   const validateField = useCallback((name: keyof ValidationErrors, value: string) => {
     if (debounceRef.current) clearTimeout(debounceRef.current);

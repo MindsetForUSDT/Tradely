@@ -15,6 +15,7 @@ import './styles/progress-v8.css';
 import './styles/public-v9.css';
 import './styles/data-quality-v10.css';
 import './styles/risk-discipline-v11.css';
+import './styles/first-run-v12.css';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Root element not found');
