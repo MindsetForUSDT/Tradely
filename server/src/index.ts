@@ -32,6 +32,8 @@ import analyticsRouter from './routes/analytics.js';
 import authRouter from './routes/auth.js';
 import riskLimitsRouter from './routes/riskLimits.js';
 import goalsRouter from './routes/goals.js';
+import billingRouter from './routes/billing.js';
+import webhooksRouter from './routes/webhooks.js';
 import { syncDueWallets } from './services/walletSync.js';
 import { runSyncWorkerBatch } from './jobs/sync-scheduler.js';
 
@@ -132,6 +134,7 @@ app.get('/api', (req, res) => {
       analytics: '/api/analytics',
       riskLimits: '/api/risk-limits',
       goals: '/api/goals',
+      billing: '/api/billing',
       health: '/health',
     },
   });
@@ -145,6 +148,8 @@ app.use('/api/trades', tradesRouter);
 app.use('/api/analytics', analyticsRouter);
 app.use('/api/risk-limits', riskLimitsRouter);
 app.use('/api/goals', goalsRouter);
+app.use('/api/billing', billingRouter);
+app.use('/api/webhooks', webhooksRouter);
 console.log('[Server] ✅ Routes registered');
 
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

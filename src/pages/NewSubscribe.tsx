@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
-import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
-import { Icon } from '@/components/ui/Icons';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Check, ShieldCheck, X } from '@phosphor-icons/react';
 
@@ -40,14 +38,6 @@ const plans = [
 export function NewSubscribe() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const [periodOpen, setPeriodOpen] = useState(false);
-
-  useEffect(() => {
-    if (user && searchParams.get('selected') === 'pro') setPeriodOpen(true);
-  }, [searchParams, user]);
-
-  if (user?.subscription_tier === 'pro') return <Navigate to="/dashboard" replace />;
 
   const selectPlan = (kind: 'free' | 'pro') => {
     if (!user) {
@@ -61,12 +51,7 @@ export function NewSubscribe() {
       navigate('/dashboard');
       return;
     }
-    setPeriodOpen(true);
-  };
-  const selectPeriod = (period: 'month' | 'year') => {
     localStorage.setItem('selectedPlan', 'pro');
-    localStorage.setItem('selectedPeriod', period);
-    setPeriodOpen(false);
     navigate('/payment');
   };
 
@@ -100,7 +85,9 @@ export function NewSubscribe() {
               ))}
             </ul>
             <button type="button" onClick={() => selectPlan(plan.kind)}>
-              {plan.action}
+              {plan.kind === 'pro' && user?.subscription_tier === 'pro'
+                ? 'Управлять PRO'
+                : plan.action}
             </button>
           </article>
         ))}
@@ -138,10 +125,10 @@ export function NewSubscribe() {
       <section className="subscribe-safety">
         <ShieldCheck size={24} />
         <div>
-          <strong>Оплата ещё не подключена</strong>
+          <strong>Защищённая оплата через ЮKassa</strong>
           <p>
-            До запуска защищённого checkout Tradeum не запросит карту и не изменит тариф без
-            подтверждённого платежа.
+            Карта не передаётся Tradeum, а PRO включается только после серверного подтверждения
+            платежа.
           </p>
         </div>
         <Link to="/features">Изучить возможности</Link>
@@ -154,42 +141,6 @@ export function NewSubscribe() {
       <p className="subscribe-contact">
         Нужна помощь с выбором? <Link to="/#faq">Посмотрите ответы</Link>
       </p>
-      {periodOpen && (
-        <div className="period-overlay" role="dialog" aria-modal="true" aria-label="Выбор периода">
-          <button
-            className="period-backdrop"
-            type="button"
-            onClick={() => setPeriodOpen(false)}
-            aria-label="Закрыть"
-          />
-          <div className="period-modal">
-            <div className="period-modal-head">
-              <div>
-                <p>Тариф PRO</p>
-                <h2>Выберите период</h2>
-              </div>
-              <button type="button" onClick={() => setPeriodOpen(false)} aria-label="Закрыть">
-                <Icon name="close" size={19} />
-              </button>
-            </div>
-            <button type="button" onClick={() => selectPeriod('month')}>
-              <span>
-                <strong>Ежемесячно</strong>
-                <small>Гибкая оплата</small>
-              </span>
-              <b>499 ₽</b>
-            </button>
-            <button type="button" className="recommended" onClick={() => selectPeriod('year')}>
-              <span>
-                <strong>Ежегодно</strong>
-                <small>Экономия 998 ₽ за год</small>
-              </span>
-              <b>4 990 ₽</b>
-            </button>
-            <p>Оплата будет подтверждена на следующем шаге.</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

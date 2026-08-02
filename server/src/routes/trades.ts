@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { prisma } from '../db.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
+import { getEntitlements } from '../services/entitlements.js';
 
 const router = Router();
 const querySchema = z.object({
@@ -66,20 +67,22 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
 
   try {
     const query = parsed.data;
+    const entitlements = await getEntitlements(req.userId!);
+    const historyFloor = new Date();
+    historyFloor.setUTCDate(historyFloor.getUTCDate() - entitlements.historyDays);
+    const requestedFrom = query.dateFrom ? new Date(query.dateFrom) : null;
+    const effectiveFrom =
+      requestedFrom && requestedFrom > historyFloor ? requestedFrom : historyFloor;
     const where: Prisma.TradeWhereInput = {
       user_id: req.userId!,
       ...(query.includeNonFinal === 'true' ? {} : { status: 'closed' }),
       ...(query.symbol ? { symbol: { contains: query.symbol, mode: 'insensitive' } } : {}),
       ...(query.side ? { side: query.side } : {}),
       ...(query.walletId ? { wallet_id: query.walletId } : {}),
-      ...(query.dateFrom || query.dateTo
-        ? {
-            timestamp: {
-              ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
-              ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
-            },
-          }
-        : {}),
+      timestamp: {
+        gte: effectiveFrom,
+        ...(query.dateTo ? { lte: new Date(query.dateTo) } : {}),
+      },
     };
     const [trades, total] = await Promise.all([
       prisma.trade.findMany({

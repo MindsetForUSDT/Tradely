@@ -6,6 +6,7 @@ import { validateBybitWallet } from '../services/tradeImport.js';
 import { getWalletSyncState, requestWalletSync } from '../services/walletSync.js';
 import { buildWalletDataQuality } from '../services/dataQuality.js';
 import { writeAuditLog } from '../services/audit.js';
+import { buildEntitlements } from '../services/entitlements.js';
 
 const router = Router();
 const publicWalletSelect = {
@@ -46,6 +47,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
     if (!profile) {
       return res.status(404).json({ error: 'Profile not found' });
     }
+    const entitlements = buildEntitlements(profile);
     const wallets = await prisma.wallet.findMany({
       where: { user_id: profile.id },
       orderBy: { added_at: 'desc' },
@@ -101,7 +103,12 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
     res.json(
       wallets.map((wallet) => ({
         ...wallet,
-        sync_state: getWalletSyncState(wallet.settings, wallet.last_synced_at),
+        sync_state: getWalletSyncState(
+          wallet.settings,
+          wallet.last_synced_at,
+          Date.now(),
+          entitlements.syncIntervalMinutes
+        ),
         data_quality: buildWalletDataQuality({
           processingStatus: wallet.processing_status,
           totalTrades: wallet._count.trades,
@@ -160,6 +167,17 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: 'Profile not found' });
     }
     const profileId = profile.id;
+    const entitlements = buildEntitlements(profile);
+    const sourceCount = await prisma.wallet.count({ where: { user_id: profileId } });
+    if (sourceCount >= entitlements.sourcesMax) {
+      return res.status(403).json({
+        error:
+          entitlements.tier === 'free'
+            ? 'На Free доступен один источник. Для дополнительных источников нужен PRO.'
+            : 'Достигнут лимит из пяти источников.',
+        code: 'SOURCE_LIMIT_REACHED',
+      });
+    }
     const provider =
       typeof req.body.cex_provider === 'string' ? req.body.cex_provider.trim().toLowerCase() : null;
     if (provider && provider !== 'bybit') {
@@ -219,7 +237,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
             providerType: 'cex',
             providerId: 'bybit',
             autoSync: true,
-            syncInterval: 60,
+            syncInterval: entitlements.syncIntervalMinutes,
             initialBalance: verifiedBalance,
             currentBalance: verifiedBalance,
             balanceUpdatedAt: new Date().toISOString(),
@@ -238,7 +256,7 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
         if (provider === 'bybit') {
           const now = new Date();
           const earliest = new Date(now);
-          earliest.setUTCFullYear(earliest.getUTCFullYear() - 2);
+          earliest.setUTCDate(earliest.getUTCDate() - entitlements.historyDays);
           if (importFromDate < earliest) importFromDate = earliest;
           if (importFromDate > now) importFromDate = now;
         }
@@ -322,7 +340,12 @@ router.post('/', requireAuth, async (req: AuthRequest, res) => {
       ...wallet,
       processing_status: autoSyncStarted ? 'processing' : wallet.processing_status,
       sync_started: autoSyncStarted,
-      sync_state: getWalletSyncState(wallet.settings, wallet.last_synced_at),
+      sync_state: getWalletSyncState(
+        wallet.settings,
+        wallet.last_synced_at,
+        Date.now(),
+        entitlements.syncIntervalMinutes
+      ),
     });
   } catch (error: any) {
     console.error('[Wallets POST] Wallet error:', error.message);

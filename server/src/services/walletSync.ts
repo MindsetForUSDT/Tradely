@@ -17,6 +17,10 @@ interface SchedulableWallet {
   settings: string | null;
   last_synced_at: Date | null;
   processing_status: string;
+  user?: {
+    subscription_tier: string;
+    subscription_expires_at: Date | null;
+  };
 }
 
 interface WalletSyncSchedulerDependencies {
@@ -57,13 +61,14 @@ function readSettings(value: string | null): SyncSettings {
 export function getWalletSyncState(
   settingsValue: string | null,
   lastSyncedAt: Date | null,
-  now = Date.now()
+  now = Date.now(),
+  minimumIntervalMinutes = MIN_SYNC_INTERVAL_MINUTES
 ): WalletSyncState {
   const settings = readSettings(settingsValue);
   const enabled = settings.autoSync !== false;
   const requestedInterval = Number(settings.syncInterval || DEFAULT_SYNC_INTERVAL_MINUTES);
   const intervalMinutes = Number.isFinite(requestedInterval)
-    ? Math.max(MIN_SYNC_INTERVAL_MINUTES, requestedInterval)
+    ? Math.max(MIN_SYNC_INTERVAL_MINUTES, minimumIntervalMinutes, requestedInterval)
     : DEFAULT_SYNC_INTERVAL_MINUTES;
   const nextSyncAt = lastSyncedAt
     ? new Date(lastSyncedAt.getTime() + intervalMinutes * 60_000)
@@ -201,6 +206,9 @@ export async function syncDueWallets(dependencies: WalletSyncSchedulerDependenci
           settings: true,
           last_synced_at: true,
           processing_status: true,
+          user: {
+            select: { subscription_tier: true, subscription_expires_at: true },
+          },
         },
       }));
   const runSync = dependencies.sync ?? syncWallet;
@@ -208,7 +216,18 @@ export async function syncDueWallets(dependencies: WalletSyncSchedulerDependenci
   const now = Date.now();
   const due = wallets.filter((wallet) => {
     if (activeWalletSyncs.has(wallet.id)) return false;
-    const schedule = getWalletSyncState(wallet.settings, wallet.last_synced_at, now);
+    const isPro =
+      wallet.user?.subscription_tier === 'pro' &&
+      Boolean(
+        wallet.user.subscription_expires_at && wallet.user.subscription_expires_at.getTime() > now
+      );
+    const minimumInterval = wallet.user ? (isPro ? 60 : 1_440) : MIN_SYNC_INTERVAL_MINUTES;
+    const schedule = getWalletSyncState(
+      wallet.settings,
+      wallet.last_synced_at,
+      now,
+      minimumInterval
+    );
     if (!schedule.enabled) return false;
     // A processing row without an in-memory lease belongs to an interrupted
     // process and should be resumed on the next scheduler tick.

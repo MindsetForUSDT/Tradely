@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../db.js';
 import { requireAuth, type AuthRequest } from '../middleware/auth.js';
 import { writeAuditLog } from '../services/audit.js';
+import { requirePro } from '../middleware/entitlements.js';
 
 const router = Router();
 const defaults = {
@@ -38,7 +39,7 @@ router.get('/', requireAuth, async (req: AuthRequest, res) => {
   return res.json(limits ? serialize(limits) : defaults);
 });
 
-router.post('/', requireAuth, async (req: AuthRequest, res) => {
+router.post('/', requireAuth, requirePro, async (req: AuthRequest, res) => {
   const parsed = limitsSchema.safeParse(req.body);
   if (!parsed.success) {
     return res

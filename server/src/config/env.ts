@@ -25,5 +25,9 @@ export function validateRuntimeConfig(): void {
     requiredEnv('APP_URL');
     requiredEnv('RESEND_API_KEY');
     requiredEnv('EMAIL_FROM');
+    if (process.env.BILLING_ENABLED === 'true') {
+      requiredEnv('YOOKASSA_SHOP_ID');
+      requiredEnv('YOOKASSA_SECRET_KEY');
+    }
   }
 }
