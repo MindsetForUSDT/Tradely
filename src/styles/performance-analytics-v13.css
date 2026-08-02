@@ -1,0 +1,268 @@
+/* v13 — strategy performance analytics layered after the existing diagnostics system */
+
+.performance-v13 {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at 90% 5%, rgba(137, 151, 255, 0.1), transparent 32%),
+    rgba(12, 15, 20, 0.9);
+}
+
+.performance-v13 > header {
+  padding: 25px 28px 21px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.performance-v13 > header span,
+.performance-v13-grid article > header span {
+  color: var(--tradeum-accent);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.performance-v13 > header h2,
+.performance-v13-grid article > header h2 {
+  margin-top: 6px;
+  font-size: 20px;
+  letter-spacing: -0.035em;
+}
+
+.performance-v13 > header small,
+.performance-v13-grid article > header > small {
+  color: #7f8792;
+  font-size: 11px;
+}
+
+.performance-v13-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.performance-v13-metrics article {
+  min-width: 0;
+  padding: 24px 28px 22px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.performance-v13-metrics article:last-child {
+  border-right: 0;
+}
+
+.performance-v13-metrics article > span {
+  display: block;
+  color: #7f8792;
+  font-size: 11px;
+}
+
+.performance-v13-metrics article > strong {
+  min-height: 36px;
+  margin-top: 9px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f2f4f7;
+  font-size: clamp(20px, 2vw, 27px);
+  font-weight: 650;
+  letter-spacing: -0.04em;
+  white-space: nowrap;
+}
+
+.performance-v13-metrics article > strong i {
+  color: #525965;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.performance-v13-metrics article > strong b {
+  font: inherit;
+}
+
+.performance-v13-metrics article > small {
+  margin-top: 5px;
+  display: block;
+  color: #69717d;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.performance-v13-note {
+  margin: 0;
+  padding: 12px 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: #8b929d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.performance-v13-grid {
+  margin-top: 18px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.35fr);
+  gap: 18px;
+}
+
+.performance-v13-weekdays > div {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.performance-v13-weekdays section {
+  min-width: 0;
+  min-height: 105px;
+  padding: 14px 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.performance-v13-weekdays section.empty {
+  opacity: 0.45;
+}
+
+.performance-v13-weekdays section > span {
+  color: #89919c;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.performance-v13-weekdays section > strong {
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+}
+
+.performance-v13-weekdays section > small {
+  color: #69717c;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.performance-v13-table-head,
+.performance-v13-table-row {
+  display: grid;
+  grid-template-columns: minmax(150px, 1.5fr) repeat(3, minmax(72px, 0.7fr)) minmax(105px, 0.9fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.performance-v13-table-head {
+  padding: 0 4px 10px;
+  color: #666e79;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.performance-v13-table-row {
+  min-height: 42px;
+  padding: 0 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.065);
+  color: #9097a1;
+  font-size: 11px;
+}
+
+.performance-v13-table-row > strong:first-child {
+  overflow: hidden;
+  color: #e9ebef;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.performance-v13-table-row > strong:last-child {
+  text-align: right;
+}
+
+.performance-v13-strategies footer {
+  margin-top: 15px;
+  padding-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  color: #737b86;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.performance-v13-strategies footer a {
+  flex: 0 0 auto;
+  color: var(--tradeum-accent);
+  font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+  .performance-v13-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .performance-v13-metrics article:nth-child(2) {
+    border-right: 0;
+  }
+
+  .performance-v13-metrics article:nth-child(-n + 2) {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .performance-v13-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .performance-v13 > header {
+    padding: 22px 20px 18px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .performance-v13-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .performance-v13-metrics article,
+  .performance-v13-metrics article:nth-child(2) {
+    padding: 20px;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .performance-v13-metrics article:last-child {
+    border-bottom: 0;
+  }
+
+  .performance-v13-note {
+    padding: 12px 20px;
+  }
+
+  .performance-v13-weekdays > div {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .performance-v13-table {
+    overflow-x: auto;
+  }
+
+  .performance-v13-table-head,
+  .performance-v13-table-row {
+    min-width: 650px;
+  }
+
+  .performance-v13-strategies footer {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

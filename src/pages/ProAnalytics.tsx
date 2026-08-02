@@ -26,6 +26,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import type { DiagnosticBucket } from '@/lib/lossDiagnostics';
 import { calculateLossDiagnostics } from '@/lib/lossDiagnostics';
+import { calculatePerformanceAnalytics } from '@/lib/performanceAnalytics';
 import { formatDuration, formatSignedUSD } from '@/lib/tradeAnalytics';
 import { formatUSD } from '@/lib/utils';
 
@@ -114,7 +115,11 @@ export function ProAnalytics() {
   const [range, setRange] = useState<RangeDays>(30);
   const { subscriptionTier } = useAuth();
   const { trades, isLoading, error } = useTradesOptimized({ limit: 5000, daysAgo: range });
-  const diagnostics = useMemo(() => calculateLossDiagnostics(trades), [trades]);
+  const performance = useMemo(() => calculatePerformanceAnalytics(trades), [trades]);
+  const diagnostics = useMemo(
+    () => calculateLossDiagnostics(performance.finalTrades),
+    [performance.finalTrades]
+  );
 
   const hourlyData = useMemo(() => {
     const byHour = new Map(diagnostics.hourly.map((bucket) => [Number(bucket.key), bucket]));
@@ -165,7 +170,7 @@ export function ProAnalytics() {
     );
   }
 
-  if (!trades.length) {
+  if (!performance.trades) {
     return (
       <section className="pro-v3-page">
         <header className="pro-v3-heading">
@@ -205,7 +210,7 @@ export function ProAnalytics() {
           <div>
             <strong>{primaryInsight?.evidence}</strong>
             <small>
-              Вывод построен по выборке «{tradeCountLabel(trades.length)}» за {range} дней
+              Вывод построен по выборке «{tradeCountLabel(performance.trades)}» за {range} дней
             </small>
           </div>
         </article>
@@ -251,7 +256,7 @@ export function ProAnalytics() {
           <span>PRO · диагностика торговли</span>
           <h1>Почему я теряю деньги?</h1>
           <p>
-            {tradeCountLabel(trades.length)} · часы в {timezone}
+            {tradeCountLabel(performance.trades)} · только финальные сделки · часы в {timezone}
           </p>
         </div>
         <div className="pro-v3-range" aria-label="Период аналитики">
@@ -306,6 +311,135 @@ export function ProAnalytics() {
           <span>Максимальная просадка</span>
           <strong className="negative">{formatUSD(diagnostics.maxDrawdown)}</strong>
           <small>по накопленному чистому P&amp;L</small>
+        </article>
+      </div>
+
+      <section className="performance-v13" aria-labelledby="performance-v13-title">
+        <header>
+          <div>
+            <span>Статистика стратегии</span>
+            <h2 id="performance-v13-title">Есть ли у торговли математическое преимущество?</h2>
+          </div>
+          <small>
+            {performance.sample === 'extended'
+              ? 'Расширенная выборка'
+              : performance.sample === 'working'
+                ? 'Рабочая выборка'
+                : 'Малая выборка'}
+            {' · '}
+            {performance.trades} финальных сделок
+          </small>
+        </header>
+
+        <div className="performance-v13-metrics">
+          <article>
+            <span>Expectancy</span>
+            <strong className={performance.expectancy >= 0 ? 'positive' : 'negative'}>
+              {formatSignedUSD(performance.expectancy)}
+            </strong>
+            <small>средний чистый результат сделки</small>
+          </article>
+          <article>
+            <span>Profit factor</span>
+            <strong>
+              {performance.profitFactor === null ? 'Без убытков' : performance.profitFactor}
+            </strong>
+            <small>валовая прибыль / валовый убыток</small>
+          </article>
+          <article>
+            <span>Средняя победа / потеря</span>
+            <strong>
+              {formatSignedUSD(performance.averageWin)} /{' '}
+              {formatSignedUSD(-performance.averageLoss)}
+            </strong>
+            <small>
+              Payoff {performance.payoffRatio === null ? 'не определён' : performance.payoffRatio}
+            </small>
+          </article>
+          <article>
+            <span>Максимальные серии</span>
+            <strong>
+              <b className="positive">{performance.maxWinStreak} W</b>
+              <i>/</i>
+              <b className="negative">{performance.maxLossStreak} L</b>
+            </strong>
+            <small>
+              Текущая:{' '}
+              {performance.currentStreak > 0
+                ? `${performance.currentStreak} W`
+                : performance.currentStreak < 0
+                  ? `${Math.abs(performance.currentStreak)} L`
+                  : 'нет'}
+            </small>
+          </article>
+        </div>
+
+        <p className="performance-v13-note">
+          {performance.sample === 'small'
+            ? 'Менее 20 сделок: метрики рассчитаны точно, но выборка слишком мала для устойчивого вывода о стратегии.'
+            : 'Метрики описывают выбранную историю, но не гарантируют будущий результат.'}
+        </p>
+      </section>
+
+      <div className="performance-v13-grid">
+        <article className="diagnostic-card performance-v13-weekdays">
+          <header>
+            <div>
+              <span>Дни недели</span>
+              <h2>Когда результат воспроизводится</h2>
+            </div>
+            <small>по локальному времени закрытия</small>
+          </header>
+          <div>
+            {performance.weekdays.map((day) => (
+              <section key={day.key} className={day.trades ? '' : 'empty'}>
+                <span>{day.label}</span>
+                <strong className={day.netPnl >= 0 ? 'positive' : 'negative'}>
+                  {day.trades ? formatSignedUSD(day.netPnl) : '—'}
+                </strong>
+                <small>
+                  {day.trades ? `${day.trades} · WR ${day.winRate.toFixed(0)}%` : 'нет сделок'}
+                </small>
+              </section>
+            ))}
+          </div>
+        </article>
+
+        <article className="diagnostic-card performance-v13-strategies">
+          <header>
+            <div>
+              <span>Сравнение стратегий</span>
+              <h2>Какая система создаёт результат</h2>
+            </div>
+            <small>{performance.strategyCoverage.toFixed(0)}% сделок размечено</small>
+          </header>
+          <div className="performance-v13-table">
+            <div className="performance-v13-table-head">
+              <span>Стратегия</span>
+              <span>Сделок</span>
+              <span>Expectancy</span>
+              <span>PF</span>
+              <span>Net P&amp;L</span>
+            </div>
+            {performance.strategies.slice(0, 7).map((strategy) => (
+              <div className="performance-v13-table-row" key={strategy.key}>
+                <strong>{strategy.label}</strong>
+                <span>{strategy.trades}</span>
+                <span>{formatSignedUSD(strategy.expectancy)}</span>
+                <span>{strategy.profitFactor === null ? '∞' : strategy.profitFactor}</span>
+                <strong className={strategy.netPnl >= 0 ? 'positive' : 'negative'}>
+                  {formatSignedUSD(strategy.netPnl)}
+                </strong>
+              </div>
+            ))}
+          </div>
+          {performance.strategyCoverage < 100 ? (
+            <footer>
+              Неразмеченные сделки показаны отдельно — Tradeum не приписывает им стратегию
+              автоматически.
+              <Link to="/dashboard/trades">Разметить сделки</Link>
+            </footer>
+          ) : null}
         </article>
       </div>
 
