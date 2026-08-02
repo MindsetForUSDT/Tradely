@@ -1,0 +1,174 @@
+.risk-v3-heading > span.warning {
+  color: #f0bd70;
+  border-color: rgba(240, 189, 112, 0.28);
+  background: rgba(240, 189, 112, 0.08);
+}
+
+.risk-v3-heading > span.unconfigured {
+  color: rgba(255, 255, 255, 0.64);
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.risk-v11-guard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(220px, 0.76fr);
+  gap: 12px;
+  margin: 18px 0;
+}
+
+.risk-v11-window,
+.risk-v11-policy {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 18px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.04), transparent 58%), rgba(10, 12, 16, 0.86);
+}
+
+.risk-v11-window header,
+.risk-v11-window footer,
+.risk-v11-policy dl > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.risk-v11-window header > span,
+.risk-v11-policy > span {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.risk-v11-window header small {
+  color: rgba(255, 255, 255, 0.48);
+  font-size: 11px;
+}
+
+.risk-v11-window.warning header small {
+  color: #f0bd70;
+}
+
+.risk-v11-window.breached header small {
+  color: #ff7b7b;
+}
+
+.risk-v11-window > strong,
+.risk-v11-policy > strong {
+  display: block;
+  margin-top: 16px;
+  color: #f7f8fb;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: clamp(25px, 2.2vw, 34px);
+  line-height: 1;
+  letter-spacing: -0.045em;
+}
+
+.risk-v11-window > strong.positive {
+  color: #8fe0b1;
+}
+
+.risk-v11-window > strong.negative {
+  color: #ff9a9a;
+}
+
+.risk-v11-meter {
+  position: relative;
+  height: 5px;
+  margin: 19px 0 13px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.risk-v11-meter i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: #8e9dff;
+  transition: width 260ms ease;
+}
+
+.risk-v11-window.warning .risk-v11-meter i {
+  background: #e9b866;
+}
+
+.risk-v11-window.breached .risk-v11-meter i {
+  background: #ef6868;
+}
+
+.risk-v11-window footer {
+  color: rgba(255, 255, 255, 0.44);
+  font-size: 11px;
+}
+
+.risk-v11-window footer span:last-child {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.risk-v11-policy > small {
+  display: block;
+  margin-top: 8px;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 12px;
+}
+
+.risk-v11-policy dl {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0 0;
+}
+
+.risk-v11-policy dl > div {
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.risk-v11-policy dt {
+  color: rgba(255, 255, 255, 0.42);
+  font-size: 11px;
+}
+
+.risk-v11-policy dd {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+@media (max-width: 980px) {
+  .risk-v11-guard {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .risk-v11-policy {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 640px) {
+  .risk-v11-guard {
+    grid-template-columns: 1fr;
+  }
+
+  .risk-v11-policy {
+    grid-column: auto;
+  }
+
+  .risk-v11-window,
+  .risk-v11-policy {
+    padding: 17px;
+    border-radius: 15px;
+  }
+
+  .risk-v11-window footer {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+  }
+}

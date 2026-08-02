@@ -4,13 +4,50 @@ import toast from 'react-hot-toast';
 import { useRiskManager } from '@/hooks/useRiskManager';
 import { useTradesOptimized } from '@/hooks/useTradesOptimized';
 import { buildDisciplineHistory } from '@/lib/productExperience';
-import { calculatePositionSize, checkRiskLimits } from '@/lib/riskCalculator';
-import { calculateTradeBreakdown, formatSignedUSD } from '@/lib/tradeAnalytics';
+import { calculatePositionSize } from '@/lib/riskCalculator';
+import { buildRiskDisciplineSnapshot, type RiskWindowSnapshot } from '@/lib/riskDiscipline';
+import { formatSignedUSD } from '@/lib/tradeAnalytics';
 import { formatUSD } from '@/lib/utils';
 
 function safeParseFloat(value: string, fallback = 0) {
   const parsed = Number.parseFloat(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+const riskStatusCopy = {
+  'not-configured': 'Лимит не настроен',
+  'no-trades': 'Сделок пока нет',
+  safe: 'В пределах правила',
+  warning: 'Использовано 80% лимита',
+  breached: 'Лимит достигнут',
+} as const;
+
+function RiskWindowCard({ label, snapshot }: { label: string; snapshot: RiskWindowSnapshot }) {
+  const progress = Math.min(100, snapshot.usagePercent || 0);
+  return (
+    <article className={`risk-v11-window ${snapshot.status}`}>
+      <header>
+        <span>{label}</span>
+        <small>{riskStatusCopy[snapshot.status]}</small>
+      </header>
+      <strong className={snapshot.netPnl >= 0 ? 'positive' : 'negative'}>
+        {formatSignedUSD(snapshot.netPnl)}
+      </strong>
+      <div className="risk-v11-meter" aria-label={`Использование лимита: ${progress.toFixed(0)}%`}>
+        <i style={{ width: `${progress}%` }} />
+      </div>
+      <footer>
+        <span>{snapshot.trades} завершённых сделок</span>
+        <span>
+          {snapshot.remaining === null
+            ? 'Задайте лимит'
+            : snapshot.status === 'breached'
+              ? 'Остаток: $0'
+              : `Остаток: ${formatUSD(snapshot.remaining)}`}
+        </span>
+      </footer>
+    </article>
+  );
 }
 
 export function RiskManager() {
@@ -41,15 +78,14 @@ export function RiskManager() {
     setAlertEmail(limits.alert_email || '');
   }, [limits]);
 
-  const todayPnl = useMemo(() => {
-    const today = new Date().toDateString();
-    return trades.reduce((total, trade) => {
-      if (trade.status !== 'closed' || new Date(trade.timestamp).toDateString() !== today) {
-        return total;
-      }
-      return total + calculateTradeBreakdown(trade).netPnl;
-    }, 0);
-  }, [trades]);
+  const riskSnapshot = useMemo(
+    () =>
+      buildRiskDisciplineSnapshot(trades, {
+        daily: limits.daily_loss_limit,
+        weekly: limits.weekly_loss_limit,
+      }),
+    [trades, limits.daily_loss_limit, limits.weekly_loss_limit]
+  );
 
   const disciplineHistory = useMemo(
     () => buildDisciplineHistory(trades, limits.daily_loss_limit, new Date(), 14),
@@ -68,18 +104,27 @@ export function RiskManager() {
     };
   }, [disciplineHistory]);
 
-  const { dailyBreached } = checkRiskLimits(
-    todayPnl,
-    limits.daily_loss_limit,
-    limits.weekly_loss_limit
-  );
-
   useEffect(() => {
-    if (dailyBreached && !previousBreach.current && limits.alert_enabled) {
-      toast.error('Дневной лимит убытка превышен');
+    if (riskSnapshot.shouldStopTrading && !previousBreach.current && limits.alert_enabled) {
+      toast.error('Лимит риска достигнут — остановите торговую сессию');
     }
-    previousBreach.current = dailyBreached;
-  }, [dailyBreached, limits.alert_enabled]);
+    previousBreach.current = riskSnapshot.shouldStopTrading;
+  }, [riskSnapshot.shouldStopTrading, limits.alert_enabled]);
+
+  const statusTone = riskSnapshot.shouldStopTrading
+    ? 'breached'
+    : riskSnapshot.today.status === 'warning' || riskSnapshot.week.status === 'warning'
+      ? 'warning'
+      : limits.daily_loss_limit <= 0 || limits.weekly_loss_limit <= 0
+        ? 'unconfigured'
+        : 'safe';
+  const statusLabel = riskSnapshot.shouldStopTrading
+    ? 'Торговлю следует остановить'
+    : statusTone === 'warning'
+      ? 'Приближение к лимиту'
+      : statusTone === 'unconfigured'
+        ? 'Настройте оба лимита'
+        : 'Правила соблюдены';
 
   const validateCalculator = useCallback(() => {
     const nextErrors: Record<string, string> = {};
@@ -135,29 +180,33 @@ export function RiskManager() {
           <h1>Риск</h1>
           <p>Лимиты, размер позиции и состояние торговой дисциплины.</p>
         </div>
-        <span className={dailyBreached ? 'breached' : ''}>
-          {dailyBreached ? <WarningCircle size={16} /> : <CheckCircle size={16} weight="fill" />}
-          {dailyBreached ? 'Лимит превышен' : 'Правила соблюдены'}
+        <span className={statusTone}>
+          {statusTone === 'breached' || statusTone === 'warning' ? (
+            <WarningCircle size={16} />
+          ) : (
+            <CheckCircle size={16} weight="fill" />
+          )}
+          {statusLabel}
         </span>
       </header>
 
-      <div className="risk-v3-status">
-        <article>
-          <span>P&amp;L сегодня</span>
-          <strong className={todayPnl >= 0 ? 'positive' : 'negative'}>{formatUSD(todayPnl)}</strong>
-          <small>по автоматически импортированным сделкам</small>
-        </article>
-        <article>
-          <span>Дневной лимит</span>
-          <strong>
-            {limits.daily_loss_limit ? formatUSD(limits.daily_loss_limit) : 'Не настроен'}
-          </strong>
-          <small>максимальный допустимый убыток</small>
-        </article>
-        <article>
-          <span>Риск на позицию</span>
+      <div className="risk-v11-guard" aria-label="Контроль лимитов текущей сессии">
+        <RiskWindowCard label="Сегодня" snapshot={riskSnapshot.today} />
+        <RiskWindowCard label="Текущая неделя" snapshot={riskSnapshot.week} />
+        <article className="risk-v11-policy">
+          <span>Правило позиции</span>
           <strong>{limits.position_size_percent}%</strong>
-          <small>максимальное плечо {limits.max_leverage}x</small>
+          <small>от капитала на одну сделку</small>
+          <dl>
+            <div>
+              <dt>Макс. плечо</dt>
+              <dd>{limits.max_leverage}x</dd>
+            </div>
+            <div>
+              <dt>Предупреждения</dt>
+              <dd>{limits.alert_enabled ? 'В интерфейсе' : 'Выключены'}</dd>
+            </div>
+          </dl>
         </article>
       </div>
 
@@ -234,7 +283,7 @@ export function RiskManager() {
               <ShieldCheck size={20} />
               <span>
                 <h2>Торговые лимиты</h2>
-                <p>Система предупредит до нарушения правил.</p>
+                <p>Статус обновляется по завершённым сделкам из журнала.</p>
               </span>
             </div>
           </header>
@@ -279,22 +328,11 @@ export function RiskManager() {
             onClick={() => setAlertsEnabled((value) => !value)}
           >
             <span>
-              <strong>Предупреждения о риске</strong>
-              <small>Сообщать о приближении к лимиту.</small>
+              <strong>Предупреждения в интерфейсе</strong>
+              <small>Показывать сигнал при достижении сохранённого лимита.</small>
             </span>
             <i className={alertsEnabled ? 'on' : ''} />
           </button>
-          {alertsEnabled ? (
-            <label className="risk-v3-email">
-              Email для уведомлений
-              <input
-                type="email"
-                value={alertEmail}
-                onChange={(event) => setAlertEmail(event.target.value)}
-                placeholder="trader@example.com"
-              />
-            </label>
-          ) : null}
           <button type="button" className="risk-v3-primary" onClick={save}>
             Сохранить лимиты
           </button>

@@ -3,7 +3,6 @@ import { lazy, Suspense, useMemo, useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/dashboard/DashboardLayout';
 import { WalletConnect } from '@/components/dashboard/WalletConnect';
-import { AlertSettings } from '@/components/dashboard/AlertSettings';
 import { TaxReport } from '@/components/dashboard/TaxReport';
 import { ManualTradeForm, type ManualTradeInput } from '@/components/dashboard/ManualTradeForm';
 import { ProFeature } from '@/components/guards/ProFeature';
@@ -147,7 +146,7 @@ export function Dashboard() {
       <Route path="trades" element={<TradesPage />} />
       <Route path="journal" element={<Navigate to="/dashboard/trades" replace />} />
       <Route path="wallets" element={<WalletConnect />} />
-      <Route path="alerts" element={<AlertSettings />} />
+      <Route path="alerts" element={<Navigate to="/dashboard/risk" replace />} />
       <Route path="tax" element={<TaxReport />} />
       <Route path="risk" element={<MemoizedRiskManager />} />
       <Route path="strategies" element={<MemoizedStrategies />} />
