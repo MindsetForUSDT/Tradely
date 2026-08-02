@@ -7,6 +7,7 @@ import { Toaster } from 'react-hot-toast';
 import { AuthContext, type UserProfile } from '@/hooks/useAuth';
 import { api } from '@/lib/api';
 import { useStore } from '@/store/useStore';
+import { ThemeController } from '@/components/ui/ThemeController';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -102,29 +103,25 @@ export function AppProviders({ children }: { children: ReactNode }) {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-          <AuthProviderInner>
-            <OfflineBanner />
-            {children}
-            <Toaster
-              position="bottom-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#0D0F11',
-                  color: '#F4F4F2',
-                  border: '1px solid #34373C',
-                  borderRadius: '6px',
-                  fontSize: '12px',
-                },
-                success: {
-                  iconTheme: { primary: '#71B67A', secondary: '#0D0F11' },
-                },
-                error: {
-                  iconTheme: { primary: '#E15B5B', secondary: '#0D0F11' },
-                },
-              }}
-            />
-          </AuthProviderInner>
+          <ThemeController>
+            <AuthProviderInner>
+              <OfflineBanner />
+              {children}
+              <Toaster
+                position="bottom-right"
+                toastOptions={{
+                  duration: 4000,
+                  className: 'tradeum-toast',
+                  success: {
+                    iconTheme: { primary: '#71B67A', secondary: '#0D0F11' },
+                  },
+                  error: {
+                    iconTheme: { primary: '#E15B5B', secondary: '#0D0F11' },
+                  },
+                }}
+              />
+            </AuthProviderInner>
+          </ThemeController>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>

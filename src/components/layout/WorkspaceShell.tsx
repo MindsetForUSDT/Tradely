@@ -20,6 +20,7 @@ import {
 import { useAuth } from '@/hooks/useAuth';
 import { useWallets } from '@/hooks/useWallets';
 import '@/styles/sync-runtime-v5.css';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 interface WorkspaceSettings {
   compact: boolean;
@@ -168,14 +169,17 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
           <ChartLineUp size={19} weight="bold" />
           TradeumDiary
         </Link>
-        <button
-          type="button"
-          onClick={() => setMobileOpen((value) => !value)}
-          aria-expanded={mobileOpen}
-          aria-label="Открыть рабочее меню"
-        >
-          {mobileOpen ? <X size={21} /> : <List size={21} />}
-        </button>
+        <div>
+          <ThemeToggle compact />
+          <button
+            type="button"
+            onClick={() => setMobileOpen((value) => !value)}
+            aria-expanded={mobileOpen}
+            aria-label="Открыть рабочее меню"
+          >
+            {mobileOpen ? <X size={21} /> : <List size={21} />}
+          </button>
+        </div>
       </header>
 
       <aside className={`workspace-sidebar workspace-sidebar-v3 ${mobileOpen ? 'is-open' : ''}`}>
@@ -196,6 +200,7 @@ export function WorkspaceShell({ children }: { children: ReactNode }) {
         />
 
         <div className="workspace-sidebar-bottom">
+          <ThemeToggle />
           <Link to="/settings" className={location.pathname === '/settings' ? 'active' : ''}>
             <GearSix size={17} />
             <span>Настройки</span>

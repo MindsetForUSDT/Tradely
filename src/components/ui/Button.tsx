@@ -19,7 +19,7 @@ const variantMap: Record<ButtonVariant, string> = {
   outline:
     'bg-surface-DEFAULT text-neon-green border-2 border-neon-green/50 hover:border-neon-green hover:bg-neon-green/10 hover:shadow-glow-green',
   ghost:
-    'bg-surface-overlay text-text-primary border border-surface-border hover:text-white hover:bg-surface-elevoid hover:border-surface-borderHover',
+    'bg-surface-overlay text-text-primary border border-surface-border hover:bg-surface-elevated hover:border-surface-borderHover',
   danger: 'bg-accent-red text-white font-semibold hover:bg-accent-red-dim',
 };
 

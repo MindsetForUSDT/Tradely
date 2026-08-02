@@ -5,24 +5,24 @@ export default {
       colors: {
         // Фон - строгий, приглушённый
         bg: {
-          DEFAULT: '#0a0a0f',
-          secondary: '#111318',
-          tertiary: '#161920',
+          DEFAULT: 'rgb(var(--color-bg) / <alpha-value>)',
+          secondary: 'rgb(var(--color-bg-secondary) / <alpha-value>)',
+          tertiary: 'rgb(var(--color-bg-tertiary) / <alpha-value>)',
         },
         // Поверхности
         surface: {
-          DEFAULT: '#161920',
-          elevated: '#1c1f26',
-          overlay: '#232730',
-          border: '#2a2e39',
-          borderHover: '#3a3f4d',
+          DEFAULT: 'rgb(var(--color-surface) / <alpha-value>)',
+          elevated: 'rgb(var(--color-surface-elevated) / <alpha-value>)',
+          overlay: 'rgb(var(--color-surface-overlay) / <alpha-value>)',
+          border: 'rgb(var(--color-border) / <alpha-value>)',
+          borderHover: 'rgb(var(--color-border-hover) / <alpha-value>)',
         },
         // Текст - высокий контраст для читаемости
         text: {
-          primary: '#e6e6e8',
-          secondary: '#8a8f98',
-          tertiary: '#6b707a',
-          muted: '#5a5f68',
+          primary: 'rgb(var(--color-text) / <alpha-value>)',
+          secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
+          tertiary: 'rgb(var(--color-text-tertiary) / <alpha-value>)',
+          muted: 'rgb(var(--color-text-muted) / <alpha-value>)',
         },
         // Акценты - приглушённые, не кричащие
         accent: {
@@ -64,7 +64,7 @@ export default {
       },
       fontFamily: {
         inter: ['Inter', 'system-ui', 'sans-serif'],
-        mono: ['JetBrains Mono', 'monospace'],
+        mono: ['Inter', 'system-ui', 'sans-serif'],
         display: ['Inter', 'system-ui', 'sans-serif'],
         body: ['Inter', 'system-ui', 'sans-serif'],
       },

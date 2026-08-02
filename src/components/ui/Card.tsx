@@ -19,10 +19,10 @@ const paddingMap = {
 };
 
 const variantMap = {
-  default: 'bg-[#0d0f11] border-[#2b2d32]',
-  glass: 'bg-[#0d0f11]/90 backdrop-blur-xl border-[#2b2d32]',
-  elevated: 'bg-[#111316] border-[#34373c] shadow-lg shadow-black/30',
-  gradient: 'bg-[#101215] border-[#303238]',
+  default: 'bg-surface border-surface-border',
+  glass: 'bg-surface/90 backdrop-blur-xl border-surface-border',
+  elevated: 'bg-surface-elevated border-surface-borderHover shadow-elevated',
+  gradient: 'bg-surface-elevated border-surface-border',
 };
 
 const glowMap = {
@@ -94,7 +94,7 @@ export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEleme
 
 export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(
   ({ className, children, ...props }, ref) => (
-    <h3 ref={ref} className={cn('text-lg font-semibold text-white', className)} {...props}>
+    <h3 ref={ref} className={cn('text-lg font-semibold text-text-primary', className)} {...props}>
       {children}
     </h3>
   )

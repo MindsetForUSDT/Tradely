@@ -2,6 +2,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { api } from '@/lib/api';
+import { applyTheme, type Theme } from '@/lib/theme';
 
 // Типы
 type SubscriptionTier = 'free' | 'pro' | 'enterprise';
@@ -32,7 +33,7 @@ interface UIState {
   isMobileMenuOpen: boolean;
   activeTab: string;
   sidebarCollapsed: boolean;
-  theme: 'dark' | 'light';
+  theme: Theme;
 }
 
 interface FilterState {
@@ -56,7 +57,7 @@ interface AppStore {
   toggleMobileMenu: () => void;
   setActiveTab: (tab: string) => void;
   toggleSidebar: () => void;
-  setTheme: (theme: 'dark' | 'light') => void;
+  setTheme: (theme: Theme) => void;
 
   filters: FilterState;
   setFilters: (filters: Partial<FilterState>) => void;
@@ -195,7 +196,7 @@ export const useStore = create<AppStore>()(
 
       setTheme: (theme) => {
         set((s) => ({ ui: { ...s.ui, theme } }));
-        document.documentElement.classList.toggle('dark', theme === 'dark');
+        applyTheme(theme);
       },
 
       // Фильтры

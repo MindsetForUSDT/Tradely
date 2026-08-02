@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight } from '@phosphor-icons/react';
 import { Icon } from '@/components/ui/Icons';
 import { useAuth } from '@/hooks/useAuth';
+import { ThemeToggle } from '@/components/ui/ThemeToggle';
 
 const publicLinks = [
   { label: 'Возможности', href: '/features' },
@@ -37,6 +38,7 @@ export function Header() {
           </span>
           <strong>TradeumDiary</strong>
         </Link>
+        <ThemeToggle compact className="mono-theme-toggle" />
         <nav className={open ? 'open' : ''} aria-label="Основная навигация">
           {isAuthenticated ? (
             <>
