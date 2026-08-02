@@ -20,6 +20,7 @@ import './styles/first-run-v12.css';
 import './styles/performance-analytics-v13.css';
 import './styles/billing-v14.css';
 import './styles/design-foundation-v15.css';
+import './styles/landing-redesign-v16.css';
 
 applyTheme(readStoredTheme(window.localStorage));
 
